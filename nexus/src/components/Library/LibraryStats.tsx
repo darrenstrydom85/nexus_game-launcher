@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 import { Clock, Gamepad2, GamepadIcon, Trophy, TrendingUp } from "lucide-react";
 import { ActivityChart } from "./stats/ActivityChart";
@@ -67,8 +67,9 @@ interface BackendSession {
   durationS: number;
 }
 
+/** Formats play time in seconds as "Xh Ym" or "Xm". Exported for tests. */
 export function formatHours(seconds: number): string {
-  return `${Math.round(seconds / 3600)}h`;
+  return formatPlayTime(seconds);
 }
 
 interface StatCardProps {
@@ -206,7 +207,7 @@ export function LibraryStats({
             <StatCard
               icon={<Clock className="size-5" />}
               label="Total Hours"
-              value={formatHours(stats.totalPlayTimeS)}
+              value={formatPlayTime(stats.totalPlayTimeS)}
             />
             <StatCard
               icon={<Gamepad2 className="size-5" />}
@@ -226,7 +227,7 @@ export function LibraryStats({
             <StatCard
               icon={<TrendingUp className="size-5" />}
               label="Weekly Play Time"
-              value={formatHours(stats.weeklyPlayTimeS)}
+              value={formatPlayTime(stats.weeklyPlayTimeS)}
             />
           </div>
 

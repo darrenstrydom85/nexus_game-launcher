@@ -1,3 +1,4 @@
+import { formatPlayTime } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 import type { TopGame } from "../LibraryStats";
 
@@ -21,7 +22,6 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
         <div className="flex flex-col gap-2">
           {top10.map((game, i) => {
             const pct = Math.round((game.totalPlayTimeS / maxTime) * 100);
-            const hours = Math.round(game.totalPlayTimeS / 3600);
             return (
               <button
                 key={game.id}
@@ -46,7 +46,7 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
                       {game.name}
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {hours}h
+                      {formatPlayTime(game.totalPlayTimeS)}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">

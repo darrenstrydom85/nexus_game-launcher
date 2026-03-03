@@ -86,14 +86,18 @@ describe("Story 6.7: Library Stats Page", () => {
 
   it("displays correct stat values", () => {
     render(<LibraryStats stats={mockStats} />);
-    expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent("100h");
+    expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent(
+      "100h 0m",
+    );
     expect(screen.getByTestId("stat-card-games-played")).toHaveTextContent("25");
-    expect(screen.getByTestId("stat-card-games-unplayed")).toHaveTextContent("10");
+    expect(screen.getByTestId("stat-card-games-unplayed")).toHaveTextContent(
+      "10",
+    );
     expect(screen.getByTestId("stat-card-most-played")).toHaveTextContent(
       "Cyberpunk 2077",
     );
     expect(screen.getByTestId("stat-card-weekly-play-time")).toHaveTextContent(
-      "10h",
+      "10h 0m",
     );
   });
 
@@ -157,15 +161,18 @@ describe("Story 6.7: Library Stats Page", () => {
   it("renders with default empty stats", async () => {
     render(<LibraryStats />);
     await waitFor(() => {
-      expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent("0h");
+      expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent(
+        "0m",
+      );
     });
   });
 });
 
 describe("formatHours", () => {
-  it("converts seconds to hours", () => {
-    expect(formatHours(3600)).toBe("1h");
-    expect(formatHours(7200)).toBe("2h");
-    expect(formatHours(0)).toBe("0h");
+  it("formats seconds as hours and minutes", () => {
+    expect(formatHours(3600)).toBe("1h 0m");
+    expect(formatHours(7200)).toBe("2h 0m");
+    expect(formatHours(9000)).toBe("2h 30m");
+    expect(formatHours(0)).toBe("0m");
   });
 });
