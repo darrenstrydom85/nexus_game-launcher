@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Nexus",
+  "version": "0.1.2",
+  "identifier": "com.darrenstrydom.nexus",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Nexus",
+        "width": 1280,
+        "height": 720,
+        "decorations": false,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com data:; frame-src https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**/*"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "icons/128x128.png",
+        "sidebarImage": "icons/128x128.png"
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    },
+    "shortDescription": "Game Launcher — All your games, one place.",
+    "longDescription": "Nexus is a unified game launcher that brings together games from Steam, Epic, GOG, Xbox, and more into one beautiful library.",
+    "copyright": "Copyright © 2026 Darren Strydom",
+    "category": "Game",
+    "publisher": "Darren Strydom"
+  }
+}

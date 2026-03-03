@@ -1,0 +1,186 @@
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+
+function normalizeImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("asset:")) {
+    return url;
+  }
+  try {
+    return convertFileSrc(url);
+  } catch {
+    return url;
+  }
+}
+
+export type GameSource =
+  | "steam"
+  | "epic"
+  | "gog"
+  | "ubisoft"
+  | "battlenet"
+  | "xbox"
+  | "standalone";
+
+export type GameStatus =
+  | "playing"
+  | "completed"
+  | "backlog"
+  | "dropped"
+  | "wishlist"
+  | "unset";
+
+export interface Game {
+  id: string;
+  name: string;
+  source: GameSource;
+  folderPath: string | null;
+  exePath: string | null;
+  exeName: string | null;
+  launchUrl: string | null;
+  igdbId: number | null;
+  steamgridId: number | null;
+  description: string | null;
+  coverUrl: string | null;
+  heroUrl: string | null;
+  logoUrl: string | null;
+  iconUrl: string | null;
+  customCover: string | null;
+  customHero: string | null;
+  potentialExeNames: string | null;
+  genres: string[];
+  releaseDate: string | null;
+  criticScore: number | null;
+  criticScoreCount: number | null;
+  communityScore: number | null;
+  communityScoreCount: number | null;
+  trailerUrl: string | null;
+  hltbMainS: number | null;
+  hltbMainPlusS: number | null;
+  hltbCompletionistS: number | null;
+  hltbGameId: number | null;
+  status: GameStatus;
+  rating: number | null;
+  totalPlayTimeS: number;
+  lastPlayedAt: string | null;
+  playCount: number;
+  addedAt: string;
+}
+
+interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainS" | "hltbMainPlusS" | "hltbCompletionistS" | "hltbGameId"> {
+  totalPlayTime?: number;
+  totalPlayTimeS?: number;
+  lastPlayed?: string | null;
+  lastPlayedAt?: string | null;
+  playCount?: number;
+  genres: string[] | string;
+  customCover?: string | null;
+  customHero?: string | null;
+  potentialExeNames?: string | null;
+  criticScore?: number | null;
+  criticScoreCount?: number | null;
+  communityScore?: number | null;
+  communityScoreCount?: number | null;
+  trailerUrl?: string | null;
+  hltbMainS?: number | null;
+  hltbMainPlusS?: number | null;
+  hltbCompletionistS?: number | null;
+  hltbGameId?: number | null;
+}
+
+export interface ActiveSession {
+  sessionId: string;
+  gameId: string;
+  gameName: string;
+  coverUrl: string | null;
+  heroUrl: string | null;
+  startedAt: string;
+  dominantColor: string;
+  pid: number | null;
+  exeName: string | null;
+  folderPath: string | null;
+  potentialExeNames: string[] | null;
+  processDetected: boolean;
+  hasDbSession: boolean;
+}
+
+export interface GameState {
+  games: Game[];
+  activeSession: ActiveSession | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface GameActions {
+  setGames: (games: Game[]) => void;
+  setActiveSession: (session: ActiveSession | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+export type GameStore = GameState & GameActions;
+
+const initialState: GameState = {
+  games: [],
+  activeSession: null,
+  isLoading: false,
+  error: null,
+};
+
+export const useGameStore = create<GameStore>()(
+  devtools(
+    (set) => ({
+      ...initialState,
+      setGames: (rawGames) =>
+        set(
+          {
+            games: (rawGames as unknown as BackendGame[]).map((g) => ({
+              ...g,
+              genres: Array.isArray(g.genres)
+                ? g.genres
+                : typeof g.genres === "string" && g.genres
+                  ? g.genres.split(",").map((s: string) => s.trim())
+                  : [],
+              customCover: g.customCover ?? null,
+              customHero: g.customHero ?? null,
+              potentialExeNames: g.potentialExeNames ?? null,
+              coverUrl: normalizeImageUrl(g.customCover ?? g.coverUrl),
+              heroUrl: normalizeImageUrl(g.customHero ?? g.heroUrl),
+              logoUrl: normalizeImageUrl(g.logoUrl),
+              iconUrl: normalizeImageUrl(g.iconUrl),
+              totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
+              lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
+              playCount: g.playCount ?? 0,
+              rating: g.rating ?? null,
+              criticScore: g.criticScore ?? null,
+              criticScoreCount: g.criticScoreCount ?? null,
+              communityScore: g.communityScore ?? null,
+              communityScoreCount: g.communityScoreCount ?? null,
+              trailerUrl: g.trailerUrl ?? null,
+              hltbMainS: g.hltbMainS ?? null,
+              hltbMainPlusS: g.hltbMainPlusS ?? null,
+              hltbCompletionistS: g.hltbCompletionistS ?? null,
+              hltbGameId: g.hltbGameId ?? null,
+            } as Game)),
+          },
+          false,
+          "setGames",
+        ),
+      setActiveSession: (session) =>
+        set({ activeSession: session }, false, "setActiveSession"),
+      setLoading: (loading) => set({ isLoading: loading }, false, "setLoading"),
+      setError: (error) => set({ error }, false, "setError"),
+    }),
+    { name: "GameStore", enabled: import.meta.env.DEV },
+  ),
+);
+
+export async function refreshGames(): Promise<void> {
+  try {
+    const games = await invoke<Game[]>("get_games", { params: {} });
+    useGameStore.getState().setGames(games);
+  } catch {
+    // best-effort refresh
+  }
+}
