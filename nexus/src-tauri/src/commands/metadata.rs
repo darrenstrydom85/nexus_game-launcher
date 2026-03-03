@@ -170,9 +170,9 @@ pub async fn fetch_metadata(
     app_handle: tauri::AppHandle,
     game_id: String,
 ) -> Result<(), CommandError> {
-    crate::metadata::pipeline::fetch_metadata_for_game(&db, &app_handle, &game_id)
+    crate::metadata::pipeline::fetch_metadata_for_game(&db, &app_handle, &game_id, None)
         .await
-        .map_err(|e| CommandError::Unknown(e))
+        .map_err(|e| CommandError::Unknown(e.message))
 }
 
 #[tauri::command]
@@ -181,9 +181,9 @@ pub async fn fetch_artwork(
     app_handle: tauri::AppHandle,
     game_id: String,
 ) -> Result<(), CommandError> {
-    crate::metadata::pipeline::fetch_artwork_for_game(&db, &app_handle, &game_id)
+    crate::metadata::pipeline::fetch_artwork_for_game(&db, &app_handle, &game_id, None)
         .await
-        .map_err(|e| CommandError::Unknown(e))
+        .map_err(|e| CommandError::Unknown(e.message))
 }
 
 #[tauri::command]
@@ -221,7 +221,8 @@ pub async fn fetch_all_metadata(
     });
 
     tokio::spawn(async move {
-        crate::metadata::pipeline::run_background_pipeline(db_arc, app_handle, game_ids).await;
+        crate::metadata::pipeline::run_background_pipeline(db_arc, app_handle, game_ids, "resync")
+            .await;
     });
 
     Ok(count)

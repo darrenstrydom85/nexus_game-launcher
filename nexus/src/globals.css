@@ -230,6 +230,22 @@
     background: var(--background);
 }
 
+/* Play-pulse animation — design system (sync activity dot, play button glow) */
+@keyframes play-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsla(217, 91%, 60%, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 12px hsla(217, 91%, 60%, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsla(217, 91%, 60%, 0);
+  }
+}
+.animate-play-pulse {
+  animation: play-pulse 2s ease-in-out infinite;
+}
+
 /* Titlebar drag regions */
 .titlebar-drag-region {
     -webkit-app-region: drag;

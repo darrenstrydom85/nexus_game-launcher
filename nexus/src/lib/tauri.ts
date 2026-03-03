@@ -135,12 +135,25 @@ export interface ScoreBackfillProgressEvent {
 // ── Metadata Progress Event ───────────────────────────────────────
 export type MetadataStatus = "queued" | "fetching" | "complete" | "failed";
 
+export type MetadataProgressTrigger = "onboarding" | "resync" | "auto";
+
+export interface MetadataSyncError {
+  source: string;
+  gameId: string;
+  message: string;
+}
+
 export interface MetadataProgressEvent {
+  phase: string;
+  completed: number;
+  total: number;
+  currentGame: string | null;
+  trigger: MetadataProgressTrigger;
+  error: MetadataSyncError | null;
   gameId: string;
   gameName: string;
   status: MetadataStatus;
   progress?: number;
-  error?: string;
 }
 
 // ── Event Commands ─────────────────────────────────────────────────

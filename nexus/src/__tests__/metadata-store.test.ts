@@ -130,6 +130,12 @@ describe("MetadataStore", () => {
 
   it("handleProgressEvent adds new entry", () => {
     const event: MetadataProgressEvent = {
+      phase: "metadata",
+      completed: 1,
+      total: 10,
+      currentGame: "Test Game",
+      trigger: "resync",
+      error: null,
       gameId: "g1",
       gameName: "Test Game",
       status: "fetching",
@@ -153,6 +159,12 @@ describe("MetadataStore", () => {
     });
 
     const event: MetadataProgressEvent = {
+      phase: "metadata",
+      completed: 1,
+      total: 1,
+      currentGame: null,
+      trigger: "resync",
+      error: null,
       gameId: "g1",
       gameName: "Test Game",
       status: "complete",
@@ -176,6 +188,12 @@ describe("MetadataStore", () => {
     });
 
     const event: MetadataProgressEvent = {
+      phase: "metadata",
+      completed: 2,
+      total: 2,
+      currentGame: null,
+      trigger: "resync",
+      error: null,
       gameId: "g2",
       gameName: "Game 2",
       status: "complete",

@@ -12,12 +12,26 @@ use crate::models::settings::keys;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetadataSyncError {
+    pub source: String,
+    pub game_id: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetadataProgressEvent {
+    pub phase: String,
+    pub completed: usize,
+    pub total: usize,
+    pub current_game: Option<String>,
+    pub trigger: String,
+    pub error: Option<MetadataSyncError>,
+    // Legacy fields for Story 4.4 / metadataStore backward compatibility
     pub game_id: String,
     pub game_name: String,
     pub status: MetadataStatus,
     pub progress: Option<f32>,
-    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,18 +110,31 @@ fn save_igdb_token(db: &DbState, token: &str, expires: i64) {
     }
 }
 
+/// Context for emitting progress when running in a batch (run_background_pipeline).
+pub struct ProgressContext {
+    pub completed: usize,
+    pub total: usize,
+    pub trigger: String,
+}
+
 pub async fn fetch_metadata_for_game(
     db: &DbState,
     app_handle: &tauri::AppHandle,
     game_id: &str,
-) -> Result<(), String> {
-    let ctx = build_context(db)?;
+    progress: Option<&ProgressContext>,
+) -> Result<(), MetadataSyncError> {
+    let ctx = build_context(db).map_err(|e| MetadataSyncError {
+        source: "Metadata".into(),
+        game_id: game_id.to_string(),
+        message: e,
+    })?;
 
     let (game_name, source, source_id) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| format!("lock poisoned: {e}"))?;
+        let conn = db.conn.lock().map_err(|e| MetadataSyncError {
+            source: "Metadata".into(),
+            game_id: game_id.to_string(),
+            message: format!("lock poisoned: {e}"),
+        })?;
         let row = conn
             .query_row(
                 "SELECT name, source, source_id FROM games WHERE id = ?1",
@@ -120,11 +147,31 @@ pub async fn fetch_metadata_for_game(
                     ))
                 },
             )
-            .map_err(|e| format!("game not found: {e}"))?;
+            .map_err(|e| MetadataSyncError {
+                source: "Metadata".into(),
+                game_id: game_id.to_string(),
+                message: format!("game not found: {e}"),
+            })?;
         row
     };
 
-    emit_progress(app_handle, game_id, &game_name, MetadataStatus::Fetching, None, None);
+    let (completed, total, trigger) = progress
+        .map(|p| (p.completed, p.total, p.trigger.as_str()))
+        .unwrap_or((1, 1, "resync"));
+
+    emit_progress(
+        app_handle,
+        "metadata",
+        completed,
+        total,
+        Some(&game_name),
+        trigger,
+        game_id,
+        &game_name,
+        MetadataStatus::Fetching,
+        None,
+        None,
+    );
 
     // Fetch IGDB metadata if available
     if let Some(ref igdb) = ctx.igdb {
@@ -136,6 +183,11 @@ pub async fn fetch_metadata_for_game(
             }
             Err(e) => {
                 log::warn!("IGDB metadata fetch failed for {game_name}: {e}");
+                return Err(MetadataSyncError {
+                    source: "IGDB".into(),
+                    game_id: game_id.to_string(),
+                    message: e,
+                });
             }
         }
     }
@@ -143,7 +195,11 @@ pub async fn fetch_metadata_for_game(
     // Fetch HLTB data (no API key required; runs after IGDB at lower priority)
     {
         let needs_hltb = {
-            let conn = db.conn.lock().map_err(|e| format!("lock poisoned: {e}"))?;
+            let conn = db.conn.lock().map_err(|e| MetadataSyncError {
+                source: "Metadata".into(),
+                game_id: game_id.to_string(),
+                message: format!("lock poisoned: {e}"),
+            })?;
             conn.query_row(
                 "SELECT hltb_main_s FROM games WHERE id = ?1",
                 params![game_id],
@@ -194,15 +250,38 @@ pub async fn fetch_metadata_for_game(
     // Fetch SteamGridDB artwork if available
     if let Some(ref steamgrid) = ctx.steamgrid {
         let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
-        match fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &game_name, steam_appid).await {
-            Ok(()) => {}
-            Err(e) => {
-                log::warn!("SteamGridDB artwork fetch failed for {game_name}: {e}");
-            }
+        if let Err(e) = fetch_steamgrid_artwork(
+            steamgrid,
+            &ctx.http,
+            db,
+            game_id,
+            &game_name,
+            steam_appid,
+        )
+        .await
+        {
+            log::warn!("SteamGridDB artwork fetch failed for {game_name}: {e}");
+            return Err(MetadataSyncError {
+                source: "SteamGridDB".into(),
+                game_id: game_id.to_string(),
+                message: e,
+            });
         }
     }
 
-    emit_progress(app_handle, game_id, &game_name, MetadataStatus::Complete, Some(1.0), None);
+    emit_progress(
+        app_handle,
+        "metadata",
+        completed + 1,
+        total,
+        None,
+        trigger,
+        game_id,
+        &game_name,
+        MetadataStatus::Complete,
+        Some(1.0),
+        None,
+    );
     Ok(())
 }
 
@@ -350,14 +429,20 @@ pub async fn fetch_artwork_for_game(
     db: &DbState,
     app_handle: &tauri::AppHandle,
     game_id: &str,
-) -> Result<(), String> {
-    let ctx = build_context(db)?;
+    progress: Option<&ProgressContext>,
+) -> Result<(), MetadataSyncError> {
+    let ctx = build_context(db).map_err(|e| MetadataSyncError {
+        source: "Metadata".into(),
+        game_id: game_id.to_string(),
+        message: e,
+    })?;
 
     let (game_name, source, source_id) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| format!("lock poisoned: {e}"))?;
+        let conn = db.conn.lock().map_err(|e| MetadataSyncError {
+            source: "Metadata".into(),
+            game_id: game_id.to_string(),
+            message: format!("lock poisoned: {e}"),
+        })?;
         conn.query_row(
             "SELECT name, source, source_id FROM games WHERE id = ?1",
             params![game_id],
@@ -369,17 +454,55 @@ pub async fn fetch_artwork_for_game(
                 ))
             },
         )
-        .map_err(|e| format!("game not found: {e}"))?
+        .map_err(|e| MetadataSyncError {
+            source: "Metadata".into(),
+            game_id: game_id.to_string(),
+            message: format!("game not found: {e}"),
+        })?
     };
 
-    emit_progress(app_handle, game_id, &game_name, MetadataStatus::Fetching, None, None);
+    let (completed, total, trigger) = progress
+        .map(|p| (p.completed, p.total, p.trigger.as_str()))
+        .unwrap_or((1, 1, "resync"));
+
+    emit_progress(
+        app_handle,
+        "artwork",
+        completed,
+        total,
+        Some(&game_name),
+        trigger,
+        game_id,
+        &game_name,
+        MetadataStatus::Fetching,
+        None,
+        None,
+    );
 
     if let Some(ref steamgrid) = ctx.steamgrid {
         let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
-        fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &game_name, steam_appid).await?;
+        fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &game_name, steam_appid)
+            .await
+            .map_err(|e| MetadataSyncError {
+                source: "SteamGridDB".into(),
+                game_id: game_id.to_string(),
+                message: e,
+            })?;
     }
 
-    emit_progress(app_handle, game_id, &game_name, MetadataStatus::Complete, Some(1.0), None);
+    emit_progress(
+        app_handle,
+        "artwork",
+        completed + 1,
+        total,
+        None,
+        trigger,
+        game_id,
+        &game_name,
+        MetadataStatus::Complete,
+        Some(1.0),
+        None,
+    );
     Ok(())
 }
 
@@ -387,21 +510,26 @@ pub async fn run_background_pipeline(
     db: Arc<DbState>,
     app_handle: tauri::AppHandle,
     game_ids: Vec<String>,
+    trigger: &str,
 ) {
-    let total = game_ids.len() as f32;
+    let total = game_ids.len();
 
     for (i, game_id) in game_ids.iter().enumerate() {
-        let progress = (i as f32) / total;
+        let progress_ctx = ProgressContext {
+            completed: i,
+            total,
+            trigger: trigger.to_string(),
+        };
 
-        let mut last_err = None;
+        let mut last_err = None::<MetadataSyncError>;
         for attempt in 0..MAX_RETRIES {
-            match fetch_metadata_for_game(&db, &app_handle, game_id).await {
+            match fetch_metadata_for_game(&db, &app_handle, game_id, Some(&progress_ctx)).await {
                 Ok(()) => {
                     last_err = None;
                     break;
                 }
                 Err(e) => {
-                    last_err = Some(e.clone());
+                    last_err = Some(e);
                     if attempt < MAX_RETRIES - 1 {
                         let delay = BACKOFF_BASE_MS * 2u64.pow(attempt);
                         tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
@@ -425,12 +553,18 @@ pub async fn run_background_pipeline(
                     })
                     .unwrap_or_else(|| game_id.clone())
             };
+            let progress_frac = (i as f32) / total as f32;
             emit_progress(
                 &app_handle,
+                "metadata",
+                i + 1,
+                total,
+                Some(&game_name),
+                trigger,
                 game_id,
                 &game_name,
                 MetadataStatus::Failed,
-                Some(progress),
+                Some(progress_frac),
                 Some(err),
             );
         }
@@ -439,19 +573,29 @@ pub async fn run_background_pipeline(
 
 fn emit_progress(
     app_handle: &tauri::AppHandle,
+    phase: &str,
+    completed: usize,
+    total: usize,
+    current_game: Option<&str>,
+    trigger: &str,
     game_id: &str,
     game_name: &str,
     status: MetadataStatus,
     progress: Option<f32>,
-    error: Option<String>,
+    error: Option<MetadataSyncError>,
 ) {
     use tauri::Emitter;
     let event = MetadataProgressEvent {
+        phase: phase.to_string(),
+        completed,
+        total,
+        current_game: current_game.map(String::from),
+        trigger: trigger.to_string(),
+        error: error.clone(),
         game_id: game_id.to_string(),
         game_name: game_name.to_string(),
         status,
         progress,
-        error,
     };
     let _ = app_handle.emit("metadata-progress", &event);
 }
@@ -787,18 +931,54 @@ mod tests {
     use super::*;
 
     #[test]
-    fn metadata_progress_event_serializes() {
+    fn metadata_progress_event_serializes_with_trigger_and_no_error() {
         let event = MetadataProgressEvent {
+            phase: "metadata".into(),
+            completed: 2,
+            total: 10,
+            current_game: Some("Test Game".into()),
+            trigger: "resync".into(),
+            error: None,
             game_id: "g1".into(),
             game_name: "Test Game".into(),
             status: MetadataStatus::Fetching,
-            progress: Some(0.5),
-            error: None,
+            progress: Some(0.2),
         };
         let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("\"phase\":\"metadata\""));
+        assert!(json.contains("\"completed\":2"));
+        assert!(json.contains("\"total\":10"));
+        assert!(json.contains("\"trigger\":\"resync\""));
         assert!(json.contains("\"gameId\":\"g1\""));
         assert!(json.contains("\"status\":\"fetching\""));
-        assert!(json.contains("\"progress\":0.5"));
+        assert!(json.contains("\"progress\":0.2"));
+        assert!(json.contains("\"error\":null"));
+    }
+
+    #[test]
+    fn metadata_progress_event_serializes_with_error() {
+        let event = MetadataProgressEvent {
+            phase: "metadata".into(),
+            completed: 1,
+            total: 5,
+            current_game: Some("Failed Game".into()),
+            trigger: "onboarding".into(),
+            error: Some(MetadataSyncError {
+                source: "IGDB".into(),
+                game_id: "g2".into(),
+                message: "no match".into(),
+            }),
+            game_id: "g2".into(),
+            game_name: "Failed Game".into(),
+            status: MetadataStatus::Failed,
+            progress: Some(0.2),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("\"trigger\":\"onboarding\""));
+        assert!(json.contains("\"error\":{"));
+        assert!(json.contains("\"source\":\"IGDB\""));
+        assert!(json.contains("\"gameId\":\"g2\""));
+        assert!(json.contains("\"message\":\"no match\""));
     }
 
     #[test]

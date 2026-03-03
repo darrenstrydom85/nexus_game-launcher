@@ -154,7 +154,7 @@ export const useMetadataStore = create<MetadataStore>()(
               gameName: event.gameName,
               status: event.status,
               progress: event.progress,
-              error: event.error,
+              error: event.error?.message,
             };
 
             if (existing >= 0) {

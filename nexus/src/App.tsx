@@ -23,6 +23,7 @@ import { useLaunchLifecycle } from "@/hooks/useLaunchLifecycle";
 import { setRunningGame } from "@/lib/launcher";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
+import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -238,18 +239,34 @@ function MainApp() {
 
   useTauriEvent("hltb-backfill-progress", handleHltbBackfillProgress);
 
-  const handleMetadataProgress = React.useCallback(
-    (event: { gameId: string; status: string }) => {
-      if (event.status === "complete") {
+  const syncIsActive = useSyncStore((s) => s.isActive);
+  const overallCompleted = useSyncStore((s) => s.overallCompleted);
+  const overallTotal = useSyncStore((s) => s.overallTotal);
+  const prevSyncActiveRef = React.useRef(false);
+
+  React.useEffect(() => {
+    initSyncStore({
+      onLegacyComplete: () => {
         invoke<Game[]>("get_games", { params: {} })
           .then((games) => setGames(games))
           .catch(() => {});
-      }
-    },
-    [setGames],
-  );
+      },
+    });
+  }, [setGames]);
 
-  useTauriEvent("metadata-progress", handleMetadataProgress);
+  React.useEffect(() => {
+    if (
+      prevSyncActiveRef.current &&
+      !syncIsActive &&
+      overallTotal > 0 &&
+      overallCompleted === overallTotal
+    ) {
+      invoke<Game[]>("get_games", { params: {} })
+        .then((games) => setGames(games))
+        .catch(() => {});
+    }
+    prevSyncActiveRef.current = syncIsActive;
+  }, [syncIsActive, overallCompleted, overallTotal, setGames]);
 
   const handleResync = React.useCallback(async () => {
     setIsSyncing(true);
