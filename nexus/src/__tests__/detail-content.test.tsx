@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { invoke } from "@tauri-apps/api/core";
 import { DetailContent } from "@/components/GameDetail/DetailContent";
 import { GameMetadata } from "@/components/GameDetail/GameMetadata";
 import { GamePlayStats } from "@/components/GameDetail/GamePlayStats";
@@ -57,6 +58,21 @@ const screenshots = [
   "https://example.com/ss2.jpg",
   "https://example.com/ss3.jpg",
 ];
+
+const mockPlayStats = {
+  sessionCount: 5,
+  totalTime: 72000,
+  averageSession: 14400,
+  lastPlayed: "2026-02-28T10:00:00Z",
+};
+
+beforeEach(() => {
+  vi.mocked(invoke).mockImplementation((cmd: string) => {
+    if (cmd === "get_play_stats") return Promise.resolve(mockPlayStats);
+    if (cmd === "get_cache_stats") return Promise.resolve({ totalSizeBytes: 0, imageCount: 0 });
+    return Promise.resolve({});
+  });
+});
 
 describe("Story 7.3: Detail Content Composition", () => {
   it("renders the detail content with two columns", () => {
@@ -152,24 +168,32 @@ describe("GamePlayStats", () => {
     expect(screen.getByTestId("game-play-stats")).toBeInTheDocument();
   });
 
-  it("displays total play time", () => {
+  it("displays total play time", async () => {
     render(<GamePlayStats game={mockGame} />);
-    expect(screen.getByTestId("stats-total-time")).toHaveTextContent("20h 0m");
+    await waitFor(() => {
+      expect(screen.getByTestId("stats-total-time")).toHaveTextContent("20h 0m");
+    });
   });
 
-  it("displays session count", () => {
+  it("displays session count", async () => {
     render(<GamePlayStats game={mockGame} />);
-    expect(screen.getByTestId("stats-sessions")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("stats-sessions")).toHaveTextContent("5");
+    });
   });
 
-  it("displays average session time", () => {
+  it("displays average session time", async () => {
     render(<GamePlayStats game={mockGame} />);
-    expect(screen.getByTestId("stats-avg-session")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("stats-avg-session")).toBeInTheDocument();
+    });
   });
 
-  it("displays last played date", () => {
+  it("displays last played date", async () => {
     render(<GamePlayStats game={mockGame} />);
-    expect(screen.getByTestId("stats-last-played")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("stats-last-played")).toBeInTheDocument();
+    });
   });
 
   it("renders 'View full stats' button", () => {

@@ -43,9 +43,9 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
 });
 
 const games: Game[] = [
-  makeGame({ id: "g1", name: "Alpha Game", totalPlayTimeS: 100, rating: 3 }),
-  makeGame({ id: "g2", name: "Beta Game", totalPlayTimeS: 500, rating: 5 }),
-  makeGame({ id: "g3", name: "Charlie Game", totalPlayTimeS: 200, rating: 1 }),
+  makeGame({ id: "g1", name: "Alpha Game", totalPlayTimeS: 100, criticScore: 60 }),
+  makeGame({ id: "g2", name: "Beta Game", totalPlayTimeS: 500, criticScore: 90 }),
+  makeGame({ id: "g3", name: "Charlie Game", totalPlayTimeS: 200, criticScore: 30 }),
 ];
 
 const renderCard = (game: Game) => (
@@ -85,13 +85,11 @@ describe("Story 6.2: Game Grid Layout & Sorting", () => {
     expect(screen.getByTestId("card-g3")).toBeInTheDocument();
   });
 
-  it("shows game count 'Showing X of Y games'", () => {
+  it("shows heading in toolbar", () => {
     render(
-      <GameGrid games={games} totalCount={10} renderCard={renderCard} />,
+      <GameGrid games={games} totalCount={10} renderCard={renderCard} heading="All Games" />,
     );
-    expect(screen.getByTestId("game-count")).toHaveTextContent(
-      "Showing 3 of 10 games",
-    );
+    expect(screen.getByTestId("library-heading")).toHaveTextContent("All Games");
   });
 
   it("renders sort dropdown with current sort label", () => {

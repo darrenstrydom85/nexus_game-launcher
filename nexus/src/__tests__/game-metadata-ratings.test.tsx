@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { GameMetadata } from "@/components/GameDetail/GameMetadata";
+import { DetailContent } from "@/components/GameDetail/DetailContent";
 import type { Game } from "@/stores/gameStore";
 
 const baseGame: Game = {
@@ -42,25 +42,25 @@ const baseGame: Game = {
 
 describe("GameMetadata ratings section", () => {
   it("hides ratings section when no scores present", () => {
-    render(<GameMetadata game={baseGame} />);
+    render(<DetailContent game={baseGame} />);
     expect(screen.queryByTestId("ratings-section")).toBeNull();
   });
 
   it("hides ratings section when scores are null", () => {
     const game = { ...baseGame, criticScore: null, communityScore: null };
-    render(<GameMetadata game={game} />);
+    render(<DetailContent game={game} />);
     expect(screen.queryByTestId("ratings-section")).toBeNull();
   });
 
   it("shows ratings section when critic score is present", () => {
     const game = { ...baseGame, criticScore: 87.5, criticScoreCount: 42 };
-    render(<GameMetadata game={game} />);
+    render(<DetailContent game={game} />);
     expect(screen.getByTestId("ratings-section")).toBeTruthy();
   });
 
   it("shows ratings section when community score is present", () => {
     const game = { ...baseGame, communityScore: 74.2, communityScoreCount: 1500 };
-    render(<GameMetadata game={game} />);
+    render(<DetailContent game={game} />);
     expect(screen.getByTestId("ratings-section")).toBeTruthy();
   });
 
@@ -72,30 +72,30 @@ describe("GameMetadata ratings section", () => {
       communityScore: 74.2,
       communityScoreCount: 1500,
     };
-    render(<GameMetadata game={game} />);
-    const badges = screen.getAllByTestId("score-badge-md");
+    render(<DetailContent game={game} />);
+    const badges = screen.getAllByTestId("score-badge-sm");
     expect(badges).toHaveLength(2);
   });
 
   it("shows only critic badge when community score is absent", () => {
     const game = { ...baseGame, criticScore: 87.5, criticScoreCount: 42 };
-    render(<GameMetadata game={game} />);
-    const badges = screen.getAllByTestId("score-badge-md");
+    render(<DetailContent game={game} />);
+    const badges = screen.getAllByTestId("score-badge-sm");
     expect(badges).toHaveLength(1);
     expect(badges[0].getAttribute("aria-label")).toContain("Critic score");
   });
 
   it("shows only community badge when critic score is absent", () => {
     const game = { ...baseGame, communityScore: 65.0, communityScoreCount: 800 };
-    render(<GameMetadata game={game} />);
-    const badges = screen.getAllByTestId("score-badge-md");
+    render(<DetailContent game={game} />);
+    const badges = screen.getAllByTestId("score-badge-sm");
     expect(badges).toHaveLength(1);
     expect(badges[0].getAttribute("aria-label")).toContain("Community score");
   });
 
   it("does not show ratings section when score is 0", () => {
     const game = { ...baseGame, criticScore: 0, communityScore: 0 };
-    render(<GameMetadata game={game} />);
+    render(<DetailContent game={game} />);
     expect(screen.queryByTestId("ratings-section")).toBeNull();
   });
 });

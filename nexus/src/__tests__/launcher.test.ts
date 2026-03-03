@@ -178,7 +178,7 @@ describe("Story 8.1: Multi-Protocol Launch Dispatcher", () => {
 
     it("returns failed when standalone has no exe path", async () => {
       const result = await dispatchLaunch(
-        makeGame({ source: "standalone", exePath: null }),
+        makeGame({ source: "standalone", exePath: null, folderPath: null, exeName: null }),
       );
       expect(result.status).toBe("failed");
       expect(result.error).toContain("No executable path");

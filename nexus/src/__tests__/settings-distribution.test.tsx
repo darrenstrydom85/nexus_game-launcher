@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import { readFileSync } from "fs";
 import { resolve } from "path";
@@ -16,6 +16,10 @@ import { withRetry } from "@/lib/retry";
 import { useOnlineStatus, getOfflineFallback } from "@/hooks/useOnlineStatus";
 import { useGridKeyboardNav, useGlobalShortcuts } from "@/hooks/useKeyboardNav";
 import { useSettingsStore } from "@/stores/settingsStore";
+
+beforeEach(() => {
+  useSettingsStore.setState({ _hydrated: true, watchedFolders: [] });
+});
 
 describe("Story 12.1: SettingsSheet & SourceToggles", () => {
   it("renders nothing when closed", () => {
@@ -95,7 +99,9 @@ describe("Story 12.1: FolderManager", () => {
   it("remove button removes folder", async () => {
     render(<FolderManager />);
     fireEvent.click(screen.getByTestId("folder-remove-f1"));
-    expect(useSettingsStore.getState().watchedFolders).toHaveLength(0);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().watchedFolders).toHaveLength(0);
+    });
   });
 });
 
@@ -386,6 +392,6 @@ describe("Story 12.7: NSIS Installer Config", () => {
       readFileSync(resolve(__dirname, "../../src-tauri/tauri.conf.json"), "utf-8"),
     );
     expect(config.bundle.shortDescription).toBeDefined();
-    expect(config.bundle.publisher).toBe("Nexus");
+    expect(config.bundle.publisher).toBe("Darren Strydom");
   });
 });

@@ -84,17 +84,16 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
     expect(onNavigate).toHaveBeenCalledWith("stats");
   });
 
-  it("renders collections from gameStore genres", () => {
+  it("renders collections sidebar with add button", () => {
     render(<Sidebar />);
-    expect(screen.getByTestId("collections-list")).toBeInTheDocument();
-    expect(screen.getByText("RPG")).toBeInTheDocument();
-    expect(screen.getByText("Action")).toBeInTheDocument();
+    expect(screen.getByTestId("collections-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("collection-add-button")).toBeInTheDocument();
   });
 
-  it("renders add collection '+' button", () => {
+  it("add collection button calls onAddCollection", () => {
     const onAddCollection = vi.fn();
     render(<Sidebar onAddCollection={onAddCollection} />);
-    const btn = screen.getByTestId("add-collection");
+    const btn = screen.getByTestId("collection-add-button");
     fireEvent.click(btn);
     expect(onAddCollection).toHaveBeenCalledOnce();
   });

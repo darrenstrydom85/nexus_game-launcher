@@ -331,33 +331,29 @@ describe("SyncProgressBanner", () => {
     it("banner auto-dismisses after 3 seconds", async () => {
       vi.useFakeTimers();
       try {
-        mockUseSyncStore.mockImplementation((selector: (s: unknown) => unknown) => {
-          const state = createSelectorState({
-            isActive: true,
-            overallCompleted: 1,
-            overallTotal: 1,
-            phases: [{ phase: "metadata", completed: 1, total: 1, currentGame: null, errors: [] }],
-          });
-          return selector(state);
+        const stablePhases = [{ phase: "metadata" as const, completed: 1, total: 1, currentGame: null, errors: [] as { source: string; gameId: string; message: string }[] }];
+        const activeState = createSelectorState({
+          isActive: true,
+          overallCompleted: 1,
+          overallTotal: 1,
+          phases: stablePhases,
         });
+        const completedState = createSelectorState({
+          isActive: false,
+          overallCompleted: 1,
+          overallTotal: 1,
+          phases: stablePhases,
+        });
+        mockUseSyncStore.mockImplementation((selector: (s: unknown) => unknown) => selector(activeState));
         const { rerender } = render(<SyncProgressBanner />);
-        mockUseSyncStore.mockImplementation((selector: (s: unknown) => unknown) => {
-          const state = createSelectorState({
-            isActive: false,
-            overallCompleted: 1,
-            overallTotal: 1,
-            phases: [{ phase: "metadata", completed: 1, total: 1, currentGame: null, errors: [] }],
-          });
-          return selector(state);
-        });
+        mockUseSyncStore.mockImplementation((selector: (s: unknown) => unknown) => selector(completedState));
         rerender(<SyncProgressBanner />);
         expect(screen.getByText("Sync complete")).toBeInTheDocument();
+        expect(screen.getByTestId("sync-progress-banner")).toHaveAttribute("data-completion", "true");
         await act(async () => {
-          vi.advanceTimersByTime(3000);
+          vi.advanceTimersByTime(3100);
         });
-        const banner = screen.getByTestId("sync-progress-banner");
-        expect(banner).toHaveAttribute("data-completion", "true");
-        expect(banner).toHaveStyle({ opacity: "0" });
+        expect(screen.queryByTestId("sync-progress-banner")).not.toBeInTheDocument();
       } finally {
         vi.useRealTimers();
       }

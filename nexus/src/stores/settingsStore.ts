@@ -75,7 +75,11 @@ export type SettingsStore = SettingsState & SettingsActions;
 const SOURCE_IDS = ["steam", "epic", "gog", "ubisoft", "battlenet", "xbox"] as const;
 
 function persistSetting(key: string, value: string) {
-  invoke("set_setting", { key, value }).catch(() => {});
+  try {
+    invoke("set_setting", { key, value })?.catch?.(() => {});
+  } catch {
+    // Tauri not available (e.g. test environment)
+  }
 }
 
 const initialState: SettingsState = {

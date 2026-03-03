@@ -83,6 +83,7 @@ describe("Story 7.4: Edit Game Modal", () => {
       exePath: "C:\\Games\\Test\\game.exe",
       customCover: null,
       customHero: null,
+      potentialExeNames: null,
     });
   });
 
@@ -102,11 +103,11 @@ describe("Story 7.4: Edit Game Modal", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it("validates invalid cover image format", () => {
+  it("validates empty cover input as whitespace-only", () => {
     render(<EditGameModal game={mockGame} open onClose={onClose} onSave={onSave} />);
-    fireEvent.change(screen.getByTestId("edit-cover-input"), { target: { value: "C:\\file.bmp" } });
+    fireEvent.change(screen.getByTestId("edit-cover-input"), { target: { value: "   " } });
     fireEvent.click(screen.getByTestId("edit-save"));
-    expect(screen.getByTestId("edit-cover-error")).toHaveTextContent("valid image");
+    expect(screen.getByTestId("edit-cover-error")).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 

@@ -95,12 +95,11 @@ describe("Story 6.5: Library View Composition", () => {
     expect(screen.getByText("Connection failed")).toBeInTheDocument();
   });
 
-  it("composes HeroSection + GameGrid when loaded", async () => {
+  it("composes GameGrid when loaded", async () => {
     const games = [makeGame("g1", "Game 1"), makeGame("g2", "Game 2")];
     useGameStore.setState({ games, isLoading: false });
     mockInvoke.mockResolvedValue(games);
     render(<LibraryView />);
-    expect(screen.getByTestId("hero-section")).toBeInTheDocument();
     expect(screen.getByTestId("game-grid")).toBeInTheDocument();
   });
 
@@ -112,8 +111,8 @@ describe("Story 6.5: Library View Composition", () => {
     useGameStore.setState({ games, isLoading: false });
     useUiStore.setState({ searchQuery: "cyber" });
     render(<LibraryView />);
-    expect(screen.getByTestId("game-count")).toHaveTextContent(
-      "Showing 1 of 2 games",
+    expect(screen.getByTestId("library-heading")).toHaveTextContent(
+      'Results for "cyber"',
     );
   });
 });

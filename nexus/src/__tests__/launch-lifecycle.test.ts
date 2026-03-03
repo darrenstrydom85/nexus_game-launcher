@@ -91,7 +91,7 @@ describe("Story 8.2: Launch Lifecycle", () => {
     expect(useGameStore.getState().activeSession).toBeNull();
   });
 
-  it("shows toast on normal exit (>5s)", () => {
+  it("shows toast on normal exit (>5s)", async () => {
     renderHook(() => useLaunchLifecycle());
 
     const launchedHandler = mockListen.mock.calls.find(
@@ -116,7 +116,7 @@ describe("Story 8.2: Launch Lifecycle", () => {
 
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10000);
 
-    act(() => {
+    await act(async () => {
       exitedHandler({ payload: { sessionId: "s1", gameId: "g1", durationS: 600 } });
     });
 

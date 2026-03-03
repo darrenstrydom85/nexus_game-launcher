@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   LibraryStats,
   formatHours,
@@ -19,6 +20,23 @@ vi.mock("recharts", async (importOriginal) => {
       </div>
     ),
   };
+});
+
+beforeEach(() => {
+  vi.mocked(invoke).mockImplementation((cmd: string) => {
+    if (cmd === "get_library_stats")
+      return Promise.resolve({
+        totalPlayTimeS: 0,
+        gamesPlayed: 0,
+        gamesUnplayed: 0,
+        mostPlayedGame: null,
+        weeklyPlayTimeS: 0,
+      });
+    if (cmd === "get_activity_data") return Promise.resolve([]);
+    if (cmd === "get_top_games") return Promise.resolve([]);
+    if (cmd === "get_all_sessions") return Promise.resolve([]);
+    return Promise.resolve({});
+  });
 });
 
 const mockStats: PlayStats = {
@@ -136,9 +154,11 @@ describe("Story 6.7: Library Stats Page", () => {
     expect(sessionElements).toHaveLength(20);
   });
 
-  it("renders with default empty stats", () => {
+  it("renders with default empty stats", async () => {
     render(<LibraryStats />);
-    expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent("0h");
+    await waitFor(() => {
+      expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent("0h");
+    });
   });
 });
 
