@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Gamepad2, Eye } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
@@ -22,13 +23,23 @@ export function HiddenGamesList() {
   if (hiddenGames.length === 0) return null;
 
   function handleUnhide(id: string, name: string) {
-    unhideGame(id);
-    addToast({ type: "success", message: `"${name}" restored to library` });
+    invoke("update_game", { id, fields: { isHidden: false } })
+      .then(() => {
+        unhideGame(id);
+        addToast({ type: "success", message: `"${name}" restored to library` });
+      })
+      .catch(() => addToast({ type: "error", message: "Failed to restore game" }));
   }
 
   function handleUnhideAll() {
-    hiddenGameIds.forEach((id) => unhideGame(id));
-    addToast({ type: "success", message: "All hidden games restored" });
+    Promise.all(
+      hiddenGameIds.map((id) => invoke("update_game", { id, fields: { isHidden: false } }))
+    )
+      .then(() => {
+        hiddenGameIds.forEach((id) => unhideGame(id));
+        addToast({ type: "success", message: "All hidden games restored" });
+      })
+      .catch(() => addToast({ type: "error", message: "Failed to restore some games" }));
   }
 
   return (

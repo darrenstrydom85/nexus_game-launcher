@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use rusqlite::{params, OptionalExtension};
 use serde::Deserialize;
 use tauri::State;
@@ -41,8 +42,9 @@ pub fn get_games(
         _ => "ASC",
     };
 
+    // Return all games (including hidden) so the frontend can sync hidden state; exclude removed so they don't show in the library.
     let sql = format!(
-        "SELECT * FROM games WHERE is_hidden = 0 ORDER BY {sort_column} {sort_direction}"
+        "SELECT * FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY {sort_column} {sort_direction}"
     );
 
     let mut stmt = conn
@@ -90,7 +92,7 @@ pub fn search_games(
     let pattern = format!("%{query}%");
 
     let mut stmt = conn
-        .prepare("SELECT * FROM games WHERE name LIKE ?1 AND is_hidden = 0 ORDER BY name ASC")
+        .prepare("SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC")
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let games = stmt
@@ -314,6 +316,21 @@ pub fn confirm_games(
         GameSource::from_str(&g.source).map_err(CommandError::Parse)?;
     }
 
+    // Build set of (source, identifier) for all detected games so we can mark
+    // no-longer-detected games as removed. Identifier is source_id or folder_path.
+    let detected_keys: HashSet<(String, String)> = detected_games
+        .iter()
+        .map(|g| {
+            let id = g
+                .source_id
+                .clone()
+                .or_else(|| g.folder_path.clone())
+                .unwrap_or_default();
+            (g.source.clone(), id)
+        })
+        .collect();
+    let scanned_sources: HashSet<String> = detected_games.iter().map(|g| g.source.clone()).collect();
+
     let now = now_iso();
     let mut results = Vec::with_capacity(detected_games.len());
 
@@ -356,6 +373,7 @@ pub fn confirm_games(
         let game_id = if let Some(ref id) = existing_id {
             // Update mutable fields on the existing game, always refreshing
             // exe_path, exe_name, and potential_exe_names from the latest scan.
+            // If the game was previously 'removed' (re-installed), set status back to 'backlog'.
             tx.execute(
                 "UPDATE games SET
                     name = ?1,
@@ -365,6 +383,7 @@ pub fn confirm_games(
                     launch_url = ?5,
                     source_folder_id = ?6,
                     potential_exe_names = COALESCE(?7, potential_exe_names),
+                    status = CASE WHEN status = 'removed' THEN 'backlog' ELSE status END,
                     updated_at = ?8
                  WHERE id = ?9",
                 params![
@@ -413,6 +432,39 @@ pub fn confirm_games(
         results.push(game);
     }
 
+    // Mark games that were not in this scan as removed (uninstalled / no longer present).
+    // They stay in the DB for stats; re-installing will un-remove them on a future sync.
+    for source in &scanned_sources {
+        let mut sel = tx
+            .prepare(
+                "SELECT id, source_id, folder_path FROM games WHERE source = ?1 AND status != 'removed'",
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        let rows = sel
+            .query_map(params![source], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })
+            .map_err(|e| CommandError::Database(e.to_string()))?
+            .filter_map(|r| r.ok());
+        for (id, source_id, folder_path) in rows {
+            let key = (
+                source.clone(),
+                source_id.or(folder_path).unwrap_or_default(),
+            );
+            if !detected_keys.contains(&key) {
+                tx.execute(
+                    "UPDATE games SET status = 'removed', updated_at = ?1 WHERE id = ?2",
+                    params![now, id],
+                )
+                .map_err(|e| CommandError::Database(e.to_string()))?;
+            }
+        }
+    }
+
     tx.commit()
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
@@ -445,7 +497,7 @@ mod tests {
     // ── get_games ──
 
     #[test]
-    fn get_games_returns_non_hidden_only() {
+    fn get_games_returns_all_non_removed_including_hidden() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Visible Game", "steam");
@@ -457,8 +509,34 @@ mod tests {
             sort_dir: None,
         };
         let games = get_games_inner(&state, params).unwrap();
+        assert_eq!(games.len(), 2, "returns both visible and hidden so frontend can sync hidden state");
+        assert!(games.iter().any(|g| g.name == "Visible Game"));
+        assert!(games.iter().any(|g| g.name == "Hidden Game" && g.is_hidden));
+    }
+
+    fn insert_removed_game(conn: &rusqlite::Connection, id: &str, name: &str) {
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, added_at, updated_at) VALUES (?1, ?2, 'steam', 'removed', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            params![id, name],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn get_games_excludes_removed() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Present", "steam");
+        insert_removed_game(&conn, "g2", "Uninstalled");
+        drop(conn);
+
+        let params = GetGamesParams {
+            sort_by: None,
+            sort_dir: None,
+        };
+        let games = get_games_inner(&state, params).unwrap();
         assert_eq!(games.len(), 1);
-        assert_eq!(games[0].name, "Visible Game");
+        assert_eq!(games[0].name, "Present");
     }
 
     #[test]
@@ -579,7 +657,7 @@ mod tests {
     }
 
     #[test]
-    fn search_games_excludes_hidden() {
+    fn search_games_returns_all_non_removed_including_hidden() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Halo Infinite", "xbox");
@@ -587,8 +665,9 @@ mod tests {
         drop(conn);
 
         let results = search_games_inner(&state, "Halo".into()).unwrap();
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "Halo Infinite");
+        assert_eq!(results.len(), 2, "returns both so frontend can sync hidden state");
+        assert!(results.iter().any(|g| g.name == "Halo Infinite" && !g.is_hidden));
+        assert!(results.iter().any(|g| g.name == "Halo Wars" && g.is_hidden));
     }
 
     #[test]
@@ -740,7 +819,7 @@ mod tests {
     }
 
     #[test]
-    fn deleted_game_excluded_from_get_games() {
+    fn deleted_game_still_returned_with_hidden_flag() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Visible", "steam");
@@ -751,8 +830,9 @@ mod tests {
 
         let params = GetGamesParams { sort_by: None, sort_dir: None };
         let games = get_games_inner(&state, params).unwrap();
-        assert_eq!(games.len(), 1);
-        assert_eq!(games[0].id, "g1");
+        assert_eq!(games.len(), 2, "get_games returns all non-removed including hidden so frontend can sync");
+        assert_eq!(games.iter().find(|g| g.id == "g1").unwrap().is_hidden, false);
+        assert_eq!(games.iter().find(|g| g.id == "g2").unwrap().is_hidden, true);
     }
 
     // ── confirm_games ──
@@ -856,7 +936,7 @@ mod tests {
             _ => "ASC",
         };
 
-        let sql = format!("SELECT * FROM games WHERE is_hidden = 0 ORDER BY {sort_column} {sort_direction}");
+        let sql = format!("SELECT * FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY {sort_column} {sort_direction}");
         let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
         let games = stmt.query_map([], Game::from_row)
             .map_err(|e| CommandError::Database(e.to_string()))?
@@ -880,7 +960,7 @@ mod tests {
         let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let pattern = format!("%{query}%");
         let mut stmt = conn
-            .prepare("SELECT * FROM games WHERE name LIKE ?1 AND is_hidden = 0 ORDER BY name ASC")
+            .prepare("SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC")
             .map_err(|e| CommandError::Database(e.to_string()))?;
         let games = stmt.query_map(params![pattern], Game::from_row)
             .map_err(|e| CommandError::Database(e.to_string()))?

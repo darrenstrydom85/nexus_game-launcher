@@ -60,6 +60,7 @@ export interface SettingsActions {
   toggleHiddenSmartCollection: (id: string) => void;
   hideGame: (gameId: string) => void;
   unhideGame: (gameId: string) => void;
+  setHiddenGameIds: (ids: string[]) => void;
   setDefaultSort: (sort: string) => void;
   setDefaultView: (view: "grid" | "list") => void;
   setSourceEnabled: (sourceId: string, enabled: boolean) => void;
@@ -244,6 +245,8 @@ export const useSettingsStore = create<SettingsStore>()(
             false,
             "unhideGame",
           ),
+        setHiddenGameIds: (ids) =>
+          set({ hiddenGameIds: ids }, false, "setHiddenGameIds"),
         setDefaultSort: (sort) => {
           persistSetting("library_sort_by", sort);
           set({ defaultSort: sort }, false, "setDefaultSort");

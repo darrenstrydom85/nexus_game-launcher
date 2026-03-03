@@ -47,6 +47,8 @@ pub enum GameStatus {
     Backlog,
     Dropped,
     Wishlist,
+    /// Game was uninstalled / no longer detected by a source; kept for stats, hidden from library until re-installed.
+    Removed,
 }
 
 impl GameStatus {
@@ -57,6 +59,7 @@ impl GameStatus {
             Self::Backlog => "backlog",
             Self::Dropped => "dropped",
             Self::Wishlist => "wishlist",
+            Self::Removed => "removed",
         }
     }
 
@@ -67,6 +70,7 @@ impl GameStatus {
             "backlog" => Ok(Self::Backlog),
             "dropped" => Ok(Self::Dropped),
             "wishlist" => Ok(Self::Wishlist),
+            "removed" => Ok(Self::Removed),
             other => Err(format!("unknown game status: {other}")),
         }
     }

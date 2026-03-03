@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { useSettingsStore } from "./settingsStore";
 
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
@@ -29,6 +30,7 @@ export type GameStatus =
   | "backlog"
   | "dropped"
   | "wishlist"
+  | "removed"
   | "unset";
 
 export interface Game {
@@ -66,6 +68,7 @@ export interface Game {
   lastPlayedAt: string | null;
   playCount: number;
   addedAt: string;
+  isHidden: boolean;
 }
 
 interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainS" | "hltbMainPlusS" | "hltbCompletionistS" | "hltbGameId"> {
@@ -132,41 +135,40 @@ export const useGameStore = create<GameStore>()(
   devtools(
     (set) => ({
       ...initialState,
-      setGames: (rawGames) =>
-        set(
-          {
-            games: (rawGames as unknown as BackendGame[]).map((g) => ({
-              ...g,
-              genres: Array.isArray(g.genres)
-                ? g.genres
-                : typeof g.genres === "string" && g.genres
-                  ? g.genres.split(",").map((s: string) => s.trim())
-                  : [],
-              customCover: g.customCover ?? null,
-              customHero: g.customHero ?? null,
-              potentialExeNames: g.potentialExeNames ?? null,
-              coverUrl: normalizeImageUrl(g.customCover ?? g.coverUrl),
-              heroUrl: normalizeImageUrl(g.customHero ?? g.heroUrl),
-              logoUrl: normalizeImageUrl(g.logoUrl),
-              iconUrl: normalizeImageUrl(g.iconUrl),
-              totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
-              lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
-              playCount: g.playCount ?? 0,
-              rating: g.rating ?? null,
-              criticScore: g.criticScore ?? null,
-              criticScoreCount: g.criticScoreCount ?? null,
-              communityScore: g.communityScore ?? null,
-              communityScoreCount: g.communityScoreCount ?? null,
-              trailerUrl: g.trailerUrl ?? null,
-              hltbMainS: g.hltbMainS ?? null,
-              hltbMainPlusS: g.hltbMainPlusS ?? null,
-              hltbCompletionistS: g.hltbCompletionistS ?? null,
-              hltbGameId: g.hltbGameId ?? null,
-            } as Game)),
-          },
-          false,
-          "setGames",
-        ),
+      setGames: (rawGames) => {
+        const backend = rawGames as unknown as (BackendGame & { isHidden?: boolean })[];
+        const mapped = backend.map((g) => ({
+          ...g,
+          genres: Array.isArray(g.genres)
+            ? g.genres
+            : typeof g.genres === "string" && g.genres
+              ? g.genres.split(",").map((s: string) => s.trim())
+              : [],
+          customCover: g.customCover ?? null,
+          customHero: g.customHero ?? null,
+          potentialExeNames: g.potentialExeNames ?? null,
+          coverUrl: normalizeImageUrl(g.customCover ?? g.coverUrl),
+          heroUrl: normalizeImageUrl(g.customHero ?? g.heroUrl),
+          logoUrl: normalizeImageUrl(g.logoUrl),
+          iconUrl: normalizeImageUrl(g.iconUrl),
+          totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
+          lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
+          playCount: g.playCount ?? 0,
+          rating: g.rating ?? null,
+          criticScore: g.criticScore ?? null,
+          criticScoreCount: g.criticScoreCount ?? null,
+          communityScore: g.communityScore ?? null,
+          communityScoreCount: g.communityScoreCount ?? null,
+          trailerUrl: g.trailerUrl ?? null,
+          hltbMainS: g.hltbMainS ?? null,
+          hltbMainPlusS: g.hltbMainPlusS ?? null,
+          hltbCompletionistS: g.hltbCompletionistS ?? null,
+          hltbGameId: g.hltbGameId ?? null,
+          isHidden: g.isHidden ?? false,
+        } as Game));
+        set({ games: mapped }, false, "setGames");
+        useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));
+      },
       setActiveSession: (session) =>
         set({ activeSession: session }, false, "setActiveSession"),
       setLoading: (loading) => set({ isLoading: loading }, false, "setLoading"),

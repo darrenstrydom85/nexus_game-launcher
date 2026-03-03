@@ -365,8 +365,12 @@ function MainApp() {
               if (game.folderPath) openPath(game.folderPath).catch(() => {});
             }}
             onHide={() => {
-              useSettingsStore.getState().hideGame(game.id);
-              useUiStore.getState().setDetailOverlayGameId(null);
+              invoke("update_game", { id: game.id, fields: { isHidden: true } })
+                .then(() => {
+                  useSettingsStore.getState().hideGame(game.id);
+                  useUiStore.getState().setDetailOverlayGameId(null);
+                })
+                .catch(() => {});
             }}
           />
         )}
