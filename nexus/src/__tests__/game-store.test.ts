@@ -33,6 +33,7 @@ const mockGame: Game = {
   lastPlayedAt: "2026-02-28T12:00:00Z",
   playCount: 0,
   addedAt: "2026-01-01T00:00:00Z",
+  isHidden: false,
 };
 
 const mockSession: ActiveSession = {

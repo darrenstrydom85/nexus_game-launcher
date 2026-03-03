@@ -54,6 +54,7 @@ const makeGame = (id: string, name: string): Game => ({
   lastPlayedAt: "2026-01-01T00:00:00Z",
   playCount: 0,
   addedAt: "2026-01-01",
+  isHidden: false,
 });
 
 describe("Story 6.5: Library View Composition", () => {

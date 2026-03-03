@@ -22,7 +22,7 @@ const SOURCE_LABELS: Record<GameSource, string> = {
 
 const STATUS_LABELS: Record<GameStatus, string> = {
   playing: "Currently Playing", completed: "Completed", backlog: "Backlog",
-  dropped: "Dropped", wishlist: "Wishlist", unset: "All Games",
+  dropped: "Dropped", wishlist: "Wishlist", removed: "Removed", unset: "All Games",
 };
 
 function buildHeading(opts: {

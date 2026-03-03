@@ -63,7 +63,6 @@ function MainApp() {
   const healthCheckTriggered = React.useRef(false);
   const backfillToastId = React.useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
-  const updateToast = useToastStore((s) => s.updateToast);
   const removeToast = useToastStore((s) => s.removeToast);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [syncResult, setSyncResult] = React.useState<{ added: number; updated: number } | null>(null);

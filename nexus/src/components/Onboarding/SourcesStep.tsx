@@ -158,6 +158,7 @@ export function SourcesStep() {
         lastPlayedAt: null,
         playCount: 0,
         addedAt: new Date().toISOString(),
+        isHidden: false,
       }));
 
       setGames(games);

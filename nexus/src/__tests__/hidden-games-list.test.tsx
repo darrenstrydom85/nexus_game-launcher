@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { HiddenGamesList } from "@/components/Settings/HiddenGamesList";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+const mockInvoke = vi.fn();
+vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => mockInvoke(...args) }));
 
 const makeGame = (id: string, name: string, coverUrl: string | null = null): Game => ({
   id,
@@ -38,10 +39,12 @@ const makeGame = (id: string, name: string, coverUrl: string | null = null): Gam
   lastPlayedAt: null,
   playCount: 0,
   addedAt: "2026-01-01",
+  isHidden: false,
 });
 
 describe("Story 12.8: HiddenGamesList", () => {
   beforeEach(() => {
+    mockInvoke.mockResolvedValue(undefined);
     useSettingsStore.setState({ hiddenGameIds: [] });
     useGameStore.setState({
       games: [
@@ -111,51 +114,60 @@ describe("Story 12.8: HiddenGamesList", () => {
     expect(screen.getByText("Unknown Game")).toBeInTheDocument();
   });
 
-  it("individual Unhide button removes only that game from hiddenGameIds", () => {
+  it("individual Unhide button removes only that game from hiddenGameIds", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g1", "g2", "g3"] });
     render(<HiddenGamesList />);
     fireEvent.click(screen.getByTestId("unhide-btn-g2"));
-    const ids = useSettingsStore.getState().hiddenGameIds;
-    expect(ids).not.toContain("g2");
-    expect(ids).toContain("g1");
-    expect(ids).toContain("g3");
+    await waitFor(() => {
+      const ids = useSettingsStore.getState().hiddenGameIds;
+      expect(ids).not.toContain("g2");
+      expect(ids).toContain("g1");
+      expect(ids).toContain("g3");
+    });
   });
 
-  it("individual Unhide fires a success toast with the game name", () => {
+  it("individual Unhide fires a success toast with the game name", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g3"] });
     render(<HiddenGamesList />);
     fireEvent.click(screen.getByTestId("unhide-btn-g3"));
-    const toasts = useToastStore.getState().toasts;
-    expect(toasts).toHaveLength(1);
-    expect(toasts[0].type).toBe("success");
-    expect(toasts[0].message).toContain("Cyberpunk");
-    expect(toasts[0].message).toContain("restored to library");
+    await waitFor(() => {
+      const toasts = useToastStore.getState().toasts;
+      expect(toasts).toHaveLength(1);
+      expect(toasts[0].type).toBe("success");
+      expect(toasts[0].message).toContain("Cyberpunk");
+      expect(toasts[0].message).toContain("restored to library");
+    });
   });
 
-  it("Unhide all button clears all hidden games", () => {
+  it("Unhide all button clears all hidden games", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g1", "g2", "g3"] });
     render(<HiddenGamesList />);
     fireEvent.click(screen.getByTestId("unhide-all"));
-    expect(useSettingsStore.getState().hiddenGameIds).toHaveLength(0);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().hiddenGameIds).toHaveLength(0);
+    });
   });
 
-  it("Unhide all fires a single toast", () => {
+  it("Unhide all fires a single toast", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g1", "g2"] });
     render(<HiddenGamesList />);
     fireEvent.click(screen.getByTestId("unhide-all"));
-    const toasts = useToastStore.getState().toasts;
-    expect(toasts).toHaveLength(1);
-    expect(toasts[0].type).toBe("success");
-    expect(toasts[0].message).toBe("All hidden games restored");
+    await waitFor(() => {
+      const toasts = useToastStore.getState().toasts;
+      expect(toasts).toHaveLength(1);
+      expect(toasts[0].type).toBe("success");
+      expect(toasts[0].message).toBe("All hidden games restored");
+    });
   });
 
-  it("section disappears after all games are unhidden via individual buttons", () => {
+  it("section disappears after all games are unhidden via individual buttons", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g1"] });
-    const { rerender } = render(<HiddenGamesList />);
+    render(<HiddenGamesList />);
     expect(screen.getByTestId("hidden-games-section")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("unhide-btn-g1"));
-    rerender(<HiddenGamesList />);
-    expect(screen.queryByTestId("hidden-games-section")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId("hidden-games-section")).not.toBeInTheDocument();
+    });
   });
 
   it("renders cover image when coverUrl is present", () => {

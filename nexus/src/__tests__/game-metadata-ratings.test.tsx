@@ -34,6 +34,7 @@ const baseGame: Game = {
   lastPlayedAt: null,
   playCount: 0,
   addedAt: "2026-01-01T00:00:00Z",
+  isHidden: false,
 };
 
 describe("GameMetadata ratings section", () => {

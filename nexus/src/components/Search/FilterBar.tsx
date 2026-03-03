@@ -11,7 +11,7 @@ const SOURCE_LABELS: Record<GameSource, string> = {
 
 const STATUS_LABELS: Record<GameStatus, string> = {
   playing: "Playing", completed: "Completed", backlog: "Backlog",
-  dropped: "Dropped", wishlist: "Wishlist", unset: "No Status",
+  dropped: "Dropped", wishlist: "Wishlist", removed: "Removed", unset: "No Status",
 };
 
 const ALL_SOURCES: GameSource[] = ["steam", "epic", "gog", "ubisoft", "battlenet", "xbox", "standalone"];

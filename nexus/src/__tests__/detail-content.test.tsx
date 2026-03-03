@@ -47,6 +47,7 @@ const mockGame: Game = {
   lastPlayedAt: "2026-02-28T10:00:00Z",
   playCount: 0,
   addedAt: "2026-01-01",
+  isHidden: false,
 };
 
 const screenshots = [

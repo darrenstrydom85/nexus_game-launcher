@@ -4,6 +4,9 @@ import { renderHook } from "@testing-library/react";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { SettingsSheet } from "@/components/Settings/SettingsSheet";
+
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(undefined) }));
+
 import { SourceToggles } from "@/components/Settings/SourceToggles";
 import { FolderManager } from "@/components/Settings/FolderManager";
 import { APIKeyManager } from "@/components/Settings/APIKeyManager";
@@ -181,11 +184,13 @@ describe("Story 12.2: LibraryPreferences", () => {
     expect(screen.getByTestId("hidden-games-section")).toHaveTextContent("2 hidden games");
   });
 
-  it("unhide all clears hidden games", () => {
+  it("unhide all clears hidden games", async () => {
     useSettingsStore.setState({ hiddenGameIds: ["g1", "g2"] });
     render(<LibraryPreferences />);
     fireEvent.click(screen.getByTestId("unhide-all"));
-    expect(useSettingsStore.getState().hiddenGameIds).toHaveLength(0);
+    await waitFor(() => {
+      expect(useSettingsStore.getState().hiddenGameIds).toHaveLength(0);
+    });
   });
 });
 

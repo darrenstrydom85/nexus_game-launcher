@@ -34,6 +34,7 @@ const mockGame: Game = {
   lastPlayedAt: null,
   playCount: 0,
   addedAt: "2026-01-01",
+  isHidden: false,
 };
 
 describe("Story 7.2: Action Bar", () => {

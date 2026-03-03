@@ -37,6 +37,7 @@ const STATUS_COLORS: Record<GameStatus, string> = {
   backlog: "bg-warning",
   dropped: "bg-destructive",
   wishlist: "bg-info",
+  removed: "bg-muted-foreground",
   unset: "bg-muted-foreground",
 };
 
