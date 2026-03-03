@@ -95,6 +95,54 @@ export function fetchMetadata(gameId: string): Promise<void> {
   return invoke<void>("fetch_metadata", { gameId });
 }
 
+export interface MetadataSearchResult {
+  id: number;
+  name: string;
+  releaseDate: number | null;
+  coverUrl: string | null;
+}
+
+export function searchMetadata(query: string): Promise<MetadataSearchResult[]> {
+  return invoke<MetadataSearchResult[]>("search_metadata", { query });
+}
+
+export function fetchMetadataWithIgdbId(
+  gameId: string,
+  igdbId: number,
+  skipSteamgrid?: boolean,
+): Promise<void> {
+  return invoke<void>("fetch_metadata_with_igdb_id", {
+    gameId,
+    igdbId,
+    skipSteamgrid: skipSteamgrid ?? null,
+  });
+}
+
+export interface SteamGridSearchResult {
+  id: number;
+  name: string;
+  verified: boolean;
+  coverUrl?: string | null;
+}
+
+export function searchSteamgridArtwork(
+  query: string,
+): Promise<SteamGridSearchResult[]> {
+  return invoke<SteamGridSearchResult[]>("search_steamgrid_artwork", {
+    query,
+  });
+}
+
+export function applySteamgridArtwork(
+  gameId: string,
+  steamgridId: number,
+): Promise<void> {
+  return invoke<void>("apply_steamgrid_artwork", {
+    gameId,
+    steamgridId,
+  });
+}
+
 export function fetchArtwork(gameId: string): Promise<void> {
   return invoke<void>("fetch_artwork", { gameId });
 }
@@ -271,27 +319,4 @@ export interface HealthCheckProgressEvent {
 
 export function checkLibraryHealth(): Promise<LibraryHealthReport> {
   return invoke<LibraryHealthReport>("check_library_health");
-}
-
-// ── HowLongToBeat ─────────────────────────────────────────────────
-
-export interface HltbBackfillProgressEvent {
-  completed: number;
-  total: number;
-  currentGame: string;
-  found: number;
-  notFound: number;
-  errored: number;
-}
-
-export function fetchHltb(gameId: string): Promise<void> {
-  return invoke<void>("fetch_hltb", { gameId });
-}
-
-export function runHltbBackfill(): Promise<number> {
-  return invoke<number>("run_hltb_backfill");
-}
-
-export function cancelHltbBackfill(): Promise<void> {
-  return invoke<void>("cancel_hltb_backfill");
 }

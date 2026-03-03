@@ -302,9 +302,9 @@ pub struct DetectedGame {
     pub potential_exe_names: Option<String>,
 }
 
-#[tauri::command]
-pub fn confirm_games(
-    db: State<'_, DbState>,
+/// Core confirm_games logic. Used by the Tauri command and by tests.
+pub(crate) fn confirm_games_impl(
+    db: &DbState,
     detected_games: Vec<DetectedGame>,
 ) -> Result<Vec<Game>, CommandError> {
     let conn = db
@@ -374,20 +374,19 @@ pub fn confirm_games(
             // Update mutable fields on the existing game, always refreshing
             // exe_path, exe_name, and potential_exe_names from the latest scan.
             // If the game was previously 'removed' (re-installed), set status back to 'backlog'.
+            // Do not update name: preserve any user-edited name; only new games get the source name.
             tx.execute(
                 "UPDATE games SET
-                    name = ?1,
-                    folder_path = ?2,
-                    exe_path = ?3,
-                    exe_name = ?4,
-                    launch_url = ?5,
-                    source_folder_id = ?6,
-                    potential_exe_names = COALESCE(?7, potential_exe_names),
+                    folder_path = ?1,
+                    exe_path = ?2,
+                    exe_name = ?3,
+                    launch_url = ?4,
+                    source_folder_id = ?5,
+                    potential_exe_names = COALESCE(?6, potential_exe_names),
                     status = CASE WHEN status = 'removed' THEN 'backlog' ELSE status END,
-                    updated_at = ?8
-                 WHERE id = ?9",
+                    updated_at = ?7
+                 WHERE id = ?8",
                 params![
-                    g.name,
                     g.folder_path,
                     g.exe_path,
                     g.exe_name,
@@ -469,6 +468,14 @@ pub fn confirm_games(
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(results)
+}
+
+#[tauri::command]
+pub fn confirm_games(
+    db: State<'_, DbState>,
+    detected_games: Vec<DetectedGame>,
+) -> Result<Vec<Game>, CommandError> {
+    confirm_games_impl(&db, detected_games)
 }
 
 #[cfg(test)]
@@ -867,7 +874,7 @@ mod tests {
             },
         ];
 
-        let games = confirm_games_inner(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected).unwrap();
         assert_eq!(games.len(), 2);
         assert_eq!(games[0].name, "Game A");
         assert_eq!(games[0].source, "steam");
@@ -893,7 +900,7 @@ mod tests {
             },
         ];
 
-        let games = confirm_games_inner(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected).unwrap();
         assert_ne!(games[0].id, games[1].id);
     }
 
@@ -906,15 +913,46 @@ mod tests {
             launch_url: None, source_folder_id: None, potential_exe_names: None,
         }];
 
-        let result = confirm_games_inner(&state, detected);
+        let result = confirm_games_impl(&state, detected);
         assert!(result.is_err());
     }
 
     #[test]
     fn confirm_games_empty_list() {
         let state = setup_db();
-        let games = confirm_games_inner(&state, vec![]).unwrap();
+        let games = confirm_games_impl(&state, vec![]).unwrap();
         assert!(games.is_empty());
+    }
+
+    #[test]
+    fn confirm_games_preserves_name_on_resync() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, source_id, status, added_at, updated_at) \
+             VALUES ('existing-id', 'My Custom Name', 'steam', 'app_100', 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        let detected = vec![DetectedGame {
+            name: "Store Title From Scan".into(),
+            source: "steam".into(),
+            source_id: Some("app_100".into()),
+            source_hint: None,
+            folder_path: Some("C:\\Games\\A".into()),
+            exe_path: Some("C:\\Games\\A\\game.exe".into()),
+            exe_name: Some("game.exe".into()),
+            launch_url: None,
+            source_folder_id: None,
+            potential_exe_names: None,
+        }];
+
+        let games = confirm_games_impl(&state, detected).unwrap();
+        assert_eq!(games.len(), 1);
+        assert_eq!(games[0].id, "existing-id");
+        assert_eq!(games[0].name, "My Custom Name", "resync must not overwrite user-edited name");
     }
 
     // ── Test helpers: non-Tauri wrappers ──
@@ -1068,31 +1106,4 @@ mod tests {
         Ok(())
     }
 
-    fn confirm_games_inner(state: &DbState, detected_games: Vec<DetectedGame>) -> Result<Vec<Game>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        for g in &detected_games {
-            GameSource::from_str(&g.source).map_err(CommandError::Parse)?;
-        }
-
-        let now = now_iso();
-        let mut inserted = Vec::with_capacity(detected_games.len());
-
-        let tx = conn.unchecked_transaction().map_err(|e| CommandError::Database(e.to_string()))?;
-        for g in &detected_games {
-            let id = Uuid::new_v4().to_string();
-            tx.execute(
-                "INSERT INTO games (id, name, source, source_id, source_hint, folder_path, exe_path, exe_name, launch_url, source_folder_id, status, added_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'backlog', ?11, ?11)",
-                params![id, g.name, g.source, g.source_id, g.source_hint, g.folder_path, g.exe_path, g.exe_name, g.launch_url, g.source_folder_id, now],
-            ).map_err(|e| CommandError::Database(e.to_string()))?;
-
-            let game = tx
-                .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
-                .map_err(|e| CommandError::Database(e.to_string()))?;
-            inserted.push(game);
-        }
-        tx.commit().map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(inserted)
-    }
 }

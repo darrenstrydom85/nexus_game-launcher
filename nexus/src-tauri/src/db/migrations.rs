@@ -32,6 +32,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "hltb_times",
         sql: include_str!("migrations/005_hltb_times.sql"),
     },
+    Migration {
+        version: 6,
+        name: "remove_hltb_columns",
+        sql: include_str!("migrations/006_remove_hltb_columns.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -105,7 +110,7 @@ mod tests {
         let conn = in_memory_conn();
         let applied = run_pending(&conn).unwrap();
         assert_eq!(applied, MIGRATIONS.len() as u32);
-        assert_eq!(current_version(&conn).unwrap(), 5);
+        assert_eq!(current_version(&conn).unwrap(), 6);
         assert_eq!(current_version(&conn).unwrap(), MIGRATIONS.len() as u32);
 
         let tables: Vec<String> = conn
@@ -180,10 +185,6 @@ mod tests {
             "critic_score_count",
             "community_score",
             "community_score_count",
-            "hltb_main_s",
-            "hltb_main_plus_s",
-            "hltb_completionist_s",
-            "hltb_game_id",
         ];
         for col in &expected {
             assert!(cols.contains(&col.to_string()), "games missing column: {col}");

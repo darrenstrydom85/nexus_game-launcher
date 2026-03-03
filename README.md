@@ -11,7 +11,7 @@ Nexus is a unified game launcher for Windows that brings together games from **S
 - **Unified library** — Scan and aggregate games from multiple storefronts and custom folders
 - **Play tracking** — Automatic session detection and playtime stats with charts
 - **Collections** — Custom collections with drag-and-drop ordering
-- **Metadata & artwork** — Optional integration with IGDB and SteamGridDB (API keys required) for covers, screenshots, and HowLongToBeat data
+- **Metadata & artwork** — Optional integration with IGDB and SteamGridDB (API keys required) for covers and screenshots
 - **Duplicate detection** — Find and resolve duplicate entries across sources
 - **Library health** — Check for broken paths, missing executables, and data issues
 - **Random picker** — “What should I play?” with filters
@@ -101,7 +101,7 @@ nexus/
 │   │   ├── commands/       # Tauri invoke handlers (games, sessions, metadata, sources, …)
 │   │   ├── db/             # SQLite schema and migrations
 │   │   ├── dedup/          # Duplicate detection
-│   │   ├── metadata/       # IGDB, SteamGridDB, HLTB, cache
+│   │   ├── metadata/       # IGDB, SteamGridDB, cache
 │   │   ├── models/         # Shared data structures
 │   │   └── sources/        # Steam, Epic, GOG, Xbox, Battle.net, Ubisoft, standalone, watcher
 │   ├── Cargo.toml
@@ -137,7 +137,6 @@ cd nexus/src-tauri; cargo test
 
 - **IGDB** (Twitch) — For game metadata and ratings. Optional; set in Settings → API Keys.
 - **SteamGridDB** — For custom grid artwork. Optional; set in Settings → API Keys.
-- **HowLongToBeat** — Fetched via backend; no key required.
 
 Data (SQLite DB, cache, settings) is stored in the Tauri app data directory (e.g. `%APPDATA%\com.darrenstrydom.nexus` on Windows).
 

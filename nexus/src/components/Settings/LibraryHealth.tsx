@@ -1,12 +1,11 @@
 import * as React from "react";
 import { listen } from "@tauri-apps/api/event";
-import { AlertTriangle, CheckCircle2, Clock, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { checkLibraryHealth, runHltbBackfill, type DeadGame, type HealthCheckProgressEvent, type HltbBackfillProgressEvent } from "@/lib/tauri";
+import { checkLibraryHealth, type DeadGame, type HealthCheckProgressEvent } from "@/lib/tauri";
 import { HealthCheckModal } from "./HealthCheckModal";
-import { useTauriEvent } from "@/hooks/use-tauri-event";
 
 export function LibraryHealth() {
   const lastHealthCheckAt = useSettingsStore((s) => s.lastHealthCheckAt);
@@ -20,10 +19,6 @@ export function LibraryHealth() {
   const [deadGames, setDeadGames] = React.useState<DeadGame[]>([]);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [hasRun, setHasRun] = React.useState(false);
-  const [hltbBackfillRunning, setHltbBackfillRunning] = React.useState(false);
-  const [hltbBackfillCount, setHltbBackfillCount] = React.useState<number | null>(null);
-  const [hltbProgress, setHltbProgress] = React.useState<{ completed: number; total: number; currentGame: string } | null>(null);
-  const [hltbSummary, setHltbSummary] = React.useState<{ found: number; notFound: number; errored: number } | null>(null);
 
   const handleRunCheck = React.useCallback(async () => {
     setRunning(true);
@@ -46,38 +41,6 @@ export function LibraryHealth() {
       setProgress(null);
     }
   }, [setHealthCheckResult]);
-
-  const handleRunHltbBackfill = React.useCallback(async () => {
-    setHltbBackfillRunning(true);
-    setHltbBackfillCount(null);
-    setHltbProgress(null);
-    setHltbSummary(null);
-    try {
-      const count = await runHltbBackfill();
-      setHltbBackfillCount(count);
-      if (count === 0) {
-        setHltbBackfillRunning(false);
-      }
-    } catch {
-      setHltbBackfillRunning(false);
-    }
-  }, []);
-
-  const handleHltbProgress = React.useCallback(
-    (event: HltbBackfillProgressEvent) => {
-      const { completed, total, currentGame, found, notFound, errored } = event;
-      if (total === 0) return;
-      setHltbProgress({ completed, total, currentGame });
-      if (completed >= total) {
-        setHltbBackfillRunning(false);
-        setHltbProgress(null);
-        setHltbSummary({ found, notFound, errored });
-      }
-    },
-    [],
-  );
-
-  useTauriEvent("hltb-backfill-progress", handleHltbProgress);
 
   const lastCheckLabel = React.useMemo(() => {
     if (!lastHealthCheckAt) return "Never checked";
@@ -191,95 +154,6 @@ export function LibraryHealth() {
             )}
           />
         </button>
-      </div>
-
-      {/* HLTB backfill */}
-      <div className="mt-3 flex flex-col gap-2">
-        <Button
-          data-testid="run-hltb-backfill"
-          variant="secondary"
-          size="sm"
-          className="gap-1.5"
-          disabled={hltbBackfillRunning}
-          onClick={handleRunHltbBackfill}
-        >
-          {hltbBackfillRunning ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="size-3.5" />
-          )}
-          {hltbBackfillRunning ? "Fetching…" : "Re-fetch HLTB Data"}
-        </Button>
-
-        {hltbBackfillRunning && hltbProgress && (
-          <div
-            data-testid="hltb-backfill-progress"
-            className="flex flex-col gap-1.5 rounded-md bg-secondary/30 px-3 py-2"
-          >
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="truncate">{hltbProgress.currentGame || "Starting…"}</span>
-              <span className="ml-2 shrink-0 tabular-nums">
-                {hltbProgress.completed}/{hltbProgress.total}
-              </span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
-                style={{ width: `${hltbProgress.total > 0 ? (hltbProgress.completed / hltbProgress.total) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {hltbBackfillRunning && !hltbProgress && (
-          <div className="flex items-center gap-2 rounded-md bg-secondary/30 px-3 py-2 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 shrink-0 animate-spin" />
-            Checking which games need HLTB data…
-          </div>
-        )}
-
-        {hltbBackfillCount !== null && !hltbBackfillRunning && (
-          <div
-            data-testid="hltb-backfill-result"
-            className="flex flex-col gap-1.5 rounded-md bg-secondary/30 px-3 py-2 text-xs"
-          >
-            {hltbBackfillCount === 0 ? (
-              <div className="flex items-center gap-2 text-success">
-                <CheckCircle2 className="size-3.5 shrink-0" />
-                All games already have HLTB data
-              </div>
-            ) : hltbSummary ? (
-              <>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle2 className="size-3.5 shrink-0" />
-                  Processed {hltbBackfillCount} game{hltbBackfillCount !== 1 ? "s" : ""}
-                </div>
-                <div className="ml-6 flex flex-col gap-0.5 text-muted-foreground">
-                  {hltbSummary.found > 0 && (
-                    <span className="text-success">
-                      {hltbSummary.found} matched on HLTB
-                    </span>
-                  )}
-                  {hltbSummary.notFound > 0 && (
-                    <span>
-                      {hltbSummary.notFound} not found on HLTB
-                    </span>
-                  )}
-                  {hltbSummary.errored > 0 && (
-                    <span className="text-destructive">
-                      {hltbSummary.errored} failed (network error)
-                    </span>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock className="size-3.5 shrink-0" />
-                Fetched HLTB data for {hltbBackfillCount} game{hltbBackfillCount !== 1 ? "s" : ""}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <HealthCheckModal

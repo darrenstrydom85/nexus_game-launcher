@@ -285,15 +285,18 @@ impl IgdbClient {
         Ok(true)
     }
 
-    pub async fn search_game(&self, name: &str) -> Result<Vec<IgdbGame>, String> {
-        let escaped = name.replace('"', "\\\"");
-        let query = format!(
-            "search \"{escaped}\"; fields name,summary,first_release_date,\
+    const GAME_FIELDS: &str = "name,summary,first_release_date,\
              genres.name,involved_companies.developer,involved_companies.publisher,\
              involved_companies.company.name,screenshots.image_id,screenshots.url,\
              videos.video_id,videos.name,cover.image_id,cover.url,\
              aggregated_rating,aggregated_rating_count,rating,rating_count,\
-             total_rating,total_rating_count; limit 10;"
+             total_rating,total_rating_count";
+
+    pub async fn search_game(&self, name: &str) -> Result<Vec<IgdbGame>, String> {
+        let escaped = name.replace('"', "\\\"");
+        let query = format!(
+            "search \"{escaped}\"; fields {}; limit 10;",
+            Self::GAME_FIELDS
         );
 
         let body = self.igdb_post("games", &query).await?;
@@ -301,6 +304,20 @@ impl IgdbClient {
             serde_json::from_str(&body).map_err(|e| format!("IGDB parse error: {e}"))?;
 
         Ok(games)
+    }
+
+    /// Fetch a single game by IGDB id. Returns None if not found.
+    pub async fn get_game_by_id(&self, id: i64) -> Result<Option<IgdbGame>, String> {
+        let query = format!(
+            "where id = {id}; fields {}; limit 1;",
+            Self::GAME_FIELDS
+        );
+
+        let body = self.igdb_post("games", &query).await?;
+        let games: Vec<IgdbGame> =
+            serde_json::from_str(&body).map_err(|e| format!("IGDB parse error: {e}"))?;
+
+        Ok(games.into_iter().next())
     }
 
     pub fn best_match<'a>(results: &'a [IgdbGame], query: &str) -> Option<&'a IgdbGame> {

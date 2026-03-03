@@ -10,6 +10,11 @@ import {
   type SessionRecord,
 } from "@/components/Library/LibraryStats";
 
+vi.mock("@/stores/settingsStore", () => ({
+  useSettingsStore: (selector: (s: { accentColor: string }) => string) =>
+    selector({ accentColor: "#3b82f6" }),
+}));
+
 vi.mock("recharts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("recharts")>();
   return {
@@ -70,12 +75,12 @@ const mockSessions: SessionRecord[] = Array.from({ length: 25 }, (_, i) => ({
 
 describe("Story 6.7: Library Stats Page", () => {
   it("renders the stats dashboard", () => {
-    render(<LibraryStats stats={mockStats} />);
+    render(<LibraryStats stats={mockStats} initialDateRange="all" />);
     expect(screen.getByTestId("library-stats")).toBeInTheDocument();
   });
 
   it("renders summary cards", () => {
-    render(<LibraryStats stats={mockStats} />);
+    render(<LibraryStats stats={mockStats} initialDateRange="all" />);
     expect(screen.getByTestId("stats-summary")).toBeInTheDocument();
     expect(screen.getByTestId("stat-card-total-hours")).toBeInTheDocument();
     expect(screen.getByTestId("stat-card-games-played")).toBeInTheDocument();
@@ -85,7 +90,7 @@ describe("Story 6.7: Library Stats Page", () => {
   });
 
   it("displays correct stat values", () => {
-    render(<LibraryStats stats={mockStats} />);
+    render(<LibraryStats stats={mockStats} initialDateRange="all" />);
     expect(screen.getByTestId("stat-card-total-hours")).toHaveTextContent(
       "100h 0m",
     );
@@ -101,27 +106,28 @@ describe("Story 6.7: Library Stats Page", () => {
     );
   });
 
-  it("renders activity chart with toggle", () => {
+  it("renders activity chart and date range chooser", () => {
     render(
-      <LibraryStats stats={mockStats} activityData={mockActivity} />,
+      <LibraryStats stats={mockStats} activityData={mockActivity} initialDateRange="all" />,
     );
     expect(screen.getByTestId("activity-chart")).toBeInTheDocument();
-    expect(screen.getByTestId("activity-chart-toggle")).toBeInTheDocument();
-    expect(screen.getByTestId("activity-range-weekly")).toBeInTheDocument();
-    expect(screen.getByTestId("activity-range-monthly")).toBeInTheDocument();
-    expect(screen.getByTestId("activity-range-yearly")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-date-range")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-all")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-start")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-end")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-apply")).toBeInTheDocument();
   });
 
   it("renders activity heatmap", () => {
     render(
-      <LibraryStats stats={mockStats} activityData={mockActivity} />,
+      <LibraryStats stats={mockStats} activityData={mockActivity} initialDateRange="all" />,
     );
     expect(screen.getByTestId("activity-heatmap")).toBeInTheDocument();
   });
 
   it("renders top games chart", () => {
     render(
-      <LibraryStats stats={mockStats} topGames={mockTopGames} />,
+      <LibraryStats stats={mockStats} topGames={mockTopGames} initialDateRange="all" />,
     );
     expect(screen.getByTestId("top-games-chart")).toBeInTheDocument();
     expect(screen.getByTestId("top-game-0")).toBeInTheDocument();
@@ -131,7 +137,7 @@ describe("Story 6.7: Library Stats Page", () => {
 
   it("renders session history with pagination", () => {
     render(
-      <LibraryStats stats={mockStats} sessions={mockSessions} />,
+      <LibraryStats stats={mockStats} sessions={mockSessions} initialDateRange="all" />,
     );
     expect(screen.getByTestId("session-history")).toBeInTheDocument();
     expect(screen.getByTestId("session-pagination")).toBeInTheDocument();
@@ -140,7 +146,7 @@ describe("Story 6.7: Library Stats Page", () => {
 
   it("session pagination navigates pages", () => {
     render(
-      <LibraryStats stats={mockStats} sessions={mockSessions} />,
+      <LibraryStats stats={mockStats} sessions={mockSessions} initialDateRange="all" />,
     );
     expect(screen.getByTestId("session-s0")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("session-next"));
@@ -152,7 +158,7 @@ describe("Story 6.7: Library Stats Page", () => {
 
   it("shows 20 sessions per page", () => {
     render(
-      <LibraryStats stats={mockStats} sessions={mockSessions} />,
+      <LibraryStats stats={mockStats} sessions={mockSessions} initialDateRange="all" />,
     );
     const sessionElements = screen.getAllByTestId(/^session-s\d+$/);
     expect(sessionElements).toHaveLength(20);

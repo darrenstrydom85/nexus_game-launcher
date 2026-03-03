@@ -1,11 +1,9 @@
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::db::DbState;
 use crate::metadata::cache;
-use crate::metadata::hltb::HltbClient;
 use crate::metadata::igdb::IgdbClient;
 use crate::metadata::steamgriddb::{ArtworkType, SteamGridDbClient};
 use crate::models::settings::keys;
@@ -192,61 +190,6 @@ pub async fn fetch_metadata_for_game(
         }
     }
 
-    // Fetch HLTB data (no API key required; runs after IGDB at lower priority)
-    {
-        let needs_hltb = {
-            let conn = db.conn.lock().map_err(|e| MetadataSyncError {
-                source: "Metadata".into(),
-                game_id: game_id.to_string(),
-                message: format!("lock poisoned: {e}"),
-            })?;
-            conn.query_row(
-                "SELECT hltb_main_s FROM games WHERE id = ?1",
-                params![game_id],
-                |row| row.get::<_, Option<i64>>(0),
-            )
-            .ok()
-            .flatten()
-            .is_none()
-        };
-
-        if needs_hltb {
-            let hltb = HltbClient::new();
-            match hltb.search(&game_name).await {
-                Ok(Some(result)) => {
-                    if let Ok(conn) = db.conn.lock() {
-                        let _ = conn.execute(
-                            "UPDATE games SET hltb_game_id = ?1, hltb_main_s = ?2, \
-                             hltb_main_plus_s = ?3, hltb_completionist_s = ?4, updated_at = ?5 \
-                             WHERE id = ?6",
-                            params![
-                                result.game_id,
-                                result.comp_main,
-                                result.comp_plus,
-                                result.comp_100,
-                                crate::commands::utils::now_iso(),
-                                game_id,
-                            ],
-                        );
-                    }
-                }
-                Ok(None) => {
-                    // No match — store sentinel to prevent repeated searches
-                    if let Ok(conn) = db.conn.lock() {
-                        let _ = conn.execute(
-                            "UPDATE games SET hltb_main_s = -1, updated_at = ?1 WHERE id = ?2",
-                            params![crate::commands::utils::now_iso(), game_id],
-                        );
-                    }
-                }
-                Err(e) => {
-                    log::warn!("HLTB fetch failed for {game_name}: {e}");
-                }
-            }
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        }
-    }
-
     // Fetch SteamGridDB artwork if available
     if let Some(ref steamgrid) = ctx.steamgrid {
         let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
@@ -285,6 +228,94 @@ pub async fn fetch_metadata_for_game(
     Ok(())
 }
 
+/// Apply a specific IGDB game (by id) to a library game, then optionally HLTB and SteamGridDB.
+/// When `skip_steamgrid` is true, SteamGridDB is not fetched; caller can show artwork picker and call apply_steamgrid_artwork_for_game.
+pub async fn fetch_metadata_for_game_with_igdb_id(
+    db: &DbState,
+    _app_handle: &tauri::AppHandle,
+    game_id: &str,
+    igdb_id: i64,
+    skip_steamgrid: bool,
+) -> Result<(), MetadataSyncError> {
+    let ctx = build_context(db).map_err(|e| MetadataSyncError {
+        source: "Metadata".into(),
+        game_id: game_id.to_string(),
+        message: e,
+    })?;
+
+    let (game_name, source, source_id) = {
+        let conn = db.conn.lock().map_err(|e| MetadataSyncError {
+            source: "Metadata".into(),
+            game_id: game_id.to_string(),
+            message: format!("lock poisoned: {e}"),
+        })?;
+        let row = conn
+            .query_row(
+                "SELECT name, source, source_id FROM games WHERE id = ?1",
+                params![game_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
+            )
+            .map_err(|e| MetadataSyncError {
+                source: "Metadata".into(),
+                game_id: game_id.to_string(),
+                message: format!("game not found: {e}"),
+            })?;
+        row
+    };
+
+    let igdb_game_name = if let Some(ref igdb) = ctx.igdb {
+        match fetch_igdb_metadata_by_id(igdb, db, game_id, igdb_id).await {
+            Ok(name) => {
+                if let Some(info) = igdb.get_cached_token_info() {
+                    save_igdb_token(db, &info.0, info.1);
+                }
+                Some(name)
+            }
+            Err(e) => {
+                return Err(MetadataSyncError {
+                    source: "IGDB".into(),
+                    game_id: game_id.to_string(),
+                    message: e,
+                });
+            }
+        }
+    } else {
+        return Err(MetadataSyncError {
+            source: "Metadata".into(),
+            game_id: game_id.to_string(),
+            message: "IGDB API keys not configured".into(),
+        });
+    };
+
+    // SteamGridDB artwork: use the IGDB game name so artwork matches the game the user selected (unless caller will let user pick)
+    if !skip_steamgrid {
+        let artwork_search_name = igdb_game_name.as_deref().unwrap_or(&game_name);
+        if let Some(ref steamgrid) = ctx.steamgrid {
+            let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
+            if let Err(e) = fetch_steamgrid_artwork(
+                steamgrid,
+                &ctx.http,
+                db,
+                game_id,
+                artwork_search_name,
+                steam_appid,
+            )
+            .await
+            {
+                log::warn!("SteamGridDB artwork fetch failed for {artwork_search_name}: {e}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
 async fn fetch_igdb_metadata(
     igdb: &IgdbClient,
     db: &DbState,
@@ -296,7 +327,33 @@ async fn fetch_igdb_metadata(
         .ok_or_else(|| format!("no IGDB match for {game_name}"))?;
 
     let meta = IgdbClient::extract_metadata(best);
+    apply_igdb_metadata_to_game(db, game_id, &meta).await
+}
 
+/// Fetch a single game from IGDB by id and apply its metadata to the library game.
+/// Returns the IGDB game's name so the caller can use it for SteamGridDB search.
+async fn fetch_igdb_metadata_by_id(
+    igdb: &IgdbClient,
+    db: &DbState,
+    game_id: &str,
+    igdb_id: i64,
+) -> Result<String, String> {
+    let game = igdb
+        .get_game_by_id(igdb_id)
+        .await?
+        .ok_or_else(|| format!("IGDB game {igdb_id} not found"))?;
+
+    let name = game.name.clone();
+    let meta = IgdbClient::extract_metadata(&game);
+    apply_igdb_metadata_to_game(db, game_id, &meta).await?;
+    Ok(name)
+}
+
+async fn apply_igdb_metadata_to_game(
+    db: &DbState,
+    game_id: &str,
+    meta: &crate::metadata::igdb::GameMetadata,
+) -> Result<(), String> {
     let conn = db
         .conn
         .lock()
@@ -382,47 +439,84 @@ async fn fetch_steamgrid_artwork(
 
     let steamgrid_id = steamgrid_id.ok_or_else(|| format!("no SteamGridDB match for {game_name}"))?;
 
-    let artwork = steamgrid.fetch_artwork_set(steamgrid_id).await?;
+    apply_steamgrid_artwork_by_id(steamgrid, http, db, game_id, steamgrid_id).await
+}
 
-    // Download and cache images
-    let cached = cache::download_and_cache_artwork(
-        http,
-        game_id,
-        artwork.grid.as_deref(),
-        artwork.hero.as_deref(),
-        artwork.logo.as_deref(),
-        artwork.icon.as_deref(),
-        &[],
-    )
-    .await?;
+/// Fetch a SteamGridDB artwork set by id and apply it to the library game (download, cache, update DB).
+fn apply_steamgrid_artwork_by_id<'a>(
+    steamgrid: &'a SteamGridDbClient,
+    http: &'a reqwest::Client,
+    db: &'a DbState,
+    game_id: &'a str,
+    steamgrid_id: i64,
+) -> impl std::future::Future<Output = Result<(), String>> + 'a {
+    async move {
+        let artwork = steamgrid.fetch_artwork_set(steamgrid_id).await?;
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| format!("lock poisoned: {e}"))?;
-
-    let cover_url = artwork.grid.clone()
-        .or(cached.cover_path);
-    let hero_url = artwork.hero.clone()
-        .or(cached.hero_path);
-    let logo_url = artwork.logo.clone()
-        .or(cached.logo_path);
-
-    conn.execute(
-        "UPDATE games SET steamgrid_id = ?1, cover_url = ?2, hero_url = ?3, \
-         logo_url = ?4, updated_at = ?5 WHERE id = ?6",
-        params![
-            steamgrid_id,
-            cover_url,
-            hero_url,
-            logo_url,
-            crate::commands::utils::now_iso(),
+        let cached = cache::download_and_cache_artwork(
+            http,
             game_id,
-        ],
-    )
-    .map_err(|e| format!("failed to update game artwork: {e}"))?;
+            artwork.grid.as_deref(),
+            artwork.hero.as_deref(),
+            artwork.logo.as_deref(),
+            artwork.icon.as_deref(),
+            &[],
+        )
+        .await?;
 
-    Ok(())
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| format!("lock poisoned: {e}"))?;
+
+        let cover_url = artwork.grid.clone().or(cached.cover_path);
+        let hero_url = artwork.hero.clone().or(cached.hero_path);
+        let logo_url = artwork.logo.clone().or(cached.logo_path);
+
+        conn.execute(
+            "UPDATE games SET steamgrid_id = ?1, cover_url = ?2, hero_url = ?3, \
+             logo_url = ?4, updated_at = ?5 WHERE id = ?6",
+            params![
+                steamgrid_id,
+                cover_url,
+                hero_url,
+                logo_url,
+                crate::commands::utils::now_iso(),
+                game_id,
+            ],
+        )
+        .map_err(|e| format!("failed to update game artwork: {e}"))?;
+
+        Ok(())
+    }
+}
+
+/// Apply a specific SteamGridDB game (by id) artwork set to a library game.
+/// Used when the user has manually chosen an artwork set from SteamGridDB search.
+pub async fn apply_steamgrid_artwork_for_game(
+    db: &DbState,
+    game_id: &str,
+    steamgrid_id: i64,
+) -> Result<(), MetadataSyncError> {
+    let ctx = build_context(db).map_err(|e| MetadataSyncError {
+        source: "Metadata".into(),
+        game_id: game_id.to_string(),
+        message: e,
+    })?;
+
+    let steamgrid = ctx.steamgrid.ok_or_else(|| MetadataSyncError {
+        source: "Metadata".into(),
+        game_id: game_id.to_string(),
+        message: "SteamGridDB API key not configured".into(),
+    })?;
+
+    apply_steamgrid_artwork_by_id(&steamgrid, &ctx.http, db, game_id, steamgrid_id)
+        .await
+        .map_err(|e| MetadataSyncError {
+            source: "SteamGridDB".into(),
+            game_id: game_id.to_string(),
+            message: e,
+        })
 }
 
 pub async fn fetch_artwork_for_game(
@@ -777,155 +871,6 @@ pub async fn run_score_backfill(db: Arc<DbState>, app_handle: tauri::AppHandle) 
     }
 }
 
-// ── HLTB Backfill ─────────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HltbBackfillProgressEvent {
-    pub completed: usize,
-    pub total: usize,
-    pub current_game: String,
-    pub found: usize,
-    pub not_found: usize,
-    pub errored: usize,
-}
-
-/// Returns (game_id, name) pairs for games that need HLTB data fetched.
-/// When `force` is true, also includes games with the sentinel value -1 (previously not found).
-pub fn find_games_needing_hltb_backfill(conn: &rusqlite::Connection, force: bool) -> Vec<(String, String)> {
-    let sql = if force {
-        "SELECT id, name FROM games WHERE (hltb_main_s IS NULL OR hltb_main_s = -1) AND name IS NOT NULL AND name != '' AND is_hidden = 0"
-    } else {
-        "SELECT id, name FROM games WHERE hltb_main_s IS NULL AND name IS NOT NULL AND name != '' AND is_hidden = 0"
-    };
-    let mut stmt = match conn.prepare(sql) {
-        Ok(s) => s,
-        Err(_) => return vec![],
-    };
-
-    let rows = match stmt.query_map([], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    }) {
-        Ok(r) => r,
-        Err(_) => return vec![],
-    };
-
-    rows.filter_map(|r| r.ok()).collect()
-}
-
-/// Runs the HLTB backfill pipeline. Fetches completion times for all library games
-/// that have not yet been searched. Uses 1 req/s rate limiting. Idempotent — safe to run
-/// multiple times. Games with no HLTB match are marked with sentinel value -1.
-pub async fn run_hltb_backfill(
-    db: Arc<DbState>,
-    app_handle: tauri::AppHandle,
-    cancel: Arc<AtomicBool>,
-    force: bool,
-) {
-    let games_to_backfill: Vec<(String, String)> = {
-        let conn = match db.conn.lock() {
-            Ok(c) => c,
-            Err(_) => return,
-        };
-        find_games_needing_hltb_backfill(&conn, force)
-    };
-
-    run_hltb_backfill_for_games(db, app_handle, cancel, games_to_backfill).await;
-}
-
-/// Runs the HLTB backfill for a specific list of (game_id, game_name) pairs.
-/// Use this when the caller has already queried the games to avoid a TOCTOU race
-/// where the startup backfill processes them between query and execution.
-pub async fn run_hltb_backfill_for_games(
-    db: Arc<DbState>,
-    app_handle: tauri::AppHandle,
-    cancel: Arc<AtomicBool>,
-    games_to_backfill: Vec<(String, String)>,
-) {
-    use tauri::Emitter;
-
-    let total = games_to_backfill.len();
-    if total == 0 {
-        return;
-    }
-
-    let hltb = crate::metadata::hltb::HltbClient::new();
-    let mut completed = 0usize;
-    let mut found = 0usize;
-    let mut not_found = 0usize;
-    let mut errored = 0usize;
-
-    for (game_id, game_name) in &games_to_backfill {
-        if cancel.load(Ordering::Relaxed) {
-            break;
-        }
-
-        let _ = app_handle.emit(
-            "hltb-backfill-progress",
-            &HltbBackfillProgressEvent {
-                completed,
-                total,
-                current_game: game_name.clone(),
-                found,
-                not_found,
-                errored,
-            },
-        );
-
-        match hltb.search(game_name).await {
-            Ok(Some(result)) => {
-                found += 1;
-                if let Ok(conn) = db.conn.lock() {
-                    let _ = conn.execute(
-                        "UPDATE games SET hltb_game_id = ?1, hltb_main_s = ?2, \
-                         hltb_main_plus_s = ?3, hltb_completionist_s = ?4, updated_at = ?5 \
-                         WHERE id = ?6",
-                        params![
-                            result.game_id,
-                            result.comp_main,
-                            result.comp_plus,
-                            result.comp_100,
-                            crate::commands::utils::now_iso(),
-                            game_id,
-                        ],
-                    );
-                }
-            }
-            Ok(None) => {
-                not_found += 1;
-                if let Ok(conn) = db.conn.lock() {
-                    let _ = conn.execute(
-                        "UPDATE games SET hltb_main_s = -1, updated_at = ?1 WHERE id = ?2",
-                        params![crate::commands::utils::now_iso(), game_id],
-                    );
-                }
-            }
-            Err(e) => {
-                errored += 1;
-                log::warn!("HLTB backfill failed for {game_name}: {e}");
-            }
-        }
-
-        completed += 1;
-
-        // Rate limit: 1 req/s
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    }
-
-    // Emit final progress with summary
-    let _ = app_handle.emit(
-        "hltb-backfill-progress",
-        &HltbBackfillProgressEvent {
-            completed,
-            total,
-            current_game: String::new(),
-            found,
-            not_found,
-            errored,
-        },
-    );
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1105,117 +1050,5 @@ mod tests {
     #[test]
     fn backfill_batch_size_is_10() {
         assert_eq!(BACKFILL_BATCH_SIZE, 10);
-    }
-
-    // ── HLTB Backfill Tests ──
-
-    fn insert_game_for_hltb(
-        conn: &rusqlite::Connection,
-        id: &str,
-        name: Option<&str>,
-        hltb_main_s: Option<i64>,
-    ) {
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, hltb_main_s, added_at, updated_at) \
-             VALUES (?1, ?2, 'steam', 'backlog', ?3, '2026-01-01', '2026-01-01')",
-            rusqlite::params![id, name, hltb_main_s],
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_returns_null_games() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game_for_hltb(&conn, "g1", Some("Game One"), None);
-        insert_game_for_hltb(&conn, "g2", Some("Game Two"), Some(36000));
-        insert_game_for_hltb(&conn, "g3", Some("Game Three"), Some(-1));
-
-        let results = find_games_needing_hltb_backfill(&conn, false);
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].0, "g1");
-        assert_eq!(results[0].1, "Game One");
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_skips_sentinel() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game_for_hltb(&conn, "g1", Some("Obscure Game"), Some(-1));
-
-        let results = find_games_needing_hltb_backfill(&conn, false);
-        assert!(results.is_empty());
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_skips_null_name() {
-        // games.name has a NOT NULL constraint, so we test with empty string instead
-        // (the query filters both NULL and empty string)
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game_for_hltb(&conn, "g1", Some(""), None);
-
-        let results = find_games_needing_hltb_backfill(&conn, false);
-        assert!(results.is_empty());
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_skips_empty_name() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game_for_hltb(&conn, "g1", Some(""), None);
-
-        let results = find_games_needing_hltb_backfill(&conn, false);
-        assert!(results.is_empty());
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_idempotent() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game_for_hltb(&conn, "g1", Some("Game One"), None);
-
-        let first = find_games_needing_hltb_backfill(&conn, false);
-        assert_eq!(first.len(), 1);
-
-        conn.execute(
-            "UPDATE games SET hltb_main_s = 36000 WHERE id = 'g1'",
-            [],
-        )
-        .unwrap();
-
-        let second = find_games_needing_hltb_backfill(&conn, false);
-        assert!(second.is_empty());
-    }
-
-    #[test]
-    fn find_games_needing_hltb_backfill_returns_multiple() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        for i in 1..=5 {
-            insert_game_for_hltb(&conn, &format!("g{i}"), Some(&format!("Game {i}")), None);
-        }
-
-        let results = find_games_needing_hltb_backfill(&conn, false);
-        assert_eq!(results.len(), 5);
-    }
-
-    #[test]
-    fn hltb_backfill_progress_event_serializes() {
-        let event = HltbBackfillProgressEvent {
-            completed: 12,
-            total: 47,
-            current_game: "DOOM Eternal".into(),
-            found: 8,
-            not_found: 3,
-            errored: 1,
-        };
-        let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains("\"completed\":12"));
-        assert!(json.contains("\"total\":47"));
-        assert!(json.contains("\"currentGame\":\"DOOM Eternal\""));
-        assert!(json.contains("\"found\":8"));
-        assert!(json.contains("\"notFound\":3"));
-        assert!(json.contains("\"errored\":1"));
     }
 }

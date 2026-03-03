@@ -4,7 +4,6 @@ import { GameMetadata } from "./GameMetadata";
 import { GamePlayStats } from "./GamePlayStats";
 import { GameTrailer } from "./GameTrailer";
 import { GameScreenshots } from "./GameScreenshots";
-import { HltbSection } from "./HltbSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { Plus } from "lucide-react";
 
@@ -19,6 +18,7 @@ interface DetailContentProps {
   onRatingChange?: (rating: number | null) => void;
   onEdit?: () => void;
   onRefetchMetadata?: () => void;
+  onSearchMetadata?: () => void;
   onViewFullStats?: () => void;
   onAddToCollection?: () => void;
   onOpenFolder?: () => void;
@@ -111,6 +111,7 @@ export function DetailContent({
   onRatingChange,
   onEdit,
   onRefetchMetadata,
+  onSearchMetadata,
   onViewFullStats,
   onAddToCollection,
   onOpenFolder,
@@ -126,6 +127,7 @@ export function DetailContent({
         onRatingChange={onRatingChange}
         onEdit={onEdit}
         onRefetchMetadata={onRefetchMetadata}
+        onSearchMetadata={onSearchMetadata}
         onAddToCollection={onAddToCollection}
         onOpenFolder={onOpenFolder}
         onHide={onHide}
@@ -180,9 +182,8 @@ export function DetailContent({
           )}
         </div>
 
-        {/* Right column — 40%: HLTB + play stats + trailer */}
+        {/* Right column — 40%: play stats + trailer */}
         <div data-testid="detail-right-col" className="group flex w-[40%] flex-col gap-4">
-          <HltbSection game={game} />
           <GamePlayStats
             game={game}
             onViewFullStats={onViewFullStats}

@@ -5,7 +5,6 @@ pub mod metadata;
 pub mod models;
 pub mod sources;
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use rusqlite;
 use tauri::Manager;
@@ -21,9 +20,10 @@ use commands::{
     games::{confirm_games, delete_game, get_game, get_games, search_games, update_game},
     launcher::{check_process_running, find_game_process, launch_game, stop_game},
     metadata::{
-        cancel_hltb_backfill, clear_cache, fetch_all_metadata, fetch_artwork, fetch_hltb,
-        fetch_metadata, get_cache_stats, get_key_status, get_metadata, get_placeholder_cover,
-        run_hltb_backfill, run_score_backfill, verify_igdb_keys, verify_steamgrid_key,
+        apply_steamgrid_artwork, clear_cache, fetch_all_metadata, fetch_artwork, fetch_metadata,
+        fetch_metadata_with_igdb_id, get_cache_stats, get_key_status, get_metadata,
+        get_placeholder_cover, run_score_backfill, search_metadata, search_steamgrid_artwork,
+        verify_igdb_keys, verify_steamgrid_key,
     },
     ping::ping,
     playtime::get_playtime,
@@ -50,48 +50,17 @@ use commands::{
 pub fn run() {
     let db_state = db::init().expect("failed to initialize database");
     let folder_watcher = sources::watcher::FolderWatcher::new();
-    let hltb_backfill_state = commands::metadata::HltbBackfillState {
-        cancel: Arc::new(AtomicBool::new(false)),
-    };
 
     tauri::Builder::default()
         .manage(db_state)
         .manage(folder_watcher)
-        .manage(hltb_backfill_state)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
-            let app_handle = app.handle().clone();
-            let db_state = app.state::<db::DbState>();
-            let db_path = db_state.db_path.clone();
-            let cancel = app.state::<commands::metadata::HltbBackfillState>().cancel.clone();
-
-            tauri::async_runtime::spawn(async move {
-                // Defer backfill by 10s to avoid competing with library load
-                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-
-                let db_arc = Arc::new(db::DbState {
-                    conn: std::sync::Mutex::new(
-                        match rusqlite::Connection::open(&db_path) {
-                            Ok(c) => c,
-                            Err(e) => {
-                                log::warn!("HLTB backfill: failed to open db: {e}");
-                                return;
-                            }
-                        },
-                    ),
-                    db_path,
-                });
-
-                metadata::pipeline::run_hltb_backfill(db_arc, app_handle, cancel, false).await;
-            });
-
-            Ok(())
-        })
+        .setup(|_app| Ok(()))
         .invoke_handler(tauri::generate_handler![
             ping,
             scan_directory,
@@ -149,6 +118,10 @@ pub fn run() {
             verify_steamgrid_key,
             verify_igdb_keys,
             fetch_metadata,
+            fetch_metadata_with_igdb_id,
+            search_metadata,
+            search_steamgrid_artwork,
+            apply_steamgrid_artwork,
             fetch_artwork,
             fetch_all_metadata,
             get_key_status,
@@ -156,9 +129,6 @@ pub fn run() {
             clear_cache,
             get_placeholder_cover,
             run_score_backfill,
-            fetch_hltb,
-            run_hltb_backfill,
-            cancel_hltb_backfill,
             check_library_health,
         ])
         .run(tauri::generate_context!())

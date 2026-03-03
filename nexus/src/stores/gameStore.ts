@@ -58,10 +58,6 @@ export interface Game {
   communityScore: number | null;
   communityScoreCount: number | null;
   trailerUrl: string | null;
-  hltbMainS: number | null;
-  hltbMainPlusS: number | null;
-  hltbCompletionistS: number | null;
-  hltbGameId: number | null;
   status: GameStatus;
   rating: number | null;
   totalPlayTimeS: number;
@@ -71,7 +67,7 @@ export interface Game {
   isHidden: boolean;
 }
 
-interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainS" | "hltbMainPlusS" | "hltbCompletionistS" | "hltbGameId"> {
+interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl"> {
   totalPlayTime?: number;
   totalPlayTimeS?: number;
   lastPlayed?: string | null;
@@ -86,10 +82,6 @@ interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "pl
   communityScore?: number | null;
   communityScoreCount?: number | null;
   trailerUrl?: string | null;
-  hltbMainS?: number | null;
-  hltbMainPlusS?: number | null;
-  hltbCompletionistS?: number | null;
-  hltbGameId?: number | null;
 }
 
 export interface ActiveSession {
@@ -160,10 +152,6 @@ export const useGameStore = create<GameStore>()(
           communityScore: g.communityScore ?? null,
           communityScoreCount: g.communityScoreCount ?? null,
           trailerUrl: g.trailerUrl ?? null,
-          hltbMainS: g.hltbMainS ?? null,
-          hltbMainPlusS: g.hltbMainPlusS ?? null,
-          hltbCompletionistS: g.hltbCompletionistS ?? null,
-          hltbGameId: g.hltbGameId ?? null,
           isHidden: g.isHidden ?? false,
         } as Game));
         set({ games: mapped }, false, "setGames");

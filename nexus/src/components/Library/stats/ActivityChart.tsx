@@ -1,64 +1,38 @@
-import * as React from "react";
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
-import { cn } from "@/lib/utils";
 import type { ActivityDataPoint } from "../LibraryStats";
 
-type TimeRange = "weekly" | "monthly" | "yearly";
+const DEFAULT_ACCENT = "#3b82f6";
 
-interface ActivityChartProps {
+export interface ActivityChartProps {
   data: ActivityDataPoint[];
+  /** Theme accent color (hex). Uses settings selection when provided. */
+  accentColor?: string;
 }
 
-export function ActivityChart({ data }: ActivityChartProps) {
-  const [range, setRange] = React.useState<TimeRange>("weekly");
-
-  const filteredData = React.useMemo(() => {
-    const now = new Date();
-    const cutoff = new Date();
-    if (range === "weekly") cutoff.setDate(now.getDate() - 7);
-    else if (range === "monthly") cutoff.setMonth(now.getMonth() - 1);
-    else cutoff.setFullYear(now.getFullYear() - 1);
-
-    return data.filter((d) => new Date(d.date) >= cutoff);
-  }, [data, range]);
-
-  const toggleClass = (active: boolean) =>
-    cn(
-      "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-      active
-        ? "bg-primary text-primary-foreground"
-        : "text-muted-foreground hover:text-foreground",
-    );
+export function ActivityChart({ data, accentColor = DEFAULT_ACCENT }: ActivityChartProps) {
+  const stroke = accentColor;
 
   return (
     <div data-testid="activity-chart">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">
-          Play Activity
-        </h3>
-        <div className="flex gap-1" data-testid="activity-chart-toggle">
-          {(["weekly", "monthly", "yearly"] as TimeRange[]).map((r) => (
-            <button
-              key={r}
-              data-testid={`activity-range-${r}`}
-              className={toggleClass(range === r)}
-              onClick={() => setRange(r)}
-            >
-              {r.charAt(0).toUpperCase() + r.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+      <h3 className="mb-4 text-sm font-semibold text-foreground">
+        Play Activity
+      </h3>
       <div style={{ width: "100%", height: 200 }}>
         <ResponsiveContainer>
-          <BarChart data={filteredData}>
+          <LineChart data={data}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(240, 5%, 18%)"
+              vertical={false}
+            />
             <XAxis
               dataKey="date"
               tick={{ fontSize: 10, fill: "hsl(240, 5%, 55%)" }}
@@ -79,12 +53,15 @@ export function ActivityChart({ data }: ActivityChartProps) {
                 fontSize: 12,
               }}
             />
-            <Bar
+            <Line
+              type="monotone"
               dataKey="minutes"
-              fill="hsl(217, 91%, 60%)"
-              radius={[4, 4, 0, 0]}
+              stroke={stroke}
+              strokeWidth={2}
+              dot={{ fill: stroke, strokeWidth: 0, r: 3 }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "hsl(240, 10%, 7%)" }}
             />
-          </BarChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>

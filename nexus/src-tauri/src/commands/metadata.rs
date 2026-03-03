@@ -1,6 +1,5 @@
 use rusqlite::params;
 use serde::Serialize;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::State;
 
@@ -8,12 +7,8 @@ use super::error::CommandError;
 use crate::db::DbState;
 use crate::metadata::igdb::IgdbClient;
 use crate::metadata::placeholders;
-use crate::metadata::steamgriddb::SteamGridDbClient;
+use crate::metadata::steamgriddb::{ArtworkType, SteamGridDbClient};
 use crate::models::settings::keys;
-
-pub struct HltbBackfillState {
-    pub cancel: Arc<AtomicBool>,
-}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -175,6 +170,165 @@ pub async fn fetch_metadata(
         .map_err(|e| CommandError::Unknown(e.message))
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetadataSearchResult {
+    pub id: i64,
+    pub name: String,
+    pub release_date: Option<i64>,
+    pub cover_url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn search_metadata(
+    db: State<'_, DbState>,
+    query: String,
+) -> Result<Vec<MetadataSearchResult>, CommandError> {
+    let query = query.trim();
+    if query.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let (client_id, client_secret) = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let id = get_setting(&conn, keys::IGDB_CLIENT_ID);
+        let secret = get_setting(&conn, keys::IGDB_CLIENT_SECRET);
+        match (id, secret) {
+            (Some(id), Some(secret)) => (id, secret),
+            _ => return Ok(Vec::new()),
+        }
+    };
+
+    let cached_token = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let token = get_setting(&conn, keys::IGDB_ACCESS_TOKEN);
+        let expires = get_setting(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
+        match (token, expires) {
+            (Some(t), Some(exp)) => Some((t, exp)),
+            _ => None,
+        }
+    };
+
+    let igdb = match cached_token {
+        Some((token, expires)) => IgdbClient::with_cached_token(
+            client_id.clone(),
+            client_secret.clone(),
+            token,
+            expires,
+        ),
+        None => IgdbClient::new(client_id, client_secret),
+    };
+
+    let games = igdb.search_game(query).await.map_err(CommandError::Unknown)?;
+
+    let results: Vec<MetadataSearchResult> = games
+        .into_iter()
+        .map(|g| {
+            let cover_url = g.cover.as_ref().map(|c| {
+                format!(
+                    "https://images.igdb.com/igdb/image/upload/t_cover_small/{}.jpg",
+                    c.image_id
+                )
+            });
+            MetadataSearchResult {
+                id: g.id,
+                name: g.name,
+                release_date: g.first_release_date,
+                cover_url,
+            }
+        })
+        .collect();
+
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn fetch_metadata_with_igdb_id(
+    db: State<'_, DbState>,
+    app_handle: tauri::AppHandle,
+    game_id: String,
+    igdb_id: i64,
+    skip_steamgrid: Option<bool>,
+) -> Result<(), CommandError> {
+    let skip = skip_steamgrid.unwrap_or(false);
+    crate::metadata::pipeline::fetch_metadata_for_game_with_igdb_id(
+        &db,
+        &app_handle,
+        &game_id,
+        igdb_id,
+        skip,
+    )
+    .await
+    .map_err(|e| CommandError::Unknown(e.message))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SteamGridSearchResult {
+    pub id: i64,
+    pub name: String,
+    pub verified: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn search_steamgrid_artwork(
+    db: State<'_, DbState>,
+    query: String,
+) -> Result<Vec<SteamGridSearchResult>, CommandError> {
+    let query = query.trim();
+    if query.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let api_key = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        get_setting(&conn, keys::STEAMGRID_API_KEY)
+    };
+
+    let api_key = api_key.ok_or_else(|| CommandError::NotFound("SteamGridDB API key not configured".into()))?;
+
+    let client = SteamGridDbClient::new(api_key);
+    let results = client.search_game(query).await.map_err(CommandError::Unknown)?;
+
+    let mut out = Vec::with_capacity(results.len());
+    for r in results {
+        let cover_url = client
+            .get_images(r.id, ArtworkType::Grid)
+            .await
+            .ok()
+            .and_then(|imgs| imgs.first().map(|i| i.thumb.clone()));
+        out.push(SteamGridSearchResult {
+            id: r.id,
+            name: r.name,
+            verified: r.verified,
+            cover_url,
+        });
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub async fn apply_steamgrid_artwork(
+    db: State<'_, DbState>,
+    game_id: String,
+    steamgrid_id: i64,
+) -> Result<(), CommandError> {
+    crate::metadata::pipeline::apply_steamgrid_artwork_for_game(&db, &game_id, steamgrid_id)
+        .await
+        .map_err(|e| CommandError::Unknown(e.message))
+}
+
 #[tauri::command]
 pub async fn fetch_artwork(
     db: State<'_, DbState>,
@@ -197,7 +351,12 @@ pub async fn fetch_all_metadata(
             .lock()
             .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let mut stmt = conn
-            .prepare("SELECT id FROM games WHERE description IS NULL OR cover_url IS NULL")
+            .prepare(
+                "SELECT id FROM games \
+                 WHERE (description IS NULL OR cover_url IS NULL) \
+                 AND (is_hidden = 0 OR is_hidden IS NULL) \
+                 AND (status IS NULL OR status != 'removed')",
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         let ids: Vec<String> = stmt
             .query_map([], |row| row.get(0))
@@ -331,116 +490,6 @@ pub async fn run_score_backfill(
     });
 
     Ok(count)
-}
-
-#[tauri::command]
-pub async fn fetch_hltb(
-    db: State<'_, DbState>,
-    game_id: String,
-) -> Result<(), CommandError> {
-    let game_name = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        conn.query_row(
-            "SELECT name FROM games WHERE id = ?1",
-            params![game_id],
-            |row| row.get::<_, String>(0),
-        )
-        .map_err(|_| CommandError::NotFound(format!("game {game_id}")))?
-    };
-
-    let hltb = crate::metadata::hltb::HltbClient::new();
-    match hltb.search(&game_name).await {
-        Ok(Some(result)) => {
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-            conn.execute(
-                "UPDATE games SET hltb_game_id = ?1, hltb_main_s = ?2, \
-                 hltb_main_plus_s = ?3, hltb_completionist_s = ?4, updated_at = ?5 \
-                 WHERE id = ?6",
-                params![
-                    result.game_id,
-                    result.comp_main,
-                    result.comp_plus,
-                    result.comp_100,
-                    crate::commands::utils::now_iso(),
-                    game_id,
-                ],
-            )
-            .map_err(|e| CommandError::Database(format!("failed to update HLTB data: {e}")))?;
-        }
-        Ok(None) => {
-            // Reset sentinel so the user knows the search ran but found nothing
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-            let _ = conn.execute(
-                "UPDATE games SET hltb_main_s = -1, updated_at = ?1 WHERE id = ?2",
-                params![crate::commands::utils::now_iso(), game_id],
-            );
-        }
-        Err(e) => {
-            return Err(CommandError::Unknown(format!("HLTB fetch failed: {e}")));
-        }
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn run_hltb_backfill(
-    db: State<'_, DbState>,
-    backfill_state: State<'_, HltbBackfillState>,
-    app_handle: tauri::AppHandle,
-) -> Result<usize, CommandError> {
-    let games_needing_backfill: Vec<(String, String)> = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        crate::metadata::pipeline::find_games_needing_hltb_backfill(&conn, true)
-    };
-
-    let count = games_needing_backfill.len();
-    if count == 0 {
-        return Ok(0);
-    }
-
-    backfill_state.cancel.store(false, Ordering::Relaxed);
-    let cancel = backfill_state.cancel.clone();
-
-    let db_arc = Arc::new(crate::db::DbState {
-        conn: std::sync::Mutex::new(
-            rusqlite::Connection::open(&db.db_path)
-                .map_err(|e| CommandError::Database(format!("failed to open db: {e}")))?,
-        ),
-        db_path: db.db_path.clone(),
-    });
-
-    tauri::async_runtime::spawn(async move {
-        crate::metadata::pipeline::run_hltb_backfill_for_games(
-            db_arc,
-            app_handle,
-            cancel,
-            games_needing_backfill,
-        )
-        .await;
-    });
-
-    Ok(count)
-}
-
-#[tauri::command]
-pub fn cancel_hltb_backfill(
-    backfill_state: State<'_, HltbBackfillState>,
-) -> Result<(), CommandError> {
-    backfill_state.cancel.store(true, Ordering::Relaxed);
-    Ok(())
 }
 
 fn get_setting(conn: &rusqlite::Connection, key: &str) -> Option<String> {

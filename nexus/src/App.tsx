@@ -14,6 +14,7 @@ import { LibraryStats } from "@/components/Library/LibraryStats";
 import { GameDetailOverlay } from "@/components/GameDetail/GameDetailOverlay";
 import { DetailContent } from "@/components/GameDetail/DetailContent";
 import { EditGameModal, type EditGameFields } from "@/components/GameDetail/EditGameModal";
+import { MetadataSearchDialog } from "@/components/GameDetail/MetadataSearchDialog";
 import { AddToCollectionPopover } from "@/components/Collections/AddToCollectionPopover";
 import { RandomPickerModal } from "@/components/RandomPicker/RandomPickerModal";
 import { SettingsSheet } from "@/components/Settings/SettingsSheet";
@@ -38,7 +39,7 @@ function extractYoutubeId(url: string): string | null {
   }
 }
 import { useToastStore } from "@/stores/toastStore";
-import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame, type HltbBackfillProgressEvent } from "@/lib/tauri";
+import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame } from "@/lib/tauri";
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 
 function MainApp() {
@@ -56,11 +57,11 @@ function MainApp() {
   const [editCollectionTarget, setEditCollectionTarget] = React.useState<Collection | null>(null);
   const [editGameTarget, setEditGameTarget] = React.useState<Game | null>(null);
   const [addToCollectionTarget, setAddToCollectionTarget] = React.useState<Game | null>(null);
+  const [metadataSearchGame, setMetadataSearchGame] = React.useState<Game | null>(null);
   const metadataTriggered = React.useRef(false);
   const backfillTriggered = React.useRef(false);
   const healthCheckTriggered = React.useRef(false);
   const backfillToastId = React.useRef<string | null>(null);
-  const hltbBackfillToastId = React.useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
   const updateToast = useToastStore((s) => s.updateToast);
   const removeToast = useToastStore((s) => s.removeToast);
@@ -194,51 +195,6 @@ function MainApp() {
 
   useTauriEvent("score-backfill-progress", handleScoreBackfillProgress);
 
-  const handleHltbBackfillProgress = React.useCallback(
-    (event: HltbBackfillProgressEvent) => {
-      const { completed, total, found, notFound, errored } = event;
-      if (total === 0) return;
-
-      const isDone = completed >= total;
-      const progress = total > 0 ? completed / total : 0;
-
-      let message: string;
-      if (isDone) {
-        const parts: string[] = [];
-        if (found > 0) parts.push(`${found} matched`);
-        if (notFound > 0) parts.push(`${notFound} not found`);
-        if (errored > 0) parts.push(`${errored} failed`);
-        message = `HLTB complete — ${parts.join(", ")}`;
-      } else {
-        message = `Fetching completion times… ${completed}/${total}`;
-      }
-
-      if (hltbBackfillToastId.current) {
-        updateToast(hltbBackfillToastId.current, {
-          message,
-          progress: isDone ? 1 : progress,
-          duration: isDone ? 4000 : 0,
-          type: isDone ? "success" : "info",
-        });
-      } else {
-        hltbBackfillToastId.current = addToast({
-          type: "info",
-          message,
-          duration: 0,
-          progress,
-        });
-      }
-
-      if (isDone) {
-        hltbBackfillToastId.current = null;
-        refreshGames().catch(() => {});
-      }
-    },
-    [addToast, updateToast, refreshGames],
-  );
-
-  useTauriEvent("hltb-backfill-progress", handleHltbBackfillProgress);
-
   const syncIsActive = useSyncStore((s) => s.isActive);
   const overallCompleted = useSyncStore((s) => s.overallCompleted);
   const overallTotal = useSyncStore((s) => s.overallTotal);
@@ -359,6 +315,7 @@ function MainApp() {
               await invoke("fetch_metadata", { gameId: game.id });
               await refreshGames();
             }}
+            onSearchMetadata={() => setMetadataSearchGame(game)}
             onEdit={() => setEditGameTarget(game)}
             onAddToCollection={() => setAddToCollectionTarget(game)}
             onOpenFolder={() => {
@@ -375,6 +332,15 @@ function MainApp() {
           />
         )}
       </GameDetailOverlay>
+      {metadataSearchGame && (
+        <MetadataSearchDialog
+          open={metadataSearchGame !== null}
+          gameId={metadataSearchGame.id}
+          initialQuery={metadataSearchGame.name}
+          onClose={() => setMetadataSearchGame(null)}
+          onSuccess={() => refreshGames()}
+        />
+      )}
       <EditGameModal
         game={editGameTarget}
         open={editGameTarget !== null}
