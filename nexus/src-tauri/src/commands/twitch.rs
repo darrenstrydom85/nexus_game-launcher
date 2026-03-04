@@ -10,6 +10,7 @@ use crate::twitch::auth;
 use crate::twitch::cache::{self, CachedChannel, CachedStream};
 use crate::twitch::tokens;
 use crate::twitch::api;
+use crate::twitch::trending;
 
 /// Twitch OAuth2 client ID, optional at compile time. Set NEXUS_TWITCH_CLIENT_ID when building
 /// to enable Twitch (e.g. `$env:NEXUS_TWITCH_CLIENT_ID="your_id"; cargo build`).
@@ -114,6 +115,18 @@ pub struct TwitchStreamByGame {
     pub viewer_count: i64,
     pub thumbnail_url: String,
     pub started_at: String,
+}
+
+/// One game in the user's library that is trending on Twitch (Story 19.9).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrendingLibraryGame {
+    pub game_id: String,
+    pub game_name: String,
+    pub twitch_game_name: String,
+    pub twitch_viewer_count: i64,
+    pub twitch_stream_count: i64,
+    pub twitch_rank: i64,
 }
 
 /// Response payload for get_twitch_streams_by_game (Story 19.5).
@@ -608,6 +621,112 @@ pub fn set_twitch_favorite(
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
     cache::set_channel_favorite(&conn, &channel_id, is_favorite)?;
     Ok(())
+}
+
+/// Get library games that are in Twitch's top 100. Online: fetch top 100, match to library, enrich with viewer counts, cache (15 min TTL). Offline: return cache with stale: true (Story 19.9).
+#[tauri::command]
+pub async fn get_twitch_trending_library_games(
+    app: AppHandle,
+    db: State<'_, DbState>,
+) -> Result<TwitchResponse<Vec<TrendingLibraryGame>>, CommandError> {
+    let (_, access_token) = ensure_valid_twitch_token(&app, &db).await?;
+
+    let cached = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        cache::get_cached_trending_library(&conn)?
+    };
+
+    if check_twitch_api_available() {
+        let client_id = twitch_client_id()?;
+        let http = reqwest::Client::new();
+        let top_games = match api::fetch_top_games(&http, client_id, &access_token).await {
+            Ok(t) => t,
+            Err(_) => {
+                if !cached.is_empty() {
+                    let cached_at_secs = cached.first().map(|e| e.cached_at);
+                    let data = cached
+                        .into_iter()
+                        .map(|e| TrendingLibraryGame {
+                            game_id: e.game_id,
+                            game_name: e.game_name,
+                            twitch_game_name: e.twitch_game_name,
+                            twitch_viewer_count: e.twitch_viewer_count,
+                            twitch_stream_count: e.twitch_stream_count,
+                            twitch_rank: e.twitch_rank,
+                        })
+                        .collect();
+                    return Ok(TwitchResponse {
+                        data,
+                        stale: true,
+                        cached_at: cached_at_secs,
+                    });
+                }
+                return Ok(TwitchResponse {
+                    data: vec![],
+                    stale: false,
+                    cached_at: None,
+                });
+            }
+        };
+
+        let library = {
+            let conn = db
+                .conn
+                .lock()
+                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            trending::load_library_games(&conn)?
+        };
+
+        let mut entries = trending::match_trending_library(&top_games, &library);
+        let _ = trending::enrich_trending_with_viewer_counts(&http, client_id, &access_token, &mut entries).await;
+
+        {
+            let conn = db
+                .conn
+                .lock()
+                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            cache::cache_trending_library(&conn, &entries)?;
+        }
+
+        let data = entries
+            .into_iter()
+            .map(|e| TrendingLibraryGame {
+                game_id: e.game_id,
+                game_name: e.game_name,
+                twitch_game_name: e.twitch_game_name,
+                twitch_viewer_count: e.twitch_viewer_count,
+                twitch_stream_count: e.twitch_stream_count,
+                twitch_rank: e.twitch_rank,
+            })
+            .collect();
+
+        return Ok(TwitchResponse {
+            data,
+            stale: false,
+            cached_at: Some(cached_at_now()),
+        });
+    }
+
+    let cached_at_secs = cached.first().map(|e| e.cached_at);
+    let data = cached
+        .into_iter()
+        .map(|e| TrendingLibraryGame {
+            game_id: e.game_id,
+            game_name: e.game_name,
+            twitch_game_name: e.twitch_game_name,
+            twitch_viewer_count: e.twitch_viewer_count,
+            twitch_stream_count: e.twitch_stream_count,
+            twitch_rank: e.twitch_rank,
+        })
+        .collect();
+    Ok(TwitchResponse {
+        data,
+        stale: true,
+        cached_at: cached_at_secs,
+    })
 }
 
 /// Clear all Twitch tokens, user data, and offline cache; emit twitch-auth-changed (authenticated: false).

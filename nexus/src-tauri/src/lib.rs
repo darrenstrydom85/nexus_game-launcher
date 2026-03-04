@@ -47,7 +47,8 @@ use commands::{
     },
     twitch::{
         get_twitch_followed_channels, get_twitch_live_streams, get_twitch_streams_by_game,
-        set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
+        get_twitch_trending_library_games, set_twitch_favorite, twitch_auth_logout, twitch_auth_start,
+        twitch_auth_status,
     },
 };
 
@@ -141,6 +142,7 @@ pub fn run() {
             get_twitch_followed_channels,
             get_twitch_live_streams,
             get_twitch_streams_by_game,
+            get_twitch_trending_library_games,
             set_twitch_favorite,
         ])
         .run(tauri::generate_context!())

@@ -4,3 +4,4 @@ pub mod api;
 pub mod auth;
 pub mod cache;
 pub mod tokens;
+pub mod trending;

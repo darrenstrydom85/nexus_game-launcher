@@ -38,7 +38,21 @@ pub struct CachedGameMapping {
     pub cached_at: i64,
 }
 
+/// One row from `twitch_trending_library_cache` (Story 19.9).
+#[derive(Debug, Clone)]
+pub struct CachedTrendingEntry {
+    pub game_id: String,
+    pub game_name: String,
+    pub twitch_game_name: String,
+    pub twitch_game_id: String,
+    pub twitch_viewer_count: i64,
+    pub twitch_stream_count: i64,
+    pub twitch_rank: i64,
+    pub cached_at: i64,
+}
+
 const GAME_CACHE_TTL_SECS: i64 = 24 * 3600; // 24 hours
+const TRENDING_CACHE_TTL_SECS: i64 = 15 * 60; // 15 minutes (Story 19.9)
 
 fn now_epoch_secs() -> i64 {
     SystemTime::now()
@@ -229,12 +243,79 @@ pub fn get_cached_game_mapping(
     Ok(Some(mapping))
 }
 
-/// Delete all data from the three Twitch cache tables. Used on logout.
+/// Replace all rows in `twitch_trending_library_cache` (Story 19.9). 15-minute TTL.
+pub fn cache_trending_library(
+    conn: &rusqlite::Connection,
+    entries: &[CachedTrendingEntry],
+) -> Result<(), CommandError> {
+    conn.execute("DELETE FROM twitch_trending_library_cache", [])
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    let cached_at = now_epoch_secs();
+    let mut stmt = conn
+        .prepare(
+            "INSERT INTO twitch_trending_library_cache (game_id, game_name, twitch_game_name, twitch_game_id, twitch_viewer_count, twitch_stream_count, twitch_rank, cached_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    for e in entries {
+        stmt.execute(params![
+            e.game_id,
+            e.game_name,
+            e.twitch_game_name,
+            e.twitch_game_id,
+            e.twitch_viewer_count,
+            e.twitch_stream_count,
+            e.twitch_rank,
+            cached_at,
+        ])
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    }
+    Ok(())
+}
+
+/// Read cached trending library games if present and not past TTL (15 min). Returns empty vec if missing or expired.
+pub fn get_cached_trending_library(
+    conn: &rusqlite::Connection,
+) -> Result<Vec<CachedTrendingEntry>, CommandError> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT game_id, game_name, twitch_game_name, twitch_game_id, twitch_viewer_count, twitch_stream_count, twitch_rank, cached_at
+             FROM twitch_trending_library_cache ORDER BY twitch_rank",
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(CachedTrendingEntry {
+                game_id: row.get(0)?,
+                game_name: row.get(1)?,
+                twitch_game_name: row.get(2)?,
+                twitch_game_id: row.get(3)?,
+                twitch_viewer_count: row.get(4)?,
+                twitch_stream_count: row.get(5)?,
+                twitch_rank: row.get(6)?,
+                cached_at: row.get(7)?,
+            })
+        })
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    let list: Vec<CachedTrendingEntry> =
+        rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))?;
+    let now = now_epoch_secs();
+    if let Some(first) = list.first() {
+        if now - first.cached_at > TRENDING_CACHE_TTL_SECS {
+            return Ok(vec![]);
+        }
+    }
+    Ok(list)
+}
+
+/// Delete all data from the Twitch cache tables. Used on logout.
 pub fn clear_twitch_cache(conn: &rusqlite::Connection) -> Result<(), CommandError> {
     conn.execute_batch(
         "DELETE FROM twitch_followed_channels;
          DELETE FROM twitch_stream_cache;
-         DELETE FROM twitch_game_cache;",
+         DELETE FROM twitch_game_cache;
+         DELETE FROM twitch_trending_library_cache;",
     )
     .map_err(|e| CommandError::Database(e.to_string()))?;
     Ok(())
@@ -247,6 +328,8 @@ mod tests {
     fn in_memory_conn() -> rusqlite::Connection {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../db/migrations/007_twitch_cache_tables.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../db/migrations/008_twitch_trending_cache.sql"))
             .unwrap();
         conn
     }

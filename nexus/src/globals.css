@@ -230,6 +230,14 @@
     background: var(--background);
 }
 
+/* Hide scrollbar for horizontal trending row (Story 19.9) */
+.scrollbar-hide {
+    scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
 /* Play-pulse animation — design system (sync activity dot, play button glow) */
 @keyframes play-pulse {
   0% {

@@ -3,8 +3,10 @@ import { devtools } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 import {
   getTwitchStreamsByGame,
+  getTwitchTrendingLibraryGames,
   setTwitchFavorite,
   type StreamsByGameData,
+  type TrendingLibraryGame,
 } from "@/lib/tauri";
 
 /** Live stream from API (camelCase from backend). */
@@ -76,6 +78,11 @@ export interface TwitchState {
   previousLiveIds: Set<string>;
   /** Queue of go-live toasts to show (Story 19.6). */
   pendingToasts: PendingToastItem[];
+  /** Trending in library (Story 19.9). */
+  trendingGames: TrendingLibraryGame[];
+  trendingStale: boolean;
+  trendingCachedAt: number | null;
+  trendingLoading: boolean;
 }
 
 export interface TwitchActions {
@@ -90,6 +97,8 @@ export interface TwitchActions {
   removePendingToast: (id: string) => void;
   /** Toggle favorite for a channel (Story 19.7). Optimistic update; reverts on backend failure. Returns false if adding would exceed max (20). */
   toggleFavorite: (channelId: string) => Promise<boolean>;
+  /** Fetch trending library games (Story 19.9). */
+  fetchTrending: () => Promise<void>;
 }
 
 export type TwitchStore = TwitchState & TwitchActions;
@@ -156,6 +165,10 @@ const initialState: TwitchState = {
   streamsByGameError: {},
   previousLiveIds: new Set(),
   pendingToasts: [],
+  trendingGames: [],
+  trendingStale: false,
+  trendingCachedAt: null,
+  trendingLoading: false,
 };
 
 export const useTwitchStore = create<TwitchStore>()(
@@ -266,6 +279,33 @@ export const useTwitchStore = create<TwitchStore>()(
             "toggleFavorite_err",
           );
           return true;
+        }
+      },
+      fetchTrending: async () => {
+        set({ trendingLoading: true }, false, "fetchTrending_start");
+        try {
+          const res = await getTwitchTrendingLibraryGames();
+          set(
+            {
+              trendingGames: res.data,
+              trendingStale: res.stale,
+              trendingCachedAt: res.cachedAt,
+              trendingLoading: false,
+            },
+            false,
+            "fetchTrending_ok",
+          );
+        } catch {
+          set(
+            {
+              trendingGames: [],
+              trendingStale: false,
+              trendingCachedAt: null,
+              trendingLoading: false,
+            },
+            false,
+            "fetchTrending_err",
+          );
         }
       },
       fetchStreamsByGame: async (gameName: string) => {

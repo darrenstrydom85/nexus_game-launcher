@@ -9,6 +9,7 @@ import { TwitchConnectPrompt } from "./TwitchConnectPrompt";
 import { TwitchEmptyState } from "./TwitchEmptyState";
 import { StreamCard } from "./StreamCard";
 import { OfflineChannelRow } from "./OfflineChannelRow";
+import { TrendingInLibrary } from "./TrendingInLibrary";
 import { twitchAuthStatus } from "@/lib/tauri";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUiStore } from "@/stores/uiStore";
@@ -43,6 +44,7 @@ export function TwitchPanel() {
     stale,
     cachedAt,
     fetchFollowedStreams,
+    fetchTrending,
     refreshStreams,
     setLiveCount,
     setIsAuthenticated,
@@ -92,10 +94,13 @@ export function TwitchPanel() {
     twitchAuthStatus()
       .then((status) => {
         setIsAuthenticated(status.authenticated);
-        if (status.authenticated) fetchFollowedStreams();
+        if (status.authenticated) {
+          fetchFollowedStreams();
+          fetchTrending();
+        }
       })
       .catch(() => setIsAuthenticated(false));
-  }, [setIsAuthenticated, fetchFollowedStreams]);
+  }, [setIsAuthenticated, fetchFollowedStreams, fetchTrending]);
 
   // Listen for auth and data events
   React.useEffect(() => {
@@ -266,6 +271,9 @@ export function TwitchPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
+        {/* Trending in Your Library (Story 19.9) */}
+        <TrendingInLibrary />
+
         {/* Live Now */}
         <section className="mb-8" aria-labelledby="live-now-heading">
           <h2

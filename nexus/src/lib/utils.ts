@@ -23,3 +23,12 @@ export function formatPlayTime(seconds: number): string {
   return `${m}m`;
 }
 
+/**
+ * Compact viewer count for Twitch (Story 19.9): 1.2K, 45.3K, 1.2M.
+ */
+export function formatViewerCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+

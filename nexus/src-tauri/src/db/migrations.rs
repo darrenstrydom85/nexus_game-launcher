@@ -42,6 +42,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "twitch_cache_tables",
         sql: include_str!("migrations/007_twitch_cache_tables.sql"),
     },
+    Migration {
+        version: 8,
+        name: "twitch_trending_cache",
+        sql: include_str!("migrations/008_twitch_trending_cache.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -137,6 +142,7 @@ mod tests {
             "twitch_followed_channels",
             "twitch_game_cache",
             "twitch_stream_cache",
+            "twitch_trending_library_cache",
             "watched_folders",
         ] {
             assert!(

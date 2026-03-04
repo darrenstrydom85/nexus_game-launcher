@@ -287,6 +287,94 @@ pub async fn fetch_live_streams(
     Ok(all)
 }
 
+/// Top game from GET /games/top (Story 19.9). Rank is 1-based position in response.
+pub struct TopGame {
+    pub id: String,
+    pub name: String,
+    pub rank: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct HelixTopGame {
+    id: String,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HelixTopGamesResponse {
+    data: Vec<HelixTopGame>,
+    pagination: Option<HelixPagination>,
+}
+
+/// Fetch top 100 games on Twitch by current viewership. Returns (id, name, rank).
+pub async fn fetch_top_games(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+) -> Result<Vec<TopGame>, CommandError> {
+    let mut all = Vec::new();
+    let mut cursor: Option<String> = None;
+    let mut rank: u32 = 0;
+
+    loop {
+        let mut query: Vec<(&str, String)> = vec![("first", "100".to_string())];
+        if let Some(ref c) = cursor {
+            query.push(("after", c.clone()));
+        }
+        let res = helix_get(
+            HELIX_BASE,
+            client,
+            "/games/top",
+            &query,
+            client_id,
+            access_token,
+        )
+        .await?;
+        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let json: HelixTopGamesResponse =
+            serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("games/top: {e}")))?;
+
+        for g in json.data {
+            rank += 1;
+            all.push(TopGame {
+                id: g.id,
+                name: g.name,
+                rank,
+            });
+        }
+
+        cursor = json
+            .pagination
+            .and_then(|p| p.cursor)
+            .filter(|c| !c.is_empty());
+        if cursor.is_none() || all.len() >= 100 {
+            break;
+        }
+    }
+
+    Ok(all)
+}
+
+/// Fetch streams for a game and return (total viewer count, stream count). Used for trending viewership (Story 19.9).
+pub async fn fetch_game_viewer_stream_counts(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    game_id: &str,
+) -> Result<(i64, i64), CommandError> {
+    let query = vec![
+        ("game_id", game_id.to_string()),
+        ("first", "100".to_string()),
+    ];
+    let res = helix_get(HELIX_BASE, client, "/streams", &query, client_id, access_token).await?;
+    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let json: HelixStreamsResponse =
+        serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
+    let total_viewers: i64 = json.data.iter().map(|s| s.viewer_count).sum::<u64>() as i64;
+    let stream_count = json.data.len() as i64;
+    Ok((total_viewers, stream_count))
+}
+
 /// Resolve a game/category name to (Twitch game ID, Twitch game name). Uses GET /games?name=.
 /// Case-insensitive; returns first result if no exact match.
 pub async fn fetch_twitch_game(

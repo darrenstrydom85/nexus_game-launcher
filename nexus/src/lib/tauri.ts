@@ -382,3 +382,21 @@ export function setTwitchFavorite(
 ): Promise<void> {
   return invoke<void>("set_twitch_favorite", { channelId, isFavorite });
 }
+
+// ── Twitch Trending in Library (Story 19.9) ─────────────────────────────────
+export interface TrendingLibraryGame {
+  gameId: string;
+  gameName: string;
+  twitchGameName: string;
+  twitchViewerCount: number;
+  twitchStreamCount: number;
+  twitchRank: number;
+}
+
+export function getTwitchTrendingLibraryGames(): Promise<
+  TwitchResponse<TrendingLibraryGame[]>
+> {
+  return invoke<TwitchResponse<TrendingLibraryGame[]>>(
+    "get_twitch_trending_library_games",
+  );
+}
