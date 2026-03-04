@@ -639,6 +639,27 @@ pub async fn get_twitch_trending_library_games(
         cache::get_cached_trending_library(&conn)?
     };
 
+    // When online and cache is still valid (15 min TTL), return cache to avoid unnecessary API calls (rate limits).
+    if !cached.is_empty() && check_twitch_api_available() {
+        let cached_at_secs = cached.first().map(|e| e.cached_at);
+        let data = cached
+            .iter()
+            .map(|e| TrendingLibraryGame {
+                game_id: e.game_id.clone(),
+                game_name: e.game_name.clone(),
+                twitch_game_name: e.twitch_game_name.clone(),
+                twitch_viewer_count: e.twitch_viewer_count,
+                twitch_stream_count: e.twitch_stream_count,
+                twitch_rank: e.twitch_rank,
+            })
+            .collect();
+        return Ok(TwitchResponse {
+            data,
+            stale: false,
+            cached_at: cached_at_secs,
+        });
+    }
+
     if check_twitch_api_available() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
@@ -746,5 +767,16 @@ pub fn twitch_auth_logout(app: AppHandle, db: State<'_, DbState>) -> Result<(), 
     )
     .map_err(|e| CommandError::Unknown(e.to_string()))?;
 
+    Ok(())
+}
+
+/// Clear Twitch cached data only (followed channels, stream cache, game cache). Does not disconnect or clear tokens (Story 19.10).
+#[tauri::command]
+pub fn clear_twitch_cache(db: State<'_, DbState>) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    cache::clear_twitch_cache(&conn)?;
     Ok(())
 }
