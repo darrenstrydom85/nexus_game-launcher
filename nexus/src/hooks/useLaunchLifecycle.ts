@@ -264,6 +264,26 @@ export function useLaunchLifecycle() {
 
   const launch = React.useCallback(
     async (game: Game): Promise<LaunchResult> => {
+      const session = useGameStore.getState().activeSession;
+      if (session) {
+        if (session.pid) {
+          invoke("stop_game", { pid: session.pid }).catch(() => {});
+        }
+        setActiveSession(null);
+        setRunningGame(null);
+        if (session.hasDbSession) {
+          try {
+            await invoke("end_session", {
+              sessionId: session.sessionId,
+              endedAt: new Date().toISOString(),
+            });
+          } catch {
+            // best-effort
+          }
+        }
+        await refreshGames();
+      }
+
       const result = await dispatchLaunch(game);
 
       if (result.status === "launched") {
@@ -295,7 +315,7 @@ export function useLaunchLifecycle() {
 
       return result;
     },
-    [handleGameLaunched],
+    [handleGameLaunched, setActiveSession],
   );
 
   return { launch };
