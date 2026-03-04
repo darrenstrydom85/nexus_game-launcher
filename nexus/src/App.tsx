@@ -43,9 +43,10 @@ import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, 
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
+import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
-import { twitchAuthStatus, checkConnectivity } from "@/lib/tauri";
+import { twitchAuthStatus } from "@/lib/tauri";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -459,6 +460,7 @@ function MainApp() {
         onDeadGamesChange={setHealthDeadGames}
       />
       <TwitchToastContainer />
+      <ToastNotifications />
       <CollectionEditor
         open={collectionEditorOpen}
         onClose={() => { setCollectionEditorOpen(false); setEditCollectionTarget(null); }}

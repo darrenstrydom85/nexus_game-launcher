@@ -203,7 +203,7 @@ export const useTwitchStore = create<TwitchStore>()(
               ? [...currentLiveIds].filter((id) => !prev.has(id))
               : [];
           const pendingToastsToAdd: PendingToastItem[] = newlyLiveIds
-            .map((id) => {
+            .map((id): PendingToastItem | null => {
               const ch = res.data.find((c) => c.id === id && c.stream != null);
               if (!ch?.stream) return null;
               return {
@@ -214,7 +214,7 @@ export const useTwitchStore = create<TwitchStore>()(
                 gameName: ch.stream.gameName,
                 title: ch.stream.title,
                 isFavorite: ch.isFavorite ?? false,
-              } satisfies PendingToastItem;
+              };
             })
             .filter((t): t is PendingToastItem => t != null);
           set(

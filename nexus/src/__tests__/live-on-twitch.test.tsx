@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { LiveOnTwitch } from "@/components/GameDetail/LiveOnTwitch";
 import { TwitchStreamRow } from "@/components/GameDetail/TwitchStreamRow";
@@ -22,6 +22,7 @@ const mockStream = (
   userId,
   login,
   displayName,
+  profileImageUrl: "https://example.com/avatar.png",
   title: "Just chatting",
   gameName: "Test Game",
   gameId: "123",

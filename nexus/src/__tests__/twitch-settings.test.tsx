@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { TwitchSettings } from "@/components/Settings/TwitchSettings";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTwitchStore } from "@/stores/twitchStore";
-import { useToastStore } from "@/stores/toastStore";
 import * as tauri from "@/lib/tauri";
 
 vi.mock("@/lib/tauri", () => ({
@@ -41,7 +40,12 @@ describe("Story 19.10: Twitch Connection Settings", () => {
     expect(screen.getByRole("button", { name: /connect with twitch/i })).toBeInTheDocument();
   });
 
-  it("connected state shows avatar, name, Connected badge, and disconnect button", () => {
+  it("connected state shows avatar, name, Connected badge, and disconnect button", async () => {
+    vi.mocked(tauri.twitchAuthStatus).mockResolvedValue({
+      authenticated: true,
+      displayName: "TestUser",
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
     useTwitchStore.setState({
       isAuthenticated: true,
       channels: [
@@ -57,7 +61,7 @@ describe("Story 19.10: Twitch Connection Settings", () => {
       ],
     });
     render(<TwitchSettings />);
-    expect(screen.getByText("TestUser")).toBeInTheDocument();
+    expect(await screen.findByText("TestUser")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /disconnect twitch/i })).toBeInTheDocument();
     const img = document.querySelector('img[alt=""]');

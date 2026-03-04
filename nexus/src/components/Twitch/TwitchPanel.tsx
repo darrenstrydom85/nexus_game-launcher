@@ -1,7 +1,7 @@
 import * as React from "react";
 import { listen } from "@tauri-apps/api/event";
 import { RefreshCw, ChevronDown, ChevronRight, Star, WifiOff } from "lucide-react";
-import { useTwitchStore, type LiveStreamItem, type TwitchChannel } from "@/stores/twitchStore";
+import { useTwitchStore, type LiveStreamItem } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";

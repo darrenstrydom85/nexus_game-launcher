@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useTwitchStore, type PendingToastItem } from "@/stores/twitchStore";
+import { useTwitchStore } from "@/stores/twitchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { TwitchToast } from "./TwitchToast";
 

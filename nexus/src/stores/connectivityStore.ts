@@ -19,7 +19,7 @@ export type ConnectivityStore = ConnectivityState & ConnectivityActions;
 
 export const useConnectivityStore = create<ConnectivityStore>()(
   devtools(
-    (set, get) => ({
+    (set) => ({
       isOnline: true,
 
       checkConnectivity: async () => {

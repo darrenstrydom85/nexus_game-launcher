@@ -13,7 +13,7 @@ export interface TwitchStreamRowProps {
 export function TwitchStreamRow({
   stream,
   isFollowing = false,
-  gameName,
+  gameName: _gameName,
 }: TwitchStreamRowProps) {
   const url = `https://twitch.tv/${stream.login}`;
   const viewerCount = stream.viewerCount;
