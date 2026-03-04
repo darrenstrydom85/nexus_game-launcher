@@ -16,6 +16,13 @@
       "identifier": "opener:allow-open-path",
       "allow": [{ "path": "/**" }]
     },
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://id.twitch.tv/**" },
+        { "url": "https://www.twitch.tv/**" }
+      ]
+    },
     "process:default",
 
     {

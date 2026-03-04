@@ -30,7 +30,8 @@ const SCOPES: &str = "user:read:follows";
 /// Fixed port for OAuth callback. Register this exact redirect URI in the Twitch developer console.
 pub const TWITCH_REDIRECT_PORT: u16 = 29384;
 /// Redirect URI to register at https://dev.twitch.tv/console → your app → OAuth Redirect URLs.
-pub const TWITCH_REDIRECT_URI: &str = "http://127.0.0.1:29384";
+/// Uses `localhost` because Twitch's console rejects raw IP addresses as redirect URIs.
+pub const TWITCH_REDIRECT_URI: &str = "http://localhost:29384";
 
 /// Block until one HTTP request is received on the listener, parse query for `code` or `error`.
 /// Returns Ok(Some(code)) on success, Ok(None) if user denied (error param), Err on timeout/parse.
@@ -115,29 +116,45 @@ pub fn authorize_url(client_id: &str, redirect_uri: &str, code_challenge: &str) 
 /// Exchange authorization code for tokens. Returns (access_token, refresh_token, expires_in_secs).
 pub async fn exchange_code(
     client_id: &str,
+    client_secret: Option<&str>,
     code: &str,
     code_verifier: &str,
     redirect_uri: &str,
 ) -> Result<(String, String, i64), CommandError> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|e| CommandError::Unknown(format!("http client build: {e}")))?;
+    let has_secret = client_secret.is_some();
+    eprintln!("[twitch-auth] POST {TWITCH_TOKEN} (code len={}, verifier len={}, has_secret={has_secret})", code.len(), code_verifier.len());
+
+    let mut params = vec![
+        ("client_id", client_id),
+        ("code", code),
+        ("grant_type", "authorization_code"),
+        ("redirect_uri", redirect_uri),
+        ("code_verifier", code_verifier),
+    ];
+    if let Some(secret) = client_secret {
+        params.push(("client_secret", secret));
+    }
+
     let res = client
         .post(TWITCH_TOKEN)
-        .form(&[
-            ("client_id", client_id),
-            ("client_secret", ""),
-            ("code", code),
-            ("grant_type", "authorization_code"),
-            ("redirect_uri", redirect_uri),
-            ("code_verifier", code_verifier),
-        ])
+        .form(&params)
         .send()
         .await
-        .map_err(|e| map_reqwest_error(e))?;
+        .map_err(|e| {
+            eprintln!("[twitch-auth] token exchange request failed: {e}");
+            map_reqwest_error(e)
+        })?;
 
     let status = res.status();
     let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    eprintln!("[twitch-auth] token exchange response: status={status}, body_len={}", body.len());
 
     if !status.is_success() {
+        eprintln!("[twitch-auth] token exchange error: {body}");
         return Err(parse_token_error(status.as_u16(), &body));
     }
 
@@ -263,6 +280,7 @@ fn parse_token_error(status: u16, body: &str) -> CommandError {
 /// Returns (access_token, refresh_token, expires_at_secs, user_id, display_name).
 pub async fn run_auth_flow(
     client_id: &str,
+    client_secret: Option<&str>,
     open_url_fn: impl FnOnce(&str),
 ) -> Result<(String, String, i64, String, String), CommandError> {
     let (verifier, challenge) = pkce_pair();
@@ -271,19 +289,29 @@ pub async fn run_auth_flow(
     })?;
 
     let redirect_uri = TWITCH_REDIRECT_URI;
-    let url = authorize_url(client_id, &redirect_uri, &challenge);
+    let url = authorize_url(client_id, redirect_uri, &challenge);
+    eprintln!("[twitch-auth] opening browser for OAuth");
     open_url_fn(&url);
 
-    let code = receive_callback(listener)?;
+    // Move the blocking TCP accept off the async runtime so it doesn't
+    // starve Tokio worker threads while waiting for the browser callback.
+    eprintln!("[twitch-auth] waiting for callback on port {TWITCH_REDIRECT_PORT}...");
+    let code = tokio::task::spawn_blocking(move || receive_callback(listener))
+        .await
+        .map_err(|e| CommandError::Unknown(format!("callback task panicked: {e}")))?
+        ?;
     let code = code.ok_or_else(|| CommandError::Auth("Authorization was denied".to_string()))?;
+    eprintln!("[twitch-auth] got callback code, exchanging for tokens...");
 
     let (access_token, refresh_token, expires_in) = exchange_code(
         client_id,
+        client_secret,
         &code,
         &verifier,
-        &redirect_uri,
+        redirect_uri,
     )
     .await?;
+    eprintln!("[twitch-auth] token exchange ok, fetching user...");
 
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -292,6 +320,7 @@ pub async fn run_auth_flow(
     let expires_at = now_secs + expires_in;
 
     let (user_id, display_name) = get_twitch_user(client_id, &access_token).await?;
+    eprintln!("[twitch-auth] auth complete for user: {display_name}");
 
     Ok((
         access_token,

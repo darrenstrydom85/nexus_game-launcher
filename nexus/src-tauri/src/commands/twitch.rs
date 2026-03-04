@@ -22,6 +22,12 @@ fn twitch_client_id() -> Result<&'static str, CommandError> {
     })
 }
 
+/// Optional client secret for confidential Twitch apps. Set NEXUS_TWITCH_CLIENT_SECRET when
+/// building. If unset, the PKCE flow runs as a public client (no secret sent).
+fn twitch_client_secret() -> Option<&'static str> {
+    option_env!("NEXUS_TWITCH_CLIENT_SECRET")
+}
+
 /// Check for internet by attempting a connection to Twitch auth host.
 fn check_network_available() -> Result<(), CommandError> {
     use std::net::ToSocketAddrs;
@@ -105,8 +111,9 @@ pub async fn twitch_auth_start(app: AppHandle, db: State<'_, DbState>) -> Result
     };
 
     let client_id = twitch_client_id()?;
+    let client_secret = twitch_client_secret();
     let (access_token, refresh_token, expires_at, user_id, display_name) =
-        auth::run_auth_flow(client_id, open_url).await?;
+        auth::run_auth_flow(client_id, client_secret, open_url).await?;
 
     let conn = db
         .conn
