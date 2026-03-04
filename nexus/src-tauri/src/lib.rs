@@ -4,6 +4,7 @@ pub mod dedup;
 pub mod metadata;
 pub mod models;
 pub mod sources;
+pub mod twitch;
 
 use std::sync::Arc;
 use rusqlite;
@@ -44,6 +45,7 @@ use commands::{
         find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
         update_duplicate_resolution,
     },
+    twitch::{twitch_auth_logout, twitch_auth_start, twitch_auth_status},
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -130,6 +132,9 @@ pub fn run() {
             get_placeholder_cover,
             run_score_backfill,
             check_library_health,
+            twitch_auth_start,
+            twitch_auth_status,
+            twitch_auth_logout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -13,6 +13,7 @@ pub mod scanner;
 pub mod sessions;
 pub mod settings;
 pub mod sources;
+pub mod twitch;
 pub mod utils;
 
 #[cfg(test)]

@@ -7,6 +7,8 @@ export type CommandErrorKind =
   | "notFound"
   | "parse"
   | "permission"
+  | "networkUnavailable"
+  | "auth"
   | "unknown";
 
 export interface CommandError {
@@ -319,4 +321,23 @@ export interface HealthCheckProgressEvent {
 
 export function checkLibraryHealth(): Promise<LibraryHealthReport> {
   return invoke<LibraryHealthReport>("check_library_health");
+}
+
+// ── Twitch Auth (Story 19.1) ─────────────────────────────────────────
+export interface TwitchAuthStatus {
+  authenticated: boolean;
+  displayName: string | null;
+  expiresAt: number | null;
+}
+
+export function twitchAuthStart(): Promise<void> {
+  return invoke<void>("twitch_auth_start");
+}
+
+export function twitchAuthStatus(): Promise<TwitchAuthStatus> {
+  return invoke<TwitchAuthStatus>("twitch_auth_status");
+}
+
+export function twitchAuthLogout(): Promise<void> {
+  return invoke<void>("twitch_auth_logout");
 }
