@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useGameLiveBadge } from "@/hooks/useGameLiveBadge";
 import { useTwitchStore } from "@/stores/twitchStore";
+import { useConnectivityStore } from "@/stores/connectivityStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -34,8 +35,11 @@ function tooltipText(
   return `${a}, ${b} + ${more} more are streaming this`;
 }
 
+const STALE_BADGE_LIMIT_SECS = 600; // 10 min (Story 19.11: hide badges when data older)
+
 export function TwitchLiveBadge({ gameName, className }: TwitchLiveBadgeProps) {
   const badge = useGameLiveBadge(gameName);
+  const isOnline = useConnectivityStore((s) => s.isOnline);
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
   const cachedAt = useTwitchStore((s) => s.cachedAt);
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
@@ -88,12 +92,16 @@ export function TwitchLiveBadge({ gameName, className }: TwitchLiveBadgeProps) {
     ],
   );
 
+  const nowSecs = Math.floor(Date.now() / 1000);
+  const dataTooOld =
+    cachedAt != null && nowSecs - cachedAt > STALE_BADGE_LIMIT_SECS;
   if (
     !twitchEnabled ||
     !isAuthenticated ||
     cachedAt == null ||
     badge == null ||
-    badge.count === 0
+    badge.count === 0 ||
+    (!isOnline && dataTooOld)
   ) {
     return null;
   }

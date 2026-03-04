@@ -41,6 +41,8 @@ export interface SettingsState {
   healthCheckSnoozedUntil: number | null;
   autoHealthCheck: boolean;
   twitchEnabled: boolean;
+  /** Story 19.10: Refresh interval in seconds (30, 60, 120, 300, or 0 = manual only). Default 60. */
+  twitchRefreshInterval: number;
   /** Story 19.6/19.10: Go-live toasts on/off (default true). */
   twitchNotificationsEnabled: boolean;
   /** Story 19.6/19.10: Only show toasts for favorited streamers (default false). */
@@ -73,6 +75,8 @@ export interface SettingsActions {
   setHealthCheckResult: (checkedAt: string, issueCount: number) => void;
   setHealthCheckSnoozed: (until: number | null) => void;
   setAutoHealthCheck: (value: boolean) => void;
+  setTwitchEnabled: (value: boolean) => void;
+  setTwitchRefreshInterval: (value: number) => void;
   setTwitchNotificationsEnabled: (value: boolean) => void;
   setTwitchNotificationsFavoritesOnly: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
@@ -116,6 +120,7 @@ const initialState: SettingsState = {
   healthCheckSnoozedUntil: null,
   autoHealthCheck: true,
   twitchEnabled: true,
+  twitchRefreshInterval: 60,
   twitchNotificationsEnabled: true,
   twitchNotificationsFavoritesOnly: false,
   _hydrated: false,
@@ -162,6 +167,10 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.twitch_enabled !== undefined) {
               patch.twitchEnabled = settings.twitch_enabled !== "false";
+            }
+            if (settings.twitch_refresh_interval !== undefined && settings.twitch_refresh_interval !== null) {
+              const n = parseInt(settings.twitch_refresh_interval, 10);
+              if (!Number.isNaN(n) && n >= 0) patch.twitchRefreshInterval = n;
             }
             if (settings.twitch_notifications_enabled !== undefined) {
               patch.twitchNotificationsEnabled = settings.twitch_notifications_enabled !== "false";
@@ -297,6 +306,14 @@ export const useSettingsStore = create<SettingsStore>()(
         setAutoHealthCheck: (value) => {
           persistSetting("auto_health_check", String(value));
           set({ autoHealthCheck: value }, false, "setAutoHealthCheck");
+        },
+        setTwitchEnabled: (value) => {
+          persistSetting("twitch_enabled", String(value));
+          set({ twitchEnabled: value }, false, "setTwitchEnabled");
+        },
+        setTwitchRefreshInterval: (value) => {
+          persistSetting("twitch_refresh_interval", String(value));
+          set({ twitchRefreshInterval: value }, false, "setTwitchRefreshInterval");
         },
         setTwitchNotificationsEnabled: (value) => {
           persistSetting("twitch_notifications_enabled", String(value));

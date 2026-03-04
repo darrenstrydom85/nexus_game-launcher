@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { LiveOnTwitch } from "@/components/GameDetail/LiveOnTwitch";
 import { TwitchStreamRow } from "@/components/GameDetail/TwitchStreamRow";
 import { useTwitchStore } from "@/stores/twitchStore";
+import { useConnectivityStore } from "@/stores/connectivityStore";
 import * as tauri from "@/lib/tauri";
 
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(() => Promise.resolve()) }));
@@ -32,6 +33,7 @@ const mockStream = (
 describe("Story 19.5: Live on Twitch section", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    useConnectivityStore.setState({ isOnline: true });
     useTwitchStore.setState({
       isAuthenticated: false,
       channels: [],
@@ -56,6 +58,7 @@ describe("Story 19.5: Live on Twitch section", () => {
   });
 
   it("section hidden when offline and no cache", () => {
+    useConnectivityStore.setState({ isOnline: false });
     useTwitchStore.setState({
       isAuthenticated: true,
       streamsByGame: {},

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { listen } from "@tauri-apps/api/event";
-import { RefreshCw, ChevronDown, ChevronRight, Star } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronRight, Star, WifiOff } from "lucide-react";
 import { useTwitchStore, type LiveStreamItem, type TwitchChannel } from "@/stores/twitchStore";
+import { useConnectivityStore } from "@/stores/connectivityStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { formatRelativeTime } from "@/lib/time";
@@ -13,6 +14,11 @@ import { TrendingInLibrary } from "./TrendingInLibrary";
 import { twitchAuthStatus } from "@/lib/tauri";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUiStore } from "@/stores/uiStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const MAX_FAVORITES = 20;
 
@@ -52,6 +58,7 @@ export function TwitchPanel() {
     toggleFavorite,
   } = useTwitchStore();
 
+  const isOnline = useConnectivityStore((s) => s.isOnline);
   const [offlineOpen, setOfflineOpen] = React.useState(false);
   const activeNav = useUiStore((s) => s.activeNav);
   const twitchPanelScrollToGameName = useUiStore(
@@ -220,9 +227,13 @@ export function TwitchPanel() {
   return (
     <TooltipProvider>
     <div className="flex flex-1 flex-col overflow-hidden bg-background">
-      {/* Stale bar */}
+      {/* Stale bar (Story 19.11: role and aria-live for a11y) */}
       {stale && cachedAt != null && (
-        <div className="flex items-center justify-between gap-2 border-b border-border bg-warning/10 px-4 py-2 text-warning">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-between gap-2 border-b border-border bg-warning/10 px-4 py-2 text-warning"
+        >
           <span className="text-sm">
             Showing cached data · Last updated {formatRelativeTime(cachedAt)}
           </span>
@@ -249,6 +260,21 @@ export function TwitchPanel() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {!isOnline && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="flex items-center text-warning"
+                    aria-label="Offline — showing cached data"
+                  >
+                    <WifiOff className="size-[14px]" aria-hidden />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>You&apos;re offline. Showing cached data.</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <button
               type="button"
               onClick={handleRefresh}

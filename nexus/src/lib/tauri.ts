@@ -342,6 +342,16 @@ export function twitchAuthLogout(): Promise<void> {
   return invoke<void>("twitch_auth_logout");
 }
 
+/** Clear Twitch cached data only (no disconnect). Story 19.10. */
+export function clearTwitchCache(): Promise<void> {
+  return invoke<void>("clear_twitch_cache");
+}
+
+/** Check if Twitch API is reachable. Result cached 30s. Story 19.11. */
+export function checkConnectivity(): Promise<{ online: boolean }> {
+  return invoke<{ online: boolean }>("check_connectivity");
+}
+
 // ── Twitch Streams by Game (Story 19.5) ─────────────────────────────────
 export interface TwitchStreamByGame {
   userId: string;

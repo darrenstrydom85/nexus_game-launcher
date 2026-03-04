@@ -2,6 +2,7 @@ import * as React from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Tv, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { useTwitchStore } from "@/stores/twitchStore";
+import { useConnectivityStore } from "@/stores/connectivityStore";
 import { TwitchStreamRow } from "./TwitchStreamRow";
 import type { TwitchStreamByGame } from "@/lib/tauri";
 
@@ -34,12 +35,16 @@ function LiveOnTwitchSkeleton() {
 }
 
 export function LiveOnTwitch({ gameName }: LiveOnTwitchProps) {
+  const isOnline = useConnectivityStore((s) => s.isOnline);
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
   const channels = useTwitchStore((s) => s.channels);
   const streamsByGame = useTwitchStore((s) => s.streamsByGame);
   const streamsByGameLoading = useTwitchStore((s) => s.streamsByGameLoading);
   const streamsByGameError = useTwitchStore((s) => s.streamsByGameError);
   const fetchStreamsByGame = useTwitchStore((s) => s.fetchStreamsByGame);
+
+  // Story 19.11: hide section when offline (live streams are ephemeral; stale data is misleading)
+  if (!isOnline) return null;
 
   const key = gameName.trim();
   const entry = key ? streamsByGame[key] : null;

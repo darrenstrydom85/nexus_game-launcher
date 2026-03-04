@@ -5,6 +5,7 @@ pub mod metadata;
 pub mod models;
 pub mod sources;
 pub mod twitch;
+mod utils;
 
 use std::sync::Arc;
 use rusqlite;
@@ -46,9 +47,9 @@ use commands::{
         update_duplicate_resolution,
     },
     twitch::{
-        get_twitch_followed_channels, get_twitch_live_streams, get_twitch_streams_by_game,
-        get_twitch_trending_library_games, set_twitch_favorite, twitch_auth_logout, twitch_auth_start,
-        twitch_auth_status,
+        check_connectivity, clear_twitch_cache, get_twitch_followed_channels, get_twitch_live_streams,
+        get_twitch_streams_by_game, get_twitch_trending_library_games, set_twitch_favorite,
+        twitch_auth_logout, twitch_auth_start, twitch_auth_status,
     },
 };
 
@@ -144,6 +145,8 @@ pub fn run() {
             get_twitch_streams_by_game,
             get_twitch_trending_library_games,
             set_twitch_favorite,
+            clear_twitch_cache,
+            check_connectivity,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

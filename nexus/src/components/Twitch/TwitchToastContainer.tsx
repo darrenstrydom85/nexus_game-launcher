@@ -26,6 +26,7 @@ function useReducedMotion(): boolean {
 export function TwitchToastContainer() {
   const pendingToasts = useTwitchStore((s) => s.pendingToasts);
   const removePendingToast = useTwitchStore((s) => s.removePendingToast);
+  const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
   const twitchNotificationsEnabled = useSettingsStore((s) => s.twitchNotificationsEnabled);
   const twitchNotificationsFavoritesOnly = useSettingsStore((s) => s.twitchNotificationsFavoritesOnly);
   const reducedMotion = useReducedMotion();
@@ -35,13 +36,13 @@ export function TwitchToastContainer() {
   const pauseStartedRef = React.useRef<Record<string, number>>({});
 
   const filtered = React.useMemo(() => {
-    if (!twitchNotificationsEnabled) return [];
+    if (!twitchEnabled || !twitchNotificationsEnabled) return [];
     let list = pendingToasts;
     if (twitchNotificationsFavoritesOnly) {
       list = list.filter((t) => t.isFavorite);
     }
     return list.slice(0, MAX_VISIBLE);
-  }, [pendingToasts, twitchNotificationsEnabled, twitchNotificationsFavoritesOnly]);
+  }, [pendingToasts, twitchEnabled, twitchNotificationsEnabled, twitchNotificationsFavoritesOnly]);
 
   const startTimer = React.useCallback(
     (id: string) => {

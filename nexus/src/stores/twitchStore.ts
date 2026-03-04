@@ -83,11 +83,14 @@ export interface TwitchState {
   trendingStale: boolean;
   trendingCachedAt: number | null;
   trendingLoading: boolean;
+  /** Story 19.11: true during recovery refresh so we don't fire go-live toasts. */
+  isRecoveryRefresh: boolean;
 }
 
 export interface TwitchActions {
   setLiveCount: (count: number) => void;
   setIsAuthenticated: (value: boolean) => void;
+  setRecoveryRefresh: (value: boolean) => void;
   fetchFollowedStreams: () => Promise<void>;
   refreshStreams: () => Promise<void>;
   clearError: () => void;
@@ -169,6 +172,7 @@ const initialState: TwitchState = {
   trendingStale: false,
   trendingCachedAt: null,
   trendingLoading: false,
+  isRecoveryRefresh: false,
 };
 
 export const useTwitchStore = create<TwitchStore>()(
@@ -179,6 +183,8 @@ export const useTwitchStore = create<TwitchStore>()(
         set({ liveCount: count }, false, "setLiveCount"),
       setIsAuthenticated: (value) =>
         set({ isAuthenticated: value }, false, "setIsAuthenticated"),
+      setRecoveryRefresh: (value) =>
+        set({ isRecoveryRefresh: value }, false, "setRecoveryRefresh"),
       clearError: () => set({ error: null }, false, "clearError"),
       fetchFollowedStreams: async () => {
         set({ isLoading: true, error: null }, false, "fetchFollowedStreams_start");
@@ -191,8 +197,9 @@ export const useTwitchStore = create<TwitchStore>()(
             res.data.filter((c): c is TwitchChannel & { stream: TwitchStream } => c.stream != null).map((c) => c.id),
           );
           const prev = get().previousLiveIds;
+          const isRecovery = get().isRecoveryRefresh;
           const newlyLiveIds =
-            !res.stale && prev.size > 0
+            !res.stale && !isRecovery && prev.size > 0
               ? [...currentLiveIds].filter((id) => !prev.has(id))
               : [];
           const pendingToastsToAdd: PendingToastItem[] = newlyLiveIds
@@ -222,6 +229,7 @@ export const useTwitchStore = create<TwitchStore>()(
               isAuthenticated: true,
               previousLiveIds: currentLiveIds,
               pendingToasts: [...get().pendingToasts, ...pendingToastsToAdd],
+              isRecoveryRefresh: false,
             },
             false,
             "fetchFollowedStreams_ok",
@@ -234,6 +242,7 @@ export const useTwitchStore = create<TwitchStore>()(
               isLoading: false,
               error: message,
               isAuthenticated: isAuth ? false : get().isAuthenticated,
+              isRecoveryRefresh: false,
             },
             false,
             "fetchFollowedStreams_err",

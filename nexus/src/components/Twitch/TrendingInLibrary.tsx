@@ -1,6 +1,7 @@
 import * as React from "react";
 import { TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTwitchStore } from "@/stores/twitchStore";
+import { useConnectivityStore } from "@/stores/connectivityStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { TrendingGameCard } from "./TrendingGameCard";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -11,6 +12,7 @@ const MAX_GAMES_DISPLAY = 10;
 export function TrendingInLibrary() {
   const reduceMotion = useReducedMotion();
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
+  const isOnline = useConnectivityStore((s) => s.isOnline);
   const {
     isAuthenticated,
     trendingGames,
@@ -54,6 +56,8 @@ export function TrendingInLibrary() {
   }, [reduceMotion]);
 
   if (!twitchEnabled || !isAuthenticated) return null;
+  // Story 19.11: offline + no cache → hide section
+  if (!isOnline && (trendingGames?.length ?? 0) < MIN_GAMES_TO_SHOW) return null;
   const games = trendingGames ?? [];
   if (games.length < MIN_GAMES_TO_SHOW) return null;
   const displayGames = games.slice(0, MAX_GAMES_DISPLAY);

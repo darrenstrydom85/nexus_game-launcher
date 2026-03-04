@@ -780,3 +780,16 @@ pub fn clear_twitch_cache(db: State<'_, DbState>) -> Result<(), CommandError> {
     cache::clear_twitch_cache(&conn)?;
     Ok(())
 }
+
+/// Check if Twitch API is reachable. Uses HEAD to api.twitch.tv/helix with 3s timeout; result cached 30s (Story 19.11).
+#[tauri::command]
+pub fn check_connectivity() -> Result<CheckConnectivityResult, CommandError> {
+    let online = crate::utils::connectivity::check_online();
+    Ok(CheckConnectivityResult { online })
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckConnectivityResult {
+    pub online: bool,
+}

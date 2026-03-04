@@ -1,6 +1,12 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { SourceToggles } from "./SourceToggles";
 import { FolderManager } from "./FolderManager";
 import { APIKeyManager } from "./APIKeyManager";
@@ -8,6 +14,7 @@ import { LibraryPreferences } from "./LibraryPreferences";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { DataManagement } from "./DataManagement";
 import { LibraryHealth } from "./LibraryHealth";
+import { TwitchSettings } from "./TwitchSettings";
 import { AboutSection } from "./AboutSection";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -67,13 +74,41 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             </div>
 
             <div className="flex flex-col gap-6 p-6">
-              <SourceToggles />
-              <FolderManager />
-              <APIKeyManager />
-              <LibraryPreferences />
-              <AppearanceSettings />
-              <DataManagement />
-              <LibraryHealth />
+              <Accordion
+                type="multiple"
+                defaultValue={["library", "appearance", "integrations", "data"]}
+                className="w-full"
+                data-testid="settings-accordion"
+              >
+                <AccordionItem value="library" data-testid="settings-group-library">
+                  <AccordionTrigger>Library</AccordionTrigger>
+                  <AccordionContent className="flex flex-col gap-6">
+                    <SourceToggles />
+                    <FolderManager />
+                    <LibraryPreferences />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="appearance" data-testid="settings-group-appearance">
+                  <AccordionTrigger>Appearance</AccordionTrigger>
+                  <AccordionContent>
+                    <AppearanceSettings />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="integrations" data-testid="settings-group-integrations">
+                  <AccordionTrigger>Integrations</AccordionTrigger>
+                  <AccordionContent className="flex flex-col gap-6">
+                    <APIKeyManager />
+                    <TwitchSettings />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="data" data-testid="settings-group-data">
+                  <AccordionTrigger>Data &amp; Health</AccordionTrigger>
+                  <AccordionContent className="flex flex-col gap-6">
+                    <DataManagement />
+                    <LibraryHealth />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
               <AboutSection />
             </div>
           </motion.div>

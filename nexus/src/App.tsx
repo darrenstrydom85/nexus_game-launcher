@@ -44,7 +44,8 @@ import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { useTwitchStore } from "@/stores/twitchStore";
-import { twitchAuthStatus } from "@/lib/tauri";
+import { useConnectivityStore } from "@/stores/connectivityStore";
+import { twitchAuthStatus, checkConnectivity } from "@/lib/tauri";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -171,6 +172,10 @@ function MainApp() {
   }, [autoHealthCheck]);
 
   React.useEffect(() => {
+    useConnectivityStore.getState().checkConnectivity();
+  }, []);
+
+  React.useEffect(() => {
     twitchAuthStatus()
       .then((status) => {
         useTwitchStore.getState().setIsAuthenticated(status.authenticated);
@@ -180,6 +185,36 @@ function MainApp() {
       })
       .catch(() => {});
   }, []);
+
+  // Story 19.11: when connectivity restored (offline -> online), trigger refresh and suppress toasts
+  const isOnline = useConnectivityStore((s) => s.isOnline);
+  const prevOnlineRef = React.useRef(isOnline);
+  React.useEffect(() => {
+    const wasOffline = !prevOnlineRef.current;
+    prevOnlineRef.current = isOnline;
+    if (wasOffline && isOnline && useTwitchStore.getState().isAuthenticated) {
+      useTwitchStore.getState().setRecoveryRefresh(true);
+      useTwitchStore.getState().fetchFollowedStreams().finally(() => {
+        useTwitchStore.getState().setRecoveryRefresh(false);
+      });
+      useTwitchStore.getState().fetchTrending();
+    }
+  }, [isOnline]);
+
+  // Story 19.10: Twitch polling from settings (interval 0 = manual only; twitchEnabled off = no polling)
+  const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
+  const twitchRefreshInterval = useSettingsStore((s) => s.twitchRefreshInterval);
+  React.useEffect(() => {
+    if (!twitchEnabled || twitchRefreshInterval <= 0) return;
+    const intervalMs = twitchRefreshInterval * 1000;
+    const id = setInterval(() => {
+      if (!useTwitchStore.getState().isAuthenticated) return;
+      useConnectivityStore.getState().checkConnectivity();
+      useTwitchStore.getState().fetchFollowedStreams();
+      useTwitchStore.getState().fetchTrending();
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [twitchEnabled, twitchRefreshInterval]);
 
   const handleScoreBackfillProgress = React.useCallback(
     (event: ScoreBackfillProgressEvent) => {
