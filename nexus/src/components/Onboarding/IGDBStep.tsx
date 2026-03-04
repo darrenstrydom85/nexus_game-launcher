@@ -58,7 +58,18 @@ export function IGDBStep() {
           IGDB provides rich game metadata: descriptions, genres, release dates, and more.
         </p>
         <ol className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <li>1. Go to <strong>dev.twitch.tv</strong> and log in</li>
+          <li>
+            1. Go to{" "}
+            <a
+              href="https://dev.twitch.tv"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary underline decoration-primary/50 underline-offset-2 outline-none transition-colors hover:text-primary/90 hover:decoration-primary focus:rounded focus:ring-2 focus:ring-ring"
+            >
+              dev.twitch.tv
+            </a>{" "}
+            and log in
+          </li>
           <li>2. Click <strong>"Register Your Application"</strong></li>
           <li>3. Set app name to anything (e.g. "Nexus")</li>
           <li>4. Set OAuth redirect to <code className="rounded bg-secondary px-1">http://localhost</code></li>

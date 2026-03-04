@@ -52,7 +52,18 @@ export function SteamGridDBStep() {
           SteamGridDB provides high-quality cover art, hero images, and logos for your games.
         </p>
         <ol className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <li>1. Go to <strong>steamgriddb.com</strong> and create an account</li>
+          <li>
+            1. Go to{" "}
+            <a
+              href="https://www.steamgriddb.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary underline decoration-primary/50 underline-offset-2 outline-none transition-colors hover:text-primary/90 hover:decoration-primary focus:rounded focus:ring-2 focus:ring-ring"
+            >
+              steamgriddb.com
+            </a>{" "}
+            and create an account
+          </li>
           <li>2. Navigate to <strong>Preferences → API</strong></li>
           <li>3. Click <strong>"Generate API Key"</strong></li>
           <li>4. Copy the key and paste it here</li>
