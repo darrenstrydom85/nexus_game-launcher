@@ -11,9 +11,16 @@ use crate::twitch::cache::{self, CachedChannel, CachedStream};
 use crate::twitch::tokens;
 use crate::twitch::api;
 
-/// Twitch OAuth2 client ID, embedded at compile time. Set NEXUS_TWITCH_CLIENT_ID when building
-/// (e.g. `$env:NEXUS_TWITCH_CLIENT_ID="your_id"; cargo build`).
-const TWITCH_CLIENT_ID: &str = env!("NEXUS_TWITCH_CLIENT_ID");
+/// Twitch OAuth2 client ID, optional at compile time. Set NEXUS_TWITCH_CLIENT_ID when building
+/// to enable Twitch (e.g. `$env:NEXUS_TWITCH_CLIENT_ID="your_id"; cargo build`).
+/// If unset, the app builds and runs; Twitch commands return an auth error when used.
+fn twitch_client_id() -> Result<&'static str, CommandError> {
+    option_env!("NEXUS_TWITCH_CLIENT_ID").ok_or_else(|| {
+        CommandError::Auth(
+            "Twitch integration is not configured. Set NEXUS_TWITCH_CLIENT_ID when building (e.g. in .env or your shell).".to_string(),
+        )
+    })
+}
 
 /// Check for internet by attempting a connection to Twitch auth host.
 fn check_network_available() -> Result<(), CommandError> {
@@ -97,8 +104,9 @@ pub async fn twitch_auth_start(app: AppHandle, db: State<'_, DbState>) -> Result
         let _ = opener.open_url(url, None::<&str>);
     };
 
+    let client_id = twitch_client_id()?;
     let (access_token, refresh_token, expires_at, user_id, display_name) =
-        auth::run_auth_flow(TWITCH_CLIENT_ID, open_url).await?;
+        auth::run_auth_flow(client_id, open_url).await?;
 
     let conn = db
         .conn
@@ -153,7 +161,7 @@ async fn ensure_valid_twitch_token(
 
     if need_refresh {
         if let Some(refresh_token) = refresh_token_opt {
-            match auth::refresh_access_token(TWITCH_CLIENT_ID, &refresh_token).await {
+            match auth::refresh_access_token(twitch_client_id()?, &refresh_token).await {
                 Ok((access_token, new_refresh, expires_in)) => {
                     let new_expires_at = now_secs + expires_in;
                     let conn = db
@@ -265,7 +273,7 @@ pub async fn twitch_auth_status(
 
     if need_refresh {
         if let Some(refresh_token) = refresh_token_opt {
-            match auth::refresh_access_token(TWITCH_CLIENT_ID, &refresh_token).await {
+            match auth::refresh_access_token(twitch_client_id()?, &refresh_token).await {
                 Ok((access_token, new_refresh, expires_in)) => {
                     let new_expires_at = now_secs + expires_in;
                     let conn = db
@@ -336,8 +344,9 @@ pub async fn get_twitch_followed_channels(
     };
 
     if check_twitch_api_available() {
+        let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
-        let channels = match api::fetch_followed_channels(&http, TWITCH_CLIENT_ID, &access_token, &user_id).await {
+        let channels = match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
             Ok(ch) => ch,
             Err(_) => { /* fall through to cache */ vec![] }
         };
@@ -350,7 +359,7 @@ pub async fn get_twitch_followed_channels(
                 cache::cache_followed_channels(&conn, &channels)?;
             }
             let user_ids: Vec<String> = channels.iter().map(|c| c.channel_id.clone()).collect();
-            let streams = api::fetch_live_streams(&http, TWITCH_CLIENT_ID, &access_token, &user_ids).await.unwrap_or_default();
+            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids).await.unwrap_or_default();
             {
                 let conn = db
                     .conn
@@ -401,11 +410,12 @@ pub async fn get_twitch_live_streams(
     };
 
     if check_twitch_api_available() {
+        let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
-        let channels = api::fetch_followed_channels(&http, TWITCH_CLIENT_ID, &access_token, &user_id).await.ok();
+        let channels = api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await.ok();
         if let Some(chs) = channels {
             let user_ids: Vec<String> = chs.iter().map(|c| c.channel_id.clone()).collect();
-            let streams = api::fetch_live_streams(&http, TWITCH_CLIENT_ID, &access_token, &user_ids).await.ok();
+            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids).await.ok();
             if let Some(streams) = streams {
                 {
                     let conn = db
@@ -483,15 +493,16 @@ pub async fn get_twitch_streams_by_game(
     };
 
     if check_twitch_api_available() {
+        let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let game_id_opt = match &cached_mapping {
             Some(m) => Some((m.twitch_game_id.clone(), m.twitch_game_name.clone())),
-            None => api::fetch_twitch_game(&http, TWITCH_CLIENT_ID, &access_token, game_name.trim())
+            None => api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
                 .await?
                 .map(|(id, name)| (id, name)),
         };
         if let Some((twitch_id, twitch_name)) = game_id_opt {
-            match api::fetch_streams_by_game(&http, TWITCH_CLIENT_ID, &access_token, game_name.trim()).await {
+            match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await {
                 Ok(streams) => {
                     let conn = db
                         .conn
