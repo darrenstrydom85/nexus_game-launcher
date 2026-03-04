@@ -49,9 +49,49 @@ export function LiveOnTwitch({ gameName }: LiveOnTwitchProps) {
 
   const [expanded, setExpanded] = React.useState(true);
 
-  const streams: TwitchStreamByGame[] = data
+  const norm = (s: string) => s.trim().toLowerCase();
+  const twitchGameNameNorm = data?.twitchGameName
+    ? norm(data.twitchGameName)
+    : null;
+
+  const followedPlayingGame: TwitchStreamByGame[] = React.useMemo(() => {
+    return channels
+      .filter(
+        (c): c is typeof c & { stream: NonNullable<typeof c.stream> } =>
+          c.stream != null &&
+          (norm(c.stream.gameName) === norm(gameName) ||
+            (twitchGameNameNorm !== null &&
+              norm(c.stream.gameName) === twitchGameNameNorm)),
+      )
+      .map((c) => ({
+        userId: c.id,
+        login: c.login,
+        displayName: c.displayName,
+        profileImageUrl: c.profileImageUrl,
+        title: c.stream.title,
+        gameName: c.stream.gameName,
+        gameId: c.stream.gameId,
+        viewerCount: c.stream.viewerCount,
+        thumbnailUrl: c.stream.thumbnailUrl,
+        startedAt: c.stream.startedAt,
+      }));
+  }, [channels, gameName, twitchGameNameNorm]);
+
+  const directoryStreams = data
     ? [...data.streams].sort((a, b) => b.viewerCount - a.viewerCount)
     : [];
+  const followedIdsInGame = new Set(followedPlayingGame.map((s) => s.userId));
+  const followedSorted = [...followedPlayingGame].sort(
+    (a, b) => b.viewerCount - a.viewerCount,
+  );
+  const restStreams = directoryStreams.filter(
+    (s) => !followedIdsInGame.has(s.userId),
+  );
+  const streams: TwitchStreamByGame[] =
+    followedSorted.length > 0
+      ? [...followedSorted, ...restStreams]
+      : directoryStreams;
+
   React.useEffect(() => {
     if (data) setExpanded(streams.length > 0);
   }, [key, data]);
