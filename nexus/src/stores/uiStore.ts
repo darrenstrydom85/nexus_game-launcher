@@ -28,6 +28,8 @@ export interface UiState {
   activeNav: NavItem;
   sourceFilter: string | null;
   genreFilter: string | null;
+  /** Story 19.8: When set, Twitch panel scrolls to this game name then clears. */
+  twitchPanelScrollToGameName: string | null;
 }
 
 export interface UiActions {
@@ -46,6 +48,7 @@ export interface UiActions {
   toggleSourceFilter: (source: string) => void;
   setGenreFilter: (genre: string | null) => void;
   toggleGenreFilter: (genre: string) => void;
+  setTwitchPanelScrollToGameName: (gameName: string | null) => void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -63,6 +66,7 @@ const initialState: UiState = {
   activeNav: "library",
   sourceFilter: null,
   genreFilter: null,
+  twitchPanelScrollToGameName: null,
 };
 
 export const useUiStore = create<UiStore>()(
@@ -113,6 +117,12 @@ export const useUiStore = create<UiStore>()(
           }),
           false,
           "toggleGenreFilter",
+        ),
+      setTwitchPanelScrollToGameName: (gameName) =>
+        set(
+          { twitchPanelScrollToGameName: gameName },
+          false,
+          "setTwitchPanelScrollToGameName",
         ),
     }),
     { name: "UiStore", enabled: import.meta.env.DEV },

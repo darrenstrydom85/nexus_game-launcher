@@ -94,6 +94,43 @@ export interface TwitchActions {
 
 export type TwitchStore = TwitchState & TwitchActions;
 
+/** Per-game live badge for library cards (Story 19.8). Key: normalized game name. */
+export interface GameLiveBadgeInfo {
+  count: number;
+  streamers: { displayName: string; login: string }[];
+}
+
+function normalizeGameName(name: string): string {
+  return name.toLowerCase().trim();
+}
+
+/** Cross-reference liveStreams (followed streamers) with library game names; case-insensitive. */
+export function computeGameLiveBadgesMap(
+  liveStreams: LiveStreamItem[],
+  libraryGameNames: string[],
+): Record<string, GameLiveBadgeInfo> {
+  const libSet = new Set(
+    libraryGameNames.map((n) => normalizeGameName(n)),
+  );
+  const byGame = new Map<string, GameLiveBadgeInfo>();
+  for (const s of liveStreams) {
+    const key = normalizeGameName(s.gameName);
+    if (!libSet.has(key)) continue;
+    const existing = byGame.get(key);
+    const entry = {
+      displayName: s.displayName,
+      login: s.login,
+    };
+    if (!existing) {
+      byGame.set(key, { count: 1, streamers: [entry] });
+    } else {
+      existing.count += 1;
+      existing.streamers.push(entry);
+    }
+  }
+  return Object.fromEntries(byGame);
+}
+
 function toLiveStreams(channels: TwitchChannel[]): LiveStreamItem[] {
   return channels
     .filter((c): c is TwitchChannel & { stream: TwitchStream } => c.stream != null)

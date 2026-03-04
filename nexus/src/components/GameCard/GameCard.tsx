@@ -4,6 +4,7 @@ import { useUiStore } from "@/stores/uiStore";
 import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
 import { formatPlayTime } from "@/components/Library/HeroSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
+import { TwitchLiveBadge } from "@/components/Library/TwitchLiveBadge";
 
 function hashString(str: string): number {
   let hash = 0;
@@ -145,6 +146,9 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
 
       {/* Source badge */}
       <SourceBadge source={game.source} />
+
+      {/* Twitch live badge (Story 19.8) */}
+      <TwitchLiveBadge gameName={game.name} />
 
       {/* Top-left: critic score badge (on hover) */}
       {game.criticScore != null && game.criticScore > 0 && (

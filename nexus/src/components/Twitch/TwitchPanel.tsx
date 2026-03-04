@@ -11,6 +11,7 @@ import { StreamCard } from "./StreamCard";
 import { OfflineChannelRow } from "./OfflineChannelRow";
 import { twitchAuthStatus } from "@/lib/tauri";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useUiStore } from "@/stores/uiStore";
 
 const MAX_FAVORITES = 20;
 
@@ -50,6 +51,30 @@ export function TwitchPanel() {
   } = useTwitchStore();
 
   const [offlineOpen, setOfflineOpen] = React.useState(false);
+  const activeNav = useUiStore((s) => s.activeNav);
+  const twitchPanelScrollToGameName = useUiStore(
+    (s) => s.twitchPanelScrollToGameName,
+  );
+  const setTwitchPanelScrollToGameName = useUiStore(
+    (s) => s.setTwitchPanelScrollToGameName,
+  );
+
+  // Story 19.8: scroll to game section when opened from library card badge
+  React.useEffect(() => {
+    if (activeNav !== "twitch" || !twitchPanelScrollToGameName) return;
+    const normalized = twitchPanelScrollToGameName.toLowerCase().trim();
+    const el = document.querySelector(
+      `[data-twitch-game-name][data-game-name-normalized="${normalized}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setTwitchPanelScrollToGameName(null);
+  }, [
+    activeNav,
+    twitchPanelScrollToGameName,
+    setTwitchPanelScrollToGameName,
+  ]);
 
   const favoritesCount = React.useMemo(
     () => channels.filter((c) => c.isFavorite === true).length,
@@ -302,7 +327,11 @@ export function TwitchPanel() {
                 </div>
               )}
               {grouped.map(([gameName, streams]) => (
-                <div key={gameName}>
+                <div
+                  key={gameName}
+                  data-twitch-game-name
+                  data-game-name-normalized={gameName.toLowerCase().trim()}
+                >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">
                       {gameName}

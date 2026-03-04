@@ -137,15 +137,15 @@ export function LibraryView({ onPlay, onResync, isSyncing = false, syncResult }:
   }
 
   return (
-    <div data-testid="library-view" className="relative flex flex-col">
-      <div className="sticky top-0 z-[20] h-0 overflow-visible">
-        <SyncProgressBanner
-          dismissed={syncBannerDismissed}
-          onDismiss={() => setSyncBannerDismissed(true)}
-        />
-      </div>
-      {/* Library toolbar */}
-      <TooltipProvider>
+    <TooltipProvider>
+      <div data-testid="library-view" className="relative flex flex-col">
+        <div className="sticky top-0 z-[20] h-0 overflow-visible">
+          <SyncProgressBanner
+            dismissed={syncBannerDismissed}
+            onDismiss={() => setSyncBannerDismissed(true)}
+          />
+        </div>
+        {/* Library toolbar */}
         <div className="flex items-center justify-between border-b border-border px-6 py-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {syncResult && !isSyncing && (
@@ -179,38 +179,38 @@ export function LibraryView({ onPlay, onResync, isSyncing = false, syncResult }:
             </button>
           </div>
         </div>
-      </TooltipProvider>
 
-      {isLoading ? (
-        <div
-          data-testid="library-skeleton"
-          className="grid gap-4 px-6 py-6"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          }}
-        >
-          {Array.from({ length: 12 }, (_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : (
-        <GameGrid
-          games={filteredGames}
-          totalCount={games.length}
-          isFiltered={isFiltered}
-          heading={heading}
-          onClearFilters={() => {
-            useUiStore.getState().setSearchQuery("");
-            useUiStore.getState().setSourceFilter(null);
-            useUiStore.getState().setGenreFilter(null);
-            useCollectionStore.getState().setActiveCollectionId(null);
-            useFilterStore.getState().clearAll();
-          }}
-          onGameClick={(id) => useUiStore.getState().setDetailOverlayGameId(id)}
-          onPlay={onPlay}
-          renderCard={(game) => <GameCard game={game} />}
-        />
-      )}
-    </div>
+        {isLoading ? (
+          <div
+            data-testid="library-skeleton"
+            className="grid gap-4 px-6 py-6"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            }}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : (
+          <GameGrid
+            games={filteredGames}
+            totalCount={games.length}
+            isFiltered={isFiltered}
+            heading={heading}
+            onClearFilters={() => {
+              useUiStore.getState().setSearchQuery("");
+              useUiStore.getState().setSourceFilter(null);
+              useUiStore.getState().setGenreFilter(null);
+              useCollectionStore.getState().setActiveCollectionId(null);
+              useFilterStore.getState().clearAll();
+            }}
+            onGameClick={(id) => useUiStore.getState().setDetailOverlayGameId(id)}
+            onPlay={onPlay}
+            renderCard={(game) => <GameCard game={game} />}
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
