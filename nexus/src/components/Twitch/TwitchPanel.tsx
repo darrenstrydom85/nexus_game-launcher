@@ -1,10 +1,288 @@
-/**
- * Placeholder Twitch panel. Full content (followed streamers, connect prompt) in Story 19.4.
- */
+import * as React from "react";
+import { listen } from "@tauri-apps/api/event";
+import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { useTwitchStore, type LiveStreamItem, type TwitchChannel } from "@/stores/twitchStore";
+import { useGameStore } from "@/stores/gameStore";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { formatRelativeTime } from "@/lib/time";
+import { TwitchConnectPrompt } from "./TwitchConnectPrompt";
+import { TwitchEmptyState } from "./TwitchEmptyState";
+import { StreamCard } from "./StreamCard";
+import { OfflineChannelRow } from "./OfflineChannelRow";
+import { twitchAuthStatus } from "@/lib/tauri";
+
+function groupByGame(streams: LiveStreamItem[]): [string, LiveStreamItem[]][] {
+  const grouped = streams.reduce<Record<string, LiveStreamItem[]>>((acc, s) => {
+    const key = s.gameName || "Just Chatting";
+    (acc[key] ??= []).push(s);
+    return acc;
+  }, {});
+  return Object.entries(grouped).sort(([, a], [, b]) => b.length - a.length);
+}
+
+function isGameInLibrary(gameName: string, libraryNames: string[]): boolean {
+  const lower = gameName.toLowerCase();
+  return libraryNames.some((n) => n.toLowerCase() === lower);
+}
+
 export function TwitchPanel() {
+  const reduceMotion = useReducedMotion();
+  const games = useGameStore((s) => s.games);
+  const libraryNames = React.useMemo(() => games.map((g) => g.name), [games]);
+
+  const {
+    isAuthenticated,
+    channels,
+    liveStreams,
+    isLoading,
+    error,
+    stale,
+    cachedAt,
+    fetchFollowedStreams,
+    refreshStreams,
+    setLiveCount,
+    setIsAuthenticated,
+    clearError,
+  } = useTwitchStore();
+
+  const [offlineOpen, setOfflineOpen] = React.useState(false);
+
+  // Seed auth state and fetch on mount
+  React.useEffect(() => {
+    twitchAuthStatus()
+      .then((status) => {
+        setIsAuthenticated(status.authenticated);
+        if (status.authenticated) fetchFollowedStreams();
+      })
+      .catch(() => setIsAuthenticated(false));
+  }, [setIsAuthenticated, fetchFollowedStreams]);
+
+  // Listen for auth and data events
+  React.useEffect(() => {
+    const unlistenAuth = listen<{ authenticated: boolean }>(
+      "twitch-auth-changed",
+      (event) => setIsAuthenticated(event.payload.authenticated),
+    );
+    const unlistenData = listen<{ liveCount: number }>(
+      "twitch-data-updated",
+      (event) => setLiveCount(event.payload.liveCount),
+    );
+    return () => {
+      unlistenAuth.then((fn) => fn());
+      unlistenData.then((fn) => fn());
+    };
+  }, [setIsAuthenticated, setLiveCount]);
+
+  const handleRefresh = React.useCallback(() => {
+    clearError();
+    refreshStreams();
+  }, [refreshStreams, clearError]);
+
+  const grouped = React.useMemo(() => groupByGame(liveStreams), [liveStreams]);
+  const offlineChannels = React.useMemo(
+    () =>
+      channels
+        .filter((c) => !c.isLive)
+        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    [channels],
+  );
+
+  // Unauthenticated
+  if (!isAuthenticated && !isLoading) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <TwitchConnectPrompt />
+      </div>
+    );
+  }
+
+  // Loading (skeleton)
+  if (isLoading && channels.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-border bg-background px-6 py-4">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Twitch
+          </h1>
+          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex w-[280px] flex-col overflow-hidden rounded-md border border-border bg-card"
+              >
+                <div className="aspect-video w-full animate-pulse bg-muted" />
+                <div className="flex flex-col gap-2 p-3">
+                  <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                  <div className="flex items-center gap-2">
+                    <div className="size-6 animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error and no cache
+  if (error != null && channels.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <TwitchEmptyState variant="error" onRetry={handleRefresh} />
+      </div>
+    );
+  }
+
+  // Empty (authenticated, 0 channels)
+  if (channels.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <TwitchEmptyState variant="empty" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-muted-foreground">
-      <p className="text-sm">Twitch panel — coming in Story 19.4</p>
+    <div className="flex flex-1 flex-col overflow-hidden bg-background">
+      {/* Stale bar */}
+      {stale && cachedAt != null && (
+        <div className="flex items-center justify-between gap-2 border-b border-border bg-warning/10 px-4 py-2 text-warning">
+          <span className="text-sm">
+            Showing cached data · Last updated {formatRelativeTime(cachedAt)}
+          </span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="rounded p-1 hover:bg-warning/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="size-4" aria-hidden />
+          </button>
+        </div>
+      )}
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 flex flex-col gap-1 border-b border-border bg-background px-6 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Twitch
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Following {channels.length} channels · {liveStreams.length} live
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+              aria-label="Refresh"
+            >
+              <RefreshCw
+                className={`size-4 ${isLoading ? "animate-spin" : ""}`}
+                aria-hidden
+              />
+            </button>
+            {cachedAt != null && (
+              <span className="text-xs text-muted-foreground">
+                Last updated {formatRelativeTime(cachedAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Live Now */}
+        <section className="mb-8" aria-labelledby="live-now-heading">
+          <h2
+            id="live-now-heading"
+            className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground"
+          >
+            <span
+              className={`size-2 rounded-full bg-red-500 ${!reduceMotion ? "animate-play-pulse" : ""}`}
+              aria-hidden
+            />
+            Live Now
+          </h2>
+          {grouped.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No one is live.</p>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {grouped.map(([gameName, streams]) => (
+                <div key={gameName}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {gameName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {streams.length} stream{streams.length !== 1 ? "s" : ""}
+                    </span>
+                    {isGameInLibrary(gameName, libraryNames) && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        In Library
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+                    {streams.map((stream) => (
+                      <StreamCard
+                        key={stream.login}
+                        stream={stream}
+                        isInLibrary={isGameInLibrary(stream.gameName, libraryNames)}
+                        isFavorite={false}
+                        onToggleFavorite={() => {}}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Offline (collapsible) */}
+        <section aria-labelledby="offline-heading">
+          <button
+            type="button"
+            id="offline-heading"
+            onClick={() => setOfflineOpen((o) => !o)}
+            className="mb-2 flex w-full items-center gap-2 text-left text-lg font-semibold text-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-expanded={offlineOpen}
+          >
+            {offlineOpen ? (
+              <ChevronDown className="size-5 shrink-0" aria-hidden />
+            ) : (
+              <ChevronRight className="size-5 shrink-0" aria-hidden />
+            )}
+            Offline
+            <span className="text-sm font-normal text-muted-foreground">
+              ({offlineChannels.length})
+            </span>
+          </button>
+          {offlineOpen && (
+            <div className="flex flex-col gap-1 rounded-md border border-border bg-card/50 p-2">
+              {offlineChannels.map((channel) => (
+                <OfflineChannelRow
+                  key={channel.id}
+                  channel={channel}
+                  lastSeenGame={null}
+                  isFavorite={false}
+                  onToggleFavorite={() => {}}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
