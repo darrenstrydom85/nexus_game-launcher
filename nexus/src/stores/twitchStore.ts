@@ -33,6 +33,17 @@ export interface LiveStreamItem extends TwitchStream {
   profileImageUrl: string;
 }
 
+/** Payload for a go-live toast (Story 19.6). */
+export interface PendingToastItem {
+  id: string;
+  login: string;
+  displayName: string;
+  profileImageUrl: string;
+  gameName: string;
+  title: string;
+  isFavorite?: boolean;
+}
+
 export interface TwitchResponse<T> {
   data: T;
   stale: boolean;
@@ -59,6 +70,10 @@ export interface TwitchState {
   streamsByGame: Record<string, StreamsByGameEntry>;
   streamsByGameLoading: Record<string, boolean>;
   streamsByGameError: Record<string, string | null>;
+  /** Channel IDs that were live in the previous poll (Story 19.6 go-live detection). */
+  previousLiveIds: Set<string>;
+  /** Queue of go-live toasts to show (Story 19.6). */
+  pendingToasts: PendingToastItem[];
 }
 
 export interface TwitchActions {
@@ -69,6 +84,8 @@ export interface TwitchActions {
   clearError: () => void;
   /** Fetch streams for a game (cached 2 min, Story 19.5). */
   fetchStreamsByGame: (gameName: string) => Promise<void>;
+  /** Remove a toast from the queue (Story 19.6). */
+  removePendingToast: (id: string) => void;
 }
 
 export type TwitchStore = TwitchState & TwitchActions;
@@ -96,6 +113,8 @@ const initialState: TwitchState = {
   streamsByGame: {},
   streamsByGameLoading: {},
   streamsByGameError: {},
+  previousLiveIds: new Set(),
+  pendingToasts: [],
 };
 
 export const useTwitchStore = create<TwitchStore>()(
@@ -114,6 +133,29 @@ export const useTwitchStore = create<TwitchStore>()(
             "get_twitch_followed_channels",
           );
           const liveStreams = toLiveStreams(res.data);
+          const currentLiveIds = new Set(
+            res.data.filter((c): c is TwitchChannel & { stream: TwitchStream } => c.stream != null).map((c) => c.id),
+          );
+          const prev = get().previousLiveIds;
+          const newlyLiveIds =
+            !res.stale && prev.size > 0
+              ? [...currentLiveIds].filter((id) => !prev.has(id))
+              : [];
+          const pendingToastsToAdd: PendingToastItem[] = newlyLiveIds
+            .map((id) => {
+              const ch = res.data.find((c) => c.id === id && c.stream != null);
+              if (!ch?.stream) return null;
+              return {
+                id: ch.id,
+                login: ch.login,
+                displayName: ch.displayName,
+                profileImageUrl: ch.profileImageUrl,
+                gameName: ch.stream.gameName,
+                title: ch.stream.title,
+                isFavorite: false,
+              } satisfies PendingToastItem;
+            })
+            .filter((t): t is PendingToastItem => t != null);
           set(
             {
               channels: res.data,
@@ -124,6 +166,8 @@ export const useTwitchStore = create<TwitchStore>()(
               cachedAt: res.cachedAt,
               liveCount: liveStreams.length,
               isAuthenticated: true,
+              previousLiveIds: currentLiveIds,
+              pendingToasts: [...get().pendingToasts, ...pendingToastsToAdd],
             },
             false,
             "fetchFollowedStreams_ok",
@@ -145,6 +189,12 @@ export const useTwitchStore = create<TwitchStore>()(
       refreshStreams: async () => {
         await get().fetchFollowedStreams();
       },
+      removePendingToast: (id) =>
+        set(
+          (s) => ({ pendingToasts: s.pendingToasts.filter((t) => t.id !== id) }),
+          false,
+          "removePendingToast",
+        ),
       fetchStreamsByGame: async (gameName: string) => {
         const key = gameName.trim();
         if (!key) return;

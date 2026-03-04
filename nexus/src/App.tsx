@@ -42,6 +42,7 @@ import { useToastStore } from "@/stores/toastStore";
 import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame } from "@/lib/tauri";
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
+import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { twitchAuthStatus } from "@/lib/tauri";
 
@@ -422,6 +423,7 @@ function MainApp() {
         onClose={() => setHealthModalOpen(false)}
         onDeadGamesChange={setHealthDeadGames}
       />
+      <TwitchToastContainer />
       <CollectionEditor
         open={collectionEditorOpen}
         onClose={() => { setCollectionEditorOpen(false); setEditCollectionTarget(null); }}

@@ -41,6 +41,10 @@ export interface SettingsState {
   healthCheckSnoozedUntil: number | null;
   autoHealthCheck: boolean;
   twitchEnabled: boolean;
+  /** Story 19.6/19.10: Go-live toasts on/off (default true). */
+  twitchNotificationsEnabled: boolean;
+  /** Story 19.6/19.10: Only show toasts for favorited streamers (default false). */
+  twitchNotificationsFavoritesOnly: boolean;
   _hydrated: boolean;
 }
 
@@ -69,6 +73,8 @@ export interface SettingsActions {
   setHealthCheckResult: (checkedAt: string, issueCount: number) => void;
   setHealthCheckSnoozed: (until: number | null) => void;
   setAutoHealthCheck: (value: boolean) => void;
+  setTwitchNotificationsEnabled: (value: boolean) => void;
+  setTwitchNotificationsFavoritesOnly: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -110,6 +116,8 @@ const initialState: SettingsState = {
   healthCheckSnoozedUntil: null,
   autoHealthCheck: true,
   twitchEnabled: true,
+  twitchNotificationsEnabled: true,
+  twitchNotificationsFavoritesOnly: false,
   _hydrated: false,
 };
 
@@ -154,6 +162,12 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.twitch_enabled !== undefined) {
               patch.twitchEnabled = settings.twitch_enabled !== "false";
+            }
+            if (settings.twitch_notifications_enabled !== undefined) {
+              patch.twitchNotificationsEnabled = settings.twitch_notifications_enabled !== "false";
+            }
+            if (settings.twitch_notifications_favorites_only !== undefined) {
+              patch.twitchNotificationsFavoritesOnly = settings.twitch_notifications_favorites_only === "true";
             }
 
             set(patch, false, "loadFromBackend");
@@ -283,6 +297,14 @@ export const useSettingsStore = create<SettingsStore>()(
         setAutoHealthCheck: (value) => {
           persistSetting("auto_health_check", String(value));
           set({ autoHealthCheck: value }, false, "setAutoHealthCheck");
+        },
+        setTwitchNotificationsEnabled: (value) => {
+          persistSetting("twitch_notifications_enabled", String(value));
+          set({ twitchNotificationsEnabled: value }, false, "setTwitchNotificationsEnabled");
+        },
+        setTwitchNotificationsFavoritesOnly: (value) => {
+          persistSetting("twitch_notifications_favorites_only", String(value));
+          set({ twitchNotificationsFavoritesOnly: value }, false, "setTwitchNotificationsFavoritesOnly");
         },
       }),
       { name: "nexus-settings" },
