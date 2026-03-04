@@ -11,9 +11,9 @@ import {
   Plus,
   Pencil,
   RefreshCw,
-  Search,
   FolderOpen,
   EyeOff,
+  ImagePlus,
 } from "lucide-react";
 
 const STATUSES: { value: GameStatus; label: string; color: string }[] = [
@@ -179,6 +179,19 @@ export function ActionBar({
         </div>
       )}
 
+      {/* Update Artwork — dedicated entry point for metadata/artwork search */}
+      <Button
+        data-testid="action-update-artwork"
+        variant="secondary"
+        size="sm"
+        className="gap-2"
+        onClick={onSearchMetadata}
+        aria-label="Update artwork"
+      >
+        <ImagePlus className="size-4" />
+        Update Artwork
+      </Button>
+
       {/* More actions */}
       <div className="relative">
         <button
@@ -226,17 +239,6 @@ export function ActionBar({
                 <RefreshCw className="size-4" />
               )}
               {isRefetching ? "Fetching…" : "Re-fetch Metadata"}
-            </button>
-            <button
-              data-testid="action-search-metadata"
-              className={menuItemClass}
-              onClick={() => {
-                setMoreOpen(false);
-                onSearchMetadata?.();
-              }}
-            >
-              <Search className="size-4" />
-              Search for game…
             </button>
             {game.folderPath && (
               <button data-testid="action-open-folder" className={menuItemClass} onClick={() => { onOpenFolder?.(); setMoreOpen(false); }}>

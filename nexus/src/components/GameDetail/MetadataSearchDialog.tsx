@@ -55,6 +55,8 @@ export function MetadataSearchDialog({
     number | null
   >(null);
 
+  const prevStepRef = React.useRef<Step>("igdb");
+
   React.useEffect(() => {
     if (open) {
       setStep("igdb");
@@ -65,6 +67,7 @@ export function MetadataSearchDialog({
       setArtworkQuery("");
       setArtworkResults([]);
       setApplyingArtworkId(null);
+      prevStepRef.current = "igdb";
     }
   }, [open, initialQuery]);
 
@@ -133,6 +136,18 @@ export function MetadataSearchDialog({
       setArtworkSearching(false);
     }
   }, [artworkQuery]);
+
+  // Auto-run first artwork search when user lands on artwork step (after choosing an IGDB result)
+  React.useEffect(() => {
+    if (
+      step === "artwork" &&
+      prevStepRef.current === "igdb" &&
+      artworkQuery.trim()
+    ) {
+      handleSearchArtwork();
+    }
+    prevStepRef.current = step;
+  }, [step, artworkQuery, handleSearchArtwork]);
 
   const handleSelectArtwork = React.useCallback(
     async (item: SteamGridSearchResult) => {
