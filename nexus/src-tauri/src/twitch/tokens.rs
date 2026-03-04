@@ -187,6 +187,11 @@ pub fn load_display_name(conn: &rusqlite::Connection) -> Result<Option<String>, 
     get_setting_raw(conn, keys::TWITCH_DISPLAY_NAME)
 }
 
+/// Load Twitch user ID (plain). Used for Helix API calls (e.g. followed channels).
+pub fn load_user_id(conn: &rusqlite::Connection) -> Result<Option<String>, CommandError> {
+    get_setting_raw(conn, keys::TWITCH_USER_ID)
+}
+
 /// Clear all Twitch-related keys from settings.
 pub fn clear_all(conn: &rusqlite::Connection) -> Result<(), CommandError> {
     for key in twitch_setting_keys() {

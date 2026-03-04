@@ -45,7 +45,10 @@ use commands::{
         find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
         update_duplicate_resolution,
     },
-    twitch::{twitch_auth_logout, twitch_auth_start, twitch_auth_status},
+    twitch::{
+        get_twitch_followed_channels, get_twitch_live_streams, get_twitch_streams_by_game,
+        twitch_auth_logout, twitch_auth_start, twitch_auth_status,
+    },
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -135,6 +138,9 @@ pub fn run() {
             twitch_auth_start,
             twitch_auth_status,
             twitch_auth_logout,
+            get_twitch_followed_channels,
+            get_twitch_live_streams,
+            get_twitch_streams_by_game,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

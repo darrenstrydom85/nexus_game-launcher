@@ -23,6 +23,9 @@ pub enum CommandError {
     #[error("auth error: {0}")]
     Auth(String),
 
+    #[error("API error: {0}")]
+    Api(String),
+
     #[error("unknown error: {0}")]
     Unknown(String),
 }
@@ -38,6 +41,7 @@ enum ErrorKind {
     Permission(String),
     NetworkUnavailable(String),
     Auth(String),
+    Api(String),
     Unknown(String),
 }
 
@@ -55,6 +59,7 @@ impl Serialize for CommandError {
             Self::Permission(_) => ErrorKind::Permission(msg),
             Self::NetworkUnavailable(_) => ErrorKind::NetworkUnavailable(msg),
             Self::Auth(_) => ErrorKind::Auth(msg),
+            Self::Api(_) => ErrorKind::Api(msg),
             Self::Unknown(_) => ErrorKind::Unknown(msg),
         };
         kind.serialize(serializer)

@@ -37,6 +37,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "remove_hltb_columns",
         sql: include_str!("migrations/006_remove_hltb_columns.sql"),
     },
+    Migration {
+        version: 7,
+        name: "twitch_cache_tables",
+        sql: include_str!("migrations/007_twitch_cache_tables.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -110,7 +115,6 @@ mod tests {
         let conn = in_memory_conn();
         let applied = run_pending(&conn).unwrap();
         assert_eq!(applied, MIGRATIONS.len() as u32);
-        assert_eq!(current_version(&conn).unwrap(), 6);
         assert_eq!(current_version(&conn).unwrap(), MIGRATIONS.len() as u32);
 
         let tables: Vec<String> = conn
@@ -130,6 +134,9 @@ mod tests {
             "play_sessions",
             "schema_version",
             "settings",
+            "twitch_followed_channels",
+            "twitch_game_cache",
+            "twitch_stream_cache",
             "watched_folders",
         ] {
             assert!(
