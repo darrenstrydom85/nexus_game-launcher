@@ -246,6 +246,27 @@
   animation: play-pulse 2s ease-in-out infinite;
 }
 
+/* Badge pulse — live count change (300ms, once); respect reduced motion in component */
+@keyframes badge-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-badge-pulse {
+  animation: badge-pulse 300ms ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-badge-pulse {
+    animation: none;
+  }
+}
+
 /* Titlebar drag regions */
 .titlebar-drag-region {
     -webkit-app-region: drag;

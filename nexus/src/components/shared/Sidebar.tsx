@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 import { useGameStore, type GameSource } from "@/stores/gameStore";
 import { useFilterStore } from "@/stores/filterStore";
+import { useTwitchStore } from "@/stores/twitchStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import {
   BarChart3,
   ChevronDown,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { SOURCE_ICON_COMPONENTS } from "@/lib/source-icons";
+import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
 import { type Collection } from "@/stores/collectionStore";
 
@@ -28,7 +31,7 @@ const SOURCE_LABELS: Record<GameSource, string> = {
   standalone: "Standalone",
 };
 
-export type NavItem = "library" | "stats" | "random";
+export type NavItem = "library" | "stats" | "random" | "twitch";
 
 function ScoreRangeSlider({
   min,
@@ -188,6 +191,9 @@ export function Sidebar({
   const genreFilter = useUiStore((s) => s.genreFilter);
   const toggleGenreFilter = useUiStore((s) => s.toggleGenreFilter);
   const games = useGameStore((s) => s.games);
+  const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
+  const liveCount = useTwitchStore((s) => s.liveCount);
+  const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
 
   const minCriticScore = useFilterStore((s) => s.minCriticScore);
   const maxCriticScore = useFilterStore((s) => s.maxCriticScore);
@@ -196,6 +202,20 @@ export function Sidebar({
   const [collectionsOpen, setCollectionsOpen] = React.useState(true);
   const [genresOpen, setGenresOpen] = React.useState(false);
   const [scoreOpen, setScoreOpen] = React.useState(false);
+  const prevLiveCountRef = React.useRef(liveCount);
+  const [badgePulse, setBadgePulse] = React.useState(false);
+  const reducedMotion = useSettingsStore((s) => s.reducedMotion);
+
+  React.useEffect(() => {
+    if (liveCount !== prevLiveCountRef.current) {
+      prevLiveCountRef.current = liveCount;
+      if (liveCount > 0 && !reducedMotion) {
+        setBadgePulse(true);
+        const t = setTimeout(() => setBadgePulse(false), 300);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [liveCount, reducedMotion]);
 
   const genres = React.useMemo(() => {
     const genreSet = new Set<string>();
@@ -211,11 +231,29 @@ export function Sidebar({
     return Array.from(sourceSet) as GameSource[];
   }, [games]);
 
-  const navItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
+  const baseNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: "library", label: "Library", icon: <Library className="size-4" /> },
     { id: "stats", label: "Stats", icon: <BarChart3 className="size-4" /> },
     { id: "random", label: "Random", icon: <Shuffle className="size-4" /> },
+    {
+      id: "twitch",
+      label: "Twitch",
+      icon: (
+        <span className="relative inline-flex shrink-0">
+          <TwitchIcon className="size-4" />
+          {!sidebarOpen && liveCount > 0 && isAuthenticated && (
+            <span
+              className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500"
+              aria-hidden
+            />
+          )}
+        </span>
+      ),
+    },
   ];
+  const navItems = twitchEnabled
+    ? baseNavItems
+    : baseNavItems.filter((item) => item.id !== "twitch");
 
   return (
     <nav
@@ -226,31 +264,65 @@ export function Sidebar({
     >
       {/* Navigation Items */}
       <div className="flex flex-col gap-0.5 px-2 py-2" role="list">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            data-testid={`nav-${item.id}`}
-            role="listitem"
-            className={cn(
-              "relative flex h-9 items-center gap-3 rounded-md px-3 text-sm transition-colors",
-              "text-muted-foreground hover:bg-accent hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              activeNav === item.id && "bg-accent text-foreground",
-            )}
-            onClick={() => onNavigate?.(item.id)}
-            title={!sidebarOpen ? item.label : undefined}
-            aria-current={activeNav === item.id ? "page" : undefined}
-          >
-            {activeNav === item.id && (
-              <div
-                data-testid={`nav-${item.id}-indicator`}
-                className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-              />
-            )}
-            {item.icon}
-            {sidebarOpen && <span>{item.label}</span>}
-          </button>
-        ))}
+        {navItems.map((item) => {
+          const showBadge =
+            item.id === "twitch" &&
+            liveCount > 0 &&
+            isAuthenticated;
+          const twitchTitle =
+            item.id === "twitch" && !sidebarOpen
+              ? showBadge
+                ? `Twitch (${liveCount} live)`
+                : "Twitch"
+              : undefined;
+          const ariaLabel =
+            item.id === "twitch"
+              ? showBadge
+                ? `Twitch, ${liveCount} streamers live`
+                : "Twitch"
+              : undefined;
+          return (
+            <button
+              key={item.id}
+              data-testid={`nav-${item.id}`}
+              role="listitem"
+              className={cn(
+                "relative flex h-9 items-center gap-3 rounded-md px-3 text-sm transition-colors",
+                "text-muted-foreground hover:bg-accent hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                activeNav === item.id && "bg-accent text-foreground",
+              )}
+              onClick={() => onNavigate?.(item.id)}
+              title={!sidebarOpen ? (twitchTitle ?? item.label) : undefined}
+              aria-current={activeNav === item.id ? "page" : undefined}
+              aria-label={ariaLabel}
+            >
+              {activeNav === item.id && (
+                <div
+                  data-testid={`nav-${item.id}-indicator`}
+                  className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+                />
+              )}
+              {item.icon}
+              {sidebarOpen && (
+                <>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {showBadge && (
+                    <span
+                      className={cn(
+                        "flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium tabular-nums text-white",
+                        badgePulse && "animate-badge-pulse",
+                      )}
+                      aria-hidden
+                    >
+                      {liveCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Separator */}

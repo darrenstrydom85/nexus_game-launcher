@@ -40,6 +40,7 @@ export interface SettingsState {
   healthCheckIssueCount: number;
   healthCheckSnoozedUntil: number | null;
   autoHealthCheck: boolean;
+  twitchEnabled: boolean;
   _hydrated: boolean;
 }
 
@@ -108,6 +109,7 @@ const initialState: SettingsState = {
   healthCheckIssueCount: 0,
   healthCheckSnoozedUntil: null,
   autoHealthCheck: true,
+  twitchEnabled: true,
   _hydrated: false,
 };
 
@@ -149,6 +151,9 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.library_sort_by) patch.defaultSort = settings.library_sort_by;
             if (settings.auto_health_check !== undefined) {
               patch.autoHealthCheck = settings.auto_health_check !== "false";
+            }
+            if (settings.twitch_enabled !== undefined) {
+              patch.twitchEnabled = settings.twitch_enabled !== "false";
             }
 
             set(patch, false, "loadFromBackend");

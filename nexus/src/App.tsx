@@ -41,6 +41,7 @@ function extractYoutubeId(url: string): string | null {
 import { useToastStore } from "@/stores/toastStore";
 import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame } from "@/lib/tauri";
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
+import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -278,7 +279,9 @@ function MainApp() {
         useUiStore.getState().setDetailOverlayGameId(gameId);
       }}
     >
-      {activeNav === "stats" ? (
+      {activeNav === "twitch" ? (
+        <TwitchPanel />
+      ) : activeNav === "stats" ? (
         <LibraryStats />
       ) : (
         <LibraryView
