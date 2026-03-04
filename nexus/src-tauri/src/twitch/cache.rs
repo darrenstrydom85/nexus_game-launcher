@@ -103,6 +103,20 @@ pub fn get_cached_followed_channels(conn: &rusqlite::Connection) -> Result<Vec<C
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))
 }
 
+/// Set is_favorite for a followed channel (Story 19.7). No-op if channel_id not in table.
+pub fn set_channel_favorite(
+    conn: &rusqlite::Connection,
+    channel_id: &str,
+    is_favorite: bool,
+) -> Result<(), CommandError> {
+    conn.execute(
+        "UPDATE twitch_followed_channels SET is_favorite = ?1 WHERE channel_id = ?2",
+        params![if is_favorite { 1i32 } else { 0i32 }, channel_id],
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+    Ok(())
+}
+
 /// Replace all rows in `twitch_stream_cache` with the given streams.
 pub fn cache_live_streams(
     conn: &rusqlite::Connection,

@@ -3,6 +3,11 @@ import { Eye, Star } from "lucide-react";
 import type { LiveStreamItem } from "@/stores/twitchStore";
 import { formatDuration, uptimeSeconds } from "@/lib/time";
 import { DEFAULT_AVATAR } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function thumbnailUrl(template: string): string {
   return template
@@ -10,11 +15,16 @@ function thumbnailUrl(template: string): string {
     .replace("{height}", "248");
 }
 
+const MAX_FAVORITES = 20;
+
 export interface StreamCardProps {
   stream: LiveStreamItem;
   isInLibrary?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
+  /** When adding would exceed this many favorites, tooltip is shown and toggle is no-op (Story 19.7). */
+  favoritesCount?: number;
+  maxFavorites?: number;
 }
 
 export function StreamCard({
@@ -22,7 +32,16 @@ export function StreamCard({
   isInLibrary = false,
   isFavorite = false,
   onToggleFavorite,
+  favoritesCount = 0,
+  maxFavorites = MAX_FAVORITES,
 }: StreamCardProps) {
+  const atFavoritesLimit =
+    !isFavorite && favoritesCount >= maxFavorites;
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (atFavoritesLimit) return;
+    onToggleFavorite?.(e);
+  };
   const url = `https://twitch.tv/${stream.login}`;
   const uptime = formatDuration(uptimeSeconds(stream.startedAt));
   const thumb = thumbnailUrl(stream.thumbnailUrl);
@@ -67,9 +86,15 @@ export function StreamCard({
           className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[var(--background)] to-transparent"
           aria-hidden
         />
-        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-          <span className="text-xs font-semibold text-white drop-shadow-sm">
-            {stream.displayName}
+        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+          <span className="flex min-w-0 items-center gap-1 text-xs font-semibold text-white drop-shadow-sm">
+            {isFavorite && (
+              <Star
+                className="size-3 shrink-0 fill-current text-yellow-500"
+                aria-hidden
+              />
+            )}
+            <span className="truncate">{stream.displayName}</span>
           </span>
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Eye className="size-3 shrink-0" aria-hidden />
@@ -100,23 +125,35 @@ export function StreamCard({
             </span>
           </div>
           {onToggleFavorite != null && (
-            <button
-              type="button"
-              data-twitch-star
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(e);
-              }}
-              className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Star
-                className="size-3.5"
-                fill={isFavorite ? "currentColor" : "none"}
-                style={isFavorite ? { color: "var(--chart-3)" } : undefined}
-                aria-hidden
-              />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  data-twitch-star
+                  onClick={handleStarClick}
+                  className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label={
+                    isFavorite
+                      ? `Remove ${stream.displayName} from favorites`
+                      : `Add ${stream.displayName} to favorites`
+                  }
+                  aria-pressed={isFavorite}
+                >
+                  <Star
+                    className={`size-3.5 ${isFavorite ? "text-yellow-500" : "text-muted-foreground"}`}
+                    fill={isFavorite ? "currentColor" : "none"}
+                    aria-hidden
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {atFavoritesLimit
+                  ? "Maximum 20 favorites reached. Unstar someone first."
+                  : isFavorite
+                    ? `Remove ${stream.displayName} from favorites`
+                    : `Add ${stream.displayName} to favorites`}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

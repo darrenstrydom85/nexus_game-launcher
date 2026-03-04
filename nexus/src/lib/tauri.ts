@@ -374,3 +374,11 @@ export function getTwitchStreamsByGame(
     gameName,
   });
 }
+
+// ── Twitch Favorites (Story 19.7) ─────────────────────────────────────────
+export function setTwitchFavorite(
+  channelId: string,
+  isFavorite: boolean,
+): Promise<void> {
+  return invoke<void>("set_twitch_favorite", { channelId, isFavorite });
+}

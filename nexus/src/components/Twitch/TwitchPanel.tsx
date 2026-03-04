@@ -1,6 +1,6 @@
 import * as React from "react";
 import { listen } from "@tauri-apps/api/event";
-import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronRight, Star } from "lucide-react";
 import { useTwitchStore, type LiveStreamItem, type TwitchChannel } from "@/stores/twitchStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -10,6 +10,9 @@ import { TwitchEmptyState } from "./TwitchEmptyState";
 import { StreamCard } from "./StreamCard";
 import { OfflineChannelRow } from "./OfflineChannelRow";
 import { twitchAuthStatus } from "@/lib/tauri";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+const MAX_FAVORITES = 20;
 
 function groupByGame(streams: LiveStreamItem[]): [string, LiveStreamItem[]][] {
   const grouped = streams.reduce<Record<string, LiveStreamItem[]>>((acc, s) => {
@@ -43,9 +46,21 @@ export function TwitchPanel() {
     setLiveCount,
     setIsAuthenticated,
     clearError,
+    toggleFavorite,
   } = useTwitchStore();
 
   const [offlineOpen, setOfflineOpen] = React.useState(false);
+
+  const favoritesCount = React.useMemo(
+    () => channels.filter((c) => c.isFavorite === true).length,
+    [channels],
+  );
+  const favoriteLiveStreams = React.useMemo(() => {
+    return liveStreams.filter((s) => {
+      const ch = channels.find((c) => c.login === s.login);
+      return ch?.isFavorite === true;
+    });
+  }, [channels, liveStreams]);
 
   // Seed auth state and fetch on mount
   React.useEffect(() => {
@@ -78,13 +93,37 @@ export function TwitchPanel() {
     refreshStreams();
   }, [refreshStreams, clearError]);
 
-  const grouped = React.useMemo(() => groupByGame(liveStreams), [liveStreams]);
+  const nonFavoriteLiveStreams = React.useMemo(
+    () =>
+      liveStreams.filter(
+        (s) =>
+          !channels.find((c) => c.login === s.login && c.isFavorite === true),
+      ),
+    [channels, liveStreams],
+  );
+  const grouped = React.useMemo(
+    () => groupByGame(nonFavoriteLiveStreams),
+    [nonFavoriteLiveStreams],
+  );
   const offlineChannels = React.useMemo(
     () =>
       channels
         .filter((c) => !c.isLive)
-        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+        .sort((a, b) => {
+          const aFav = a.isFavorite === true ? 1 : 0;
+          const bFav = b.isFavorite === true ? 1 : 0;
+          if (bFav !== aFav) return bFav - aFav;
+          return a.displayName.localeCompare(b.displayName);
+        }),
     [channels],
+  );
+
+  const handleToggleFavorite = React.useCallback(
+    (channelId: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      toggleFavorite(channelId);
+    },
+    [toggleFavorite],
   );
 
   // Unauthenticated
@@ -149,6 +188,7 @@ export function TwitchPanel() {
   }
 
   return (
+    <TooltipProvider>
     <div className="flex flex-1 flex-col overflow-hidden bg-background">
       {/* Stale bar */}
       {stale && cachedAt != null && (
@@ -213,10 +253,54 @@ export function TwitchPanel() {
             />
             Live Now
           </h2>
-          {grouped.length === 0 ? (
+          {favoriteLiveStreams.length === 0 && grouped.length === 0 ? (
             <p className="text-sm text-muted-foreground">No one is live.</p>
           ) : (
             <div className="flex flex-col gap-6">
+              {/* Favorites group (Story 19.7) */}
+              {favoriteLiveStreams.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <Star
+                      className="size-3.5 shrink-0 text-yellow-500"
+                      fill="currentColor"
+                      aria-hidden
+                    />
+                    <span className="text-sm font-semibold text-foreground">
+                      Favorites
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {favoriteLiveStreams.length} stream
+                      {favoriteLiveStreams.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+                    {favoriteLiveStreams.map((stream) => {
+                      const channel = channels.find(
+                        (c) => c.login === stream.login,
+                      );
+                      return (
+                        <StreamCard
+                          key={stream.login}
+                          stream={stream}
+                          isInLibrary={isGameInLibrary(
+                            stream.gameName,
+                            libraryNames,
+                          )}
+                          isFavorite={channel?.isFavorite === true}
+                          onToggleFavorite={
+                            channel
+                              ? handleToggleFavorite(channel.id)
+                              : undefined
+                          }
+                          favoritesCount={favoritesCount}
+                          maxFavorites={MAX_FAVORITES}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {grouped.map(([gameName, streams]) => (
                 <div key={gameName}>
                   <div className="mb-2 flex items-center gap-2">
@@ -233,15 +317,29 @@ export function TwitchPanel() {
                     )}
                   </div>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-                    {streams.map((stream) => (
-                      <StreamCard
-                        key={stream.login}
-                        stream={stream}
-                        isInLibrary={isGameInLibrary(stream.gameName, libraryNames)}
-                        isFavorite={false}
-                        onToggleFavorite={() => {}}
-                      />
-                    ))}
+                    {streams.map((stream) => {
+                      const channel = channels.find(
+                        (c) => c.login === stream.login,
+                      );
+                      return (
+                        <StreamCard
+                          key={stream.login}
+                          stream={stream}
+                          isInLibrary={isGameInLibrary(
+                            stream.gameName,
+                            libraryNames,
+                          )}
+                          isFavorite={channel?.isFavorite === true}
+                          onToggleFavorite={
+                            channel
+                              ? handleToggleFavorite(channel.id)
+                              : undefined
+                          }
+                          favoritesCount={favoritesCount}
+                          maxFavorites={MAX_FAVORITES}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -275,8 +373,10 @@ export function TwitchPanel() {
                   key={channel.id}
                   channel={channel}
                   lastSeenGame={null}
-                  isFavorite={false}
-                  onToggleFavorite={() => {}}
+                  isFavorite={channel.isFavorite === true}
+                  onToggleFavorite={handleToggleFavorite(channel.id)}
+                  favoritesCount={favoritesCount}
+                  maxFavorites={MAX_FAVORITES}
                 />
               ))}
             </div>
@@ -284,5 +384,6 @@ export function TwitchPanel() {
         </section>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 import {
   getTwitchStreamsByGame,
+  setTwitchFavorite,
   type StreamsByGameData,
 } from "@/lib/tauri";
 
@@ -16,7 +17,7 @@ export interface TwitchStream {
   startedAt: string;
 }
 
-/** Followed channel from API; stream present when live. */
+/** Followed channel from API; stream present when live. isFavorite (Story 19.7). */
 export interface TwitchChannel {
   id: string;
   login: string;
@@ -24,6 +25,7 @@ export interface TwitchChannel {
   profileImageUrl: string;
   isLive: boolean;
   stream: TwitchStream | null;
+  isFavorite?: boolean;
 }
 
 /** Live stream with channel identity for UI cards. */
@@ -86,6 +88,8 @@ export interface TwitchActions {
   fetchStreamsByGame: (gameName: string) => Promise<void>;
   /** Remove a toast from the queue (Story 19.6). */
   removePendingToast: (id: string) => void;
+  /** Toggle favorite for a channel (Story 19.7). Optimistic update; reverts on backend failure. Returns false if adding would exceed max (20). */
+  toggleFavorite: (channelId: string) => Promise<boolean>;
 }
 
 export type TwitchStore = TwitchState & TwitchActions;
@@ -152,7 +156,7 @@ export const useTwitchStore = create<TwitchStore>()(
                 profileImageUrl: ch.profileImageUrl,
                 gameName: ch.stream.gameName,
                 title: ch.stream.title,
-                isFavorite: false,
+                isFavorite: ch.isFavorite ?? false,
               } satisfies PendingToastItem;
             })
             .filter((t): t is PendingToastItem => t != null);
@@ -195,6 +199,38 @@ export const useTwitchStore = create<TwitchStore>()(
           false,
           "removePendingToast",
         ),
+      toggleFavorite: async (channelId) => {
+        const state = get();
+        const channel = state.channels.find((c) => c.id === channelId);
+        if (!channel) return true;
+        const nextFavorite = !(channel.isFavorite ?? false);
+        const favoritesCount = state.channels.filter(
+          (c) => c.isFavorite === true,
+        ).length;
+        if (nextFavorite && favoritesCount >= 20) return false;
+        const prevChannels = state.channels;
+        set(
+          (s) => ({
+            channels: s.channels.map((c) =>
+              c.id === channelId ? { ...c, isFavorite: nextFavorite } : c,
+            ),
+          }),
+          false,
+          "toggleFavorite_optimistic",
+        );
+        try {
+          await setTwitchFavorite(channelId, nextFavorite);
+          return true;
+        } catch {
+          set({ channels: prevChannels }, false, "toggleFavorite_revert");
+          set(
+            (s) => ({ error: s.error ?? "Failed to update favorite." }),
+            false,
+            "toggleFavorite_err",
+          );
+          return true;
+        }
+      },
       fetchStreamsByGame: async (gameName: string) => {
         const key = gameName.trim();
         if (!key) return;

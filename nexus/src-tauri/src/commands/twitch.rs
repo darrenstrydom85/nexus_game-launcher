@@ -75,7 +75,7 @@ pub struct TwitchResponse<T> {
     pub cached_at: Option<i64>,
 }
 
-/// Followed channel with optional live stream (Story 19.2).
+/// Followed channel with optional live stream (Story 19.2). is_favorite (Story 19.7).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TwitchChannel {
@@ -85,6 +85,7 @@ pub struct TwitchChannel {
     pub profile_image_url: String,
     pub is_live: bool,
     pub stream: Option<TwitchStream>,
+    pub is_favorite: bool,
 }
 
 /// Live stream info (Story 19.2).
@@ -271,6 +272,7 @@ fn merge_channels_streams(
                 profile_image_url: c.profile_image_url,
                 is_live: stream.is_some(),
                 stream,
+                is_favorite: c.is_favorite,
             }
         })
         .collect()
@@ -398,7 +400,15 @@ pub async fn get_twitch_followed_channels(
                     .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
                 cache::cache_live_streams(&conn, &streams)?;
             }
-            let merged = merge_channels_streams(channels, streams.clone());
+            // Re-read channels from DB so is_favorite is preserved (Story 19.7)
+            let channels_with_favorites = {
+                let conn = db
+                    .conn
+                    .lock()
+                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                cache::get_cached_followed_channels(&conn)?
+            };
+            let merged = merge_channels_streams(channels_with_favorites, streams.clone());
             let channel_count = merged.len();
             let live_count = streams.len();
             let _ = app.emit(
@@ -583,6 +593,21 @@ pub async fn get_twitch_streams_by_game(
         stale: true,
         cached_at: cached_at_secs,
     })
+}
+
+/// Set favorite state for a followed channel (Story 19.7). Persists in twitch_followed_channels.
+#[tauri::command]
+pub fn set_twitch_favorite(
+    db: State<'_, DbState>,
+    channel_id: String,
+    is_favorite: bool,
+) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    cache::set_channel_favorite(&conn, &channel_id, is_favorite)?;
+    Ok(())
 }
 
 /// Clear all Twitch tokens, user data, and offline cache; emit twitch-auth-changed (authenticated: false).
