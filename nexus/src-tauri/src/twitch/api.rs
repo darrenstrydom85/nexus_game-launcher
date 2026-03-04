@@ -233,6 +233,17 @@ pub async fn fetch_followed_channels(
         }
     }
 
+    let user_ids: Vec<String> = all.iter().map(|c| c.channel_id.clone()).collect();
+    if !user_ids.is_empty() {
+        if let Ok(avatars) = fetch_user_avatars(client, client_id, access_token, &user_ids).await {
+            for ch in &mut all {
+                if let Some(url) = avatars.get(&ch.channel_id) {
+                    ch.profile_image_url = url.clone();
+                }
+            }
+        }
+    }
+
     Ok(all)
 }
 
@@ -294,21 +305,64 @@ pub async fn fetch_twitch_game(
     Ok(game.map(|g| (g.id, g.name)))
 }
 
+/// Stream with broadcaster identity for "streams by game" (Story 19.5).
+pub struct StreamWithBroadcaster {
+    pub user_id: String,
+    pub user_login: String,
+    pub user_name: String,
+    pub profile_image_url: String,
+    pub title: String,
+    pub game_name: String,
+    pub game_id: String,
+    pub viewer_count: i64,
+    pub thumbnail_url: String,
+    pub started_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HelixUser {
+    id: String,
+    profile_image_url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HelixUsersResponse {
+    data: Vec<HelixUser>,
+}
+
+/// Batch fetch profile_image_url for up to 100 user IDs via GET /users.
+async fn fetch_user_avatars(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    user_ids: &[String],
+) -> Result<std::collections::HashMap<String, String>, CommandError> {
+    let mut map = std::collections::HashMap::new();
+    for chunk in user_ids.chunks(100) {
+        let query: Vec<(&str, String)> = chunk.iter().map(|id| ("id", id.clone())).collect();
+        let res = helix_get(HELIX_BASE, client, "/users", &query, client_id, access_token).await?;
+        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let json: HelixUsersResponse =
+            serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("users: {e}")))?;
+        for u in json.data {
+            map.insert(u.id, u.profile_image_url);
+        }
+    }
+    Ok(map)
+}
+
 /// Resolve game name to Twitch game ID then fetch top 10 streams for that game.
+/// Enriches each stream with the broadcaster's profile_image_url via a batch /users call.
 pub async fn fetch_streams_by_game(
     client: &reqwest::Client,
     client_id: &str,
     access_token: &str,
     game_name: &str,
-) -> Result<Vec<CachedStream>, CommandError> {
-    let (game_id, _) = fetch_twitch_game(client, client_id, access_token, game_name)
+) -> Result<(Vec<StreamWithBroadcaster>, String), CommandError> {
+    let (game_id, twitch_game_name) = fetch_twitch_game(client, client_id, access_token, game_name)
         .await?
         .ok_or_else(|| CommandError::NotFound(format!("No Twitch game/category for: {game_name}")))?;
 
-    let cached_at = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64;
     let query = vec![
         ("game_id", game_id.clone()),
         ("first", "10".to_string()),
@@ -318,21 +372,35 @@ pub async fn fetch_streams_by_game(
     let json: HelixStreamsResponse =
         serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
 
-    let streams: Vec<CachedStream> = json
+    let user_ids: Vec<String> = json.data.iter().map(|s| s.user_id.clone()).collect();
+    let avatars = if user_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        fetch_user_avatars(client, client_id, access_token, &user_ids)
+            .await
+            .unwrap_or_default()
+    };
+
+    let streams: Vec<StreamWithBroadcaster> = json
         .data
         .into_iter()
-        .map(|s| CachedStream {
-            channel_id: s.user_id,
-            title: s.title,
-            game_name: s.game_name,
-            game_id: s.game_id,
-            viewer_count: s.viewer_count as i64,
-            thumbnail_url: s.thumbnail_url,
-            started_at: s.started_at,
-            cached_at,
+        .map(|s| {
+            let avatar = avatars.get(&s.user_id).cloned().unwrap_or_default();
+            StreamWithBroadcaster {
+                user_id: s.user_id,
+                user_login: s.user_login,
+                user_name: s.user_name,
+                profile_image_url: avatar,
+                title: s.title,
+                game_name: s.game_name,
+                game_id: s.game_id,
+                viewer_count: s.viewer_count as i64,
+                thumbnail_url: s.thumbnail_url,
+                started_at: s.started_at,
+            }
         })
         .collect();
-    Ok(streams)
+    Ok((streams, twitch_game_name))
 }
 
 #[cfg(test)]

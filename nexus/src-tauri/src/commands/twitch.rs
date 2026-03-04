@@ -99,6 +99,30 @@ pub struct TwitchStream {
     pub started_at: String,
 }
 
+/// Stream with broadcaster identity for game detail "Live on Twitch" (Story 19.5).
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TwitchStreamByGame {
+    pub user_id: String,
+    pub login: String,
+    pub display_name: String,
+    pub profile_image_url: String,
+    pub title: String,
+    pub game_name: String,
+    pub game_id: String,
+    pub viewer_count: i64,
+    pub thumbnail_url: String,
+    pub started_at: String,
+}
+
+/// Response payload for get_twitch_streams_by_game (Story 19.5).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamsByGameData {
+    pub streams: Vec<TwitchStreamByGame>,
+    pub twitch_game_name: String,
+}
+
 /// Initiate Twitch OAuth2 Authorization Code flow with PKCE. Opens browser, captures callback,
 /// exchanges code for tokens, fetches user, stores encrypted tokens and emits twitch-auth-changed.
 #[tauri::command]
@@ -478,10 +502,13 @@ pub async fn get_twitch_streams_by_game(
     app: AppHandle,
     db: State<'_, DbState>,
     game_name: String,
-) -> Result<TwitchResponse<Vec<TwitchStream>>, CommandError> {
+) -> Result<TwitchResponse<StreamsByGameData>, CommandError> {
     if game_name.trim().is_empty() {
         return Ok(TwitchResponse {
-            data: vec![],
+            data: StreamsByGameData {
+                streams: vec![],
+                twitch_game_name: String::new(),
+            },
             stale: false,
             cached_at: None,
         });
@@ -509,17 +536,22 @@ pub async fn get_twitch_streams_by_game(
                 .map(|(id, name)| (id, name)),
         };
         if let Some((twitch_id, twitch_name)) = game_id_opt {
-            match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await {
-                Ok(streams) => {
+            match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await
+            {
+                Ok((streams, twitch_game_name)) => {
                     let conn = db
                         .conn
                         .lock()
                         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
                     cache::cache_game_mapping(&conn, game_name.trim(), &twitch_id, &twitch_name)?;
                     drop(conn);
-                    let out: Vec<TwitchStream> = streams
+                    let out: Vec<TwitchStreamByGame> = streams
                         .into_iter()
-                        .map(|s| TwitchStream {
+                        .map(|s| TwitchStreamByGame {
+                            user_id: s.user_id,
+                            login: s.user_login,
+                            display_name: s.user_name,
+                            profile_image_url: s.profile_image_url,
                             title: s.title,
                             game_name: s.game_name,
                             game_id: s.game_id,
@@ -529,7 +561,10 @@ pub async fn get_twitch_streams_by_game(
                         })
                         .collect();
                     return Ok(TwitchResponse {
-                        data: out,
+                        data: StreamsByGameData {
+                            streams: out,
+                            twitch_game_name,
+                        },
                         stale: false,
                         cached_at: Some(cached_at_now()),
                     });
@@ -541,7 +576,10 @@ pub async fn get_twitch_streams_by_game(
 
     // No per-game stream cache; return empty when offline.
     Ok(TwitchResponse {
-        data: vec![],
+        data: StreamsByGameData {
+            streams: vec![],
+            twitch_game_name: String::new(),
+        },
         stale: true,
         cached_at: cached_at_secs,
     })

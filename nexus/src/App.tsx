@@ -42,6 +42,8 @@ import { useToastStore } from "@/stores/toastStore";
 import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame } from "@/lib/tauri";
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
+import { useTwitchStore } from "@/stores/twitchStore";
+import { twitchAuthStatus } from "@/lib/tauri";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -166,6 +168,17 @@ function MainApp() {
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoHealthCheck]);
+
+  React.useEffect(() => {
+    twitchAuthStatus()
+      .then((status) => {
+        useTwitchStore.getState().setIsAuthenticated(status.authenticated);
+        if (status.authenticated) {
+          useTwitchStore.getState().fetchFollowedStreams();
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleScoreBackfillProgress = React.useCallback(
     (event: ScoreBackfillProgressEvent) => {

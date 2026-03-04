@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Inline SVG placeholder avatar (no external CDN dependency). */
+export const DEFAULT_AVATAR =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" fill="%23374151"><circle cx="35" cy="35" r="35"/><circle cx="35" cy="26" r="10"/><path d="M35 42c-8 0-14 5-14 11v6h28v-6c0-6-6-11-14-11z"/></svg>',
+  );
+
 /**
  * Formats play time in seconds to "Xh Ym" or "Xm" for display (e.g. stats, top games).
  * Always shows hours and minutes when there is at least one hour; under an hour shows minutes only.

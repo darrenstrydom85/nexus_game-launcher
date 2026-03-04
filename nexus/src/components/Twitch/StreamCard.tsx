@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { Eye, Star } from "lucide-react";
 import type { LiveStreamItem } from "@/stores/twitchStore";
 import { formatDuration, uptimeSeconds } from "@/lib/time";
+import { DEFAULT_AVATAR } from "@/lib/utils";
 
 function thumbnailUrl(template: string): string {
   return template
@@ -88,7 +89,7 @@ export function StreamCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <img
-              src={stream.profileImageUrl}
+              src={stream.profileImageUrl || DEFAULT_AVATAR}
               alt=""
               className="size-6 shrink-0 rounded-full object-cover"
               width={24}

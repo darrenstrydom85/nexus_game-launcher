@@ -341,3 +341,36 @@ export function twitchAuthStatus(): Promise<TwitchAuthStatus> {
 export function twitchAuthLogout(): Promise<void> {
   return invoke<void>("twitch_auth_logout");
 }
+
+// ── Twitch Streams by Game (Story 19.5) ─────────────────────────────────
+export interface TwitchStreamByGame {
+  userId: string;
+  login: string;
+  displayName: string;
+  profileImageUrl: string;
+  title: string;
+  gameName: string;
+  gameId: string;
+  viewerCount: number;
+  thumbnailUrl: string;
+  startedAt: string;
+}
+
+export interface StreamsByGameData {
+  streams: TwitchStreamByGame[];
+  twitchGameName: string;
+}
+
+export interface TwitchResponse<T> {
+  data: T;
+  stale: boolean;
+  cachedAt: number | null;
+}
+
+export function getTwitchStreamsByGame(
+  gameName: string,
+): Promise<TwitchResponse<StreamsByGameData>> {
+  return invoke<TwitchResponse<StreamsByGameData>>("get_twitch_streams_by_game", {
+    gameName,
+  });
+}

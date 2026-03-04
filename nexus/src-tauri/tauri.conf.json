@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com data:; frame-src https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com https://static-cdn.jtvnw.net data:; frame-src https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost",
       "assetProtocol": {
         "enable": true,
         "scope": ["**/*"]

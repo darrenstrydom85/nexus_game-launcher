@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  getTwitchStreamsByGame,
+  type StreamsByGameData,
+} from "@/lib/tauri";
 
 /** Live stream from API (camelCase from backend). */
 export interface TwitchStream {
@@ -35,6 +39,13 @@ export interface TwitchResponse<T> {
   cachedAt: number | null;
 }
 
+const STREAMS_BY_GAME_TTL_MS = 2 * 60 * 1000; // 2 minutes (Story 19.5)
+
+export interface StreamsByGameEntry {
+  data: StreamsByGameData;
+  cachedAt: number;
+}
+
 export interface TwitchState {
   liveCount: number;
   isAuthenticated: boolean;
@@ -44,6 +55,10 @@ export interface TwitchState {
   error: string | null;
   stale: boolean;
   cachedAt: number | null;
+  /** Per-game streams cache for game detail overlay (Story 19.5). Key: game name (trimmed). */
+  streamsByGame: Record<string, StreamsByGameEntry>;
+  streamsByGameLoading: Record<string, boolean>;
+  streamsByGameError: Record<string, string | null>;
 }
 
 export interface TwitchActions {
@@ -52,6 +67,8 @@ export interface TwitchActions {
   fetchFollowedStreams: () => Promise<void>;
   refreshStreams: () => Promise<void>;
   clearError: () => void;
+  /** Fetch streams for a game (cached 2 min, Story 19.5). */
+  fetchStreamsByGame: (gameName: string) => Promise<void>;
 }
 
 export type TwitchStore = TwitchState & TwitchActions;
@@ -76,6 +93,9 @@ const initialState: TwitchState = {
   error: null,
   stale: false,
   cachedAt: null,
+  streamsByGame: {},
+  streamsByGameLoading: {},
+  streamsByGameError: {},
 };
 
 export const useTwitchStore = create<TwitchStore>()(
@@ -124,6 +144,59 @@ export const useTwitchStore = create<TwitchStore>()(
       },
       refreshStreams: async () => {
         await get().fetchFollowedStreams();
+      },
+      fetchStreamsByGame: async (gameName: string) => {
+        const key = gameName.trim();
+        if (!key) return;
+        const state = get();
+        const entry = state.streamsByGame[key];
+        if (
+          entry &&
+          Date.now() - entry.cachedAt < STREAMS_BY_GAME_TTL_MS
+        ) {
+          set(
+            (s) => ({
+              streamsByGameLoading: { ...s.streamsByGameLoading, [key]: false },
+            }),
+            false,
+            "fetchStreamsByGame_cached",
+          );
+          return;
+        }
+        set(
+          (s) => ({
+            streamsByGameLoading: { ...s.streamsByGameLoading, [key]: true },
+            streamsByGameError: { ...s.streamsByGameError, [key]: null },
+          }),
+          false,
+          "fetchStreamsByGame_start",
+        );
+        try {
+          const res = await getTwitchStreamsByGame(key);
+          const cachedAt = res.cachedAt != null ? res.cachedAt * 1000 : Date.now();
+          set(
+            (s) => ({
+              streamsByGame: {
+                ...s.streamsByGame,
+                [key]: { data: res.data, cachedAt },
+              },
+              streamsByGameLoading: { ...s.streamsByGameLoading, [key]: false },
+              streamsByGameError: { ...s.streamsByGameError, [key]: null },
+            }),
+            false,
+            "fetchStreamsByGame_ok",
+          );
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          set(
+            (s) => ({
+              streamsByGameLoading: { ...s.streamsByGameLoading, [key]: false },
+              streamsByGameError: { ...s.streamsByGameError, [key]: message },
+            }),
+            false,
+            "fetchStreamsByGame_err",
+          );
+        }
       },
     }),
     { name: "TwitchStore", enabled: import.meta.env.DEV },

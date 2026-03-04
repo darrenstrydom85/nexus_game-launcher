@@ -4,6 +4,7 @@ import { GameMetadata } from "./GameMetadata";
 import { GamePlayStats } from "./GamePlayStats";
 import { GameTrailer } from "./GameTrailer";
 import { GameScreenshots } from "./GameScreenshots";
+import { LiveOnTwitch } from "./LiveOnTwitch";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { Plus } from "lucide-react";
 
@@ -149,6 +150,8 @@ export function DetailContent({
               </div>
             </div>
           )}
+
+          <LiveOnTwitch gameName={game.name} />
 
           <GameMetadata game={game} />
 
