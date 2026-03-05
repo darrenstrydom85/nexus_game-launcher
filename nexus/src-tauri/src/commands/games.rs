@@ -869,6 +869,7 @@ mod tests {
                 launch_url: None,
                 source_folder_id: None,
                 potential_exe_names: None,
+                is_hidden: false,
             },
             DetectedGame {
                 name: "Game B".into(),
@@ -881,6 +882,7 @@ mod tests {
                 launch_url: Some("com.epicgames.launcher://apps/gameb".into()),
                 source_folder_id: None,
                 potential_exe_names: None,
+                is_hidden: false,
             },
         ];
 
@@ -902,11 +904,13 @@ mod tests {
                 name: "G1".into(), source: "steam".into(), source_id: None,
                 source_hint: None, folder_path: None, exe_path: None, exe_name: None,
                 launch_url: None, source_folder_id: None, potential_exe_names: None,
+                is_hidden: false,
             },
             DetectedGame {
                 name: "G2".into(), source: "steam".into(), source_id: None,
                 source_hint: None, folder_path: None, exe_path: None, exe_name: None,
                 launch_url: None, source_folder_id: None, potential_exe_names: None,
+                is_hidden: false,
             },
         ];
 
@@ -921,6 +925,7 @@ mod tests {
             name: "Bad".into(), source: "origin".into(), source_id: None,
             source_hint: None, folder_path: None, exe_path: None, exe_name: None,
             launch_url: None, source_folder_id: None, potential_exe_names: None,
+            is_hidden: false,
         }];
 
         let result = confirm_games_impl(&state, detected);
@@ -957,6 +962,7 @@ mod tests {
             launch_url: None,
             source_folder_id: None,
             potential_exe_names: None,
+            is_hidden: false,
         }];
 
         let games = confirm_games_impl(&state, detected).unwrap();
