@@ -187,7 +187,7 @@ export function TwitchPanel() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="flex w-[280px] flex-col overflow-hidden rounded-md border border-border bg-card"
+                className="flex w-full flex-col overflow-hidden rounded-md border border-border bg-card"
               >
                 <div className="aspect-video w-full animate-pulse bg-muted" />
                 <div className="flex flex-col gap-2 p-3">

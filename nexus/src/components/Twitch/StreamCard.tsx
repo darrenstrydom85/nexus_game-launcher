@@ -66,8 +66,7 @@ export function StreamCard({
       aria-label={ariaLabel}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      className="flex w-[280px] cursor-pointer flex-col overflow-hidden rounded-md border border-border bg-card transition-[transform,box-shadow] duration-200 hover:scale-[1.02] hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:hover:scale-100"
-      style={{ minWidth: 280 }}
+      className="flex w-full cursor-pointer flex-col overflow-hidden rounded-md border border-border bg-card transition-[transform,box-shadow] duration-200 hover:scale-[1.02] hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:hover:scale-100"
     >
       <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-t-md bg-muted">
         {isInLibrary && (
