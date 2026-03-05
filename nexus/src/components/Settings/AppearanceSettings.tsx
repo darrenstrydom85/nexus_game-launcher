@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
 
-const ACCENT_COLORS = ["#3b82f6", "#22c55e", "#eab308", "#ef4444", "#a855f7", "#ec4899", "#06b6d4", "#f97316"];
+const ACCENT_COLORS = ["#7600da", "#22c55e", "#eab308", "#ef4444", "#a855f7", "#ec4899", "#06b6d4", "#f97316"];
 
 export function AppearanceSettings() {
   const accentColor = useSettingsStore((s) => s.accentColor);

@@ -105,7 +105,7 @@ const initialState: SettingsState = {
   launchAtStartup: false,
   enableNotifications: true,
   autoStatusTransitions: true,
-  accentColor: "#3b82f6",
+  accentColor: "#7600da",
   windowTransparency: true,
   enableAnimations: true,
   fontSize: "medium",

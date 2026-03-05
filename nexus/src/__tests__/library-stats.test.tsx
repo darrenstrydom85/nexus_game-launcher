@@ -12,7 +12,7 @@ import {
 
 vi.mock("@/stores/settingsStore", () => ({
   useSettingsStore: (selector: (s: { accentColor: string }) => string) =>
-    selector({ accentColor: "#3b82f6" }),
+    selector({ accentColor: "#7600da" }),
 }));
 
 vi.mock("recharts", async (importOriginal) => {

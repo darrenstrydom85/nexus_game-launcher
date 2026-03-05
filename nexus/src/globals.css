@@ -75,7 +75,7 @@
     --popover: hsl(240, 10%, 7%);
     --popover-foreground: hsl(0, 0%, 95%);
 
-    --primary: hsl(217, 91%, 60%);
+    --primary: hsl(272, 100%, 43%);
     --primary-foreground: hsl(0, 0%, 100%);
 
     --secondary: hsl(240, 5%, 15%);
@@ -91,11 +91,11 @@
 
     --border: hsl(240, 5%, 12%);
     --input: hsl(240, 5%, 15%);
-    --ring: hsl(217, 91%, 60%);
+    --ring: hsl(272, 100%, 43%);
 
-    --glow: hsla(217, 91%, 60%, 0.15);
+    --glow: hsla(272, 100%, 43%, 0.15);
 
-    --chart-1: hsl(217, 91%, 60%);
+    --chart-1: hsl(272, 100%, 43%);
     --chart-2: hsl(142, 71%, 45%);
     --chart-3: hsl(48, 96%, 53%);
     --chart-4: hsl(0, 84%, 60%);
@@ -103,18 +103,18 @@
 
     --sidebar: hsl(240, 10%, 7%);
     --sidebar-foreground: hsl(0, 0%, 95%);
-    --sidebar-primary: hsl(217, 91%, 60%);
+    --sidebar-primary: hsl(272, 100%, 43%);
     --sidebar-primary-foreground: hsl(0, 0%, 100%);
     --sidebar-accent: hsl(240, 5%, 15%);
     --sidebar-accent-foreground: hsl(0, 0%, 95%);
     --sidebar-border: hsl(240, 5%, 12%);
-    --sidebar-ring: hsl(217, 91%, 60%);
+    --sidebar-ring: hsl(272, 100%, 43%);
 
     --success: hsl(142, 71%, 45%);
     --success-foreground: hsl(0, 0%, 100%);
     --warning: hsl(48, 96%, 53%);
     --warning-foreground: hsl(0, 0%, 0%);
-    --info: hsl(217, 91%, 60%);
+    --info: hsl(272, 100%, 43%);
     --info-foreground: hsl(0, 0%, 100%);
 }
 
@@ -241,13 +241,13 @@
 /* Play-pulse animation — design system (sync activity dot, play button glow) */
 @keyframes play-pulse {
   0% {
-    box-shadow: 0 0 0 0 hsla(217, 91%, 60%, 0.4);
+    box-shadow: 0 0 0 0 hsla(272, 100%, 43%, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 12px hsla(217, 91%, 60%, 0);
+    box-shadow: 0 0 0 12px hsla(272, 100%, 43%, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 hsla(217, 91%, 60%, 0);
+    box-shadow: 0 0 0 0 hsla(272, 100%, 43%, 0);
   }
 }
 .animate-play-pulse {

@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import type { ActivityDataPoint } from "../LibraryStats";
 
-const DEFAULT_ACCENT = "#3b82f6";
+const DEFAULT_ACCENT = "#7600da";
 
 export interface ActivityChartProps {
   data: ActivityDataPoint[];

@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { Button } from "@/components/ui/button";
 import { Search, FolderOpen, Play } from "lucide-react";
+import nexusOnboardingLogo from "@/assets/nexus-onboarding-logo.png";
+
+const ONBOARDING_ACCENT = "#7600da";
 
 const PANELS = [
   { icon: <Search className="size-8" />, title: "Scan", desc: "Auto-detect games from all your launchers" },
@@ -27,12 +30,22 @@ export function WelcomeStep() {
       {/* Logo */}
       <motion.div
         data-testid="welcome-logo"
-        className="flex size-20 items-center justify-center rounded-2xl bg-primary text-3xl font-bold text-primary-foreground shadow-[0_0_40px_var(--glow)]"
+        className="flex size-20 items-center justify-center rounded-2xl"
+        style={{
+          backgroundColor: ONBOARDING_ACCENT,
+          boxShadow: `0 0 40px ${ONBOARDING_ACCENT}40`,
+        }}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        N
+        <img
+          src={nexusOnboardingLogo}
+          alt=""
+          width={48}
+          height={48}
+          className="size-12"
+        />
       </motion.div>
 
       <motion.h1
