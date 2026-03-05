@@ -300,6 +300,10 @@ pub struct DetectedGame {
     pub launch_url: Option<String>,
     pub source_folder_id: Option<String>,
     pub potential_exe_names: Option<String>,
+    /// When true the game is inserted as hidden (user opted out during onboarding).
+    /// On subsequent resyncs the UPDATE path never touches is_hidden, so the
+    /// user's choice is preserved.
+    pub is_hidden: bool,
 }
 
 /// Core confirm_games logic. Used by the Tauri command and by tests.
@@ -400,12 +404,16 @@ pub(crate) fn confirm_games_impl(
             .map_err(|e| CommandError::Database(e.to_string()))?;
             id.clone()
         } else {
-            // Insert new game (normalize title so TM/(R)/® etc. are never stored)
+            // Insert new game (normalize title so TM/(R)/® etc. are never stored).
+            // is_hidden is set from the detected game — during onboarding the
+            // frontend marks user-deselected games as hidden so a future resync
+            // won't surface them as new additions.
             let id = Uuid::new_v4().to_string();
             let name = crate::commands::utils::normalize_game_title(&g.name);
+            let is_hidden: i32 = if g.is_hidden { 1 } else { 0 };
             tx.execute(
-                "INSERT INTO games (id, name, source, source_id, source_hint, folder_path, exe_path, exe_name, launch_url, source_folder_id, potential_exe_names, status, added_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'backlog', ?12, ?12)",
+                "INSERT INTO games (id, name, source, source_id, source_hint, folder_path, exe_path, exe_name, launch_url, source_folder_id, potential_exe_names, is_hidden, status, added_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'backlog', ?13, ?13)",
                 params![
                     id,
                     name,
@@ -418,6 +426,7 @@ pub(crate) fn confirm_games_impl(
                     g.launch_url,
                     g.source_folder_id,
                     potential_exe_names,
+                    is_hidden,
                     now,
                 ],
             )

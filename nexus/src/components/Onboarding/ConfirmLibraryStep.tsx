@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useOnboardingStore, type DetectedGame } from "@/stores/onboardingStore";
 import { useGameStore, type Game, type GameSource } from "@/stores/gameStore";
 import { Button } from "@/components/ui/button";
-import { X, Check, RotateCcw } from "lucide-react";
+import { RotateCcw, Check } from "lucide-react";
 import { placeholderGradient } from "@/components/GameCard/GameCard";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
@@ -47,6 +47,7 @@ export function ConfirmLibraryStep() {
   }, [confirmGames, filterSource]);
 
   const includedCount = confirmGames.filter((g) => g.included).length;
+  const allFilteredIncluded = filtered.length > 0 && filtered.every((g) => g.included);
 
   const toggleInclude = React.useCallback((id: string) => {
     setConfirmGames((prev) =>
@@ -54,44 +55,39 @@ export function ConfirmLibraryStep() {
     );
   }, []);
 
-  const dismissGame = React.useCallback((id: string) => {
-    setConfirmGames((prev) => prev.filter((g) => g.id !== id));
-  }, []);
-
-  const updateName = React.useCallback((id: string, name: string) => {
+  const toggleAllFiltered = React.useCallback(() => {
+    const filteredIds = new Set(filtered.map((g) => g.id));
+    const shouldInclude = !allFilteredIncluded;
     setConfirmGames((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, editedName: name } : g)),
+      prev.map((g) => (filteredIds.has(g.id) ? { ...g, included: shouldInclude } : g)),
     );
-  }, []);
+  }, [filtered, allFilteredIncluded]);
 
   const [confirmError, setConfirmError] = React.useState<string | null>(null);
 
   const handleConfirm = React.useCallback(async () => {
     setConfirmError(null);
 
-    // Build the list to confirm by merging the raw DetectedGame data (which
-    // carries sourceId, sourceFolderId, etc.) with any name edits the user made
-    // in this step. Games the user excluded are omitted entirely.
-    const detectedGames: DetectedGame[] = confirmGames
-      .filter((g) => g.included)
-      .map((g, _i) => {
-        // The store preview games are indexed as "detected-0", "detected-1", …
-        // so we can recover the original index to look up the raw detected game.
-        const idx = parseInt(g.id.replace("detected-", ""), 10);
-        const raw: DetectedGame | undefined = rawDetectedGames[idx];
-        return {
-          name: g.editedName,
-          source: raw?.source ?? g.source,
-          sourceId: raw?.sourceId ?? null,
-          sourceHint: raw?.sourceHint ?? null,
-          folderPath: raw?.folderPath ?? g.folderPath ?? null,
-          exePath: raw?.exePath ?? g.exePath ?? null,
-          exeName: raw?.exeName ?? g.exeName ?? null,
-          launchUrl: raw?.launchUrl ?? g.launchUrl ?? null,
-          sourceFolderId: raw?.sourceFolderId ?? null,
-          potentialExeNames: raw?.potentialExeNames ?? null,
-        };
-      });
+    // Send ALL games to the backend — included games are imported normally,
+    // excluded games are imported with isHidden=true so a future resync won't
+    // surface them as new additions.
+    const detectedGames: (DetectedGame & { isHidden: boolean })[] = confirmGames.map((g) => {
+      const idx = parseInt(g.id.replace("detected-", ""), 10);
+      const raw: DetectedGame | undefined = rawDetectedGames[idx];
+      return {
+        name: g.editedName,
+        source: raw?.source ?? g.source,
+        sourceId: raw?.sourceId ?? null,
+        sourceHint: raw?.sourceHint ?? null,
+        folderPath: raw?.folderPath ?? g.folderPath ?? null,
+        exePath: raw?.exePath ?? g.exePath ?? null,
+        exeName: raw?.exeName ?? g.exeName ?? null,
+        launchUrl: raw?.launchUrl ?? g.launchUrl ?? null,
+        sourceFolderId: raw?.sourceFolderId ?? null,
+        potentialExeNames: raw?.potentialExeNames ?? null,
+        isHidden: !g.included,
+      };
+    });
 
     try {
       await invoke("confirm_games", { detectedGames });
@@ -116,6 +112,9 @@ export function ConfirmLibraryStep() {
         <h2 className="text-xl font-bold text-foreground">
           Found {confirmGames.length} games across {sources.length} sources
         </h2>
+        <span className="text-sm text-muted-foreground">
+          {includedCount} selected
+        </span>
       </div>
 
       {/* Filter tabs */}
@@ -149,73 +148,85 @@ export function ConfirmLibraryStep() {
         ))}
       </div>
 
-      {/* Game grid */}
+      {/* Select / deselect all for current filter */}
+      <div className="flex items-center gap-2 border-b border-border pb-2">
+        <button
+          data-testid="confirm-toggle-all"
+          onClick={toggleAllFiltered}
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded border",
+            allFilteredIncluded
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-transparent",
+          )}
+          aria-label={allFilteredIncluded ? "Deselect all" : "Select all"}
+        >
+          {allFilteredIncluded && <Check className="size-3" />}
+        </button>
+        <span className="text-sm text-muted-foreground">
+          {allFilteredIncluded ? "Deselect all" : "Select all"}
+        </span>
+      </div>
+
+      {/* Checkbox list */}
       <div
-        data-testid="confirm-game-grid"
-        className="grid max-h-[50vh] gap-3 overflow-y-auto"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}
+        data-testid="confirm-game-list"
+        className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto pr-1"
       >
         {filtered.map((game) => (
-          <div
+          <button
             key={game.id}
             data-testid={`confirm-card-${game.id}`}
             className={cn(
-              "relative flex flex-col gap-2 rounded-lg border p-3 transition-opacity",
-              game.included ? "border-border" : "border-border/50 opacity-50",
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+              "hover:bg-card/60",
+              game.included ? "opacity-100" : "opacity-40",
             )}
+            onClick={() => toggleInclude(game.id)}
+            aria-pressed={game.included}
           >
-            {/* Cover */}
-            <div className="h-24 w-full overflow-hidden rounded">
-              {game.coverUrl ? (
-                <img src={game.coverUrl} alt={game.editedName} className="h-full w-full object-cover" />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center text-xs text-white/60"
-                  style={{ background: placeholderGradient(game.editedName) }}
-                >
-                  {game.editedName.charAt(0)}
-                </div>
+            {/* Checkbox */}
+            <span
+              className={cn(
+                "flex size-4 shrink-0 items-center justify-center rounded border transition-colors",
+                game.included
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-transparent",
               )}
-            </div>
-
-            {/* Editable name */}
-            <input
-              data-testid={`confirm-name-${game.id}`}
-              className="w-full rounded border border-transparent bg-transparent px-1 text-sm font-medium text-foreground hover:border-border focus:border-ring focus:outline-none"
-              value={game.editedName}
-              onChange={(e) => updateName(game.id, e.target.value)}
-            />
-
-            {/* Source badge */}
-            <span className="text-xs text-muted-foreground">
-              {SOURCE_LABELS[game.source]}
+              aria-hidden
+            >
+              {game.included && <Check className="size-3" />}
             </span>
 
-            {/* Controls */}
-            <div className="flex items-center gap-1">
-              <button
-                data-testid={`confirm-toggle-${game.id}`}
-                className={cn(
-                  "flex size-6 items-center justify-center rounded",
-                  game.included
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground",
-                )}
-                onClick={() => toggleInclude(game.id)}
-                aria-label={game.included ? "Exclude" : "Include"}
-              >
-                <Check className="size-3.5" />
-              </button>
-              <button
-                data-testid={`confirm-dismiss-${game.id}`}
-                className="flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-                onClick={() => dismissGame(game.id)}
-                aria-label="Dismiss"
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          </div>
+            {/* Thumbnail */}
+            <span className="size-8 shrink-0 overflow-hidden rounded">
+              {game.coverUrl ? (
+                <img
+                  src={game.coverUrl}
+                  alt=""
+                  className="size-full object-cover"
+                />
+              ) : (
+                <span
+                  className="flex size-full items-center justify-center text-xs text-white/60"
+                  style={{ background: placeholderGradient(game.editedName) }}
+                  aria-hidden
+                >
+                  {game.editedName.charAt(0)}
+                </span>
+              )}
+            </span>
+
+            {/* Name */}
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+              {game.editedName}
+            </span>
+
+            {/* Source badge */}
+            <span className="shrink-0 rounded bg-card px-1.5 py-0.5 text-xs text-muted-foreground">
+              {SOURCE_LABELS[game.source]}
+            </span>
+          </button>
         ))}
       </div>
 
