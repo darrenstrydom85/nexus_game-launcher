@@ -24,6 +24,7 @@ pub fn pkce_pair() -> (String, String) {
 
 const TWITCH_AUTHORIZE: &str = "https://id.twitch.tv/oauth2/authorize";
 const TWITCH_TOKEN: &str = "https://id.twitch.tv/oauth2/token";
+const TWITCH_VALIDATE: &str = "https://id.twitch.tv/oauth2/validate";
 const TWITCH_HELIX_USERS: &str = "https://api.twitch.tv/helix/users";
 const SCOPES: &str = "user:read:follows";
 
@@ -221,6 +222,40 @@ pub async fn refresh_access_token(
         .and_then(|v| v.as_i64())
         .unwrap_or(0);
     Ok((access_token, new_refresh, expires_in))
+}
+
+/// Validate an access token per Twitch requirements (on startup + hourly).
+/// Returns Ok(expires_in_secs) if valid, Err(Auth) if invalid/revoked,
+/// or Err(NetworkUnavailable/Unknown) on transient failure.
+pub async fn validate_token(access_token: &str) -> Result<i64, CommandError> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| CommandError::Unknown(format!("http client build: {e}")))?;
+    let res = client
+        .get(TWITCH_VALIDATE)
+        .header("Authorization", format!("OAuth {access_token}"))
+        .send()
+        .await
+        .map_err(|e| map_reqwest_error(e))?;
+
+    if res.status().as_u16() == 401 {
+        return Err(CommandError::Auth("Token invalid or revoked".to_string()));
+    }
+
+    if !res.status().is_success() {
+        let status = res.status().as_u16();
+        return Err(CommandError::Api(format!("Twitch validate returned {status}")));
+    }
+
+    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let json: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|e| CommandError::Parse(format!("validate json: {e}")))?;
+    let expires_in = json
+        .get("expires_in")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(0);
+    Ok(expires_in)
 }
 
 /// Get Twitch user (id, display_name) using access token.

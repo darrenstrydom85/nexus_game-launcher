@@ -385,6 +385,160 @@ pub async fn twitch_auth_status(
     })
 }
 
+/// Validate the current access token with Twitch (GET /oauth2/validate).
+/// If valid, updates the stored expires_at. If invalid (401), attempts refresh;
+/// if refresh also fails with Auth error, clears tokens and emits unauthenticated.
+/// Transient errors (network/5xx) are silently ignored to avoid false disconnects.
+#[tauri::command]
+pub async fn validate_twitch_token(
+    app: AppHandle,
+    db: State<'_, DbState>,
+) -> Result<TwitchAuthStatus, CommandError> {
+    let (access_token_opt, refresh_token_opt, display_name) = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let access = tokens::load_access_token(&conn)?;
+        let refresh = tokens::load_refresh_token(&conn)?;
+        let name = tokens::load_display_name(&conn)?;
+        (access, refresh, name)
+    };
+
+    let access_token = match access_token_opt {
+        Some(t) => t,
+        None => {
+            return Ok(TwitchAuthStatus {
+                authenticated: false,
+                display_name: None,
+                expires_at: None,
+            });
+        }
+    };
+
+    match auth::validate_token(&access_token).await {
+        Ok(expires_in) => {
+            let now_secs = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64;
+            let new_expires_at = now_secs + expires_in;
+            let conn = db
+                .conn
+                .lock()
+                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            tokens::set_setting_raw(
+                &conn,
+                crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT,
+                &new_expires_at.to_string(),
+            )?;
+            drop(conn);
+            Ok(TwitchAuthStatus {
+                authenticated: true,
+                display_name,
+                expires_at: Some(new_expires_at),
+            })
+        }
+        Err(CommandError::Auth(_)) => {
+            // Token revoked/invalid -- try refresh before giving up
+            if let Some(refresh_token) = refresh_token_opt {
+                match auth::refresh_access_token(twitch_client_id()?, &refresh_token).await {
+                    Ok((new_access, new_refresh, expires_in)) => {
+                        let now_secs = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs() as i64;
+                        let new_expires_at = now_secs + expires_in;
+                        let conn = db
+                            .conn
+                            .lock()
+                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let enc_access = tokens::encrypt(&new_access)?;
+                        let enc_refresh = tokens::encrypt(&new_refresh)?;
+                        tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_ACCESS_TOKEN, &enc_access)?;
+                        tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
+                        tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT, &new_expires_at.to_string())?;
+                        drop(conn);
+                        let _ = app.emit(
+                            "twitch-auth-changed",
+                            serde_json::json!({ "authenticated": true, "displayName": display_name }),
+                        );
+                        Ok(TwitchAuthStatus {
+                            authenticated: true,
+                            display_name,
+                            expires_at: Some(new_expires_at),
+                        })
+                    }
+                    Err(CommandError::Auth(_)) => {
+                        let conn = db
+                            .conn
+                            .lock()
+                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let _ = tokens::clear_all(&conn);
+                        drop(conn);
+                        let _ = app.emit(
+                            "twitch-auth-changed",
+                            serde_json::json!({ "authenticated": false, "displayName": null }),
+                        );
+                        Ok(TwitchAuthStatus {
+                            authenticated: false,
+                            display_name: None,
+                            expires_at: None,
+                        })
+                    }
+                    Err(_) => {
+                        // Transient refresh failure -- keep session alive
+                        let expires_at = {
+                            let conn = db
+                                .conn
+                                .lock()
+                                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                            tokens::load_expires_at(&conn)?
+                        };
+                        Ok(TwitchAuthStatus {
+                            authenticated: true,
+                            display_name,
+                            expires_at,
+                        })
+                    }
+                }
+            } else {
+                // No refresh token -- can't recover
+                let conn = db
+                    .conn
+                    .lock()
+                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let _ = tokens::clear_all(&conn);
+                drop(conn);
+                let _ = app.emit(
+                    "twitch-auth-changed",
+                    serde_json::json!({ "authenticated": false, "displayName": null }),
+                );
+                Ok(TwitchAuthStatus {
+                    authenticated: false,
+                    display_name: None,
+                    expires_at: None,
+                })
+            }
+        }
+        Err(_) => {
+            // Transient error (network/5xx) -- silently keep current state
+            let expires_at = {
+                let conn = db
+                    .conn
+                    .lock()
+                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                tokens::load_expires_at(&conn)?
+            };
+            Ok(TwitchAuthStatus {
+                authenticated: true,
+                display_name,
+                expires_at,
+            })
+        }
+    }
+}
+
 /// Get followed channels (and live status). Online: fetch from API, update cache, return fresh. Offline/unreachable: return cache with stale: true.
 #[tauri::command]
 pub async fn get_twitch_followed_channels(

@@ -342,6 +342,11 @@ export function twitchAuthLogout(): Promise<void> {
   return invoke<void>("twitch_auth_logout");
 }
 
+/** Validate current token with Twitch (GET /oauth2/validate). Refreshes if invalid. */
+export function validateTwitchToken(): Promise<TwitchAuthStatus> {
+  return invoke<TwitchAuthStatus>("validate_twitch_token");
+}
+
 /** Clear Twitch cached data only (no disconnect). Story 19.10. */
 export function clearTwitchCache(): Promise<void> {
   return invoke<void>("clear_twitch_cache");

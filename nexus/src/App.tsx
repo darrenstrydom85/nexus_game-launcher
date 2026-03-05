@@ -46,7 +46,7 @@ import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
-import { twitchAuthStatus } from "@/lib/tauri";
+import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -176,15 +176,40 @@ function MainApp() {
     useConnectivityStore.getState().checkConnectivity();
   }, []);
 
+  // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated
   React.useEffect(() => {
-    twitchAuthStatus()
+    validateTwitchToken()
       .then((status) => {
         useTwitchStore.getState().setIsAuthenticated(status.authenticated);
         if (status.authenticated) {
           useTwitchStore.getState().fetchFollowedStreams();
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Fallback to local status check if validate fails (e.g. no client ID configured)
+        twitchAuthStatus()
+          .then((status) => {
+            useTwitchStore.getState().setIsAuthenticated(status.authenticated);
+            if (status.authenticated) {
+              useTwitchStore.getState().fetchFollowedStreams();
+            }
+          })
+          .catch(() => {});
+      });
+  }, []);
+
+  // Validate token hourly per Twitch requirement (detect revoked tokens proactively)
+  React.useEffect(() => {
+    const HOUR_MS = 60 * 60 * 1000;
+    const id = setInterval(() => {
+      if (!useTwitchStore.getState().isAuthenticated) return;
+      validateTwitchToken()
+        .then((status) => {
+          useTwitchStore.getState().setIsAuthenticated(status.authenticated);
+        })
+        .catch(() => {});
+    }, HOUR_MS);
+    return () => clearInterval(id);
   }, []);
 
   // Story 19.11: when connectivity restored (offline -> online), trigger refresh and suppress toasts

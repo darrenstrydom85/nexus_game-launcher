@@ -49,7 +49,7 @@ use commands::{
     twitch::{
         check_connectivity, clear_twitch_cache, get_twitch_followed_channels, get_twitch_live_streams,
         get_twitch_streams_by_game, get_twitch_trending_library_games, set_twitch_favorite,
-        twitch_auth_logout, twitch_auth_start, twitch_auth_status,
+        twitch_auth_logout, twitch_auth_start, twitch_auth_status, validate_twitch_token,
     },
 };
 
@@ -140,6 +140,7 @@ pub fn run() {
             twitch_auth_start,
             twitch_auth_status,
             twitch_auth_logout,
+            validate_twitch_token,
             get_twitch_followed_channels,
             get_twitch_live_streams,
             get_twitch_streams_by_game,
