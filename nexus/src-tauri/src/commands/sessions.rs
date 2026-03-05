@@ -8,6 +8,14 @@ use super::utils::{iso_to_epoch_secs, now_iso};
 use crate::db::DbState;
 use crate::models::session::{ActivityBucket, LibraryStatsData, PlaySession, PlayStats, SessionEntry, TopGameEntry};
 
+/// Three-strategy LEFT JOIN that resolves orphaned sessions (from removed/re-added games)
+/// to the current game entry via: 1) direct ID, 2) (source, source_id) natural key,
+/// 3) (source, name) fallback for standalone games without a source_id.
+const GAME_LEFT_JOIN: &str =
+    "LEFT JOIN games g ON (g.id = ps.game_id) \
+     OR (ps.game_source_id IS NOT NULL AND g.source = ps.game_source AND g.source_id = ps.game_source_id) \
+     OR (ps.game_source_id IS NULL AND ps.game_name IS NOT NULL AND g.source = ps.game_source AND g.name = ps.game_name)";
+
 #[tauri::command]
 pub fn create_session(
     db: State<'_, DbState>,
@@ -278,15 +286,22 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
         )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
-    let most_played_game: Option<String> = conn
-        .query_row(
-            "SELECT name FROM games WHERE is_hidden = 0 ORDER BY total_play_time DESC LIMIT 1",
-            [],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .flatten();
+    // Use the smart JOIN to find the most-played game so that sessions from
+    // removed-and-re-added games are merged under the current game entry.
+    let most_played_game: Option<String> = {
+        let sql = format!(
+            "SELECT g.name, SUM(ps.duration_s) as total
+             FROM play_sessions ps
+             {GAME_LEFT_JOIN}
+             WHERE ps.ended_at IS NOT NULL AND g.id IS NOT NULL AND g.is_hidden = 0
+             GROUP BY g.id
+             ORDER BY total DESC
+             LIMIT 1"
+        );
+        conn.query_row(&sql, [], |row| row.get(0))
+            .optional()
+            .map_err(|e| CommandError::Database(e.to_string()))?
+    };
 
     let week_start = {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -349,13 +364,21 @@ pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, Comman
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
+    // Aggregate from play_sessions using the smart JOIN so that sessions belonging
+    // to removed-and-re-added games (different UUID, same name/source_id) are merged
+    // under the current game entry.
+    let sql = format!(
+        "SELECT g.id, g.name, g.cover_url, SUM(ps.duration_s) as total_play_time_s
+         FROM play_sessions ps
+         {GAME_LEFT_JOIN}
+         WHERE ps.ended_at IS NOT NULL AND g.id IS NOT NULL AND g.is_hidden = 0
+         GROUP BY g.id
+         ORDER BY total_play_time_s DESC
+         LIMIT 10"
+    );
+
     let mut stmt = conn
-        .prepare(
-            "SELECT id, name, cover_url, total_play_time FROM games
-             WHERE play_count > 0 AND is_hidden = 0
-             ORDER BY total_play_time DESC
-             LIMIT 10",
-        )
+        .prepare(&sql)
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let entries = stmt
@@ -364,7 +387,7 @@ pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, Comman
                 id: row.get("id")?,
                 name: row.get("name")?,
                 cover_url: row.get("cover_url")?,
-                total_play_time_s: row.get("total_play_time")?,
+                total_play_time_s: row.get("total_play_time_s")?,
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?
@@ -381,16 +404,19 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
+    let sql = format!(
+        "SELECT ps.id,
+                COALESCE(g.id, ps.game_id) as game_id,
+                COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
+                ps.started_at, ps.ended_at, ps.duration_s
+         FROM play_sessions ps
+         {GAME_LEFT_JOIN}
+         WHERE ps.ended_at IS NOT NULL
+         ORDER BY ps.started_at DESC"
+    );
+
     let mut stmt = conn
-        .prepare(
-            "SELECT ps.id, ps.game_id,
-                    COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
-                    ps.started_at, ps.ended_at, ps.duration_s
-             FROM play_sessions ps
-             LEFT JOIN games g ON g.id = ps.game_id
-             WHERE ps.ended_at IS NOT NULL
-             ORDER BY ps.started_at DESC",
-        )
+        .prepare(&sql)
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let entries = stmt
@@ -906,5 +932,176 @@ mod tests {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(sessions)
+    }
+
+    fn insert_test_game_with_source(
+        conn: &rusqlite::Connection,
+        id: &str,
+        name: &str,
+        source: &str,
+        source_id: Option<&str>,
+    ) {
+        conn.execute(
+            "INSERT INTO games (id, name, source, source_id, status, added_at, updated_at) VALUES (?1, ?2, ?3, ?4, 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            params![id, name, source, source_id],
+        ).unwrap();
+    }
+
+    fn insert_session_with_source(
+        conn: &rusqlite::Connection,
+        id: &str,
+        game_id: &str,
+        started_at: &str,
+        ended_at: &str,
+        duration_s: i64,
+        game_source: &str,
+        game_source_id: Option<&str>,
+        game_name: &str,
+    ) {
+        conn.execute(
+            "INSERT INTO play_sessions (id, game_id, started_at, ended_at, duration_s, tracking, game_source, game_source_id, game_name) VALUES (?1, ?2, ?3, ?4, ?5, 'auto', ?6, ?7, ?8)",
+            params![id, game_id, started_at, ended_at, duration_s, game_source, game_source_id, game_name],
+        ).unwrap();
+    }
+
+    fn get_all_sessions_inner(state: &DbState) -> Result<Vec<SessionEntry>, CommandError> {
+        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let sql = format!(
+            "SELECT ps.id,
+                    COALESCE(g.id, ps.game_id) as game_id,
+                    COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
+                    ps.started_at, ps.ended_at, ps.duration_s
+             FROM play_sessions ps
+             {GAME_LEFT_JOIN}
+             WHERE ps.ended_at IS NOT NULL
+             ORDER BY ps.started_at DESC"
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
+        let entries = stmt
+            .query_map([], |row| {
+                Ok(SessionEntry {
+                    id: row.get("id")?,
+                    game_id: row.get("game_id")?,
+                    game_name: row.get("game_name")?,
+                    started_at: row.get("started_at")?,
+                    ended_at: row.get("ended_at")?,
+                    duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
+                })
+            })
+            .map_err(|e| CommandError::Database(e.to_string()))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(entries)
+    }
+
+    fn get_top_games_inner(state: &DbState) -> Result<Vec<TopGameEntry>, CommandError> {
+        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let sql = format!(
+            "SELECT g.id, g.name, g.cover_url, SUM(ps.duration_s) as total_play_time_s
+             FROM play_sessions ps
+             {GAME_LEFT_JOIN}
+             WHERE ps.ended_at IS NOT NULL AND g.id IS NOT NULL AND g.is_hidden = 0
+             GROUP BY g.id
+             ORDER BY total_play_time_s DESC
+             LIMIT 10"
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
+        let entries = stmt
+            .query_map([], |row| {
+                Ok(TopGameEntry {
+                    id: row.get("id")?,
+                    name: row.get("name")?,
+                    cover_url: row.get("cover_url")?,
+                    total_play_time_s: row.get("total_play_time_s")?,
+                })
+            })
+            .map_err(|e| CommandError::Database(e.to_string()))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(entries)
+    }
+
+    // ── re-added game merging (source_id strategy) ──
+
+    #[test]
+    fn get_all_sessions_merges_relinked_game_via_source_id() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        // Old game UUID (deleted) — sessions still reference it
+        insert_test_game_with_source(&conn, "old-uuid", "Half-Life 2", "steam", Some("220"));
+        // New game UUID (re-added) with same steam source_id
+        insert_test_game_with_source(&conn, "new-uuid", "Half-Life 2", "steam", Some("220"));
+        // Session recorded against old UUID, but stores game_source + game_source_id
+        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "steam", Some("220"), "Half-Life 2");
+        // Session recorded against new UUID
+        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "steam", Some("220"), "Half-Life 2");
+        // Remove old game to simulate it being deleted and re-added (FK off to allow orphaned sessions)
+        conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        drop(conn);
+
+        let sessions = get_all_sessions_inner(&state).unwrap();
+        // Both sessions should resolve to new-uuid
+        assert_eq!(sessions.len(), 2);
+        assert!(sessions.iter().all(|s| s.game_id == "new-uuid"), "all sessions should resolve to new-uuid");
+    }
+
+    #[test]
+    fn get_top_games_merges_relinked_game_via_source_id() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game_with_source(&conn, "old-uuid", "Half-Life 2", "steam", Some("220"));
+        insert_test_game_with_source(&conn, "new-uuid", "Half-Life 2", "steam", Some("220"));
+        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "steam", Some("220"), "Half-Life 2");
+        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "steam", Some("220"), "Half-Life 2");
+        conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        drop(conn);
+
+        let top = get_top_games_inner(&state).unwrap();
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0].id, "new-uuid");
+        assert_eq!(top[0].total_play_time_s, 5400); // 3600 + 1800 merged
+    }
+
+    // ── re-added game merging (name fallback strategy for standalone games) ──
+
+    #[test]
+    fn get_all_sessions_merges_standalone_game_via_name() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game_with_source(&conn, "old-uuid", "My Indie Game", "manual", None);
+        insert_test_game_with_source(&conn, "new-uuid", "My Indie Game", "manual", None);
+        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "manual", None, "My Indie Game");
+        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "manual", None, "My Indie Game");
+        conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        drop(conn);
+
+        let sessions = get_all_sessions_inner(&state).unwrap();
+        assert_eq!(sessions.len(), 2);
+        assert!(sessions.iter().all(|s| s.game_id == "new-uuid"), "all sessions should resolve to new-uuid via name fallback");
+    }
+
+    #[test]
+    fn get_top_games_merges_standalone_game_via_name() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game_with_source(&conn, "old-uuid", "My Indie Game", "manual", None);
+        insert_test_game_with_source(&conn, "new-uuid", "My Indie Game", "manual", None);
+        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 7200, "manual", None, "My Indie Game");
+        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 3600, "manual", None, "My Indie Game");
+        conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        drop(conn);
+
+        let top = get_top_games_inner(&state).unwrap();
+        assert_eq!(top.len(), 1);
+        assert_eq!(top[0].id, "new-uuid");
+        assert_eq!(top[0].total_play_time_s, 10800); // 7200 + 3600 merged
     }
 }
