@@ -25,7 +25,7 @@ import { setRunningGame } from "@/lib/launcher";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
 import { initSyncStore, useSyncStore } from "@/stores/syncStore";
-import { useGameStore, type Game, refreshGames } from "@/stores/gameStore";
+import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -65,6 +65,8 @@ function MainApp() {
   const [editCollectionTarget, setEditCollectionTarget] = React.useState<Collection | null>(null);
   const [editGameTarget, setEditGameTarget] = React.useState<Game | null>(null);
   const [addToCollectionTarget, setAddToCollectionTarget] = React.useState<Game | null>(null);
+  /** When creating a new collection from "Add to Collection" flow, add this game to it on save. */
+  const [gameIdToAddToNewCollection, setGameIdToAddToNewCollection] = React.useState<string | null>(null);
   const [metadataSearchGame, setMetadataSearchGame] = React.useState<Game | null>(null);
   const metadataTriggered = React.useRef(false);
   const backfillTriggered = React.useRef(false);
@@ -355,6 +357,69 @@ function MainApp() {
     }
   }, []);
 
+  const games = useGameStore((s) => s.games);
+  const collectionLabels = React.useMemo(
+    () => collections.map((c) => `${c.icon} ${c.name}`),
+    [collections],
+  );
+  const handleLibraryEditGame = React.useCallback((game: Game) => {
+    setEditGameTarget(game);
+  }, []);
+  const handleLibrarySearchMetadata = React.useCallback((game: Game) => {
+    setMetadataSearchGame(game);
+  }, []);
+  const handleLibraryRefetchMetadata = React.useCallback(
+    async (game: Game) => {
+      await invoke("fetch_metadata", { gameId: game.id });
+      await refreshGames();
+    },
+    [refreshGames],
+  );
+  const handleLibraryHideGame = React.useCallback((game: Game) => {
+    invoke("update_game", { id: game.id, fields: { isHidden: true } })
+      .then(() => {
+        useSettingsStore.getState().hideGame(game.id);
+        useUiStore.getState().setDetailOverlayGameId(null);
+      })
+      .catch(() => {});
+  }, []);
+  const handleLibraryOpenFolder = React.useCallback((game: Game) => {
+    if (game.folderPath) openPath(game.folderPath).catch(() => {});
+  }, []);
+  const handleLibrarySetStatus = React.useCallback(
+    (gameId: string, status: GameStatus) => {
+      invoke("update_game", { id: gameId, fields: { status } })
+        .then(() => invoke<Game[]>("get_games", { params: {} }))
+        .then((games) => setGames(games))
+        .catch(() => {});
+    },
+    [setGames],
+  );
+  const handleLibrarySetRating = React.useCallback(
+    (gameId: string, rating: number | null) => {
+      invoke("update_game", { id: gameId, fields: { rating } })
+        .then(() => invoke<Game[]>("get_games", { params: {} }))
+        .then((games) => setGames(games))
+        .catch(() => {});
+    },
+    [setGames],
+  );
+  const handleLibraryAddToCollection = React.useCallback(
+    (gameId: string, collectionLabel: string) => {
+      if (collectionLabel === "__new__") {
+        const game = games.find((g) => g.id === gameId);
+        if (game) {
+          setGameIdToAddToNewCollection(game.id);
+          setCollectionEditorOpen(true);
+        }
+        return;
+      }
+      const collection = collections.find((c) => `${c.icon} ${c.name}` === collectionLabel);
+      if (collection) useCollectionStore.getState().addGameToCollection(collection.id, gameId);
+    },
+    [games, collections],
+  );
+
   return (
     <AppShell
       onSettingsClick={() => setSettingsOpen(true)}
@@ -400,6 +465,15 @@ function MainApp() {
           onResync={handleResync}
           isSyncing={isSyncing}
           syncResult={syncResult}
+          onEdit={handleLibraryEditGame}
+          onRefetchMetadata={handleLibraryRefetchMetadata}
+          onSearchMetadata={handleLibrarySearchMetadata}
+          onHide={handleLibraryHideGame}
+          onOpenFolder={handleLibraryOpenFolder}
+          onSetStatus={handleLibrarySetStatus}
+          onSetRating={handleLibrarySetRating}
+          onAddToCollection={handleLibraryAddToCollection}
+          collections={collectionLabels}
         />
       )}
       <GameDetailOverlay>
@@ -488,6 +562,7 @@ function MainApp() {
               open
               onClose={() => setAddToCollectionTarget(null)}
               onNewCollection={() => {
+                setGameIdToAddToNewCollection(addToCollectionTarget.id);
                 setAddToCollectionTarget(null);
                 setCollectionEditorOpen(true);
               }}
@@ -528,7 +603,11 @@ function MainApp() {
       <ToastNotifications />
       <CollectionEditor
         open={collectionEditorOpen}
-        onClose={() => { setCollectionEditorOpen(false); setEditCollectionTarget(null); }}
+        onClose={() => {
+          setCollectionEditorOpen(false);
+          setEditCollectionTarget(null);
+          setGameIdToAddToNewCollection(null);
+        }}
         editCollection={editCollectionTarget}
         onSave={(data) => {
           if (editCollectionTarget) {
@@ -547,8 +626,15 @@ function MainApp() {
               )
               .catch(() => {});
           } else {
+            const gameIdToAdd = gameIdToAddToNewCollection;
+            setGameIdToAddToNewCollection(null);
             invoke<Collection>("create_collection", { name: data.name, icon: data.icon, color: data.color })
-              .then((created) => useCollectionStore.getState().addCollection({ ...created, gameIds: [] }))
+              .then((created) => {
+                useCollectionStore.getState().addCollection({ ...created, gameIds: [] });
+                if (gameIdToAdd) {
+                  useCollectionStore.getState().addGameToCollection(created.id, gameIdToAdd);
+                }
+              })
               .catch(() => {});
           }
           setCollectionEditorOpen(false);

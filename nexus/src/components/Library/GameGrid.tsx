@@ -10,6 +10,10 @@ import {
   Settings,
   Play,
 } from "lucide-react";
+import {
+  GameCardContextMenu,
+  type GameContextMenuHandlers,
+} from "@/components/GameCard";
 
 const SORT_OPTIONS: { value: SortField; label: string }[] = [
   { value: "name", label: "Name" },
@@ -53,7 +57,7 @@ function sortGames(games: Game[], field: SortField, direction: "asc" | "desc"): 
   return direction === "asc" && field === "name" ? sorted : sorted;
 }
 
-interface GameGridProps {
+interface GameGridProps extends GameContextMenuHandlers {
   games: Game[];
   totalCount: number;
   isFiltered?: boolean;
@@ -75,6 +79,15 @@ export function GameGrid({
   onGameClick,
   onPlay,
   renderCard,
+  onEdit,
+  onRefetchMetadata,
+  onSearchMetadata,
+  onHide,
+  onOpenFolder,
+  onSetStatus,
+  onSetRating,
+  onAddToCollection,
+  collections,
 }: GameGridProps) {
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
@@ -82,6 +95,19 @@ export function GameGrid({
   const setSortField = useUiStore((s) => s.setSortField);
   const sortDirection = useUiStore((s) => s.sortDirection);
   const [sortOpen, setSortOpen] = React.useState(false);
+  const [contextMenu, setContextMenu] = React.useState<{
+    game: Game;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const openContextMenu = React.useCallback((e: React.MouseEvent, game: Game) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ game, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const closeContextMenu = React.useCallback(() => setContextMenu(null), []);
 
   const sortedGames = React.useMemo(
     () => sortGames(games, sortField, sortDirection),
@@ -243,7 +269,13 @@ export function GameGrid({
           }}
         >
           {sortedGames.map((game) => (
-            <React.Fragment key={game.id}>{renderCard(game)}</React.Fragment>
+            <div
+              key={game.id}
+              className="contents"
+              onContextMenu={(e) => openContextMenu(e, game)}
+            >
+              {renderCard(game)}
+            </div>
           ))}
         </div>
       )}
@@ -260,6 +292,7 @@ export function GameGrid({
                 "cursor-pointer hover:bg-accent/50 transition-colors",
               )}
               onClick={() => onGameClick?.(game.id)}
+              onContextMenu={(e) => openContextMenu(e, game)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
@@ -315,6 +348,25 @@ export function GameGrid({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Shared context menu for grid and list */}
+      {contextMenu && (
+        <GameCardContextMenu
+          game={contextMenu.game}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={closeContextMenu}
+          onPlay={onPlay}
+          onSetStatus={onSetStatus}
+          onSetRating={onSetRating}
+          onAddToCollection={onAddToCollection}
+          onEdit={onEdit}
+          onRefetchMetadata={onRefetchMetadata}
+          onSearchMetadata={onSearchMetadata}
+          onHide={onHide}
+          onOpenFolder={onOpenFolder}
+          collections={collections}
+        />
       )}
     </div>
   );

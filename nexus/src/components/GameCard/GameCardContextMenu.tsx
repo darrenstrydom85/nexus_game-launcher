@@ -11,6 +11,9 @@ import {
   EyeOff,
   Pencil,
   Plus,
+  RefreshCw,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 
 const STATUSES: { value: GameStatus; label: string }[] = [
@@ -21,18 +24,24 @@ const STATUSES: { value: GameStatus; label: string }[] = [
   { value: "wishlist", label: "Wishlist" },
 ];
 
-interface GameCardContextMenuProps {
-  game: Game;
-  position: { x: number; y: number };
-  onClose: () => void;
+export interface GameContextMenuHandlers {
   onPlay?: (game: Game) => void;
   onSetStatus?: (gameId: string, status: GameStatus) => void;
   onSetRating?: (gameId: string, rating: number | null) => void;
   onAddToCollection?: (gameId: string, collection: string) => void;
   onEdit?: (game: Game) => void;
+  onRefetchMetadata?: (game: Game) => Promise<void> | void;
+  onSearchMetadata?: (game: Game) => void;
   onHide?: (game: Game) => void;
   onOpenFolder?: (game: Game) => void;
   collections?: string[];
+}
+
+interface GameCardContextMenuProps extends GameContextMenuHandlers {
+  game: Game;
+  position: { x: number; y: number };
+  onClose: () => void;
+  isRefetching?: boolean;
 }
 
 export function GameCardContextMenu({
@@ -44,16 +53,42 @@ export function GameCardContextMenu({
   onSetRating,
   onAddToCollection,
   onEdit,
+  onRefetchMetadata,
+  onSearchMetadata,
   onHide,
   onOpenFolder,
   collections = [],
+  isRefetching = false,
 }: GameCardContextMenuProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const addToast = useToastStore((s) => s.addToast);
+  const [refetching, setRefetching] = React.useState(false);
+  const busy = isRefetching || refetching;
   const [subMenu, setSubMenu] = React.useState<
     "status" | "rating" | "collection" | null
   >(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const [adjustedPos, setAdjustedPos] = React.useState(position);
+  const [flipSub, setFlipSub] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const pad = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let x = position.x;
+    let y = position.y;
+
+    if (x + rect.width > vw - pad) x = vw - pad - rect.width;
+    if (x < pad) x = pad;
+    if (y + rect.height > vh - pad) y = vh - pad - rect.height;
+    if (y < pad) y = pad;
+
+    setFlipSub(x + rect.width + 148 > vw - pad);
+    setAdjustedPos({ x, y });
+  }, [position.x, position.y]);
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -82,7 +117,7 @@ export function GameCardContextMenu({
       ref={menuRef}
       data-testid="game-context-menu"
       className="fixed z-50 min-w-[200px] rounded-md border border-border bg-popover p-1 shadow-lg"
-      style={{ left: position.x, top: position.y }}
+      style={{ left: adjustedPos.x, top: adjustedPos.y }}
       role="menu"
     >
       {/* Play */}
@@ -124,12 +159,15 @@ export function GameCardContextMenu({
           onMouseEnter={() => setSubMenu("status")}
         >
           Set Status
-          <span className="ml-auto text-xs text-muted-foreground">▸</span>
+          <span className="ml-auto text-xs text-muted-foreground">{flipSub ? "◂" : "▸"}</span>
         </button>
         {subMenu === "status" && (
           <div
             data-testid="ctx-status-submenu"
-            className="absolute left-full top-0 ml-1 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg"
+            className={cn(
+              "absolute top-0 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              flipSub ? "right-full mr-1" : "left-full ml-1",
+            )}
             role="menu"
           >
             {STATUSES.map((s) => (
@@ -163,12 +201,15 @@ export function GameCardContextMenu({
         >
           <Star className="size-4" />
           Rate
-          <span className="ml-auto text-xs text-muted-foreground">▸</span>
+          <span className="ml-auto text-xs text-muted-foreground">{flipSub ? "◂" : "▸"}</span>
         </button>
         {subMenu === "rating" && (
           <div
             data-testid="ctx-rating-submenu"
-            className="absolute left-full top-0 ml-1 min-w-[120px] rounded-md border border-border bg-popover p-1 shadow-lg"
+            className={cn(
+              "absolute top-0 min-w-[120px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              flipSub ? "right-full mr-1" : "left-full ml-1",
+            )}
             role="menu"
           >
             {[1, 2, 3, 4, 5].map((r) => (
@@ -214,12 +255,15 @@ export function GameCardContextMenu({
         >
           <Plus className="size-4" />
           Add to Collection
-          <span className="ml-auto text-xs text-muted-foreground">▸</span>
+          <span className="ml-auto text-xs text-muted-foreground">{flipSub ? "◂" : "▸"}</span>
         </button>
         {subMenu === "collection" && (
           <div
             data-testid="ctx-collection-submenu"
-            className="absolute left-full top-0 ml-1 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg"
+            className={cn(
+              "absolute top-0 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              flipSub ? "right-full mr-1" : "left-full ml-1",
+            )}
             role="menu"
           >
             {collections.map((c) => (
@@ -247,13 +291,52 @@ export function GameCardContextMenu({
               }}
             >
               <Plus className="size-3" />
-              New Collection
+              Add New
             </button>
           </div>
         )}
       </div>
 
       <div className="my-1 border-t border-border" />
+
+      {/* Update Artwork / Choose artwork */}
+      <button
+        data-testid="ctx-update-artwork"
+        className={cn(menuItemClass, busy && "pointer-events-none opacity-60")}
+        role="menuitem"
+        onClick={() => {
+          onSearchMetadata?.(game);
+          onClose();
+        }}
+        disabled={busy}
+      >
+        <ImagePlus className="size-4" />
+        Update Artwork
+      </button>
+
+      {/* Re-fetch Metadata */}
+      <button
+        data-testid="ctx-refetch-metadata"
+        className={cn(menuItemClass, busy && "pointer-events-none opacity-60")}
+        role="menuitem"
+        onClick={async () => {
+          setRefetching(true);
+          try {
+            await onRefetchMetadata?.(game);
+          } finally {
+            setRefetching(false);
+          }
+          onClose();
+        }}
+        disabled={busy}
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <RefreshCw className="size-4" />
+        )}
+        {busy ? "Fetching…" : "Re-fetch Metadata"}
+      </button>
 
       {/* Edit Game */}
       <button

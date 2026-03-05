@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useFilterStore } from "@/stores/filterStore";
 import { useSyncStore } from "@/stores/syncStore";
 import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
+import type { GameContextMenuHandlers } from "@/components/GameCard";
 import { GameGrid } from "./GameGrid";
 import { GameCard } from "@/components/GameCard";
 import { SkeletonCard } from "./SkeletonCard";
@@ -49,14 +50,28 @@ function buildHeading(opts: {
   return "All Games";
 }
 
-interface LibraryViewProps {
+interface LibraryViewProps extends GameContextMenuHandlers {
   onPlay?: (game: Game) => void;
   onResync?: () => Promise<void>;
   isSyncing?: boolean;
   syncResult?: { added: number; updated: number } | null;
 }
 
-export function LibraryView({ onPlay, onResync, isSyncing = false, syncResult }: LibraryViewProps) {
+export function LibraryView({
+  onPlay,
+  onResync,
+  isSyncing = false,
+  syncResult,
+  onEdit,
+  onRefetchMetadata,
+  onSearchMetadata,
+  onHide,
+  onOpenFolder,
+  onSetStatus,
+  onSetRating,
+  onAddToCollection,
+  collections,
+}: LibraryViewProps) {
   const { games, isLoading, error } = useGames();
   const searchQuery = useUiStore((s) => s.searchQuery);
   const startedAt = useSyncStore((s) => s.startedAt);
@@ -207,6 +222,15 @@ export function LibraryView({ onPlay, onResync, isSyncing = false, syncResult }:
             }}
             onGameClick={(id) => useUiStore.getState().setDetailOverlayGameId(id)}
             onPlay={onPlay}
+            onEdit={onEdit}
+            onRefetchMetadata={onRefetchMetadata}
+            onSearchMetadata={onSearchMetadata}
+            onHide={onHide}
+            onOpenFolder={onOpenFolder}
+            onSetStatus={onSetStatus}
+            onSetRating={onSetRating}
+            onAddToCollection={onAddToCollection}
+            collections={collections}
             renderCard={(game) => <GameCard game={game} />}
           />
         )}
