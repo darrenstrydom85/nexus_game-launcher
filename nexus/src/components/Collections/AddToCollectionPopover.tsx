@@ -1,4 +1,5 @@
 import * as React from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useToastStore } from "@/stores/toastStore";
@@ -47,15 +48,23 @@ export function AddToCollectionPopover({
     (collection: Collection) => {
       const isMember = collection.gameIds.includes(gameId);
       if (isMember) {
-        removeGameFromCollection(collection.id, gameId);
-        onToggle?.(collection.id, gameId, false);
+        invoke("remove_from_collection", { collectionId: collection.id, gameId })
+          .then(() => {
+            removeGameFromCollection(collection.id, gameId);
+            onToggle?.(collection.id, gameId, false);
+          })
+          .catch(() => {});
       } else {
-        addGameToCollection(collection.id, gameId);
-        addToast({
-          type: "success",
-          message: `Added "${gameName}" to ${collection.name}`,
-        });
-        onToggle?.(collection.id, gameId, true);
+        invoke("add_to_collection", { collectionId: collection.id, gameId })
+          .then(() => {
+            addGameToCollection(collection.id, gameId);
+            addToast({
+              type: "success",
+              message: `Added "${gameName}" to ${collection.name}`,
+            });
+            onToggle?.(collection.id, gameId, true);
+          })
+          .catch(() => {});
       }
     },
     [gameId, gameName, addGameToCollection, removeGameFromCollection, addToast, onToggle],

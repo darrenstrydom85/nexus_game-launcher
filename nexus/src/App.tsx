@@ -415,7 +415,11 @@ function MainApp() {
         return;
       }
       const collection = collections.find((c) => `${c.icon} ${c.name}` === collectionLabel);
-      if (collection) useCollectionStore.getState().addGameToCollection(collection.id, gameId);
+      if (collection) {
+        invoke("add_to_collection", { collectionId: collection.id, gameId })
+          .then(() => useCollectionStore.getState().addGameToCollection(collection.id, gameId))
+          .catch(() => {});
+      }
     },
     [games, collections],
   );
@@ -632,7 +636,9 @@ function MainApp() {
               .then((created) => {
                 useCollectionStore.getState().addCollection({ ...created, gameIds: [] });
                 if (gameIdToAdd) {
-                  useCollectionStore.getState().addGameToCollection(created.id, gameIdToAdd);
+                  invoke("add_to_collection", { collectionId: created.id, gameId: gameIdToAdd })
+                    .then(() => useCollectionStore.getState().addGameToCollection(created.id, gameIdToAdd))
+                    .catch(() => {});
                 }
               })
               .catch(() => {});
