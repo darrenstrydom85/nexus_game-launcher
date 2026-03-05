@@ -415,3 +415,14 @@ export function getTwitchTrendingLibraryGames(): Promise<
     "get_twitch_trending_library_games",
   );
 }
+
+// ── Version / Update Check (JSONBin) ─────────────────────────────────────
+export interface UpdateCheckResult {
+  updateAvailable: boolean;
+  latestVersion: string | null;
+  downloadUrl: string;
+}
+
+export function checkUpdateAvailable(): Promise<UpdateCheckResult> {
+  return invoke<UpdateCheckResult>("check_update_available");
+}

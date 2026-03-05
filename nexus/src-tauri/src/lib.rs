@@ -51,6 +51,7 @@ use commands::{
         get_twitch_streams_by_game, get_twitch_trending_library_games, set_twitch_favorite,
         twitch_auth_logout, twitch_auth_start, twitch_auth_status, validate_twitch_token,
     },
+    version_check::check_update_available,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -148,6 +149,7 @@ pub fn run() {
             set_twitch_favorite,
             clear_twitch_cache,
             check_connectivity,
+            check_update_available,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -47,6 +47,8 @@ import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
+import { useUpdateStore } from "@/stores/updateStore";
+import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -74,6 +76,9 @@ function MainApp() {
   const [syncResult, setSyncResult] = React.useState<{ added: number; updated: number } | null>(null);
   const [healthModalOpen, setHealthModalOpen] = React.useState(false);
   const [healthDeadGames, setHealthDeadGames] = React.useState<DeadGame[]>([]);
+  const [updateDialogOpen, setUpdateDialogOpen] = React.useState(false);
+  const updateCheckTriggered = React.useRef(false);
+  const runUpdateCheck = useUpdateStore((s) => s.runCheck);
 
   const lastHealthCheckAt = useSettingsStore((s) => s.lastHealthCheckAt);
   const healthCheckSnoozedUntil = useSettingsStore((s) => s.healthCheckSnoozedUntil);
@@ -175,6 +180,17 @@ function MainApp() {
   React.useEffect(() => {
     useConnectivityStore.getState().checkConnectivity();
   }, []);
+
+  // Version check on app load (once per session). If update available, show popup once unless dismissed.
+  React.useEffect(() => {
+    if (updateCheckTriggered.current) return;
+    updateCheckTriggered.current = true;
+    runUpdateCheck().then(() => {
+      if (useUpdateStore.getState().updateAvailable && !useUpdateStore.getState().popupDismissed) {
+        setUpdateDialogOpen(true);
+      }
+    });
+  }, [runUpdateCheck]);
 
   // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated
   React.useEffect(() => {
@@ -483,6 +499,10 @@ function MainApp() {
         deadGames={healthDeadGames}
         onClose={() => setHealthModalOpen(false)}
         onDeadGamesChange={setHealthDeadGames}
+      />
+      <UpdateAvailableDialog
+        open={updateDialogOpen}
+        onClose={() => setUpdateDialogOpen(false)}
       />
       <TwitchToastContainer />
       <ToastNotifications />

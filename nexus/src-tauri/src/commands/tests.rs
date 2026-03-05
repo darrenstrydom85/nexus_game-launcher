@@ -182,6 +182,7 @@ mod tests {
         assert!(urls.iter().any(|u| u.contains("steamgriddb.com")), "missing steamgriddb.com scope");
         assert!(urls.iter().any(|u| u.contains("api.igdb.com")), "missing api.igdb.com scope");
         assert!(urls.iter().any(|u| u.contains("id.twitch.tv")), "missing id.twitch.tv scope");
+        assert!(urls.iter().any(|u| u.contains("api.jsonbin.io")), "missing api.jsonbin.io scope");
     }
 
     #[test]
