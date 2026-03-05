@@ -103,7 +103,10 @@ export function StreamCard({
           </span>
         </div>
       </div>
-      <div className="flex flex-col gap-2 p-3">
+      <div className="flex flex-col gap-1.5 p-3">
+        <p className="truncate text-xs font-medium text-foreground" title={stream.gameName}>
+          {stream.gameName}
+        </p>
         <p
           className="line-clamp-2 text-xs text-muted-foreground"
           title={stream.title}

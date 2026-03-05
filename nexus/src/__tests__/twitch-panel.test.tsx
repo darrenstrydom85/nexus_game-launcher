@@ -124,7 +124,7 @@ describe("Story 19.4: Followed Streams Panel", () => {
     expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
-  it("renders live streams grouped by game", async () => {
+  it("renders live streams in a flat grid with game name on each card", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
@@ -156,9 +156,8 @@ describe("Story 19.4: Followed Streams Panel", () => {
       expect(screen.getByText("Live Now")).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByText("Test Game")).toBeInTheDocument();
+      expect(screen.getAllByText("Test Game").length).toBeGreaterThanOrEqual(2);
     });
-    expect(screen.getByText("2 streams")).toBeInTheDocument();
     expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Streamer3 streaming/)).toBeInTheDocument();
   });
