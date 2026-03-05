@@ -65,8 +65,8 @@ function MainApp() {
   const [editCollectionTarget, setEditCollectionTarget] = React.useState<Collection | null>(null);
   const [editGameTarget, setEditGameTarget] = React.useState<Game | null>(null);
   const [addToCollectionTarget, setAddToCollectionTarget] = React.useState<Game | null>(null);
-  /** When creating a new collection from "Add to Collection" flow, add this game to it on save. */
-  const [gameIdToAddToNewCollection, setGameIdToAddToNewCollection] = React.useState<string | null>(null);
+  /** When creating a new collection from "Add to Collection" flow, add this game to it on save. Ref avoids stale closure in onSave. */
+  const gameIdToAddToNewCollectionRef = React.useRef<string | null>(null);
   const [metadataSearchGame, setMetadataSearchGame] = React.useState<Game | null>(null);
   const metadataTriggered = React.useRef(false);
   const backfillTriggered = React.useRef(false);
@@ -409,7 +409,7 @@ function MainApp() {
       if (collectionLabel === "__new__") {
         const game = games.find((g) => g.id === gameId);
         if (game) {
-          setGameIdToAddToNewCollection(game.id);
+          gameIdToAddToNewCollectionRef.current = game.id;
           setCollectionEditorOpen(true);
         }
         return;
@@ -566,7 +566,7 @@ function MainApp() {
               open
               onClose={() => setAddToCollectionTarget(null)}
               onNewCollection={() => {
-                setGameIdToAddToNewCollection(addToCollectionTarget.id);
+                gameIdToAddToNewCollectionRef.current = addToCollectionTarget.id;
                 setAddToCollectionTarget(null);
                 setCollectionEditorOpen(true);
               }}
@@ -610,7 +610,7 @@ function MainApp() {
         onClose={() => {
           setCollectionEditorOpen(false);
           setEditCollectionTarget(null);
-          setGameIdToAddToNewCollection(null);
+          gameIdToAddToNewCollectionRef.current = null;
         }}
         editCollection={editCollectionTarget}
         onSave={(data) => {
@@ -630,8 +630,8 @@ function MainApp() {
               )
               .catch(() => {});
           } else {
-            const gameIdToAdd = gameIdToAddToNewCollection;
-            setGameIdToAddToNewCollection(null);
+            const gameIdToAdd = gameIdToAddToNewCollectionRef.current;
+            gameIdToAddToNewCollectionRef.current = null;
             invoke<Collection>("create_collection", { name: data.name, icon: data.icon, color: data.color })
               .then((created) => {
                 useCollectionStore.getState().addCollection({ ...created, gameIds: [] });
