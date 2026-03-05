@@ -192,6 +192,25 @@ function MainApp() {
     });
   }, [runUpdateCheck]);
 
+  // Hourly version check: show toast (not popup) when update available. Toast action opens Settings.
+  const HOUR_MS = 60 * 60 * 1000;
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      runUpdateCheck().then(() => {
+        if (!useUpdateStore.getState().updateAvailable) return;
+        addToast({
+          type: "info",
+          message: "An update is available.",
+          action: {
+            label: "Open Settings",
+            onClick: () => setSettingsOpen(true),
+          },
+        });
+      });
+    }, HOUR_MS);
+    return () => clearInterval(id);
+  }, [runUpdateCheck, addToast]);
+
   // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated
   React.useEffect(() => {
     validateTwitchToken()
