@@ -235,13 +235,19 @@ export const useTwitchStore = create<TwitchStore>()(
             "fetchFollowedStreams_ok",
           );
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          const isAuth = /auth|token|login|unauthorized/i.test(message);
+          const isAuthErr =
+            typeof err === "object" && err !== null && "kind" in err && (err as { kind: string }).kind === "auth";
+          const message =
+            typeof err === "object" && err !== null && "message" in err
+              ? (err as { message: string }).message
+              : err instanceof Error
+                ? err.message
+                : String(err);
           set(
             {
               isLoading: false,
               error: message,
-              isAuthenticated: isAuth ? false : get().isAuthenticated,
+              isAuthenticated: isAuthErr ? false : get().isAuthenticated,
               isRecoveryRefresh: false,
             },
             false,
@@ -359,7 +365,12 @@ export const useTwitchStore = create<TwitchStore>()(
             "fetchStreamsByGame_ok",
           );
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message =
+            typeof err === "object" && err !== null && "message" in err
+              ? (err as { message: string }).message
+              : err instanceof Error
+                ? err.message
+                : String(err);
           set(
             (s) => ({
               streamsByGameLoading: { ...s.streamsByGameLoading, [key]: false },

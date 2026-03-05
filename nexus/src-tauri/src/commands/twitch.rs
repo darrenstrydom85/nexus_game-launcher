@@ -222,15 +222,19 @@ async fn ensure_valid_twitch_token(
                     let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": true }));
                     return Ok((user_id, access_token));
                 }
-                Err(_) => {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-                    let _ = tokens::clear_all(&conn);
-                    drop(conn);
-                    let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": false }));
-                    return Err(CommandError::Auth("Twitch token refresh failed".to_string()));
+                Err(e) => {
+                    // Only clear tokens when Twitch says the refresh token is invalid/revoked.
+                    // Network/timeout/5xx are transient; keep tokens so next retry can succeed.
+                    if matches!(e, CommandError::Auth(_)) {
+                        let conn = db
+                            .conn
+                            .lock()
+                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let _ = tokens::clear_all(&conn);
+                        drop(conn);
+                        let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": false }));
+                    }
+                    return Err(e);
                 }
             }
         }
@@ -342,21 +346,31 @@ pub async fn twitch_auth_status(
                         expires_at: Some(new_expires_at),
                     });
                 }
-                Err(_) => {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-                    let _ = tokens::clear_all(&conn);
-                    drop(conn);
-                    let _ = app.emit(
-                        "twitch-auth-changed",
-                        serde_json::json!({ "authenticated": false, "displayName": null }),
-                    );
+                Err(e) => {
+                    // Only clear tokens when Twitch says the refresh token is invalid/revoked.
+                    // On network/timeout/5xx keep tokens so user stays "connected" and we can retry later.
+                    if matches!(e, CommandError::Auth(_)) {
+                        let conn = db
+                            .conn
+                            .lock()
+                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let _ = tokens::clear_all(&conn);
+                        drop(conn);
+                        let _ = app.emit(
+                            "twitch-auth-changed",
+                            serde_json::json!({ "authenticated": false, "displayName": null }),
+                        );
+                        return Ok(TwitchAuthStatus {
+                            authenticated: false,
+                            display_name: None,
+                            expires_at: None,
+                        });
+                    }
+                    // Transient error: return still-authenticated so UI doesn't prompt reconnect; next fetch will retry refresh.
                     return Ok(TwitchAuthStatus {
-                        authenticated: false,
-                        display_name: None,
-                        expires_at: None,
+                        authenticated: true,
+                        display_name: display_name.clone(),
+                        expires_at: expires_at_opt,
                     });
                 }
             }

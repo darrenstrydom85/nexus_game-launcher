@@ -182,7 +182,10 @@ pub async fn refresh_access_token(
     client_id: &str,
     refresh_token: &str,
 ) -> Result<(String, String, i64), CommandError> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|e| CommandError::Unknown(format!("http client build: {e}")))?;
     let res = client
         .post(TWITCH_TOKEN)
         .form(&[
@@ -269,10 +272,12 @@ fn parse_token_error(status: u16, body: &str) -> CommandError {
         .unwrap_or_else(|| body.to_string());
     if status == 400 && (msg.contains("invalid") || msg.contains("grant")) {
         CommandError::Auth(msg)
-    } else if status == 401 {
-        CommandError::Auth("Token exchange unauthorized".to_string())
+    } else if status == 401 || status == 403 {
+        CommandError::Auth(format!("Token exchange unauthorized ({})", status))
+    } else if status >= 500 {
+        CommandError::Api(format!("Twitch server error {}: {}", status, msg))
     } else {
-        CommandError::Auth(msg)
+        CommandError::Api(format!("Twitch token error {}: {}", status, msg))
     }
 }
 
