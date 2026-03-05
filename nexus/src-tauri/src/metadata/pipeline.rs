@@ -2,6 +2,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::commands::utils;
 use crate::db::DbState;
 use crate::metadata::cache;
 use crate::metadata::igdb::IgdbClient;
@@ -171,9 +172,12 @@ pub async fn fetch_metadata_for_game(
         None,
     );
 
+    // Use normalized title for API lookups (TM, (R), ® etc. break IGDB/SteamGridDB matching)
+    let search_name = utils::normalize_game_title(&game_name);
+
     // Fetch IGDB metadata if available
     if let Some(ref igdb) = ctx.igdb {
-        match fetch_igdb_metadata(igdb, db, game_id, &game_name).await {
+        match fetch_igdb_metadata(igdb, db, game_id, &search_name).await {
             Ok(()) => {
                 if let Some(info) = igdb.get_cached_token_info() {
                     save_igdb_token(db, &info.0, info.1);
@@ -198,7 +202,7 @@ pub async fn fetch_metadata_for_game(
             &ctx.http,
             db,
             game_id,
-            &game_name,
+            &search_name,
             steam_appid,
         )
         .await
@@ -295,7 +299,8 @@ pub async fn fetch_metadata_for_game_with_igdb_id(
 
     // SteamGridDB artwork: use the IGDB game name so artwork matches the game the user selected (unless caller will let user pick)
     if !skip_steamgrid {
-        let artwork_search_name = igdb_game_name.as_deref().unwrap_or(&game_name);
+        let search_name = utils::normalize_game_title(&game_name);
+        let artwork_search_name = igdb_game_name.as_deref().unwrap_or(&search_name);
         if let Some(ref steamgrid) = ctx.steamgrid {
             let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
             if let Err(e) = fetch_steamgrid_artwork(
@@ -573,9 +578,10 @@ pub async fn fetch_artwork_for_game(
         None,
     );
 
+    let search_name = utils::normalize_game_title(&game_name);
     if let Some(ref steamgrid) = ctx.steamgrid {
         let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
-        fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &game_name, steam_appid)
+        fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &search_name, steam_appid)
             .await
             .map_err(|e| MetadataSyncError {
                 source: "SteamGridDB".into(),

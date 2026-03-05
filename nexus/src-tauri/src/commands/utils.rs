@@ -1,5 +1,34 @@
-/// Shared time utilities for Tauri commands.
+/// Shared time utilities and string helpers for Tauri commands.
 /// Uses no external crates — pure std only.
+
+/// Normalizes a game title for storage and metadata lookup by stripping
+/// trademark, registered, and copyright symbols (e.g. TM, (R), ®, ™, ©)
+/// so APIs like IGDB and SteamGridDB can match correctly.
+pub fn normalize_game_title(s: &str) -> String {
+    let mut t = s
+        .replace('\u{00AE}', "")  // ®
+        .replace('\u{2122}', "")  // ™
+        .replace('\u{00A9}', ""); // ©
+
+    // Strip parenthesized (R), (r), (TM), (tm), (C), (c) and common variants
+    let patterns = [
+        " (R)", "(R)", " (r)", "(r)", " (TM)", "(TM)", " (tm)", "(tm)",
+        " (C)", "(C)", " (c)", "(c)", " (C)", " ®", " ™", " ©",
+    ];
+    for p in &patterns {
+        t = t.replace(p, "");
+    }
+
+    // Strip trailing " TM" or " tm" (standalone suffix)
+    if t.ends_with(" TM") {
+        t = t.trim_end_matches(" TM").to_string();
+    } else if t.ends_with(" tm") {
+        t = t.trim_end_matches(" tm").to_string();
+    }
+
+    // Collapse internal whitespace and trim
+    t.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+}
 
 pub fn now_iso() -> String {
     let now = std::time::SystemTime::now()
@@ -102,5 +131,36 @@ mod tests {
         // 2026-01-01T00:00:00Z = 1767225600 seconds since epoch
         let secs = iso_to_epoch_secs("2026-01-01T00:00:00Z").unwrap();
         assert_eq!(secs, 1767225600);
+    }
+
+    // ── normalize_game_title ──
+
+    #[test]
+    fn normalize_game_title_strips_tm() {
+        assert_eq!(normalize_game_title("Game Name TM"), "Game Name");
+        assert_eq!(normalize_game_title("Game Name tm"), "Game Name");
+    }
+
+    #[test]
+    fn normalize_game_title_strips_r() {
+        assert_eq!(normalize_game_title("Game Name (R)"), "Game Name");
+        assert_eq!(normalize_game_title("Game Name(R)"), "Game Name");
+    }
+
+    #[test]
+    fn normalize_game_title_strips_unicode_symbols() {
+        assert_eq!(normalize_game_title("Game®"), "Game");
+        assert_eq!(normalize_game_title("Game™"), "Game");
+        assert_eq!(normalize_game_title("Game©"), "Game");
+    }
+
+    #[test]
+    fn normalize_game_title_collapses_whitespace() {
+        assert_eq!(normalize_game_title("  Game   Name  "), "Game Name");
+    }
+
+    #[test]
+    fn normalize_game_title_unchanged_when_clean() {
+        assert_eq!(normalize_game_title("Halo Infinite"), "Halo Infinite");
     }
 }
