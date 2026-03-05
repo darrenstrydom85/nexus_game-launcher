@@ -11,6 +11,7 @@ import { ConfirmLibraryStep } from "@/components/Onboarding/ConfirmLibraryStep";
 import { AppShell } from "@/components/shared/AppShell";
 import { LibraryView } from "@/components/Library/LibraryView";
 import { LibraryStats } from "@/components/Library/LibraryStats";
+import { WrappedView } from "@/components/Wrapped/WrappedView";
 import { GameDetailOverlay } from "@/components/GameDetail/GameDetailOverlay";
 import { DetailContent } from "@/components/GameDetail/DetailContent";
 import { EditGameModal, type EditGameFields } from "@/components/GameDetail/EditGameModal";
@@ -49,6 +50,7 @@ import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
+import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function MainApp() {
   const { launch: launchGame } = useLaunchLifecycle();
@@ -81,6 +83,8 @@ function MainApp() {
   const [updateDialogOpen, setUpdateDialogOpen] = React.useState(false);
   const updateCheckTriggered = React.useRef(false);
   const runUpdateCheck = useUpdateStore((s) => s.runCheck);
+  const [hasPlayHistory, setHasPlayHistory] = React.useState(false);
+  const playHistoryChecked = React.useRef(false);
 
   const lastHealthCheckAt = useSettingsStore((s) => s.lastHealthCheckAt);
   const healthCheckSnoozedUntil = useSettingsStore((s) => s.healthCheckSnoozedUntil);
@@ -103,6 +107,22 @@ function MainApp() {
   React.useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  React.useEffect(() => {
+    if (playHistoryChecked.current) return;
+    playHistoryChecked.current = true;
+    getAvailableWrappedPeriods()
+      .then((avail) => {
+        const hasData =
+          avail.thisMonthHasData ||
+          avail.lastMonthHasData ||
+          avail.thisYearHasData ||
+          avail.lastYearHasData ||
+          avail.yearsWithSessions.length > 0;
+        setHasPlayHistory(hasData);
+      })
+      .catch(() => {});
+  }, []);
 
   useSettingsApplier();
 
@@ -427,6 +447,7 @@ function MainApp() {
   return (
     <AppShell
       onSettingsClick={() => setSettingsOpen(true)}
+      hasPlayHistory={hasPlayHistory}
       onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
       onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
       onDeleteCollection={(c) => {
@@ -459,10 +480,14 @@ function MainApp() {
         useUiStore.getState().setDetailOverlayGameId(gameId);
       }}
     >
-      {activeNav === "twitch" ? (
+      {activeNav === "wrapped" ? (
+        <WrappedView onClose={() => useUiStore.getState().setActiveNav("stats")} />
+      ) : activeNav === "twitch" ? (
         <TwitchPanel />
       ) : activeNav === "stats" ? (
-        <LibraryStats />
+        <LibraryStats
+          onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
+        />
       ) : (
         <LibraryView
           onPlay={(game) => launch(game)}

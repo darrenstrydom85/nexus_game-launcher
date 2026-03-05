@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
-import { Calendar, Clock, Gamepad2, GamepadIcon, Trophy, TrendingUp } from "lucide-react";
+import { Calendar, Clock, Gamepad2, GamepadIcon, Gift, Trophy, TrendingUp } from "lucide-react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
 import { ActivityChart } from "./stats/ActivityChart";
@@ -113,6 +113,8 @@ interface LibraryStatsProps {
   sessions?: SessionRecord[];
   /** Initial date range. When omitted, defaults to current month (used when navigating to stats in app). */
   initialDateRange?: StatsDateRange;
+  /** Called when the user clicks "My Wrapped". */
+  onOpenWrapped?: () => void;
 }
 
 const DEFAULT_STATS: PlayStats = {
@@ -210,6 +212,7 @@ export function LibraryStats({
   topGames: topGamesProp,
   sessions: sessionsProp,
   initialDateRange,
+  onOpenWrapped,
 }: LibraryStatsProps) {
   const [stats, setStats] = React.useState<PlayStats>(statsProp ?? DEFAULT_STATS);
   const [activityData, setActivityData] = React.useState<ActivityDataPoint[]>(activityDataProp ?? []);
@@ -324,7 +327,23 @@ export function LibraryStats({
   return (
     <div data-testid="library-stats" className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Library Stats</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-foreground">Library Stats</h2>
+          {onOpenWrapped && (
+            <button
+              type="button"
+              data-testid="open-wrapped-button"
+              onClick={onOpenWrapped}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground",
+                "transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              <Gift className="size-3.5" aria-hidden />
+              My Wrapped
+            </button>
+          )}
+        </div>
         <div
           data-testid="stats-date-range"
           className="flex flex-wrap items-center gap-2"

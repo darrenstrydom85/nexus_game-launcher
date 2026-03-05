@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useUiStore } from "@/stores/uiStore";
+import { useUiStore, type NavItem } from "@/stores/uiStore";
 import { useGameStore, type GameSource } from "@/stores/gameStore";
 import { useFilterStore } from "@/stores/filterStore";
 import { useTwitchStore } from "@/stores/twitchStore";
@@ -9,6 +9,7 @@ import {
   BarChart3,
   ChevronDown,
   FolderOpen,
+  Gift,
   Heart,
   Library,
   Shuffle,
@@ -31,7 +32,7 @@ const SOURCE_LABELS: Record<GameSource, string> = {
   standalone: "Standalone",
 };
 
-export type NavItem = "library" | "stats" | "random" | "twitch";
+export type { NavItem } from "@/stores/uiStore";
 
 function ScoreRangeSlider({
   min,
@@ -175,6 +176,8 @@ interface SidebarProps {
   onDeleteCollection?: (collection: Collection) => void;
   enabledSources?: GameSource[];
   onToggleSource?: (source: GameSource) => void;
+  /** Show the Wrapped nav item only when the user has play history. */
+  hasPlayHistory?: boolean;
 }
 
 export function Sidebar({
@@ -185,6 +188,7 @@ export function Sidebar({
   onDeleteCollection,
   enabledSources,
   onToggleSource,
+  hasPlayHistory = false,
 }: SidebarProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const sourceFilter = useUiStore((s) => s.sourceFilter);
@@ -234,9 +238,12 @@ export function Sidebar({
   const baseNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: "library", label: "Library", icon: <Library className="size-4" /> },
     { id: "stats", label: "Stats", icon: <BarChart3 className="size-4" /> },
+    ...(hasPlayHistory
+      ? [{ id: "wrapped" as NavItem, label: "Wrapped", icon: <Gift className="size-4" /> }]
+      : []),
     { id: "random", label: "Random", icon: <Shuffle className="size-4" /> },
     {
-      id: "twitch",
+      id: "twitch" as NavItem,
       label: "Twitch",
       icon: (
         <span className="relative inline-flex shrink-0">

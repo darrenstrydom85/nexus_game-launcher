@@ -22,9 +22,10 @@ interface AppShellProps {
   onDeleteCollection?: (collection: Collection) => void;
   onStopGame?: () => void;
   onGameDetails?: (gameId: string) => void;
+  hasPlayHistory?: boolean;
 }
 
-export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails }: AppShellProps) {
+export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails, hasPlayHistory }: AppShellProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const healthIssueCount = useSettingsStore((s) => s.healthCheckIssueCount);
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
@@ -90,6 +91,7 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
                 onAddCollection={onAddCollection}
                 onEditCollection={onEditCollection}
                 onDeleteCollection={onDeleteCollection}
+                hasPlayHistory={hasPlayHistory}
               />
             </div>
 
@@ -203,6 +205,7 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
                         }}
                         onEditCollection={onEditCollection}
                         onDeleteCollection={onDeleteCollection}
+                        hasPlayHistory={hasPlayHistory}
                       />
                     </div>
 
