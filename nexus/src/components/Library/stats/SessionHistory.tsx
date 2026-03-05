@@ -36,9 +36,16 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const storeGames = useGameStore((s) => s.games);
   const gameIdSet = React.useMemo(() => new Set(storeGames.map((g) => g.id)), [storeGames]);
+  const gameByName = React.useMemo(
+    () => new Map(storeGames.map((g) => [g.name.toLowerCase(), g.id])),
+    [storeGames],
+  );
   const [page, setPage] = React.useState(0);
   const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
   const pageItems = sessions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const resolveGameId = (s: SessionRecord): string | null =>
+    gameIdSet.has(s.gameId) ? s.gameId : gameByName.get(s.gameName.toLowerCase()) ?? null;
 
   return (
     <div data-testid="session-history">
@@ -52,7 +59,7 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
         <>
           <div className="flex flex-col">
             {pageItems.map((s) => {
-              const gameExists = gameIdSet.has(s.gameId);
+              const matchedId = resolveGameId(s);
               return (
               <div
                 key={s.id}
@@ -60,10 +67,10 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
                 className="grid items-center border-b border-border px-2 py-2 text-sm transition-colors hover:bg-white/5"
                 style={{ gridTemplateColumns: "1fr 7rem 9rem 4rem" }}
               >
-                {gameExists ? (
+                {matchedId ? (
                   <button
                     className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
-                    onClick={() => setDetailOverlayGameId(s.gameId)}
+                    onClick={() => setDetailOverlayGameId(matchedId)}
                   >
                     {s.gameName}
                   </button>

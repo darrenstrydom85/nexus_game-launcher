@@ -3,6 +3,7 @@ import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 import { Calendar, Clock, Gamepad2, GamepadIcon, Trophy, TrendingUp } from "lucide-react";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useGameStore } from "@/stores/gameStore";
 import { ActivityChart } from "./stats/ActivityChart";
 import { ActivityHeatmap } from "./stats/ActivityHeatmap";
 import { TopGamesChart } from "./stats/TopGamesChart";
@@ -180,6 +181,7 @@ function deriveStatsFromSessions(sessions: SessionRecord[]): PlayStats {
 function deriveTopGamesFromSessions(
   sessions: SessionRecord[],
   coverByGameId: Map<string, string | null>,
+  coverByName: Map<string, string | null>,
 ): TopGame[] {
   const byGame = new Map<
     string,
@@ -197,7 +199,7 @@ function deriveTopGamesFromSessions(
   return sorted.map(([id, v]) => ({
     id,
     name: v.name,
-    coverUrl: coverByGameId.get(id) ?? null,
+    coverUrl: coverByGameId.get(id) ?? coverByName.get(v.name.toLowerCase()) ?? null,
     totalPlayTimeS: v.totalPlayTimeS,
   }));
 }
@@ -225,6 +227,7 @@ export function LibraryStats({
     defaultRange === "all" ? "" : defaultRange.end,
   );
   const accentColor = useSettingsStore((s) => s.accentColor);
+  const storeGames = useGameStore((s) => s.games);
 
   const filteredActivity = React.useMemo(
     () => filterByDateRange(activityData, dateRange),
@@ -242,10 +245,14 @@ export function LibraryStats({
     () => new Map(topGames.map((g) => [g.id, g.coverUrl])),
     [topGames],
   );
+  const coverByName = React.useMemo(
+    () => new Map(storeGames.map((g) => [g.name.toLowerCase(), g.coverUrl])),
+    [storeGames],
+  );
   const displayTopGames = React.useMemo((): TopGame[] => {
     if (dateRange === "all") return topGames;
-    return deriveTopGamesFromSessions(filteredSessions, coverByGameId);
-  }, [dateRange, topGames, filteredSessions, coverByGameId]);
+    return deriveTopGamesFromSessions(filteredSessions, coverByGameId, coverByName);
+  }, [dateRange, topGames, filteredSessions, coverByGameId, coverByName]);
 
   React.useEffect(() => {
     if (statsProp !== undefined) return;

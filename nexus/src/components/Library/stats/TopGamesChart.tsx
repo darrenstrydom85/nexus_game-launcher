@@ -1,3 +1,4 @@
+import * as React from "react";
 import { formatPlayTime } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 import { useGameStore } from "@/stores/gameStore";
@@ -14,10 +15,21 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
   const top10 = games.slice(0, 10);
   const maxTime = top10[0]?.totalPlayTimeS ?? 1;
 
-  const handleClick = (gameId: string) => {
-    if (storeGames.some((g) => g.id === gameId)) {
-      setDetailOverlayGameId(gameId);
-    }
+  const storeById = React.useMemo(
+    () => new Map(storeGames.map((g) => [g.id, g])),
+    [storeGames],
+  );
+  const storeByName = React.useMemo(
+    () => new Map(storeGames.map((g) => [g.name.toLowerCase(), g])),
+    [storeGames],
+  );
+
+  const resolveStoreGame = (game: TopGame) =>
+    storeById.get(game.id) ?? storeByName.get(game.name.toLowerCase()) ?? null;
+
+  const handleClick = (game: TopGame) => {
+    const match = resolveStoreGame(game);
+    if (match) setDetailOverlayGameId(match.id);
   };
 
   return (
@@ -31,18 +43,19 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
         <div className="flex flex-col gap-2">
           {top10.map((game, i) => {
             const pct = Math.round((game.totalPlayTimeS / maxTime) * 100);
-            const gameExists = storeGames.some((g) => g.id === game.id);
+            const match = resolveStoreGame(game);
+            const coverUrl = game.coverUrl ?? match?.coverUrl ?? null;
             return (
               <button
                 key={game.id}
                 data-testid={`top-game-${i}`}
                 className="flex items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-white/5"
-                onClick={() => handleClick(game.id)}
+                onClick={() => handleClick(game)}
               >
                 <div className="size-8 shrink-0 overflow-hidden rounded">
-                  {game.coverUrl ? (
+                  {coverUrl ? (
                     <img
-                      src={game.coverUrl}
+                      src={coverUrl}
                       alt={game.name}
                       className="h-full w-full object-cover"
                     />
@@ -59,7 +72,7 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
                 </div>
                 <div className="flex flex-1 flex-col gap-0.5">
                   <div className="flex items-center justify-between">
-                    <span className={`truncate text-xs font-medium ${gameExists ? "text-foreground hover:text-primary hover:underline" : "text-muted-foreground"}`}>
+                    <span className={`truncate text-xs font-medium ${match ? "text-foreground hover:text-primary hover:underline" : "text-muted-foreground"}`}>
                       {game.name}
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
