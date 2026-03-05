@@ -426,3 +426,32 @@ export interface UpdateCheckResult {
 export function checkUpdateAvailable(): Promise<UpdateCheckResult> {
   return invoke<UpdateCheckResult>("check_update_available");
 }
+
+// ── Wrapped Report (Story 16.1) ─────────────────────────────────────
+export type {
+  WrappedPeriod,
+  WrappedReport,
+  WrappedGame,
+  WrappedSession,
+  GenreShare,
+  PlatformShare,
+  FunFact,
+  Comparison,
+  MonthBucket,
+  DayBucket,
+  HourBucket,
+  HiddenGem,
+  AvailableWrappedPeriods,
+} from "../types/wrapped";
+
+export function getWrappedReport(
+  period: import("../types/wrapped").WrappedPeriod,
+): Promise<import("../types/wrapped").WrappedReport> {
+  return invoke("get_wrapped_report", { period });
+}
+
+export function getAvailableWrappedPeriods(): Promise<
+  import("../types/wrapped").AvailableWrappedPeriods
+> {
+  return invoke("get_available_wrapped_periods");
+}

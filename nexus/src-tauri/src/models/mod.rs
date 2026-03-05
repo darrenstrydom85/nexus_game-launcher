@@ -2,8 +2,13 @@ pub mod collection;
 pub mod game;
 pub mod session;
 pub mod settings;
+pub mod wrapped;
 
 pub use collection::{Collection, CollectionWithCount};
 pub use game::{Game, GameSource, GameStatus};
 pub use session::{ActivityBucket, PlaySession, PlayStats};
 pub use settings::{Setting, SettingsMap, WatchedFolder};
+pub use wrapped::{
+    AvailableWrappedPeriods, Comparison, DayBucket, FunFact, GenreShare, HiddenGem, HourBucket,
+    MonthBucket, PlatformShare, WrappedGame, WrappedPeriod, WrappedReport, WrappedSession,
+};

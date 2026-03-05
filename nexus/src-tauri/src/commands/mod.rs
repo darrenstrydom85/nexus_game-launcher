@@ -16,6 +16,7 @@ pub mod sources;
 pub mod twitch;
 pub mod utils;
 pub mod version_check;
+pub mod wrapped;
 
 #[cfg(test)]
 mod tests;

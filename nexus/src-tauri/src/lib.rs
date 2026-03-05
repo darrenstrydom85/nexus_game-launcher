@@ -34,6 +34,7 @@ use commands::{
         create_session, end_session, get_activity_data, get_all_sessions, get_library_stats,
         get_orphaned_sessions, get_play_sessions, get_play_stats, get_top_games,
     },
+    wrapped::{get_available_wrapped_periods, get_wrapped_report},
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
         set_setting,
@@ -100,6 +101,8 @@ pub fn run() {
             get_library_stats,
             get_top_games,
             get_all_sessions,
+            get_wrapped_report,
+            get_available_wrapped_periods,
             get_collections,
             create_collection,
             update_collection,

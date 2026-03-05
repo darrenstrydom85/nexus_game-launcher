@@ -61,6 +61,33 @@ fn days_to_ymd(days_since_epoch: u64) -> (u64, u64, u64) {
     (y, m, d)
 }
 
+/// Parses a date-only string "YYYY-MM-DD" and returns epoch seconds for start of that day (00:00:00 UTC).
+pub fn date_only_to_start_epoch_secs(date_str: &str) -> Result<i64, String> {
+    let trimmed = date_str.trim();
+    if trimmed.len() < 10 {
+        return Err(format!("invalid date string (expected YYYY-MM-DD): {date_str}"));
+    }
+    let iso = format!("{}T00:00:00Z", &trimmed[..10]);
+    iso_to_epoch_secs(&iso)
+}
+
+/// Parses a date-only string "YYYY-MM-DD" and returns epoch seconds for end of that day (23:59:59 UTC).
+pub fn date_only_to_end_epoch_secs(date_str: &str) -> Result<i64, String> {
+    let trimmed = date_str.trim();
+    if trimmed.len() < 10 {
+        return Err(format!("invalid date string (expected YYYY-MM-DD): {date_str}"));
+    }
+    let iso = format!("{}T23:59:59Z", &trimmed[..10]);
+    iso_to_epoch_secs(&iso)
+}
+
+/// Converts epoch seconds to ISO date string "YYYY-MM-DD" (UTC).
+pub fn epoch_secs_to_iso_date(epoch_secs: i64) -> String {
+    let days = (epoch_secs / 86400) as u64;
+    let (y, m, d) = days_to_ymd(days);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
 pub fn iso_to_epoch_secs(iso: &str) -> Result<i64, String> {
     let trimmed = iso.trim_end_matches('Z');
     let parts: Vec<&str> = trimmed.split('T').collect();
