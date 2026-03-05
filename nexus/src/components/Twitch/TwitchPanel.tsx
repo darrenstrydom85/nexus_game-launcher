@@ -51,6 +51,7 @@ export function TwitchPanel() {
 
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const [offlineOpen, setOfflineOpen] = React.useState(false);
+  const [gameFilter, setGameFilter] = React.useState<string>("");
   const activeNav = useUiStore((s) => s.activeNav);
   const twitchPanelScrollToGameName = useUiStore(
     (s) => s.twitchPanelScrollToGameName,
@@ -126,6 +127,24 @@ export function TwitchPanel() {
         }),
     [channels],
   );
+
+  const uniqueGames = React.useMemo(() => {
+    const names = liveStreams.map((s) => s.gameName || "Just Chatting");
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+  }, [liveStreams]);
+
+  const filteredLiveStreams = React.useMemo(() => {
+    if (!gameFilter) return liveStreams;
+    return liveStreams.filter(
+      (s) => (s.gameName || "Just Chatting") === gameFilter,
+    );
+  }, [liveStreams, gameFilter]);
+
+  React.useEffect(() => {
+    if (gameFilter && !uniqueGames.includes(gameFilter)) {
+      setGameFilter("");
+    }
+  }, [gameFilter, uniqueGames]);
 
   const handleToggleFavorite = React.useCallback(
     (channelId: string) => (e: React.MouseEvent) => {
@@ -221,7 +240,7 @@ export function TwitchPanel() {
       )}
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 flex flex-col gap-1 border-b border-border bg-background px-6 py-4">
+      <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-border bg-background px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -272,6 +291,32 @@ export function TwitchPanel() {
         {/* Trending in Your Library (Story 19.9) */}
         <TrendingInLibrary />
 
+        {liveStreams.length > 0 && uniqueGames.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <label
+              htmlFor="twitch-game-filter"
+              className="text-sm text-muted-foreground"
+            >
+              Filter Streams by Game
+            </label>
+            <select
+              id="twitch-game-filter"
+              data-testid="twitch-game-filter"
+              aria-label="Filter live streams by game"
+              value={gameFilter}
+              onChange={(e) => setGameFilter(e.target.value)}
+              className="rounded-md border border-border bg-input px-2 py-1.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <option value="">All games</option>
+              {uniqueGames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Live Now */}
         <section className="mb-8" aria-labelledby="live-now-heading">
           <h2
@@ -286,9 +331,13 @@ export function TwitchPanel() {
           </h2>
           {liveStreams.length === 0 ? (
             <p className="text-sm text-muted-foreground">No one is live.</p>
+          ) : filteredLiveStreams.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No streams for this game. Try another filter.
+            </p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
-              {liveStreams.map((stream) => {
+              {filteredLiveStreams.map((stream) => {
                 const channel = channels.find(
                   (c) => c.login === stream.login,
                 );

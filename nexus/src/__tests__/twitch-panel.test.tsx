@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
@@ -178,7 +178,8 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
     render(<TwitchPanel />);
     await waitFor(() => {
-      expect(screen.getByText("Test Game")).toBeInTheDocument();
+      const liveSection = screen.getByRole("region", { name: "Live Now" });
+      expect(within(liveSection).getByText("Test Game")).toBeInTheDocument();
     });
     expect(screen.getAllByText("In Library").length).toBeGreaterThan(0);
   });
@@ -289,5 +290,45 @@ describe("Story 19.4: Followed Streams Panel", () => {
       expect(screen.getByText("Couldn't reach Twitch")).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it("shows game filter with unique games from live streams and filters by selection", async () => {
+    const channelOtherGame = {
+      ...mockChannelLive,
+      id: "c3",
+      login: "streamer3",
+      displayName: "Streamer3",
+      stream: {
+        ...mockChannelLive.stream!,
+        gameName: "Just Chatting",
+      },
+    };
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "twitch_auth_status") {
+        return Promise.resolve({ authenticated: true });
+      }
+      if (cmd === "get_twitch_followed_channels") {
+        return Promise.resolve({
+          data: [mockChannelLive, channelOtherGame],
+          stale: false,
+          cachedAt: null,
+        });
+      }
+      return Promise.resolve({});
+    });
+    render(<TwitchPanel />);
+    await waitFor(() => {
+      expect(screen.getByTestId("twitch-game-filter")).toBeInTheDocument();
+    });
+    const filter = screen.getByTestId("twitch-game-filter");
+    expect(filter).toHaveValue("");
+    expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Streamer3 streaming/)).toBeInTheDocument();
+    fireEvent.change(filter, { target: { value: "Just Chatting" } });
+    expect(screen.getByLabelText(/Streamer3 streaming/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Streamer1 streaming/)).not.toBeInTheDocument();
+    fireEvent.change(filter, { target: { value: "" } });
+    expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Streamer3 streaming/)).toBeInTheDocument();
   });
 });

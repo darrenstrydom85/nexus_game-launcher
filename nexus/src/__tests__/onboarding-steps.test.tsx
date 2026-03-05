@@ -314,31 +314,34 @@ describe("Story 9.5: ConfirmLibraryStep", () => {
     expect(screen.getByTestId("filter-epic")).toBeInTheDocument();
   });
 
-  it("renders game cards in grid", () => {
+  it("renders game cards in list", () => {
     render(<ConfirmLibraryStep />);
-    expect(screen.getByTestId("confirm-game-grid")).toBeInTheDocument();
+    expect(screen.getByTestId("confirm-game-list")).toBeInTheDocument();
     expect(screen.getByTestId("confirm-card-g1")).toBeInTheDocument();
     expect(screen.getByTestId("confirm-card-g2")).toBeInTheDocument();
   });
 
-  it("allows inline name editing", () => {
-    render(<ConfirmLibraryStep />);
-    const input = screen.getByTestId("confirm-name-g1");
-    fireEvent.change(input, { target: { value: "Renamed Game" } });
-    expect(input).toHaveValue("Renamed Game");
-  });
-
   it("toggle excludes/includes game", () => {
     render(<ConfirmLibraryStep />);
-    fireEvent.click(screen.getByTestId("confirm-toggle-g1"));
     const card = screen.getByTestId("confirm-card-g1");
-    expect(card.className).toContain("opacity-50");
+    expect(card).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(card);
+    expect(screen.getByTestId("confirm-card-g1")).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("dismiss removes game from list", () => {
+  it("toggle excluded game shows reduced opacity", () => {
     render(<ConfirmLibraryStep />);
-    fireEvent.click(screen.getByTestId("confirm-dismiss-g2"));
-    expect(screen.queryByTestId("confirm-card-g2")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("confirm-card-g1"));
+    const card = screen.getByTestId("confirm-card-g1");
+    expect(card.className).toContain("opacity-40");
+  });
+
+  it("re-toggling excluded game restores it", () => {
+    render(<ConfirmLibraryStep />);
+    fireEvent.click(screen.getByTestId("confirm-card-g2"));
+    expect(screen.getByTestId("confirm-card-g2")).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByTestId("confirm-card-g2"));
+    expect(screen.getByTestId("confirm-card-g2")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("filter tabs filter by source", () => {

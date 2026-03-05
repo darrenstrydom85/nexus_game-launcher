@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
 import { CollectionEditor } from "@/components/Collections/CollectionEditor";
 import { CollectionView } from "@/components/Collections/CollectionView";
@@ -261,21 +261,25 @@ describe("Story 10.4: AddToCollectionPopover", () => {
     expect(check.className).toContain("bg-primary");
   });
 
-  it("toggle adds game to collection with toast", () => {
+  it("toggle adds game to collection with toast", async () => {
     render(
       <AddToCollectionPopover gameId="g1" gameName="Test Game" open onClose={() => {}} />,
     );
-    fireEvent.click(screen.getByTestId("atc-option-c2"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("atc-option-c2"));
+    });
     expect(useCollectionStore.getState().collections.find((c) => c.id === "c2")?.gameIds).toContain("g1");
     expect(useToastStore.getState().toasts).toHaveLength(1);
     expect(useToastStore.getState().toasts[0].message).toContain("Added");
   });
 
-  it("toggle removes game from collection", () => {
+  it("toggle removes game from collection", async () => {
     render(
       <AddToCollectionPopover gameId="g1" gameName="Game" open onClose={() => {}} />,
     );
-    fireEvent.click(screen.getByTestId("atc-option-c1"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("atc-option-c1"));
+    });
     expect(useCollectionStore.getState().collections.find((c) => c.id === "c1")?.gameIds).not.toContain("g1");
   });
 

@@ -42,8 +42,8 @@
       "nsis": {
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
-        "headerImage": "icons/128x128.png",
-        "sidebarImage": "icons/128x128.png"
+        "headerImage": null,
+        "sidebarImage": null
       },
       "webviewInstallMode": {
         "type": "downloadBootstrapper"

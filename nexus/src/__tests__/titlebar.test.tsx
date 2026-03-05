@@ -27,9 +27,9 @@ describe("Story 5.3: Custom Window Chrome & Titlebar", () => {
     expect(screen.getByTestId("titlebar")).toBeInTheDocument();
   });
 
-  it("displays app logo 'N' and 'Nexus' text", () => {
+  it("displays app logo and 'Nexus' text", () => {
     render(<Titlebar />);
-    expect(screen.getByText("N")).toBeInTheDocument();
+    expect(screen.getByLabelText("Go to Library")).toBeInTheDocument();
     expect(screen.getByText("Nexus")).toBeInTheDocument();
   });
 

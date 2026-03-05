@@ -9,6 +9,7 @@ import {
   X,
   Search,
 } from "lucide-react";
+import nexusLogo20 from "@/assets/nexus-logo-20.png";
 
 function getAppWindow() {
   return getCurrentWindow();
@@ -18,6 +19,7 @@ export function Titlebar() {
   const [isMaximized, setIsMaximized] = React.useState(false);
   const appWindowRef = React.useRef(getAppWindow());
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);
+  const setActiveNav = useUiStore((s) => s.setActiveNav);
 
   React.useEffect(() => {
     const appWindow = appWindowRef.current;
@@ -64,9 +66,20 @@ export function Titlebar() {
     >
       {/* Left: Logo + Title */}
       <div className="flex items-center gap-2 pl-3">
-        <div className="flex size-5 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
-          N
-        </div>
+        <button
+          type="button"
+          className="titlebar-no-drag flex size-5 shrink-0 items-center justify-center rounded transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setActiveNav("library")}
+          aria-label="Go to Library"
+        >
+          <img
+            src={nexusLogo20}
+            alt=""
+            width={20}
+            height={20}
+            className="size-5"
+          />
+        </button>
         <span className="text-sm font-semibold tracking-tight text-foreground">
           Nexus
         </span>

@@ -161,7 +161,7 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     });
   });
 
-  it("favorited live streamers appear in Favorites group", async () => {
+  it("favorited live streamers appear in Live Now with star icon", async () => {
     const liveFav = mockChannelLive({
       id: "c1",
       login: "streamer1",
@@ -194,10 +194,13 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     });
     renderWithTooltip(<TwitchPanel />);
     await waitFor(() => {
-      expect(screen.getByText("Favorites")).toBeInTheDocument();
+      expect(screen.getByText("Live Now")).toBeInTheDocument();
     });
     expect(screen.getByText("Streamer1")).toBeInTheDocument();
-    expect(screen.getByText("Other Game")).toBeInTheDocument();
+    expect(screen.getAllByText("Other Game").length).toBeGreaterThan(0);
+    // Favorited streamer has Remove button (aria-pressed true), non-favorited has Add button
+    expect(screen.getByRole("button", { name: /Remove Streamer1 from favorites/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Add Streamer3 to favorites/i })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("favorited offline channels sort to top", async () => {
