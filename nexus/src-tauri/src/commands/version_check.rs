@@ -52,7 +52,6 @@ fn version_greater_than(latest: &str, current: &str) -> bool {
 pub async fn check_update_available(app: AppHandle) -> Result<UpdateCheckResult, CommandError> {
     let current = app.package_info().version.to_string();
 
-    // Prefer Access Key (read-only), else Master Key. From .env at compile time or runtime.
     let access_key = option_env!("NEXUS_JSONBIN_ACCESS_KEY")
         .map(String::from)
         .or_else(|| std::env::var(ENV_JSONBIN_ACCESS_KEY).ok());
