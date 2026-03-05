@@ -342,6 +342,7 @@ function MainApp() {
       const existingIds = new Set(existingGames.map((g) => g.id));
       const scanResult = await invoke<{ games: unknown[] }>("scan_sources");
       const confirmed = await invoke<Game[]>("confirm_games", { detectedGames: scanResult.games });
+      await invoke("relink_play_sessions");
       const added = confirmed.filter((g) => !existingIds.has(g.id)).length;
       const updated = confirmed.length - added;
       await refreshGames();
