@@ -64,33 +64,44 @@ export function WrappedShareModal({ report, onClose }: WrappedShareModalProps) {
   React.useEffect(() => {
     let cancelled = false;
 
+    function isSafeImage(node: Node): boolean {
+      if (!(node instanceof HTMLImageElement)) return true;
+      const src = node.getAttribute("src") ?? "";
+      if (!src) return false;
+      if (src.startsWith("data:") || src.startsWith("blob:") || src.startsWith("/")) return true;
+      if (src.startsWith(window.location.origin)) return true;
+      return false;
+    }
+
     async function generate() {
       if (!cardRef.current) return;
       setState("generating");
       try {
         const url = await toPng(cardRef.current, {
-          cacheBust: true,
+          cacheBust: false,
           width: 1080,
           height: 1080,
           pixelRatio: 1,
+          filter: isSafeImage,
         });
         if (!cancelled) {
           setDataUrl(url);
           setState("ready");
         }
-      } catch {
+      } catch (err) {
+        console.error("[WrappedShare] image generation failed:", err);
         if (!cancelled) {
           setState("error");
           addToast({
             type: "error",
-            message: "Couldn't generate image — some artwork may not be cached yet",
+            message: "Couldn't generate image — try again in a moment",
           });
         }
       }
     }
 
     // Small delay to ensure the off-screen card has rendered
-    const timer = setTimeout(generate, 100);
+    const timer = setTimeout(generate, 300);
     return () => {
       cancelled = true;
       clearTimeout(timer);

@@ -163,7 +163,7 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
 
     // Re-point sessions whose game_id no longer exists in the games table
     // but whose (game_source, game_source_id) matches a newly imported game.
-    let relinked = tx
+    let relinked_by_source_id = tx
         .execute(
             "UPDATE play_sessions
              SET game_id = (
@@ -183,6 +183,31 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
             [],
         )
         .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+
+    // Fallback: match by (source, name) for standalone/manual games that lack a source_id.
+    let relinked_by_name = tx
+        .execute(
+            "UPDATE play_sessions
+             SET game_id = (
+                 SELECT g.id FROM games g
+                 WHERE g.source = play_sessions.game_source
+                   AND g.name = play_sessions.game_name
+                 LIMIT 1
+             )
+             WHERE game_source IS NOT NULL
+               AND game_source_id IS NULL
+               AND game_name IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM games WHERE id = play_sessions.game_id)
+               AND EXISTS (
+                   SELECT 1 FROM games g
+                   WHERE g.source = play_sessions.game_source
+                     AND g.name = play_sessions.game_name
+               )",
+            [],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+
+    let relinked = relinked_by_source_id + relinked_by_name;
 
     // Count sessions that are still orphaned (no matching game found).
     let orphaned: i64 = tx
@@ -216,6 +241,108 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(RelinkResult { relinked, orphaned })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WrappedDiagnostics {
+    pub total_sessions: i64,
+    pub sessions_with_valid_game_id: i64,
+    pub sessions_with_orphaned_game_id: i64,
+    pub sessions_with_source_metadata: i64,
+    pub sessions_resolvable_via_source: i64,
+    pub sample_orphaned: Vec<OrphanedSessionInfo>,
+    pub sample_valid: Vec<ValidSessionInfo>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrphanedSessionInfo {
+    pub session_id: String,
+    pub game_id: String,
+    pub game_source: Option<String>,
+    pub game_source_id: Option<String>,
+    pub game_name: Option<String>,
+    pub duration_s: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValidSessionInfo {
+    pub session_id: String,
+    pub game_id: String,
+    pub game_name: String,
+    pub game_genres: Option<String>,
+    pub duration_s: Option<i64>,
+}
+
+#[tauri::command]
+pub fn debug_wrapped_sessions(db: State<'_, DbState>) -> Result<WrappedDiagnostics, CommandError> {
+    let conn = db.conn.lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let total_sessions: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30",
+        [], |row| row.get(0),
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let sessions_with_valid_game_id: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id)",
+        [], |row| row.get(0),
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let sessions_with_orphaned_game_id: i64 = total_sessions - sessions_with_valid_game_id;
+
+    let sessions_with_source_metadata: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30 AND game_source IS NOT NULL AND game_source_id IS NOT NULL",
+        [], |row| row.get(0),
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let sessions_resolvable_via_source: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id) AND EXISTS (SELECT 1 FROM games g WHERE g.source = ps.game_source AND g.source_id = ps.game_source_id)",
+        [], |row| row.get(0),
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let mut stmt = conn.prepare(
+        "SELECT ps.id, ps.game_id, ps.game_source, ps.game_source_id, ps.game_name, ps.duration_s FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id) LIMIT 5",
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+    let sample_orphaned: Vec<OrphanedSessionInfo> = stmt.query_map([], |row| {
+        Ok(OrphanedSessionInfo {
+            session_id: row.get(0)?,
+            game_id: row.get(1)?,
+            game_source: row.get(2)?,
+            game_source_id: row.get(3)?,
+            game_name: row.get(4)?,
+            duration_s: row.get(5)?,
+        })
+    }).map_err(|e| CommandError::Database(e.to_string()))?
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let mut stmt2 = conn.prepare(
+        "SELECT ps.id, ps.game_id, g.name, g.genres, ps.duration_s FROM play_sessions ps JOIN games g ON g.id = ps.game_id WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 ORDER BY ps.duration_s DESC LIMIT 5",
+    ).map_err(|e| CommandError::Database(e.to_string()))?;
+    let sample_valid: Vec<ValidSessionInfo> = stmt2.query_map([], |row| {
+        Ok(ValidSessionInfo {
+            session_id: row.get(0)?,
+            game_id: row.get(1)?,
+            game_name: row.get(2)?,
+            game_genres: row.get(3)?,
+            duration_s: row.get(4)?,
+        })
+    }).map_err(|e| CommandError::Database(e.to_string()))?
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(WrappedDiagnostics {
+        total_sessions,
+        sessions_with_valid_game_id,
+        sessions_with_orphaned_game_id,
+        sessions_with_source_metadata,
+        sessions_resolvable_via_source,
+        sample_orphaned,
+        sample_valid,
+    })
 }
 
 #[cfg(test)]
@@ -441,5 +568,35 @@ mod tests {
             .query_row("SELECT total_play_time FROM games WHERE id = 'g1'", [], |r| r.get(0))
             .unwrap();
         assert_eq!(total, 3600);
+    }
+
+    #[test]
+    fn relink_standalone_by_name_when_source_id_is_null() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Eriksholm", "standalone", None);
+        insert_session(&conn, "s1", "g1", Some("standalone"), None, Some("Eriksholm"), Some(5000));
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "new-g1", "Eriksholm", "standalone", None);
+        drop(conn);
+
+        let result = relink_play_sessions_impl(&state).unwrap();
+        assert_eq!(result.relinked, 1, "standalone session should relink by name");
+        assert_eq!(result.orphaned, 0);
+
+        let conn = state.conn.lock().unwrap();
+        let game_id: String = conn
+            .query_row("SELECT game_id FROM play_sessions WHERE id = 's1'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(game_id, "new-g1", "session should point to the new game");
+
+        let total: i64 = conn
+            .query_row("SELECT total_play_time FROM games WHERE id = 'new-g1'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(total, 5000, "denormalized stats should be recomputed");
     }
 }

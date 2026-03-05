@@ -83,6 +83,7 @@ export interface HiddenGem {
   name: string;
   playTimeS: number;
   rating: number | null;
+  tagline: string;
 }
 
 /** Full wrapped report for a date range. */

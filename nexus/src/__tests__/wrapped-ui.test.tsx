@@ -106,7 +106,7 @@ const mockReport: WrappedReport = {
   funFacts: [{ kind: "marathons", value: 25, label: "That's equivalent to 25 marathons" }],
   comparisonPreviousPeriod: { previousTotalS: 300000, percentChange: 20, label: "Up 20% from last year" },
   moodTagline: "Mostly chill vibes",
-  hiddenGem: { gameId: "g3", name: "Hades", playTimeS: 54000, rating: 65 },
+  hiddenGem: { gameId: "g3", name: "Hades", playTimeS: 54000, rating: 65, tagline: "You put 15.0h into a 65-rated title" },
   trivia: ["Your top game has a 90% rating"],
 };
 
@@ -238,11 +238,12 @@ describe("LibraryGrowthCard", () => {
 // ── FunExtrasCard ──────────────────────────────────────────────────────────
 
 describe("FunExtrasCard", () => {
-  it("renders when mood/gem/trivia present", () => {
+  it("renders all three sections when mood/gem/trivia present", () => {
     render(<FunExtrasCard report={mockReport} />);
     expect(screen.getByTestId("fun-extras-card")).toBeInTheDocument();
     expect(screen.getByText("Mostly chill vibes")).toBeInTheDocument();
     expect(screen.getByText("Hades")).toBeInTheDocument();
+    expect(screen.getByText(/65-rated title/i)).toBeInTheDocument();
     expect(screen.getByText(/90% rating/i)).toBeInTheDocument();
   });
 
@@ -253,6 +254,54 @@ describe("FunExtrasCard", () => {
       />,
     );
     expect(container.firstChild).toBeNull();
+  });
+
+  it("renders only mood tagline when gem and trivia absent", () => {
+    render(
+      <FunExtrasCard
+        report={{ ...mockReport, hiddenGem: null, trivia: [] }}
+      />,
+    );
+    expect(screen.getByTestId("fun-extras-card")).toBeInTheDocument();
+    expect(screen.getByText("Mostly chill vibes")).toBeInTheDocument();
+    expect(screen.queryByText("Hades")).not.toBeInTheDocument();
+  });
+
+  it("renders only hidden gem when mood and trivia absent", () => {
+    render(
+      <FunExtrasCard
+        report={{ ...mockReport, moodTagline: null, trivia: [] }}
+      />,
+    );
+    expect(screen.getByTestId("fun-extras-card")).toBeInTheDocument();
+    expect(screen.getByText("Hades")).toBeInTheDocument();
+    expect(screen.getByText(/65-rated title/i)).toBeInTheDocument();
+  });
+
+  it("renders only trivia when mood and gem absent", () => {
+    render(
+      <FunExtrasCard
+        report={{ ...mockReport, moodTagline: null, hiddenGem: null }}
+      />,
+    );
+    expect(screen.getByTestId("fun-extras-card")).toBeInTheDocument();
+    expect(screen.getByText(/90% rating/i)).toBeInTheDocument();
+  });
+
+  it("renders multiple trivia items", () => {
+    render(
+      <FunExtrasCard
+        report={{
+          ...mockReport,
+          moodTagline: null,
+          hiddenGem: null,
+          trivia: ["Fact one", "Fact two", "Fact three"],
+        }}
+      />,
+    );
+    expect(screen.getByText("Fact one")).toBeInTheDocument();
+    expect(screen.getByText("Fact two")).toBeInTheDocument();
+    expect(screen.getByText("Fact three")).toBeInTheDocument();
   });
 });
 

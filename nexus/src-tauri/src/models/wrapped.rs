@@ -110,6 +110,7 @@ pub struct HiddenGem {
     pub name: String,
     pub play_time_s: i64,
     pub rating: Option<f64>,
+    pub tagline: String,
 }
 
 /// Full wrapped report for a date range.

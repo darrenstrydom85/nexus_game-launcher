@@ -1,5 +1,4 @@
 import { Gem, Smile, Lightbulb } from "lucide-react";
-import { formatPlayTime } from "@/lib/utils";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface FunExtrasCardProps {
@@ -57,11 +56,7 @@ export function FunExtrasCard({ report }: FunExtrasCardProps) {
                 {report.hiddenGem.name}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                You put {formatPlayTime(report.hiddenGem.playTimeS)} into a{" "}
-                {report.hiddenGem.rating !== null
-                  ? `${report.hiddenGem.rating}-rated`
-                  : "low-rated"}{" "}
-                title
+                {report.hiddenGem.tagline}
               </p>
             </div>
           </div>

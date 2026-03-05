@@ -76,7 +76,7 @@ const mockReport: WrappedReport = {
   funFacts: [{ kind: "marathons", value: 25, label: "That's equivalent to 25 marathons" }],
   comparisonPreviousPeriod: { previousTotalS: 300000, percentChange: 20, label: "Up 20% from last year" },
   moodTagline: "Mostly chill vibes",
-  hiddenGem: { gameId: "g3", name: "Hades", playTimeS: 54000, rating: 65 },
+  hiddenGem: { gameId: "g3", name: "Hades", playTimeS: 54000, rating: 65, tagline: "A hidden gem in your library" },
   trivia: ["Your top game has a 90% rating"],
 };
 

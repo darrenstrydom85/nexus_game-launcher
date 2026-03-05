@@ -6,7 +6,6 @@
  * No Tailwind classes, no CSS variables — only inline style objects.
  */
 import * as React from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import nexusLogo from "@/assets/nexus-onboarding-logo.png";
 import type { WrappedReport } from "@/types/wrapped";
 
@@ -61,16 +60,6 @@ function formatDate(iso: string): string {
   }
 }
 
-function resolveImageUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  try {
-    return convertFileSrc(url);
-  } catch {
-    return url;
-  }
-}
-
 // ── Sub-components (all inline styles) ──────────────────────────────────────
 
 function NexusLogo({ colors }: { colors: ReturnType<typeof buildColors> }) {
@@ -119,8 +108,16 @@ interface GameRowProps {
   colors: ReturnType<typeof buildColors>;
 }
 
-function GameRow({ rank, name, coverUrl, playTimeS, colors }: GameRowProps) {
-  const resolvedUrl = resolveImageUrl(coverUrl);
+const AVATAR_HUES = [260, 200, 340, 160, 30, 290, 180, 50];
+
+function avatarColor(index: number): string {
+  const hue = AVATAR_HUES[index % AVATAR_HUES.length];
+  return `hsl(${hue}, 55%, 42%)`;
+}
+
+function GameRow({ rank, name, coverUrl: _coverUrl, playTimeS, colors }: GameRowProps) {
+  const initial = (name[0] ?? "?").toUpperCase();
+  const bgColor = avatarColor(rank - 1);
 
   return (
     <div
@@ -147,7 +144,7 @@ function GameRow({ rank, name, coverUrl, playTimeS, colors }: GameRowProps) {
         {rank}
       </span>
 
-      {/* Cover art */}
+      {/* Letter avatar */}
       <div
         style={{
           width: 52,
@@ -155,25 +152,24 @@ function GameRow({ rank, name, coverUrl, playTimeS, colors }: GameRowProps) {
           borderRadius: 6,
           overflow: "hidden",
           flexShrink: 0,
-          background: colors.card,
+          background: `linear-gradient(135deg, ${bgColor}, ${colors.card})`,
           border: `1px solid ${colors.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {resolvedUrl ? (
-          <img
-            src={resolvedUrl}
-            alt={name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: `linear-gradient(135deg, ${colors.accent1}, ${colors.card})`,
-            }}
-          />
-        )}
+        <span
+          style={{
+            fontFamily: FONTS.sans,
+            fontWeight: 700,
+            fontSize: 28,
+            color: colors.foreground,
+            opacity: 0.85,
+          }}
+        >
+          {initial}
+        </span>
       </div>
 
       {/* Name + time */}
