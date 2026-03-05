@@ -1,4 +1,3 @@
-import * as React from "react";
 import { motion } from "motion/react";
 import { formatPlayTime } from "@/lib/utils";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";

@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   BarChart,
   Bar,
@@ -99,7 +98,7 @@ export function DiversityCard({ report }: DiversityCardProps) {
                     color: "var(--foreground)",
                     fontSize: "12px",
                   }}
-                  formatter={(v: number) => [`${v}%`, "Share"]}
+                  formatter={(v: number | undefined) => [`${v ?? 0}%`, "Share"]}
                 />
                 <Bar dataKey="percent" radius={[0, 4, 4, 0]}>
                   {platformData.map((_, i) => (

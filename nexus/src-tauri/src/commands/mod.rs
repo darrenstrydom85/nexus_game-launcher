@@ -1,3 +1,4 @@
+pub mod clipboard;
 pub mod collections;
 pub mod database;
 pub mod dedup;

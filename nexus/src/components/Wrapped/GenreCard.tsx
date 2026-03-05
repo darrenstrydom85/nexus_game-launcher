@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   PieChart,
   Pie,
@@ -77,7 +76,7 @@ export function GenreCard({ report }: GenreCardProps) {
               dataKey="value"
               strokeWidth={0}
               label={({ name, percent: pct }) =>
-                `${name} ${(pct * 100).toFixed(0)}%`
+                `${name} ${((pct ?? 0) * 100).toFixed(0)}%`
               }
               labelLine={false}
             >
@@ -96,9 +95,9 @@ export function GenreCard({ report }: GenreCardProps) {
                 color: "var(--foreground)",
                 fontSize: "12px",
               }}
-              formatter={(value: number, name: string) => [
-                `${Math.round(value / 3600)}h`,
-                name,
+              formatter={(value: number | undefined, name: string | undefined) => [
+                `${Math.round((value ?? 0) / 3600)}h`,
+                name ?? "",
               ]}
             />
             <Legend

@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   BarChart,
   Bar,
@@ -97,7 +96,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
-                  formatter={(v: number) => [`${v}h`, "Hours"]}
+                  formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                 />
                 <Bar dataKey="hours" radius={[2, 2, 0, 0]}>
                   {timeData.map((_, i) => (
@@ -130,7 +129,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
-                  formatter={(v: number) => [`${v}h`, "Hours"]}
+                  formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                 />
                 <Bar dataKey="hours" radius={[2, 2, 0, 0]}>
                   {dowData.map((_, i) => (
@@ -164,7 +163,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
-                  formatter={(v: number) => [`${v}h`, "Hours"]}
+                  formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                   labelFormatter={(l) => `${l}:00`}
                 />
                 <Bar dataKey="hours" radius={[1, 1, 0, 0]}>

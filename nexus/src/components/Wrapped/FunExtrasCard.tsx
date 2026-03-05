@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Gem, Smile, Lightbulb } from "lucide-react";
 import { formatPlayTime } from "@/lib/utils";
 import type { WrappedReport } from "@/types/wrapped";

@@ -34,6 +34,7 @@ use commands::{
         create_session, end_session, get_activity_data, get_all_sessions, get_library_stats,
         get_orphaned_sessions, get_play_sessions, get_play_stats, get_top_games,
     },
+    clipboard::write_image_to_clipboard,
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
@@ -155,6 +156,7 @@ pub fn run() {
             clear_twitch_cache,
             check_connectivity,
             check_update_available,
+            write_image_to_clipboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

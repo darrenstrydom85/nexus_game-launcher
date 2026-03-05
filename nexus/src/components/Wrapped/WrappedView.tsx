@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
+import { X, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWrapped } from "@/hooks/useWrapped";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -15,6 +15,7 @@ import { MilestonesCard } from "./MilestonesCard";
 import { DiversityCard } from "./DiversityCard";
 import { LibraryGrowthCard } from "./LibraryGrowthCard";
 import { FunExtrasCard } from "./FunExtrasCard";
+import { WrappedShareModal } from "./WrappedShareModal";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface WrappedViewProps {
@@ -79,6 +80,7 @@ export function WrappedView({ onClose }: WrappedViewProps) {
   const shouldReduceMotion = useReducedMotion();
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
+  const [shareOpen, setShareOpen] = React.useState(false);
 
   const visibleCards = React.useMemo(
     () => (report ? getVisibleCards(report) : []),
@@ -161,19 +163,36 @@ export function WrappedView({ onClose }: WrappedViewProps) {
             />
           )}
         </div>
-        <button
-          type="button"
-          data-testid="wrapped-close"
-          onClick={onClose}
-          aria-label="Close Wrapped"
-          className={cn(
-            "flex size-8 items-center justify-center rounded-md",
-            "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        <div className="flex items-center gap-1">
+          {report && !loading && report.totalSessions > 0 && (
+            <button
+              type="button"
+              data-testid="wrapped-save-image"
+              onClick={() => setShareOpen(true)}
+              aria-label="Save Wrapped as Image"
+              className={cn(
+                "flex size-8 items-center justify-center rounded-md",
+                "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              <Share2 className="size-4" />
+            </button>
           )}
-        >
-          <X className="size-4" />
-        </button>
+          <button
+            type="button"
+            data-testid="wrapped-close"
+            onClick={onClose}
+            aria-label="Close Wrapped"
+            className={cn(
+              "flex size-8 items-center justify-center rounded-md",
+              "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable card area */}
@@ -248,6 +267,14 @@ export function WrappedView({ onClose }: WrappedViewProps) {
           count={visibleCards.length}
           activeIndex={activeIndex}
           onDotClick={scrollToCard}
+        />
+      )}
+
+      {/* Share modal */}
+      {shareOpen && report && (
+        <WrappedShareModal
+          report={report}
+          onClose={() => setShareOpen(false)}
         />
       )}
     </div>

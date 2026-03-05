@@ -1,4 +1,3 @@
-import * as React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { formatPlayTime } from "@/lib/utils";
 import type { WrappedReport } from "@/types/wrapped";

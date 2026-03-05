@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Library, PlusCircle } from "lucide-react";
 import type { WrappedReport } from "@/types/wrapped";
 
