@@ -74,6 +74,7 @@ export function DataManagement() {
         const games = JSON.parse(content);
         if (Array.isArray(games)) {
           await invoke("confirm_games", { games });
+          await invoke("relink_play_sessions");
         }
       }
     } catch {
@@ -95,10 +96,16 @@ export function DataManagement() {
     }
   }, []);
 
-  const handleReset = React.useCallback(async (keepKeys: boolean) => {
-    setBusy(keepKeys ? "resetKeepKeys" : "reset");
+  const handleReset = React.useCallback(async (mode: "keepStats" | "keepKeys" | "all") => {
+    const busyKey = mode === "keepStats" ? "resetKeepStats" : mode === "keepKeys" ? "resetKeepKeys" : "reset";
+    setBusy(busyKey);
     try {
-      await invoke(keepKeys ? "reset_keep_keys" : "reset_all");
+      const command = mode === "keepStats"
+        ? "reset_library_keep_stats"
+        : mode === "keepKeys"
+          ? "reset_keep_keys"
+          : "reset_all";
+      await invoke(command);
       localStorage.clear();
       window.location.reload();
     } catch {
@@ -217,24 +224,34 @@ export function DataManagement() {
         {confirmReset === 2 && (
           <div data-testid="data-reset-confirm-2" className="rounded-md border border-destructive bg-destructive/10 p-3">
             <p className="text-xs font-bold text-destructive text-balance">FINAL WARNING: This cannot be undone!</p>
-            <p className="mt-1 text-xs text-muted-foreground text-pretty">Keep your API keys (SteamGridDB &amp; IGDB) or wipe everything?</p>
+            <p className="mt-1 text-xs text-muted-foreground text-pretty">Choose what to preserve. Play history can be re-linked after re-importing your library.</p>
             <div className="mt-3 flex flex-col gap-1.5">
+              <Button
+                data-testid="data-reset-keep-stats"
+                size="xs"
+                variant="secondary"
+                disabled={busy !== null}
+                onClick={() => handleReset("keepStats")}
+                className="w-full justify-center"
+              >
+                {busy === "resetKeepStats" ? "Resetting..." : "Reset, keep play history & API keys"}
+              </Button>
               <Button
                 data-testid="data-reset-keep-keys"
                 size="xs"
                 variant="secondary"
-                disabled={busy === "resetKeepKeys" || busy === "reset"}
-                onClick={() => handleReset(true)}
+                disabled={busy !== null}
+                onClick={() => handleReset("keepKeys")}
                 className="w-full justify-center"
               >
-                {busy === "resetKeepKeys" ? "Resetting..." : "Reset, keep API keys"}
+                {busy === "resetKeepKeys" ? "Resetting..." : "Reset, keep API keys only"}
               </Button>
               <Button
                 data-testid="data-reset-everything"
                 size="xs"
                 variant="destructive"
-                disabled={busy === "reset" || busy === "resetKeepKeys"}
-                onClick={() => handleReset(false)}
+                disabled={busy !== null}
+                onClick={() => handleReset("all")}
                 className="w-full justify-center"
               >
                 {busy === "reset" ? "Resetting..." : "Reset everything"}

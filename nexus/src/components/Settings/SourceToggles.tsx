@@ -38,6 +38,7 @@ export function SourceToggles() {
       const filtered = result.games.filter((g) => enabledSet.has(g.source));
       if (filtered.length > 0) {
         await invoke("confirm_games", { detectedGames: filtered });
+        await invoke("relink_play_sessions");
       }
       await refreshGames();
     } catch {

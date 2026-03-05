@@ -47,6 +47,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "twitch_trending_cache",
         sql: include_str!("migrations/008_twitch_trending_cache.sql"),
     },
+    Migration {
+        version: 9,
+        name: "session_source_columns",
+        sql: include_str!("migrations/009_session_source_columns.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {

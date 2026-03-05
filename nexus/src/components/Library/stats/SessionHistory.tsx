@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
+import { useGameStore } from "@/stores/gameStore";
 import type { SessionRecord } from "../LibraryStats";
 
 const PAGE_SIZE = 20;
@@ -33,6 +34,8 @@ function formatTime(iso: string): string {
 
 export function SessionHistory({ sessions }: SessionHistoryProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
+  const storeGames = useGameStore((s) => s.games);
+  const gameIdSet = React.useMemo(() => new Set(storeGames.map((g) => g.id)), [storeGames]);
   const [page, setPage] = React.useState(0);
   const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
   const pageItems = sessions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -48,19 +51,27 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
       ) : (
         <>
           <div className="flex flex-col">
-            {pageItems.map((s) => (
+            {pageItems.map((s) => {
+              const gameExists = gameIdSet.has(s.gameId);
+              return (
               <div
                 key={s.id}
                 data-testid={`session-${s.id}`}
                 className="grid items-center border-b border-border px-2 py-2 text-sm transition-colors hover:bg-white/5"
                 style={{ gridTemplateColumns: "1fr 7rem 9rem 4rem" }}
               >
-                <button
-                  className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
-                  onClick={() => setDetailOverlayGameId(s.gameId)}
-                >
-                  {s.gameName}
-                </button>
+                {gameExists ? (
+                  <button
+                    className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
+                    onClick={() => setDetailOverlayGameId(s.gameId)}
+                  >
+                    {s.gameName}
+                  </button>
+                ) : (
+                  <span className="truncate text-left font-medium text-muted-foreground">
+                    {s.gameName}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {formatDate(s.startedAt)}
                 </span>
@@ -71,7 +82,8 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
                   {formatDuration(s.durationS)}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}

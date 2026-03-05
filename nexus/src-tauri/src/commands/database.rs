@@ -104,3 +104,342 @@ pub fn reset_keep_keys(db: State<'_, DbState>) -> Result<(), CommandError> {
 
     Ok(())
 }
+
+/// Clears the game library but preserves play sessions and API keys.
+/// Play sessions keep their `game_source` / `game_source_id` columns so they
+/// can be re-linked to newly imported games via `relink_play_sessions`.
+#[tauri::command]
+pub fn reset_library_keep_stats(db: State<'_, DbState>) -> Result<(), CommandError> {
+    reset_library_keep_stats_impl(&db)
+}
+
+pub(crate) fn reset_library_keep_stats_impl(db: &DbState) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    conn.execute_batch(
+        "PRAGMA foreign_keys = OFF;
+         DELETE FROM game_duplicate_members;
+         DELETE FROM game_duplicates;
+         DELETE FROM collection_games;
+         DELETE FROM collections;
+         DELETE FROM games;
+         DELETE FROM watched_folders;
+         DELETE FROM settings
+           WHERE key NOT IN ('steamgrid_api_key', 'igdb_client_id', 'igdb_client_secret');
+         PRAGMA foreign_keys = ON;",
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RelinkResult {
+    pub relinked: i64,
+    pub orphaned: i64,
+}
+
+/// After a library re-import, matches orphaned play sessions back to the new
+/// game rows using the stable (game_source, game_source_id) natural key, then
+/// recomputes the denormalized stats on every game.
+#[tauri::command]
+pub fn relink_play_sessions(db: State<'_, DbState>) -> Result<RelinkResult, CommandError> {
+    relink_play_sessions_impl(&db)
+}
+
+pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    // Re-point sessions whose game_id no longer exists in the games table
+    // but whose (game_source, game_source_id) matches a newly imported game.
+    let relinked = tx
+        .execute(
+            "UPDATE play_sessions
+             SET game_id = (
+                 SELECT g.id FROM games g
+                 WHERE g.source = play_sessions.game_source
+                   AND g.source_id = play_sessions.game_source_id
+                 LIMIT 1
+             )
+             WHERE game_source IS NOT NULL
+               AND game_source_id IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM games WHERE id = play_sessions.game_id)
+               AND EXISTS (
+                   SELECT 1 FROM games g
+                   WHERE g.source = play_sessions.game_source
+                     AND g.source_id = play_sessions.game_source_id
+               )",
+            [],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+
+    // Count sessions that are still orphaned (no matching game found).
+    let orphaned: i64 = tx
+        .query_row(
+            "SELECT COUNT(*) FROM play_sessions
+             WHERE NOT EXISTS (SELECT 1 FROM games WHERE id = play_sessions.game_id)",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    // Recompute denormalized stats on all games from their linked sessions.
+    tx.execute_batch(
+        "UPDATE games SET
+            total_play_time = COALESCE((
+                SELECT SUM(ps.duration_s) FROM play_sessions ps
+                WHERE ps.game_id = games.id AND ps.ended_at IS NOT NULL
+            ), 0),
+            play_count = COALESCE((
+                SELECT COUNT(*) FROM play_sessions ps
+                WHERE ps.game_id = games.id AND ps.ended_at IS NOT NULL
+            ), 0),
+            last_played = (
+                SELECT MAX(ps.ended_at) FROM play_sessions ps
+                WHERE ps.game_id = games.id AND ps.ended_at IS NOT NULL
+            );",
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    tx.commit()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(RelinkResult { relinked, orphaned })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db;
+    use rusqlite::params;
+
+    fn setup_db() -> DbState {
+        db::init_in_memory().expect("in-memory db should init")
+    }
+
+    fn insert_game(conn: &rusqlite::Connection, id: &str, name: &str, source: &str, source_id: Option<&str>) {
+        conn.execute(
+            "INSERT INTO games (id, name, source, source_id, status, added_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            params![id, name, source, source_id],
+        )
+        .unwrap();
+    }
+
+    fn insert_session(
+        conn: &rusqlite::Connection,
+        id: &str,
+        game_id: &str,
+        game_source: Option<&str>,
+        game_source_id: Option<&str>,
+        game_name: Option<&str>,
+        duration_s: Option<i64>,
+    ) {
+        let ended_at = duration_s.map(|_| "2026-01-15T11:00:00Z");
+        conn.execute(
+            "INSERT INTO play_sessions (id, game_id, started_at, ended_at, duration_s, tracking, game_source, game_source_id, game_name)
+             VALUES (?1, ?2, '2026-01-15T10:00:00Z', ?3, ?4, 'auto', ?5, ?6, ?7)",
+            params![id, game_id, ended_at, duration_s, game_source, game_source_id, game_name],
+        )
+        .unwrap();
+    }
+
+    // ── reset_library_keep_stats ──
+
+    #[test]
+    fn reset_library_keep_stats_preserves_sessions() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Test Game", "steam", Some("app_100"));
+        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
+        insert_session(&conn, "s2", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let game_count: i64 = conn.query_row("SELECT COUNT(*) FROM games", [], |r| r.get(0)).unwrap();
+        assert_eq!(game_count, 0, "games should be deleted");
+
+        let session_count: i64 = conn.query_row("SELECT COUNT(*) FROM play_sessions", [], |r| r.get(0)).unwrap();
+        assert_eq!(session_count, 2, "play sessions should be preserved");
+    }
+
+    #[test]
+    fn reset_library_keep_stats_preserves_api_keys() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute("INSERT INTO settings (key, value) VALUES ('steamgrid_api_key', 'abc123')", []).unwrap();
+        conn.execute("INSERT INTO settings (key, value) VALUES ('igdb_client_id', 'def456')", []).unwrap();
+        conn.execute("INSERT INTO settings (key, value) VALUES ('some_other_setting', 'xyz')", []).unwrap();
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let key_count: i64 = conn.query_row("SELECT COUNT(*) FROM settings", [], |r| r.get(0)).unwrap();
+        assert_eq!(key_count, 2, "only API keys should remain");
+    }
+
+    #[test]
+    fn reset_library_keep_stats_clears_collections_and_folders() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO collections (id, name, created_at, updated_at) VALUES ('c1', 'Favs', '2026-01-01', '2026-01-01')",
+            [],
+        ).unwrap();
+        conn.execute(
+            "INSERT INTO watched_folders (id, path, added_at) VALUES ('w1', 'D:\\Games', '2026-01-01')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let coll_count: i64 = conn.query_row("SELECT COUNT(*) FROM collections", [], |r| r.get(0)).unwrap();
+        let folder_count: i64 = conn.query_row("SELECT COUNT(*) FROM watched_folders", [], |r| r.get(0)).unwrap();
+        assert_eq!(coll_count, 0);
+        assert_eq!(folder_count, 0);
+    }
+
+    // ── relink_play_sessions ──
+
+    #[test]
+    fn relink_reconnects_orphaned_sessions_to_new_games() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "old-g1", "Test Game", "steam", Some("app_100"));
+        insert_session(&conn, "s1", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
+        insert_session(&conn, "s2", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        drop(conn);
+
+        // Simulate library reset (delete games, keep sessions)
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        // Re-import the same game with a new UUID
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "new-g1", "Test Game", "steam", Some("app_100"));
+        drop(conn);
+
+        let result = relink_play_sessions_impl(&state).unwrap();
+        assert_eq!(result.relinked, 2);
+        assert_eq!(result.orphaned, 0);
+
+        // Verify sessions now point to the new game
+        let conn = state.conn.lock().unwrap();
+        let game_id: String = conn
+            .query_row("SELECT game_id FROM play_sessions WHERE id = 's1'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(game_id, "new-g1");
+    }
+
+    #[test]
+    fn relink_recomputes_denormalized_stats() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "old-g1", "Test Game", "steam", Some("app_100"));
+        insert_session(&conn, "s1", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
+        insert_session(&conn, "s2", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "new-g1", "Test Game", "steam", Some("app_100"));
+        drop(conn);
+
+        relink_play_sessions_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let (total_play_time, play_count): (i64, i64) = conn
+            .query_row(
+                "SELECT total_play_time, play_count FROM games WHERE id = 'new-g1'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(total_play_time, 5400, "3600 + 1800");
+        assert_eq!(play_count, 2);
+
+        let last_played: Option<String> = conn
+            .query_row("SELECT last_played FROM games WHERE id = 'new-g1'", [], |r| r.get(0))
+            .unwrap();
+        assert!(last_played.is_some());
+    }
+
+    #[test]
+    fn relink_reports_orphaned_sessions_without_matching_game() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Game A", "steam", Some("app_100"));
+        insert_game(&conn, "g2", "Game B", "epic", Some("epic_200"));
+        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Game A"), Some(3600));
+        insert_session(&conn, "s2", "g2", Some("epic"), Some("epic_200"), Some("Game B"), Some(1800));
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        // Only re-import Game A, not Game B
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "new-g1", "Game A", "steam", Some("app_100"));
+        drop(conn);
+
+        let result = relink_play_sessions_impl(&state).unwrap();
+        assert_eq!(result.relinked, 1, "only Game A session should relink");
+        assert_eq!(result.orphaned, 1, "Game B session remains orphaned");
+    }
+
+    #[test]
+    fn relink_skips_sessions_without_source_info() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Game A", "steam", Some("app_100"));
+        // Session with no source info (e.g. pre-migration data that wasn't backfilled)
+        insert_session(&conn, "s1", "g1", None, None, Some("Game A"), Some(3600));
+        drop(conn);
+
+        reset_library_keep_stats_impl(&state).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "new-g1", "Game A", "steam", Some("app_100"));
+        drop(conn);
+
+        let result = relink_play_sessions_impl(&state).unwrap();
+        assert_eq!(result.relinked, 0, "no source info means no relink");
+        assert_eq!(result.orphaned, 1);
+    }
+
+    #[test]
+    fn relink_is_idempotent_on_already_linked_sessions() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Test Game", "steam", Some("app_100"));
+        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
+        drop(conn);
+
+        // Sessions are already linked — relink should be a no-op
+        let result = relink_play_sessions_impl(&state).unwrap();
+        assert_eq!(result.relinked, 0);
+        assert_eq!(result.orphaned, 0);
+
+        // Stats should still be correct
+        let conn = state.conn.lock().unwrap();
+        let total: i64 = conn
+            .query_row("SELECT total_play_time FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(total, 3600);
+    }
+}

@@ -95,6 +95,7 @@ export function ConfirmLibraryStep() {
 
     try {
       await invoke("confirm_games", { detectedGames });
+      await invoke("relink_play_sessions");
     } catch (err: unknown) {
       const msg = typeof err === "string" ? err : err instanceof Error ? err.message : JSON.stringify(err);
       setConfirmError(msg);

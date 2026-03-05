@@ -18,24 +18,25 @@ pub fn create_session(
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-    let exists: bool = conn
+    let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) = conn
         .query_row(
-            "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
+            "SELECT name, source, source_id FROM games WHERE id = ?1",
             params![game_id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    if !exists {
-        return Err(CommandError::NotFound(format!("game {game_id}")));
-    }
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => {
+                CommandError::NotFound(format!("game {game_id}"))
+            }
+            other => CommandError::Database(other.to_string()),
+        })?;
 
     let id = Uuid::new_v4().to_string();
     let started_at = now_iso();
 
     conn.execute(
-        "INSERT INTO play_sessions (id, game_id, started_at, tracking) VALUES (?1, ?2, ?3, 'auto')",
-        params![id, game_id, started_at],
+        "INSERT INTO play_sessions (id, game_id, started_at, tracking, game_source, game_source_id, game_name) VALUES (?1, ?2, ?3, 'auto', ?4, ?5, ?6)",
+        params![id, game_id, started_at, game_source, game_source_id, game_name],
     )
     .map_err(|e| CommandError::Database(e.to_string()))?;
 
@@ -382,9 +383,11 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
 
     let mut stmt = conn
         .prepare(
-            "SELECT ps.id, ps.game_id, g.name as game_name, ps.started_at, ps.ended_at, ps.duration_s
+            "SELECT ps.id, ps.game_id,
+                    COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
+                    ps.started_at, ps.ended_at, ps.duration_s
              FROM play_sessions ps
-             JOIN games g ON g.id = ps.game_id
+             LEFT JOIN games g ON g.id = ps.game_id
              WHERE ps.ended_at IS NOT NULL
              ORDER BY ps.started_at DESC",
         )
@@ -749,19 +752,23 @@ mod tests {
     fn create_session_inner(state: &DbState, game_id: String) -> Result<PlaySession, CommandError> {
         let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-        let exists: bool = conn
-            .query_row("SELECT COUNT(*) > 0 FROM games WHERE id = ?1", params![game_id], |row| row.get(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        if !exists {
-            return Err(CommandError::NotFound(format!("game {game_id}")));
-        }
+        let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) = conn
+            .query_row(
+                "SELECT name, source, source_id FROM games WHERE id = ?1",
+                params![game_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("game {game_id}")),
+                other => CommandError::Database(other.to_string()),
+            })?;
 
         let id = Uuid::new_v4().to_string();
         let started_at = now_iso();
 
         conn.execute(
-            "INSERT INTO play_sessions (id, game_id, started_at, tracking) VALUES (?1, ?2, ?3, 'auto')",
-            params![id, game_id, started_at],
+            "INSERT INTO play_sessions (id, game_id, started_at, tracking, game_source, game_source_id, game_name) VALUES (?1, ?2, ?3, 'auto', ?4, ?5, ?6)",
+            params![id, game_id, started_at, game_source, game_source_id, game_name],
         ).map_err(|e| CommandError::Database(e.to_string()))?;
 
         let session = conn
