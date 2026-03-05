@@ -42,8 +42,13 @@ export function ConfirmLibraryStep() {
   }, [games]);
 
   const filtered = React.useMemo(() => {
-    if (filterSource === "all") return confirmGames;
-    return confirmGames.filter((g) => g.source === filterSource);
+    const list =
+      filterSource === "all"
+        ? confirmGames
+        : confirmGames.filter((g) => g.source === filterSource);
+    return [...list].sort((a, b) =>
+      a.editedName.localeCompare(b.editedName, undefined, { sensitivity: "base" }),
+    );
   }, [confirmGames, filterSource]);
 
   const includedCount = confirmGames.filter((g) => g.included).length;
