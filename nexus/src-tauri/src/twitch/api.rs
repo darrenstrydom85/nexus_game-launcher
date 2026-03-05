@@ -495,8 +495,15 @@ pub async fn fetch_streams_by_game(
 mod tests {
     use super::*;
 
+    /// Reset rate limit state so tests that depend on "starts at zero" are deterministic.
+    fn reset_rate_limit_state() {
+        RATE_LAST_RESET.store(0, Ordering::Relaxed);
+        RATE_TOKENS_USED.store(0, Ordering::Relaxed);
+    }
+
     #[test]
     fn rate_limit_state_starts_zero() {
+        reset_rate_limit_state();
         assert_eq!(RATE_TOKENS_USED.load(Ordering::Relaxed), 0);
     }
 
