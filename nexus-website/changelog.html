@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — Nexus</title>
+  <meta name="description" content="Release history and changelog for Nexus, the unified PC game launcher.">
+
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+  <!-- Geist Sans & Geist Mono (Fontsource CDN) -->
+  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
+
+  <!-- Nexus Obsidian theme -->
+  <link href="assets/css/style.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- NAVBAR                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <nav class="navbar navbar-nexus navbar-expand-md fixed-top" aria-label="Main navigation">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <span class="brand-icon" aria-hidden="true">
+          <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
+        </span>
+        Nexus
+      </a>
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
+              aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain">
+        <ul class="navbar-nav ms-auto align-items-center gap-1">
+          <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#screenshots">Screenshots</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#download">Download</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
+          </li>
+          <li class="nav-item ms-md-2">
+            <a class="btn-nexus btn-nexus-sm" href="index.html#download">
+              <i data-lucide="download" class="icon-sm"></i>
+              Get Nexus
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- PAGE HEADER                                     -->
+  <!-- ════════════════════════════════════════════════ -->
+  <header class="changelog-header">
+    <div class="container">
+      <p class="section-label">Release History</p>
+      <h1 class="type-display">Changelog</h1>
+      <p class="type-body text-muted-foreground changelog-header-subtitle">
+        What's new, improved, and fixed in each release of Nexus.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- CHANGELOG ENTRIES                               -->
+  <!-- ════════════════════════════════════════════════ -->
+  <main class="changelog-main">
+    <div class="container">
+      <div class="changelog-timeline">
+
+        <!-- ── v0.1.7 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.7">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.7</h2>
+              <span class="version-badge type-caption text-primary-accent">
+                <i data-lucide="sparkles" class="icon-xs"></i>
+                Latest
+              </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-05">March 5, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Library Wrapped arrives — a Spotify Wrapped-style experience for your game library
+              with shareable poster cards, fun extras, and smarter session linking under the hood.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Library Wrapped</strong> — A full Spotify Wrapped-style experience for your game library. See your top games, genres, play patterns, milestones, and fun stats across any time period.</li>
+                <li><strong>Wrapped Share Card</strong> — Generate a shareable 1080×1080 poster of your Wrapped stats. Download it or copy it straight to your clipboard.</li>
+                <li><strong>Fun Extras</strong> — Wrapped now includes a mood tagline, hidden gem pick, and trivia about your play year.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Wrapped session linking</strong> — Orphaned sessions are now correctly linked to games using a smarter three-step fallback strategy, so your stats are more accurate.</li>
+                <li><strong>Game detection</strong> — Fixed a missing field in game detection that could cause issues with hidden games.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Genre parsing</strong> — Wrapped handles both JSON array and comma-separated genre formats reliably.</li>
+                <li><strong>Share card images</strong> — Replaced external cover art with letter avatars to prevent image export failures.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.6 ── -->
+        <article class="changelog-entry" id="v0.1.6">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.6</h2>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-05">March 5, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Branding, smarter onboarding, collections from the context menu, persistent play stats,
+              automatic update checks, and a batch of reliability fixes.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Branding</strong> — We have a logo and primary color!</li>
+                <li><strong>Onboarding</strong> — Choose which games to import with a checkbox list; deselected games are hidden and won't reappear on resync.</li>
+                <li><strong>Collections</strong> — Right-click any game to add it to a collection or create a new one directly from the context menu.</li>
+                <li><strong>Stats persistence</strong> — Play sessions now survive a full library reset and relink automatically after rescans.</li>
+                <li><strong>Version check</strong> — Nexus checks for updates on launch and once per hour, showing a toast when a new version is available.</li>
+                <li><strong>Twitch</strong> — OAuth tokens are validated hourly per Twitch policy, keeping your session alive automatically.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Collections</strong> — Game-to-collection assignments now save correctly to the backend.</li>
+                <li><strong>Context menu</strong> — Menu stays within window bounds and flips submenus when near the screen edge.</li>
+                <li><strong>Stats</strong> — Cover art and click-through navigation resolve correctly after a library re-import.</li>
+                <li><strong>Twitch</strong> — Network timeouts and server errors no longer force a full re-auth; only invalid tokens are cleared.</li>
+                <li><strong>Metadata</strong> — Game titles with ™, ®, or © symbols now match correctly in IGDB and SteamGridDB lookups.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.5 ── -->
+        <article class="changelog-entry" id="v0.1.5">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.5</h2>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-04">March 4, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Twitch integration lands in Nexus — live streams, followed channels, trending games, and go-live
+              notifications woven throughout the app. Plus a settings redesign and key bug fixes.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li>
+                  <strong>Twitch Integration</strong> — Nexus now connects to Twitch. Link your account and get live stream info woven throughout the app:
+                  <ul class="changelog-sublist">
+                    <li><strong>Sidebar nav</strong> — Twitch has its own spot in the sidebar with a live count badge that pulses when streams are active.</li>
+                    <li><strong>Followed streams panel</strong> — Full live and offline view of everyone you follow, with stream uptime and a connect prompt if you haven't linked yet.</li>
+                    <li><strong>Live badge on game cards</strong> — Games with active streams show a pulsing badge. Click to jump to the streamer or Twitch panel.</li>
+                    <li><strong>Live on Twitch in game detail</strong> — See who's streaming a game right from its detail page, with followed streamers sorted to the top.</li>
+                    <li><strong>Trending in Your Library</strong> — See which games you own are trending on Twitch right now, with a dedicated section and horizontal scroll.</li>
+                    <li><strong>Go-live toast notifications</strong> — Get notified when followed streamers go live. Favourites-only mode available in Settings.</li>
+                    <li><strong>Streamer favourites &amp; pinning</strong> — Star your favourite streamers to pin them to the top of the Live Now list. Up to 20 favourites.</li>
+                    <li><strong>Offline resilience</strong> — Twitch panel and badges fall back to cached data when you're offline so you still see recent state.</li>
+                  </ul>
+                </li>
+                <li><strong>Update Artwork button</strong> — Dedicated button on game detail to search and update artwork, with auto-search on first open.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Session not ending on new launch</strong> — Play time is now properly saved when you launch a new game while another is running.</li>
+                <li><strong>Onboarding links</strong> — API key setup steps now have clickable links to SteamGridDB and IGDB so you can grab keys without leaving the app.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Settings redesigned</strong> — Settings are now grouped into an accordion (Library, Appearance, Integrations, Data &amp; Health) for easier navigation.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── Template for older versions (copy this block) ── -->
+        <!--
+        <article class="changelog-entry" id="v0.0.1">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.0.1</h2>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-01-01">January 1, 2026</time>
+          </div>
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">Release summary here.</p>
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li>Item</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+        -->
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- FOOTER                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <footer class="footer-nexus">
+    <div class="container">
+      <div class="row align-items-center gy-3">
+        <div class="col-md-6">
+          <span class="type-footnote text-muted-foreground">
+            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          </span>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
+             aria-label="Support this project">
+            <i data-lucide="heart" class="icon-md icon-footer"></i>
+            Support
+          </a>
+          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
+             aria-label="Join the community on Discord">
+            <i data-lucide="message-circle" class="icon-md icon-footer"></i>
+            Discord
+          </a>
+          <a href="changelog.html" class="type-footnote" aria-label="Release notes">
+            <i data-lucide="file-text" class="icon-md icon-footer"></i>
+            Changelog
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

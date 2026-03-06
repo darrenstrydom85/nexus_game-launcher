@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus — All your games. One place.</title>
+  <meta name="description" content="Nexus unifies your PC game libraries from Steam, Epic, GOG, and more into one beautiful launcher. Download free for Windows.">
+
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+  <!-- Geist Sans & Geist Mono (Fontsource CDN) -->
+  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
+
+  <!-- Nexus Obsidian theme -->
+  <link href="assets/css/style.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- NAVBAR                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <nav class="navbar navbar-nexus navbar-expand-md fixed-top" aria-label="Main navigation">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <span class="brand-icon" aria-hidden="true">
+          <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
+        </span>
+        Nexus
+      </a>
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
+              aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain">
+        <ul class="navbar-nav ms-auto align-items-center gap-1">
+          <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+          <li class="nav-item"><a class="nav-link" href="#screenshots">Screenshots</a></li>
+          <li class="nav-item"><a class="nav-link" href="#download">Download</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
+          </li>
+          <li class="nav-item ms-md-2">
+            <a class="btn-nexus btn-nexus-sm" href="#download">
+              <i data-lucide="download" class="icon-sm"></i>
+              Get Nexus
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- HERO                                            -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="hero-section" id="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="container">
+      <div class="hero-content">
+        <p class="hero-tagline">Game Library Manager for Windows</p>
+        <h1 class="type-display hero-title">All your games.<br>One place.</h1>
+        <p class="type-body text-muted-foreground hero-subtitle">
+          Nexus unifies your Steam, Epic, GOG, and Battle.net libraries — plus repacks
+          and standalone games — into a single, beautifully designed launcher.
+          Track play time, organise collections, and launch any game — instantly.
+        </p>
+        <div class="hero-actions">
+          <a href="#download" class="btn-nexus btn-nexus-lg">
+            <i data-lucide="download" class="icon-base"></i>
+            Download for Windows
+          </a>
+          <a href="#features" class="btn-ghost">
+            <i data-lucide="arrow-down" class="icon-md"></i>
+            See features
+          </a>
+        </div>
+        <div class="hero-meta type-footnote text-muted-foreground">
+          <span class="hero-meta-item">
+            <i data-lucide="monitor" class="icon-sm"></i>
+            Windows 10 / 11
+          </span>
+          <span class="hero-meta-item">
+            <i data-lucide="hard-drive" class="icon-sm"></i>
+            ~10 MB install
+          </span>
+        </div>
+      </div>
+
+      <!-- Hero screenshot -->
+      <div class="hero-screenshot">
+        <img src="assets/img/screenshots/app-screenshot.png"
+             alt="Nexus application — unified game library showing titles from Steam, Epic, and local sources"
+             width="1920" height="1080"
+             loading="eager">
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SOURCE STRIP                                    -->
+  <!-- ════════════════════════════════════════════════ -->
+  <div class="glass-divider" aria-hidden="true"></div>
+  <section class="section-block" aria-label="Supported platforms">
+    <div class="container text-center">
+      <p class="type-footnote text-muted-foreground source-strip-label mb-4">
+        Connects to your favourite storefronts
+      </p>
+      <div class="source-strip">
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="flame" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">Steam</span>
+        </div>
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="sword" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">Epic Games</span>
+        </div>
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="disc-3" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">GOG</span>
+        </div>
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="swords" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">Battle.net</span>
+        </div>
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="box" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">Amazon</span>
+        </div>
+        <div class="source-logo">
+          <div class="logo-box"><i data-lucide="plus" class="icon-lg"></i></div>
+          <span class="type-caption text-muted-foreground">More</span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="glass-divider" aria-hidden="true"></div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- FEATURES                                        -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="section-block" id="features">
+    <div class="container">
+      <p class="section-label">Features</p>
+      <h2 class="type-headline section-title">Everything you need to manage your library</h2>
+      <p class="type-body text-muted-foreground section-subtitle">
+        Built for gamers who own titles across multiple stores and want a single,
+        fast, beautiful hub.
+      </p>
+
+      <div class="row g-4 feature-grid">
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="library" class="icon-lg"></i></div>
+            <h3 class="type-title2">Unified Library</h3>
+            <p class="type-body text-muted-foreground">
+              Import games from Steam, Epic, GOG, Battle.net, and Amazon Games automatically. Add repacks and standalone games without a launcher too. One library, zero duplicates.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="timer" class="icon-lg"></i></div>
+            <h3 class="type-title2">Play Time Tracking</h3>
+            <p class="type-body text-muted-foreground">
+              Accurate session tracking across every source. See daily, weekly, and all-time stats at a glance.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="rocket" class="icon-lg"></i></div>
+            <h3 class="type-title2">Instant Launch</h3>
+            <p class="type-body text-muted-foreground">
+              Click a game, it launches. Nexus handles the right storefront silently in the background.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="palette" class="icon-lg"></i></div>
+            <h3 class="type-title2">Rich Metadata</h3>
+            <p class="type-body text-muted-foreground">
+              Cover art, descriptions, genres, and ratings pulled from IGDB. Your library looks stunning by default.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="layout-grid" class="icon-lg"></i></div>
+            <h3 class="type-title2">Collections &amp; Filters</h3>
+            <p class="type-body text-muted-foreground">
+              Organise games into custom collections. Filter by status, genre, source, or play time.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon"><i data-lucide="zap" class="icon-lg"></i></div>
+            <h3 class="type-title2">Lightweight &amp; Fast</h3>
+            <p class="type-body text-muted-foreground">
+              Built with Tauri and Rust. Under 10 MB installed, minimal RAM usage, and native Windows performance.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- SCREENSHOTS                                     -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="section-block section-block--surface" id="screenshots">
+    <div class="container">
+      <p class="section-label">Screenshots</p>
+      <h2 class="type-headline section-title">See Nexus in action</h2>
+      <p class="type-body text-muted-foreground section-subtitle">
+        The Obsidian theme puts your game artwork front and centre.
+      </p>
+
+      <div class="row g-4 mt-4">
+        <!-- Nexus Wrapped — full-width video -->
+        <div class="col-12">
+          <div class="screenshot-card screenshot-card--featured">
+            <video controls muted loop playsinline preload="metadata">
+              <source src="assets/video/wrapped.mp4" type="video/mp4">
+            </video>
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Nexus Wrapped — Year in Review</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <img src="assets/img/screenshots/app-screenshot.png"
+                 alt="Nexus library grid view showing game covers from multiple sources"
+                 width="1920" height="1080"
+                 loading="lazy">
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Library — Grid View</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <img src="assets/img/screenshots/game-detail-overlay.png"
+                 alt="Nexus game detail overlay showing Eriksholm with play stats, description, and trailer"
+                 width="1280" height="800"
+                 loading="lazy">
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Game Detail Overlay</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Twitch Integration -->
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <img src="assets/img/screenshots/twitch-interface.png"
+                 alt="Nexus Twitch integration showing trending games, live streams, and viewer counts"
+                 width="1280" height="800"
+                 loading="lazy">
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Twitch — Live Streams &amp; Drops</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <img src="assets/img/screenshots/playtime-dashboard.png"
+                 alt="Nexus play time dashboard showing total hours, activity chart, heatmap, and top games"
+                 width="1280" height="800"
+                 loading="lazy">
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Play Time Dashboard</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <video autoplay muted loop playsinline preload="metadata">
+              <source src="assets/video/random.mp4" type="video/mp4">
+            </video>
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Random Game Selector</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="screenshot-card">
+            <img src="assets/img/screenshots/settings.png"
+                 alt="Nexus settings panel showing appearance, accent colors, API keys, and Twitch integration"
+                 width="1280" height="800"
+                 loading="lazy">
+            <div class="screenshot-label">
+              <span class="type-footnote text-muted-foreground">Comprehensive Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- DOWNLOAD CTA                                    -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="cta-section" id="download">
+    <div class="cta-content container">
+      <div class="cta-card">
+        <span class="version-badge type-caption text-primary-accent mb-4 d-inline-flex">
+          <i data-lucide="tag" class="icon-xs"></i>
+          v0.1.7 — Beta Access
+        </span>
+        <h2 class="type-headline mt-3">Ready to unify your library?</h2>
+        <p class="type-body text-muted-foreground mt-3 mx-auto cta-description">
+          Download Nexus for free. No account required. Your data stays local.
+        </p>
+        <div class="mt-5 d-flex flex-wrap justify-content-center gap-3">
+          <a href="releases/Nexus_0.1.7_x64_en-US.msi" class="btn-nexus btn-nexus-lg">
+            <i data-lucide="download" class="icon-base"></i>
+            Download for Windows
+          </a>
+          <a href="https://discord.gg/dh2tDGJNYD" class="btn-ghost" target="_blank" rel="noopener noreferrer">
+            <i data-lucide="message-circle" class="icon-md"></i>
+            Join the Community
+          </a>
+          <a href="https://paypal.me/darrenstrydom85" class="btn-ghost" target="_blank" rel="noopener noreferrer">
+            <i data-lucide="heart" class="icon-md"></i>
+            Support this project
+          </a>
+        </div>
+        <p class="type-caption text-muted-foreground mt-4">
+          Windows 10 / 11 &nbsp;·&nbsp; x64 &nbsp;·&nbsp; ~10 MB
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- FOOTER                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <footer class="footer-nexus">
+    <div class="container">
+      <div class="row align-items-center gy-3">
+        <div class="col-md-6">
+          <span class="type-footnote text-muted-foreground">
+            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          </span>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
+             aria-label="Support this project">
+            <i data-lucide="heart" class="icon-md icon-footer"></i>
+            Support
+          </a>
+          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
+             aria-label="Join the community on Discord">
+            <i data-lucide="message-circle" class="icon-md icon-footer"></i>
+            Discord
+          </a>
+          <a href="changelog.html" class="type-footnote" aria-label="Release notes">
+            <i data-lucide="file-text" class="icon-md icon-footer"></i>
+            Changelog
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
