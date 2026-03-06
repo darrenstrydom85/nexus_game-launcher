@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SessionList } from "./SessionList";
 import { SessionPatternsCharts } from "./SessionPatternsCharts";

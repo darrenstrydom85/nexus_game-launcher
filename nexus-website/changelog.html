@@ -135,15 +135,52 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.7 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.7">
+        <!-- ── v0.1.8 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.8">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.7</h2>
+              <h2 class="type-title1 mb-0">v0.1.8</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-06">March 6, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Per-game session analytics arrive — drill into individual game sessions with
+              breakdowns by month, day of week, distribution histograms, and return rate insights.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Per-Game Session Panel</strong> — Expandable session details on the game detail page with three tabs: Sessions list, Patterns (play time by month and day of week, return rate), and Distribution (session length histogram).</li>
+                <li><strong>Session Patterns Charts</strong> — Bar charts showing play time by month and day of week, plus an average return rate indicator.</li>
+                <li><strong>Session List</strong> — Paginated session history with date, duration, and tracking method badges (Auto/Manual).</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Build errors</strong> — Fixed TypeScript errors in test fixtures (unused imports, incorrect Game type fields).</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.7 ── -->
+        <article class="changelog-entry" id="v0.1.7">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.7</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-05">March 5, 2026</time>
           </div>
