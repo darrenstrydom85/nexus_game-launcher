@@ -1,9 +1,13 @@
+pub mod analytics;
 pub mod collection;
 pub mod game;
 pub mod session;
 pub mod settings;
 pub mod wrapped;
 
+pub use analytics::{
+    DistributionBucket, PerGameSessionStats, SessionDistribution, SessionRecord, SessionScope,
+};
 pub use collection::{Collection, CollectionWithCount};
 pub use game::{Game, GameSource, GameStatus};
 pub use session::{ActivityBucket, PlaySession, PlayStats};

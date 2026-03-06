@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod clipboard;
 pub mod collections;
 pub mod database;

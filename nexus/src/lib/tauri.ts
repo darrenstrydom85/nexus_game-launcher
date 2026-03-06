@@ -427,6 +427,31 @@ export function checkUpdateAvailable(): Promise<UpdateCheckResult> {
   return invoke<UpdateCheckResult>("check_update_available");
 }
 
+// ── Session Analytics (Story 17.1) ────────────────────────────────────
+export type {
+  SessionScope,
+  SessionDistribution,
+  DistributionBucket,
+  SessionRecord,
+  PerGameSessionStats,
+} from "../types/analytics";
+
+export function getSessionDistribution(
+  scope: import("../types/analytics").SessionScope,
+): Promise<import("../types/analytics").SessionDistribution> {
+  return invoke("get_session_distribution", { scope });
+}
+
+export function getPerGameSessionStats(
+  gameId: string,
+  limit?: number,
+): Promise<import("../types/analytics").PerGameSessionStats> {
+  return invoke("get_per_game_session_stats", {
+    gameId,
+    limit: limit ?? null,
+  });
+}
+
 // ── Wrapped Report (Story 16.1) ─────────────────────────────────────
 export type {
   WrappedPeriod,

@@ -12,6 +12,7 @@ use rusqlite;
 use tauri::Manager;
 
 use commands::{
+    analytics::{get_per_game_session_stats, get_session_distribution},
     collections::{
         add_to_collection, create_collection, delete_collection, get_collection_games,
         get_collections, remove_from_collection, reorder_collections, update_collection,
@@ -103,6 +104,8 @@ pub fn run() {
             get_library_stats,
             get_top_games,
             get_all_sessions,
+            get_session_distribution,
+            get_per_game_session_stats,
             get_wrapped_report,
             get_available_wrapped_periods,
             get_collections,
