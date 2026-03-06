@@ -24,25 +24,15 @@ function TrackingBadge({ method }: { method: string }) {
   );
 }
 
-function formatRelativeDate(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / 86_400_000);
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7);
-    return `${weeks}w ago`;
-  }
-  if (diffDays < 365) {
-    const months = Math.floor(diffDays / 30);
-    return `${months}mo ago`;
-  }
-  const years = Math.floor(diffDays / 365);
-  return `${years}y ago`;
+function formatSessionDate(iso: string): string {
+  const d = new Date(iso);
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${day} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function SessionList({ sessions }: SessionListProps) {
@@ -77,7 +67,7 @@ export function SessionList({ sessions }: SessionListProps) {
                   className="text-foreground"
                   title={new Date(s.startedAt).toLocaleString()}
                 >
-                  {formatRelativeDate(s.startedAt)}
+                  {formatSessionDate(s.startedAt)}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="tabular-nums text-foreground">
