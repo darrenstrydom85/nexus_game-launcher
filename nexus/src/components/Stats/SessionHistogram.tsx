@@ -138,6 +138,8 @@ export interface SessionHistogramProps {
   accentColor?: string;
   /** Available sources to show in the "By Source" filter. */
   availableSources?: GameSource[];
+  /** Hide the header and scope toggle (e.g. when embedded in a per-game panel). */
+  hideScope?: boolean;
 }
 
 export function SessionHistogram({
@@ -146,6 +148,7 @@ export function SessionHistogram({
   onScopeChange,
   accentColor = DEFAULT_ACCENT,
   availableSources = ALL_SOURCES,
+  hideScope = false,
 }: SessionHistogramProps) {
   const [scopeMode, setScopeMode] = React.useState<"all" | "source">("all");
   const [selectedSource, setSelectedSource] = React.useState<GameSource>(
@@ -156,9 +159,9 @@ export function SessionHistogram({
   React.useEffect(() => {
     if (!onScopeChange) return;
     if (scopeMode === "all") {
-      onScopeChange({ type: "Library" });
+      onScopeChange({ type: "library" });
     } else {
-      onScopeChange({ type: "Source", value: selectedSource });
+      onScopeChange({ type: "source", value: selectedSource });
     }
   }, [scopeMode, selectedSource, onScopeChange]);
 
@@ -193,72 +196,76 @@ export function SessionHistogram({
 
   return (
     <div data-testid="session-histogram">
-      {/* Header row */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-foreground">
-          Session Lengths
-        </h3>
+      {/* Header row (hidden when embedded in a per-game panel) */}
+      {!hideScope && (
+        <>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              Session Lengths
+            </h3>
 
-        {/* Scope toggle */}
-        <div
-          className="flex items-center gap-1 rounded-lg border border-border bg-card p-1"
-          role="group"
-          aria-label="Histogram scope"
-        >
-          <button
-            type="button"
-            data-testid="scope-toggle-all"
-            className={cn(
-              "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-              scopeMode === "all"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            onClick={() => setScopeMode("all")}
-          >
-            All Games
-          </button>
-          <button
-            type="button"
-            data-testid="scope-toggle-source"
-            className={cn(
-              "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-              scopeMode === "source"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            onClick={() => setScopeMode("source")}
-          >
-            By Source
-          </button>
-        </div>
-      </div>
-
-      {/* Source filter pills (visible only in "By Source" mode) */}
-      {scopeMode === "source" && (
-        <div
-          className="mb-4 flex flex-wrap gap-2"
-          data-testid="source-filter-pills"
-          role="group"
-          aria-label="Source filter"
-        >
-          {availableSources.map((src) => (
-            <button
-              key={src}
-              type="button"
-              data-testid={`source-pill-${src}`}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                selectedSource === src
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground",
-              )}
-              onClick={() => setSelectedSource(src)}
+            {/* Scope toggle */}
+            <div
+              className="flex items-center gap-1 rounded-lg border border-border bg-card p-1"
+              role="group"
+              aria-label="Histogram scope"
             >
-              {SOURCE_LABELS[src]}
-            </button>
-          ))}
-        </div>
+              <button
+                type="button"
+                data-testid="scope-toggle-all"
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                  scopeMode === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => setScopeMode("all")}
+              >
+                All Games
+              </button>
+              <button
+                type="button"
+                data-testid="scope-toggle-source"
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                  scopeMode === "source"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => setScopeMode("source")}
+              >
+                By Source
+              </button>
+            </div>
+          </div>
+
+          {/* Source filter pills (visible only in "By Source" mode) */}
+          {scopeMode === "source" && (
+            <div
+              className="mb-4 flex flex-wrap gap-2"
+              data-testid="source-filter-pills"
+              role="group"
+              aria-label="Source filter"
+            >
+              {availableSources.map((src) => (
+                <button
+                  key={src}
+                  type="button"
+                  data-testid={`source-pill-${src}`}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    selectedSource === src
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                  )}
+                  onClick={() => setSelectedSource(src)}
+                >
+                  {SOURCE_LABELS[src]}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Chart */}

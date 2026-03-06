@@ -155,11 +155,18 @@ export function TwitchPanel() {
   }, [liveStreams]);
 
   const filteredLiveStreams = React.useMemo(() => {
-    if (!gameFilter) return liveStreams;
-    return liveStreams.filter(
-      (s) => (s.gameName || "Just Chatting") === gameFilter,
-    );
-  }, [liveStreams, gameFilter]);
+    const base = gameFilter
+      ? liveStreams.filter(
+          (s) => (s.gameName || "Just Chatting") === gameFilter,
+        )
+      : liveStreams;
+    return [...base].sort((a, b) => {
+      const aFav = channels.find((c) => c.login === a.login)?.isFavorite === true ? 1 : 0;
+      const bFav = channels.find((c) => c.login === b.login)?.isFavorite === true ? 1 : 0;
+      if (bFav !== aFav) return bFav - aFav;
+      return b.viewerCount - a.viewerCount;
+    });
+  }, [liveStreams, gameFilter, channels]);
 
   React.useEffect(() => {
     if (gameFilter && !uniqueGames.includes(gameFilter)) {

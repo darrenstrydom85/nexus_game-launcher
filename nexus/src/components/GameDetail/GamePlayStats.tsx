@@ -1,7 +1,12 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { motion, AnimatePresence } from "motion/react";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatPlayTime } from "@/lib/utils";
 import type { Game } from "@/stores/gameStore";
-import { formatPlayTime } from "@/components/Library/HeroSection";
+import { usePerGameSessionStats } from "@/hooks/usePerGameSessionStats";
+import { PerGameSessionPanel } from "./PerGameSessionPanel";
 
 interface PlayStats {
   sessionCount: number;
@@ -17,6 +22,8 @@ interface GamePlayStatsProps {
 
 export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
   const [stats, setStats] = React.useState<PlayStats | null>(null);
+  const [expanded, setExpanded] = React.useState(false);
+  const { stats: sessionStats, isLoading, fetch: fetchSessionStats } = usePerGameSessionStats(game.id);
 
   React.useEffect(() => {
     invoke<{
@@ -28,6 +35,13 @@ export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
       .then((s) => setStats(s))
       .catch(() => setStats(null));
   }, [game.id]);
+
+  const handleToggle = React.useCallback(() => {
+    setExpanded((prev) => {
+      if (!prev) fetchSessionStats();
+      return !prev;
+    });
+  }, [fetchSessionStats]);
 
   const sessionCount = stats?.sessionCount ?? game.playCount ?? 0;
   const totalTime = stats?.totalTime ?? game.totalPlayTimeS ?? 0;
@@ -76,15 +90,49 @@ export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
           </dd>
         </div>
       </dl>
-      {onViewFullStats && (
+
+      {/* Expandable session details */}
+      <div className="mt-3 border-t border-border pt-3">
         <button
-          data-testid="stats-view-full"
-          className="mt-3 w-full rounded-md bg-secondary py-1.5 text-center text-xs font-medium text-secondary-foreground hover:bg-secondary/80"
-          onClick={onViewFullStats}
+          data-testid="session-details-toggle"
+          className={cn(
+            "flex w-full items-center justify-between text-xs font-medium text-muted-foreground",
+            "transition-colors hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          )}
+          onClick={handleToggle}
+          aria-expanded={expanded}
         >
-          View full stats
+          View session details
+          <ChevronDown
+            className={cn(
+              "size-3.5 transition-transform duration-200",
+              expanded && "rotate-180",
+            )}
+          />
         </button>
-      )}
+
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              data-testid="session-details-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="pt-3">
+                <PerGameSessionPanel
+                  stats={sessionStats}
+                  isLoading={isLoading}
+                  onViewFullStats={onViewFullStats}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

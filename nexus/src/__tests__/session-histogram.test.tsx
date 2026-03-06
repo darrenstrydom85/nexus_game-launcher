@@ -136,7 +136,7 @@ describe("Story 17.2: SessionHistogram", () => {
         onScopeChange={onScopeChange}
       />,
     );
-    expect(onScopeChange).toHaveBeenCalledWith({ type: "Library" });
+    expect(onScopeChange).toHaveBeenCalledWith({ type: "library" });
   });
 
   it("calls onScopeChange with Source scope when By Source + source selected", () => {
@@ -151,7 +151,7 @@ describe("Story 17.2: SessionHistogram", () => {
     onScopeChange.mockClear();
     fireEvent.click(screen.getByTestId("scope-toggle-source"));
     expect(onScopeChange).toHaveBeenCalledWith({
-      type: "Source",
+      type: "source",
       value: "steam",
     });
   });
@@ -169,7 +169,7 @@ describe("Story 17.2: SessionHistogram", () => {
     onScopeChange.mockClear();
     fireEvent.click(screen.getByTestId("source-pill-epic"));
     expect(onScopeChange).toHaveBeenCalledWith({
-      type: "Source",
+      type: "source",
       value: "epic",
     });
   });

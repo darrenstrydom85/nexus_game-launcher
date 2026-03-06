@@ -11,10 +11,10 @@ export interface UseSessionDistributionResult {
 
 /**
  * Fetches a session-length distribution for the given scope.
- * Defaults to `{ type: "Library" }` on mount.
+ * Defaults to `{ type: "library" }` on mount.
  */
 export function useSessionDistribution(
-  initialScope: SessionScope = { type: "Library" },
+  initialScope: SessionScope = { type: "library" },
 ): UseSessionDistributionResult {
   const [distribution, setDistribution] =
     React.useState<SessionDistribution | null>(null);

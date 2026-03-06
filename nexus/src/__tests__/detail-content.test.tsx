@@ -63,10 +63,30 @@ const mockPlayStats = {
   lastPlayed: "2026-02-28T10:00:00Z",
 };
 
+const mockPerGameSessionStats = {
+  sessions: [
+    { id: "s1", startedAt: "2026-02-28T10:00:00Z", endedAt: "2026-02-28T12:00:00Z", durationS: 7200, trackingMethod: "direct" },
+  ],
+  distribution: {
+    buckets: [],
+    totalSessions: 1,
+    meanDurationS: 7200,
+    medianDurationS: 7200,
+    p75DurationS: 7200,
+    p95DurationS: 7200,
+    shortestSessionS: 7200,
+    longestSessionS: 7200,
+  },
+  playTimeByMonth: [],
+  playTimeByDayOfWeek: [],
+  averageGapDays: 0,
+};
+
 beforeEach(() => {
   vi.mocked(invoke).mockImplementation((cmd: string) => {
     if (cmd === "get_play_stats") return Promise.resolve(mockPlayStats);
     if (cmd === "get_cache_stats") return Promise.resolve({ totalSizeBytes: 0, imageCount: 0 });
+    if (cmd === "get_per_game_session_stats") return Promise.resolve(mockPerGameSessionStats);
     return Promise.resolve({});
   });
 });
@@ -193,10 +213,14 @@ describe("GamePlayStats", () => {
     });
   });
 
-  it("renders 'View full stats' button", () => {
+  it("renders 'View full stats' button inside expandable section", async () => {
     const onViewFullStats = vi.fn();
     render(<GamePlayStats game={mockGame} onViewFullStats={onViewFullStats} />);
-    fireEvent.click(screen.getByTestId("stats-view-full"));
+    fireEvent.click(screen.getByTestId("session-details-toggle"));
+    await waitFor(() => {
+      expect(screen.getByTestId("view-full-stats-link")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("view-full-stats-link"));
     expect(onViewFullStats).toHaveBeenCalledOnce();
   });
 });

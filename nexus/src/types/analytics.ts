@@ -10,9 +10,9 @@ import type { MonthBucket, DayBucket } from "./wrapped";
  * Matches Rust `SessionScope` enum (serde tag = "type", content = "value").
  */
 export type SessionScope =
-  | { type: "Library" }
-  | { type: "Game"; value: string }
-  | { type: "Source"; value: string };
+  | { type: "library" }
+  | { type: "game"; value: string }
+  | { type: "source"; value: string };
 
 /** One histogram bucket in a session-length distribution. */
 export interface DistributionBucket {
