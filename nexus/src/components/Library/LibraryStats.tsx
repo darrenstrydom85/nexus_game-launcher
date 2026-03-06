@@ -8,6 +8,9 @@ import { ActivityChart } from "./stats/ActivityChart";
 import { ActivityHeatmap } from "./stats/ActivityHeatmap";
 import { TopGamesChart } from "./stats/TopGamesChart";
 import { SessionHistory } from "./stats/SessionHistory";
+import { SessionHistogram } from "@/components/Stats/SessionHistogram";
+import { useSessionDistribution } from "@/hooks/useSessionDistribution";
+import type { SessionScope } from "@/lib/tauri";
 
 export type StatsDateRange =
   | "all"
@@ -111,6 +114,8 @@ interface LibraryStatsProps {
   activityData?: ActivityDataPoint[];
   topGames?: TopGame[];
   sessions?: SessionRecord[];
+  /** Pass distribution directly (used in tests). When omitted, fetched via hook. */
+  distribution?: import("@/lib/tauri").SessionDistribution | null;
   /** Initial date range. When omitted, defaults to current month (used when navigating to stats in app). */
   initialDateRange?: StatsDateRange;
   /** Called when the user clicks "My Wrapped". */
@@ -211,6 +216,7 @@ export function LibraryStats({
   activityData: activityDataProp,
   topGames: topGamesProp,
   sessions: sessionsProp,
+  distribution: distributionProp,
   initialDateRange,
   onOpenWrapped,
 }: LibraryStatsProps) {
@@ -231,6 +237,23 @@ export function LibraryStats({
   );
   const accentColor = useSettingsStore((s) => s.accentColor);
   const storeGames = useGameStore((s) => s.games);
+
+  // Session distribution histogram (Story 17.2)
+  const {
+    distribution: fetchedDistribution,
+    isLoading: distributionLoading,
+    refetch: refetchDistribution,
+  } = useSessionDistribution();
+
+  const distribution = distributionProp !== undefined ? distributionProp : fetchedDistribution;
+  const isDistributionLoading = distributionProp !== undefined ? false : distributionLoading;
+
+  const handleScopeChange = React.useCallback(
+    (scope: SessionScope) => {
+      if (distributionProp === undefined) refetchDistribution(scope);
+    },
+    [distributionProp, refetchDistribution],
+  );
 
   const filteredActivity = React.useMemo(
     () => filterByDateRange(activityData, dateRange),
@@ -447,6 +470,16 @@ export function LibraryStats({
           {/* Session History */}
           <div className="rounded-lg border border-border bg-card p-4">
             <SessionHistory sessions={filteredSessions} />
+          </div>
+
+          {/* Session Lengths Histogram */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <SessionHistogram
+              distribution={distribution}
+              isLoading={isDistributionLoading}
+              onScopeChange={handleScopeChange}
+              accentColor={accentColor}
+            />
           </div>
         </>
       )}

@@ -100,9 +100,17 @@ fn fetch_durations(
              ORDER BY duration_s ASC"
         ),
         SessionScope::Game(_) => format!(
-            "SELECT duration_s FROM play_sessions \
-             WHERE game_id = ?1 AND ended_at IS NOT NULL AND duration_s >= {MIN_SESSION_DURATION_S} \
-             ORDER BY duration_s ASC"
+            "SELECT ps.duration_s FROM play_sessions ps \
+             WHERE ps.game_id = ?1 AND ps.ended_at IS NOT NULL \
+               AND ps.duration_s >= {MIN_SESSION_DURATION_S} \
+             ORDER BY ps.duration_s ASC"
+        ),
+        SessionScope::Source(_) => format!(
+            "SELECT ps.duration_s FROM play_sessions ps \
+             JOIN games g ON g.id = ps.game_id \
+             WHERE g.source = ?1 AND ps.ended_at IS NOT NULL \
+               AND ps.duration_s >= {MIN_SESSION_DURATION_S} \
+             ORDER BY ps.duration_s ASC"
         ),
     };
 
@@ -116,7 +124,7 @@ fn fetch_durations(
             .map_err(|e| CommandError::Database(e.to_string()))?
             .collect::<Result<_, _>>()
             .map_err(|e| CommandError::Database(e.to_string()))?,
-        SessionScope::Game(game_id) => stmt
+        SessionScope::Game(game_id) | SessionScope::Source(game_id) => stmt
             .query_map(params![game_id], |row| row.get(0))
             .map_err(|e| CommandError::Database(e.to_string()))?
             .collect::<Result<_, _>>()

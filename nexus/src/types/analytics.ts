@@ -11,7 +11,8 @@ import type { MonthBucket, DayBucket } from "./wrapped";
  */
 export type SessionScope =
   | { type: "Library" }
-  | { type: "Game"; value: string };
+  | { type: "Game"; value: string }
+  | { type: "Source"; value: string };
 
 /** One histogram bucket in a session-length distribution. */
 export interface DistributionBucket {

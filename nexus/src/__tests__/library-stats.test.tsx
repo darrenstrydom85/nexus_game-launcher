@@ -27,6 +27,25 @@ vi.mock("recharts", async (importOriginal) => {
   };
 });
 
+const emptyDistribution = {
+  buckets: [
+    { label: "< 15m",  minS: 0,     maxS: 900,   count: 0, totalPlayTimeS: 0 },
+    { label: "15–30m", minS: 900,   maxS: 1800,  count: 0, totalPlayTimeS: 0 },
+    { label: "30m–1h", minS: 1800,  maxS: 3600,  count: 0, totalPlayTimeS: 0 },
+    { label: "1–2h",   minS: 3600,  maxS: 7200,  count: 0, totalPlayTimeS: 0 },
+    { label: "2–4h",   minS: 7200,  maxS: 14400, count: 0, totalPlayTimeS: 0 },
+    { label: "4–8h",   minS: 14400, maxS: 28800, count: 0, totalPlayTimeS: 0 },
+    { label: "8h+",    minS: 28800, maxS: null,  count: 0, totalPlayTimeS: 0 },
+  ],
+  totalSessions: 0,
+  meanDurationS: 0,
+  medianDurationS: 0,
+  p75DurationS: 0,
+  p95DurationS: 0,
+  shortestSessionS: 0,
+  longestSessionS: 0,
+};
+
 beforeEach(() => {
   vi.mocked(invoke).mockImplementation((cmd: string) => {
     if (cmd === "get_library_stats")
@@ -40,6 +59,7 @@ beforeEach(() => {
     if (cmd === "get_activity_data") return Promise.resolve([]);
     if (cmd === "get_top_games") return Promise.resolve([]);
     if (cmd === "get_all_sessions") return Promise.resolve([]);
+    if (cmd === "get_session_distribution") return Promise.resolve(emptyDistribution);
     return Promise.resolve({});
   });
 });

@@ -13,6 +13,8 @@ pub enum SessionScope {
     Library,
     /// Single game by ID.
     Game(String),
+    /// All games from a specific source (e.g. "steam", "epic").
+    Source(String),
 }
 
 /// One histogram bucket in a session-length distribution.
