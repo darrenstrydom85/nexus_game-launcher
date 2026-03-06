@@ -288,7 +288,7 @@ body {
 .hero-content {
   position: relative;
   z-index: 1;
-  padding: var(--space-24) 0 var(--space-16);
+  padding: calc(var(--space-24) + 48px) 0 var(--space-16);
 }
 
 .hero-tagline {
