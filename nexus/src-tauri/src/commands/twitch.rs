@@ -1,6 +1,8 @@
 //! Tauri commands for Twitch OAuth (19.1) and Twitch data + offline cache (19.2).
 
 use serde::Serialize;
+use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_opener::OpenerExt;
 
@@ -11,6 +13,31 @@ use crate::twitch::cache::{self, CachedChannel, CachedStream};
 use crate::twitch::tokens;
 use crate::twitch::api;
 use crate::twitch::trending;
+
+/// Guards against double-refresh races: if a token refresh succeeded within this
+/// window, `ensure_valid_twitch_token` and `twitch_auth_status` skip another refresh
+/// and use the stored token instead. Twitch rotates refresh tokens on each use, so
+/// two rapid refreshes with the same (now-stale) refresh token causes an Auth error.
+const REFRESH_COOLDOWN_SECS: u64 = 60;
+
+fn last_refresh_at() -> &'static Mutex<Option<Instant>> {
+    static INSTANCE: OnceLock<Mutex<Option<Instant>>> = OnceLock::new();
+    INSTANCE.get_or_init(|| Mutex::new(None))
+}
+
+fn mark_refresh_completed() {
+    if let Ok(mut guard) = last_refresh_at().lock() {
+        *guard = Some(Instant::now());
+    }
+}
+
+fn is_within_refresh_cooldown() -> bool {
+    last_refresh_at()
+        .lock()
+        .ok()
+        .and_then(|guard| *guard)
+        .map_or(false, |t| t.elapsed().as_secs() < REFRESH_COOLDOWN_SECS)
+}
 
 /// Twitch OAuth2 client ID, optional at compile time. Set NEXUS_TWITCH_CLIENT_ID when building
 /// to enable Twitch (e.g. `$env:NEXUS_TWITCH_CLIENT_ID="your_id"; cargo build`).
@@ -201,8 +228,12 @@ async fn ensure_valid_twitch_token(
         .unwrap_or_default()
         .as_secs() as i64;
 
-    let need_refresh = refresh_token_opt.is_some()
+    let expiry_says_refresh = refresh_token_opt.is_some()
         && expires_at_opt.map_or(true, |e| now_secs >= e - REFRESH_THRESHOLD_SECS);
+
+    // Skip refresh if one just succeeded — Twitch rotates refresh tokens, so a
+    // second refresh with the now-stale token would fail with an Auth error.
+    let need_refresh = expiry_says_refresh && !is_within_refresh_cooldown();
 
     if need_refresh {
         if let Some(refresh_token) = refresh_token_opt {
@@ -219,12 +250,11 @@ async fn ensure_valid_twitch_token(
                     tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
                     tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT, &new_expires_at.to_string())?;
                     drop(conn);
+                    mark_refresh_completed();
                     let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": true }));
                     return Ok((user_id, access_token));
                 }
                 Err(e) => {
-                    // Only clear tokens when Twitch says the refresh token is invalid/revoked.
-                    // Network/timeout/5xx are transient; keep tokens so next retry can succeed.
                     if matches!(e, CommandError::Auth(_)) {
                         let conn = db
                             .conn
@@ -318,8 +348,10 @@ pub async fn twitch_auth_status(
         .unwrap_or_default()
         .as_secs() as i64;
 
-    let need_refresh = refresh_token_opt.is_some()
+    let expiry_says_refresh = refresh_token_opt.is_some()
         && expires_at_opt.map_or(true, |e| now_secs >= e - REFRESH_THRESHOLD_SECS);
+
+    let need_refresh = expiry_says_refresh && !is_within_refresh_cooldown();
 
     if need_refresh {
         if let Some(refresh_token) = refresh_token_opt {
@@ -336,6 +368,7 @@ pub async fn twitch_auth_status(
                     tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
                     tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT, &new_expires_at.to_string())?;
                     drop(conn);
+                    mark_refresh_completed();
                     let _ = app.emit(
                         "twitch-auth-changed",
                         serde_json::json!({ "authenticated": true, "displayName": display_name }),
@@ -347,8 +380,6 @@ pub async fn twitch_auth_status(
                     });
                 }
                 Err(e) => {
-                    // Only clear tokens when Twitch says the refresh token is invalid/revoked.
-                    // On network/timeout/5xx keep tokens so user stays "connected" and we can retry later.
                     if matches!(e, CommandError::Auth(_)) {
                         let conn = db
                             .conn
@@ -366,7 +397,6 @@ pub async fn twitch_auth_status(
                             expires_at: None,
                         });
                     }
-                    // Transient error: return still-authenticated so UI doesn't prompt reconnect; next fetch will retry refresh.
                     return Ok(TwitchAuthStatus {
                         authenticated: true,
                         display_name: display_name.clone(),
@@ -377,10 +407,13 @@ pub async fn twitch_auth_status(
         }
     }
 
-    let authenticated = refresh_token_opt.is_some() && expires_at_opt.is_some();
+    // If cooldown is active, a recent refresh succeeded — treat as authenticated
+    // even if the stored expires_at hasn't been re-read yet.
+    let authenticated = refresh_token_opt.is_some()
+        && (expires_at_opt.is_some() || is_within_refresh_cooldown());
     Ok(TwitchAuthStatus {
         authenticated,
-        display_name: display_name,
+        display_name,
         expires_at: expires_at_opt,
     })
 }
@@ -440,8 +473,23 @@ pub async fn validate_twitch_token(
             })
         }
         Err(CommandError::Auth(_)) => {
-            // Token revoked/invalid -- try refresh before giving up
             if let Some(refresh_token) = refresh_token_opt {
+                if is_within_refresh_cooldown() {
+                    // A refresh just succeeded — the 401 was for the old token that
+                    // was validated before the refresh completed. Re-read stored token.
+                    let (new_expires_at, new_display) = {
+                        let conn = db
+                            .conn
+                            .lock()
+                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        (tokens::load_expires_at(&conn)?, tokens::load_display_name(&conn)?)
+                    };
+                    return Ok(TwitchAuthStatus {
+                        authenticated: true,
+                        display_name: new_display,
+                        expires_at: new_expires_at,
+                    });
+                }
                 match auth::refresh_access_token(twitch_client_id()?, &refresh_token).await {
                     Ok((new_access, new_refresh, expires_in)) => {
                         let now_secs = std::time::SystemTime::now()
@@ -459,6 +507,7 @@ pub async fn validate_twitch_token(
                         tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
                         tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT, &new_expires_at.to_string())?;
                         drop(conn);
+                        mark_refresh_completed();
                         let _ = app.emit(
                             "twitch-auth-changed",
                             serde_json::json!({ "authenticated": true, "displayName": display_name }),
@@ -487,7 +536,6 @@ pub async fn validate_twitch_token(
                         })
                     }
                     Err(_) => {
-                        // Transient refresh failure -- keep session alive
                         let expires_at = {
                             let conn = db
                                 .conn

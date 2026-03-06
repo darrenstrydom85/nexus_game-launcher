@@ -233,22 +233,26 @@ function MainApp() {
     return () => clearInterval(id);
   }, [runUpdateCheck, addToast]);
 
-  // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated
+  // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated.
+  // If validateTwitchToken fails (e.g. no client ID, network down at launch), fall back to a
+  // local-only status check. The backend cooldown guard prevents double-refresh races when
+  // fetchFollowedStreams triggers ensure_valid_twitch_token shortly after.
   React.useEffect(() => {
     validateTwitchToken()
       .then((status) => {
         useTwitchStore.getState().setIsAuthenticated(status.authenticated);
         if (status.authenticated) {
           useTwitchStore.getState().fetchFollowedStreams();
+          useTwitchStore.getState().fetchTrending();
         }
       })
       .catch(() => {
-        // Fallback to local status check if validate fails (e.g. no client ID configured)
         twitchAuthStatus()
           .then((status) => {
             useTwitchStore.getState().setIsAuthenticated(status.authenticated);
             if (status.authenticated) {
               useTwitchStore.getState().fetchFollowedStreams();
+              useTwitchStore.getState().fetchTrending();
             }
           })
           .catch(() => {});

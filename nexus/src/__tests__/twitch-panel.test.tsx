@@ -79,6 +79,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
     useGameStore.setState({ games: [defaultGame] });
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: false });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: false });
       }
@@ -95,6 +98,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("shows connect prompt when not authenticated", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: false });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: false });
       }
@@ -109,6 +115,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("shows skeleton loading state when loading and no channels", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -126,6 +135,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("renders live streams in a flat grid with game name on each card", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -164,6 +176,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it('shows "In Library" badge for games in user library', async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -186,6 +201,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("offline section is collapsible and toggles", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -213,6 +231,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("shows stale data bar when stale is true", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -233,6 +254,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("clicking stream card calls openUrl with correct Twitch URL", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -256,6 +280,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("shows empty state when following 0 channels", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -277,6 +304,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
 
   it("shows error state when fetch fails and no cache", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -304,6 +334,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
       },
     };
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }

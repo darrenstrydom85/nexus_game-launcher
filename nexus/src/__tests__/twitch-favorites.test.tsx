@@ -105,6 +105,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     });
     useGameStore.setState({ games: [defaultGame] });
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -124,6 +127,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
 
   it("clicking star toggles favorite state (optimistic + invoke)", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -180,6 +186,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
       },
     });
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -217,6 +226,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
       isFavorite: false,
     });
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -290,6 +302,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
       }),
     );
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }
@@ -331,6 +346,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
   it("favorite state persists when get_twitch_followed_channels returns isFavorite", async () => {
     const ch = mockChannelLive({ id: "c1", isFavorite: true });
     vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") {
+        return Promise.resolve({ authenticated: true });
+      }
       if (cmd === "twitch_auth_status") {
         return Promise.resolve({ authenticated: true });
       }

@@ -11,7 +11,7 @@ import { TwitchEmptyState } from "./TwitchEmptyState";
 import { StreamCard } from "./StreamCard";
 import { OfflineChannelRow } from "./OfflineChannelRow";
 import { TrendingInLibrary } from "./TrendingInLibrary";
-import { twitchAuthStatus } from "@/lib/tauri";
+import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUiStore } from "@/stores/uiStore";
 import {
@@ -81,9 +81,11 @@ export function TwitchPanel() {
     () => channels.filter((c) => c.isFavorite === true).length,
     [channels],
   );
-  // Seed auth state and fetch on mount
+  // Seed auth state and fetch on mount — use validateTwitchToken so expired
+  // tokens are refreshed (not just locally checked). Falls back to local-only
+  // twitchAuthStatus if validate fails (e.g. no client ID).
   React.useEffect(() => {
-    twitchAuthStatus()
+    validateTwitchToken()
       .then((status) => {
         setIsAuthenticated(status.authenticated);
         if (status.authenticated) {
@@ -91,7 +93,17 @@ export function TwitchPanel() {
           fetchTrending();
         }
       })
-      .catch(() => setIsAuthenticated(false));
+      .catch(() => {
+        twitchAuthStatus()
+          .then((status) => {
+            setIsAuthenticated(status.authenticated);
+            if (status.authenticated) {
+              fetchFollowedStreams();
+              fetchTrending();
+            }
+          })
+          .catch(() => setIsAuthenticated(false));
+      });
   }, [setIsAuthenticated, fetchFollowedStreams, fetchTrending]);
 
   // Listen for auth and data events
@@ -112,8 +124,17 @@ export function TwitchPanel() {
 
   const handleRefresh = React.useCallback(() => {
     clearError();
-    refreshStreams();
-  }, [refreshStreams, clearError]);
+    validateTwitchToken()
+      .then((status) => {
+        setIsAuthenticated(status.authenticated);
+        if (status.authenticated) {
+          refreshStreams();
+        }
+      })
+      .catch(() => {
+        refreshStreams();
+      });
+  }, [refreshStreams, clearError, setIsAuthenticated]);
 
   const offlineChannels = React.useMemo(
     () =>
