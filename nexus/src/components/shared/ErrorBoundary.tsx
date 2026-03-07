@@ -51,8 +51,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               data-testid="error-report"
               variant="ghost"
               className="gap-1"
+              asChild
             >
-              <Bug className="size-4" /> Report Bug
+              <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">
+                <Bug className="size-4" /> Report Bug
+              </a>
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, Download } from "lucide-react";
+import { Bug, Download, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -42,8 +42,19 @@ export function AboutSection() {
           </Button>
         )}
         <a
+          data-testid="about-discord"
+          href="https://discord.gg/dh2tDGJNYD"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          <MessageCircle className="size-3.5" /> Discord
+        </a>
+        <a
           data-testid="about-bug"
-          href="mailto:hello@darrenstrydom.com?subject=Nexus%20Bug%20Report"
+          href="https://discord.gg/dh2tDGJNYD"
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1 hover:text-foreground"
         >
           <Bug className="size-3.5" /> Report a Bug
