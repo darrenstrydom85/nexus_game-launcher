@@ -1,12 +1,14 @@
 import * as React from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, Download, MessageCircle } from "lucide-react";
+import { Bug, CircleAlert, Download, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { KnownIssuesDialog } from "./KnownIssuesDialog";
 
 export function AboutSection() {
   const [version, setVersion] = React.useState<string | null>(null);
+  const [knownIssuesOpen, setKnownIssuesOpen] = React.useState(false);
   const updateAvailable = useUpdateStore((s) => s.updateAvailable);
   const downloadUrl = useUpdateStore((s) => s.downloadUrl);
   const runCheck = useUpdateStore((s) => s.runCheck);
@@ -59,8 +61,20 @@ export function AboutSection() {
         >
           <Bug className="size-3.5" /> Report a Bug
         </a>
+        <button
+          type="button"
+          data-testid="about-known-issues"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+          onClick={() => setKnownIssuesOpen(true)}
+        >
+          <CircleAlert className="size-3.5" /> Known Issues
+        </button>
         <span data-testid="about-license" className="text-xs">MIT License</span>
       </div>
+      <KnownIssuesDialog
+        open={knownIssuesOpen}
+        onClose={() => setKnownIssuesOpen(false)}
+      />
     </section>
   );
 }
