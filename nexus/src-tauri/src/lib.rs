@@ -24,6 +24,11 @@ use crate::models::settings::keys;
 /// "Exit" menu item so the close handler in `on_window_event` lets it through.
 pub static TRAY_EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
+/// Shared flag: when `true`, the next close-requested event should proceed
+/// without re-showing the dialog. Set by `confirm_app_close` so the
+/// programmatic `window.close()` is not intercepted by the guard.
+pub static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
+
 use commands::{
     analytics::{get_per_game_session_stats, get_session_distribution},
     collections::{
@@ -153,6 +158,9 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if TRAY_EXIT_REQUESTED.load(Ordering::SeqCst) {
+                    return;
+                }
+                if CLOSE_CONFIRMED.swap(false, Ordering::SeqCst) {
                     return;
                 }
                 let app = window.app_handle();
