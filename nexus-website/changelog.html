@@ -138,15 +138,53 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.8 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.8">
+        <!-- ── v0.1.9 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.9">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.8</h2>
+              <h2 class="type-title1 mb-0">v0.1.9</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-07">March 7, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Close-to-tray support, system tray integration, a live known-issues viewer,
+              and a fix for the close-confirmation loop.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Close to Tray</strong> — When you close Nexus, a dialog lets you choose between quitting or minimizing to the system tray. Toggle it off in Appearance settings.</li>
+                <li><strong>System Tray</strong> — Nexus now lives in your system tray with Open and Exit options. Double-click the icon to restore the window.</li>
+                <li><strong>Known Issues Dialog</strong> — Check current known issues from the About section in Settings, fetched live so you always see the latest.</li>
+                <li><strong>Discord Link</strong> — Quick link to the Nexus Discord community added to the About section, replacing the old email bug-report link.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Close confirmation loop</strong> — Fixed a bug where the close dialog could reappear endlessly, preventing the app from exiting.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.8 ── -->
+        <article class="changelog-entry" id="v0.1.8">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.8</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-06">March 6, 2026</time>
           </div>

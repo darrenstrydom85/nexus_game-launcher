@@ -325,6 +325,9 @@ describe("DotNavigation", () => {
 
 // ── WrappedView integration ────────────────────────────────────────────────
 
+// jsdom does not implement scrollTo on elements
+Element.prototype.scrollTo = vi.fn();
+
 // jsdom does not implement IntersectionObserver
 if (typeof globalThis.IntersectionObserver === "undefined") {
   globalThis.IntersectionObserver = class IntersectionObserver {
