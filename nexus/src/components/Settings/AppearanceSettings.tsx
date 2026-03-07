@@ -8,6 +8,8 @@ export function AppearanceSettings() {
   const setAccentColor = useSettingsStore((s) => s.setAccentColor);
   const transparency = useSettingsStore((s) => s.windowTransparency);
   const setTransparency = useSettingsStore((s) => s.setWindowTransparency);
+  const askBeforeClose = useSettingsStore((s) => s.askBeforeClose);
+  const setAskBeforeClose = useSettingsStore((s) => s.setAskBeforeClose);
   const animations = useSettingsStore((s) => s.enableAnimations);
   const setAnimations = useSettingsStore((s) => s.setEnableAnimations);
 
@@ -33,6 +35,21 @@ export function AppearanceSettings() {
             ))}
           </div>
         </div>
+
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-foreground">Ask when closing</span>
+          <input
+            data-testid="pref-ask-before-close"
+            type="checkbox"
+            checked={askBeforeClose}
+            onChange={() => setAskBeforeClose(!askBeforeClose)}
+            className="size-4 rounded border-border"
+            aria-describedby="ask-before-close-desc"
+          />
+        </label>
+        <p id="ask-before-close-desc" className="text-xs text-muted-foreground">
+          When on, closing the window (X or Alt+F4) shows a dialog to close the app or minimize to the system tray.
+        </p>
 
         <label className="flex items-center justify-between">
           <span className="text-sm text-foreground">Window Transparency</span>

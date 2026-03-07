@@ -458,8 +458,9 @@ mod tests {
             keys::LIBRARY_VIEW_MODE,
             keys::LIBRARY_SORT_BY,
             keys::LIBRARY_SORT_DIR,
+            keys::ASK_BEFORE_CLOSE,
         ];
-        assert_eq!(all_keys.len(), 23);
+        assert_eq!(all_keys.len(), 24);
         for key in &all_keys {
             assert!(!key.is_empty());
             assert!(key.chars().all(|c| c.is_ascii_lowercase() || c == '_'));

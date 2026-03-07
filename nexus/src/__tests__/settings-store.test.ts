@@ -16,6 +16,7 @@ describe("settingsStore", () => {
     });
     expect(state.watchedFolders).toEqual([]);
     expect(state.minimizeToTray).toBe(false);
+    expect(state.askBeforeClose).toBe(true);
     expect(state.launchAtStartup).toBe(false);
     expect(state.enableNotifications).toBe(true);
   });
@@ -63,6 +64,11 @@ describe("settingsStore", () => {
     expect(useSettingsStore.getState().minimizeToTray).toBe(true);
   });
 
+  it("setAskBeforeClose updates value", () => {
+    useSettingsStore.getState().setAskBeforeClose(false);
+    expect(useSettingsStore.getState().askBeforeClose).toBe(false);
+  });
+
   it("setLaunchAtStartup updates value", () => {
     useSettingsStore.getState().setLaunchAtStartup(true);
     expect(useSettingsStore.getState().launchAtStartup).toBe(true);
@@ -92,6 +98,7 @@ describe("settingsStore", () => {
         },
         watchedFolders: [restoredFolder],
         minimizeToTray: true,
+        askBeforeClose: false,
         launchAtStartup: false,
         enableNotifications: true,
       },
@@ -103,5 +110,6 @@ describe("settingsStore", () => {
     expect(state.apiKeys.steamGridDbKey).toBe("restored");
     expect(state.watchedFolders).toEqual([restoredFolder]);
     expect(state.minimizeToTray).toBe(true);
+    expect(state.askBeforeClose).toBe(false);
   });
 });

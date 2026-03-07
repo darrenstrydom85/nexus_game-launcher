@@ -8,8 +8,13 @@ pub mod twitch;
 mod utils;
 
 use std::sync::Arc;
-use rusqlite;
+use rusqlite::params;
+use tauri::Emitter;
 use tauri::Manager;
+use tauri::WindowEvent;
+
+use crate::db::DbState;
+use crate::models::settings::keys;
 
 use commands::{
     analytics::{get_per_game_session_stats, get_session_distribution},
@@ -55,7 +60,26 @@ use commands::{
         twitch_auth_logout, twitch_auth_start, twitch_auth_status, validate_twitch_token,
     },
     version_check::check_update_available,
+    window::{confirm_app_close, hide_main_window},
 };
+
+/// Story 20.1: Read ask_before_close from settings. Default true (show dialog).
+fn read_ask_before_close(app: &tauri::AppHandle) -> bool {
+    let db = match app.try_state::<DbState>() {
+        Some(s) => s,
+        None => return true,
+    };
+    let conn = match db.conn.lock() {
+        Ok(c) => c,
+        Err(_) => return true,
+    };
+    let val: Result<Option<String>, _> =
+        conn.query_row("SELECT value FROM settings WHERE key = ?1", params![keys::ASK_BEFORE_CLOSE], |r| r.get(0));
+    match val {
+        Ok(Some(v)) => v != "false",
+        _ => true,
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -71,6 +95,16 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                let ask = read_ask_before_close(&app);
+                if ask {
+                    api.prevent_close();
+                    let _ = window.emit("nexus://show-close-dialog", ());
+                }
+            }
+        })
         .setup(|_app| Ok(()))
         .invoke_handler(tauri::generate_handler![
             ping,
@@ -161,6 +195,8 @@ pub fn run() {
             check_connectivity,
             check_update_available,
             write_image_to_clipboard,
+            confirm_app_close,
+            hide_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

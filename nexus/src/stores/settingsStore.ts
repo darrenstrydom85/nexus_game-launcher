@@ -22,6 +22,8 @@ export interface SettingsState {
   apiKeys: ApiKeys;
   watchedFolders: WatchedFolder[];
   minimizeToTray: boolean;
+  /** Story 20.1: When true, show close-vs-minimize dialog on window close. Default true. */
+  askBeforeClose: boolean;
   launchAtStartup: boolean;
   enableNotifications: boolean;
   autoStatusTransitions: boolean;
@@ -56,6 +58,7 @@ export interface SettingsActions {
   removeWatchedFolder: (id: string) => void;
   setWatchedFolders: (folders: WatchedFolder[]) => void;
   setMinimizeToTray: (value: boolean) => void;
+  setAskBeforeClose: (value: boolean) => void;
   setLaunchAtStartup: (value: boolean) => void;
   setEnableNotifications: (value: boolean) => void;
   setAutoStatusTransitions: (value: boolean) => void;
@@ -102,6 +105,7 @@ const initialState: SettingsState = {
   },
   watchedFolders: [],
   minimizeToTray: false,
+  askBeforeClose: true,
   launchAtStartup: false,
   enableNotifications: true,
   autoStatusTransitions: true,
@@ -162,6 +166,9 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.theme_accent_color) patch.accentColor = settings.theme_accent_color;
             if (settings.library_view_mode) patch.defaultView = settings.library_view_mode as "grid" | "list";
             if (settings.library_sort_by) patch.defaultSort = settings.library_sort_by;
+            if (settings.ask_before_close !== undefined) {
+              patch.askBeforeClose = settings.ask_before_close !== "false";
+            }
             if (settings.auto_health_check !== undefined) {
               patch.autoHealthCheck = settings.auto_health_check !== "false";
             }
@@ -219,6 +226,10 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ watchedFolders: folders }, false, "setWatchedFolders"),
         setMinimizeToTray: (value) =>
           set({ minimizeToTray: value }, false, "setMinimizeToTray"),
+        setAskBeforeClose: (value) => {
+          persistSetting("ask_before_close", String(value));
+          set({ askBeforeClose: value }, false, "setAskBeforeClose");
+        },
         setLaunchAtStartup: (value) =>
           set({ launchAtStartup: value }, false, "setLaunchAtStartup"),
         setEnableNotifications: (value) =>

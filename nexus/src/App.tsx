@@ -49,6 +49,7 @@ import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
+import { CloseConfirmDialog } from "@/components/Settings/CloseConfirmDialog";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
@@ -81,6 +82,7 @@ function MainApp() {
   const [healthModalOpen, setHealthModalOpen] = React.useState(false);
   const [healthDeadGames, setHealthDeadGames] = React.useState<DeadGame[]>([]);
   const [updateDialogOpen, setUpdateDialogOpen] = React.useState(false);
+  const [closeConfirmDialogOpen, setCloseConfirmDialogOpen] = React.useState(false);
   const updateCheckTriggered = React.useRef(false);
   const runUpdateCheck = useUpdateStore((s) => s.runCheck);
   const [hasPlayHistory, setHasPlayHistory] = React.useState(false);
@@ -125,6 +127,10 @@ function MainApp() {
   }, []);
 
   useSettingsApplier();
+
+  useTauriEvent<unknown>("nexus://show-close-dialog", () => {
+    setCloseConfirmDialogOpen(true);
+  });
 
   React.useEffect(() => {
     if (activeNav === "random") {
@@ -631,6 +637,10 @@ function MainApp() {
       <UpdateAvailableDialog
         open={updateDialogOpen}
         onClose={() => setUpdateDialogOpen(false)}
+      />
+      <CloseConfirmDialog
+        open={closeConfirmDialogOpen}
+        onClose={() => setCloseConfirmDialogOpen(false)}
       />
       <TwitchToastContainer />
       <ToastNotifications />
