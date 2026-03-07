@@ -5,13 +5,10 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 use super::error::CommandError;
+use super::jsonbin;
 
 const JSONBIN_URL: &str = "https://api.jsonbin.io/v3/b/69a917a6ae596e708f60ee80/latest";
 const DOWNLOAD_URL: &str = "https://rebrand.ly/nexus-launch";
-
-/// Env vars for JSONBin. Use one: Access Key (read-only) or Master Key. Loaded from .env at compile time (see build.rs).
-const ENV_JSONBIN_ACCESS_KEY: &str = "NEXUS_JSONBIN_ACCESS_KEY";
-const ENV_JSONBIN_MASTER_KEY: &str = "NEXUS_JSONBIN_MASTER_KEY";
 
 #[derive(Debug, Deserialize)]
 struct JsonBinRecord {
@@ -52,17 +49,9 @@ fn version_greater_than(latest: &str, current: &str) -> bool {
 pub async fn check_update_available(app: AppHandle) -> Result<UpdateCheckResult, CommandError> {
     let current = app.package_info().version.to_string();
 
-    let access_key = option_env!("NEXUS_JSONBIN_ACCESS_KEY")
-        .map(String::from)
-        .or_else(|| std::env::var(ENV_JSONBIN_ACCESS_KEY).ok());
-    let master_key = option_env!("NEXUS_JSONBIN_MASTER_KEY")
-        .map(String::from)
-        .or_else(|| std::env::var(ENV_JSONBIN_MASTER_KEY).ok());
-
-    let (header_name, key_value) = match (access_key.as_deref(), master_key.as_deref()) {
-        (Some(k), _) if !k.trim().is_empty() => ("X-Access-Key", k.trim()),
-        (_, Some(k)) if !k.trim().is_empty() => ("X-Master-Key", k.trim()),
-        _ => {
+    let auth = match jsonbin::resolve_auth() {
+        Some(a) => a,
+        None => {
             return Ok(UpdateCheckResult {
                 update_available: false,
                 latest_version: None,
@@ -78,7 +67,7 @@ pub async fn check_update_available(app: AppHandle) -> Result<UpdateCheckResult,
     let res = client
         .get(JSONBIN_URL)
         .query(&[("meta", "false")])
-        .header(header_name, key_value)
+        .header(auth.header_name, &auth.key_value)
         .send()
         .await
         .map_err(|e| CommandError::NetworkUnavailable(e.to_string()))?;

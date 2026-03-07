@@ -7,6 +7,8 @@ pub mod error;
 pub mod events;
 pub mod games;
 pub mod health;
+pub mod jsonbin;
+pub mod known_issues;
 pub mod launcher;
 pub mod metadata;
 pub mod ping;

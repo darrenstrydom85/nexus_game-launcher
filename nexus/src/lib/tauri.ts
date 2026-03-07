@@ -427,6 +427,15 @@ export function checkUpdateAvailable(): Promise<UpdateCheckResult> {
   return invoke<UpdateCheckResult>("check_update_available");
 }
 
+// ── Known Issues (Story 21.1) ─────────────────────────────────────────
+export interface KnownIssuesResult {
+  issues: string[];
+}
+
+export function fetchKnownIssues(): Promise<KnownIssuesResult> {
+  return invoke<KnownIssuesResult>("fetch_known_issues");
+}
+
 // ── Session Analytics (Story 17.1) ────────────────────────────────────
 export type {
   SessionScope,

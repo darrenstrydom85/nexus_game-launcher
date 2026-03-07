@@ -7,14 +7,22 @@ pub mod sources;
 pub mod twitch;
 mod utils;
 
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::params;
+use tauri::image::Image;
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::Emitter;
 use tauri::Manager;
 use tauri::WindowEvent;
 
 use crate::db::DbState;
 use crate::models::settings::keys;
+
+/// Shared flag: when `true`, the next close-requested event should exit
+/// immediately without showing the confirmation dialog. Set by the tray
+/// "Exit" menu item so the close handler in `on_window_event` lets it through.
+pub static TRAY_EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 use commands::{
     analytics::{get_per_game_session_stats, get_session_distribution},
@@ -59,6 +67,7 @@ use commands::{
         get_twitch_streams_by_game, get_twitch_trending_library_games, set_twitch_favorite,
         twitch_auth_logout, twitch_auth_start, twitch_auth_status, validate_twitch_token,
     },
+    known_issues::fetch_known_issues,
     version_check::check_update_available,
     window::{confirm_app_close, hide_main_window},
 };
@@ -81,6 +90,52 @@ fn read_ask_before_close(app: &tauri::AppHandle) -> bool {
     }
 }
 
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+    }
+}
+
+fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let open_item = MenuItemBuilder::with_id("open", "Open").build(app)?;
+    let exit_item = MenuItemBuilder::with_id("exit", "Exit").build(app)?;
+    let menu = MenuBuilder::new(app)
+        .items(&[&open_item, &exit_item])
+        .build()?;
+
+    let icon = Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
+
+    TrayIconBuilder::with_id("nexus-tray")
+        .icon(icon)
+        .tooltip("Nexus Game Launcher")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "open" => {
+                show_main_window(app);
+            }
+            "exit" => {
+                TRAY_EXIT_REQUESTED.store(true, Ordering::SeqCst);
+                app.exit(0);
+            }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::DoubleClick {
+                button: MouseButton::Left,
+                ..
+            } => {
+                show_main_window(tray.app_handle());
+            }
+            _ => {}
+        })
+        .build(app)?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let db_state = db::init().expect("failed to initialize database");
@@ -97,6 +152,9 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if TRAY_EXIT_REQUESTED.load(Ordering::SeqCst) {
+                    return;
+                }
                 let app = window.app_handle();
                 let ask = read_ask_before_close(&app);
                 if ask {
@@ -105,7 +163,10 @@ pub fn run() {
                 }
             }
         })
-        .setup(|_app| Ok(()))
+        .setup(|app| {
+            setup_tray(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             ping,
             scan_directory,
@@ -194,6 +255,7 @@ pub fn run() {
             clear_twitch_cache,
             check_connectivity,
             check_update_available,
+            fetch_known_issues,
             write_image_to_clipboard,
             confirm_app_close,
             hide_main_window,
