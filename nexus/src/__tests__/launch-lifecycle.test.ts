@@ -285,3 +285,177 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
     expect(toasts[0].message).toContain("testgame.exe");
   });
 });
+
+describe("Story 22.5: Persist Selected EXE", () => {
+  const makeGame = (overrides: Partial<import("@/stores/gameStore").Game> = {}): import("@/stores/gameStore").Game => ({
+    id: "g1",
+    name: "Test Game",
+    source: "steam",
+    folderPath: null,
+    exePath: null,
+    exeName: null,
+    launchUrl: null,
+    igdbId: null,
+    steamgridId: null,
+    description: null,
+    coverUrl: null,
+    heroUrl: null,
+    logoUrl: null,
+    iconUrl: null,
+    customCover: null,
+    customHero: null,
+    potentialExeNames: null,
+    genres: [],
+    releaseDate: null,
+    criticScore: null,
+    criticScoreCount: null,
+    communityScore: null,
+    communityScoreCount: null,
+    trailerUrl: null,
+    status: "playing",
+    rating: null,
+    totalPlayTimeS: 0,
+    lastPlayedAt: null,
+    playCount: 0,
+    addedAt: new Date().toISOString(),
+    isHidden: false,
+    ...overrides,
+  });
+
+  const makeSession = (overrides: Partial<import("@/stores/gameStore").ActiveSession> = {}): import("@/stores/gameStore").ActiveSession => ({
+    sessionId: "s1",
+    gameId: "g1",
+    gameName: "Test Game",
+    coverUrl: null,
+    heroUrl: null,
+    startedAt: new Date().toISOString(),
+    dominantColor: "",
+    pid: null,
+    exeName: null,
+    folderPath: "C:\\Games\\Test",
+    potentialExeNames: null,
+    processDetected: false,
+    hasDbSession: true,
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useGameStore.setState({ activeSession: null, showProcessPicker: false, games: [] });
+    useToastStore.setState({ toasts: [] });
+    setRunningGame(null);
+    mockInvoke.mockResolvedValue(undefined);
+  });
+
+  it("calls update_game with potentialExeNames and exeName when exeName was null", async () => {
+    useGameStore.setState({
+      games: [makeGame({ exeName: null, potentialExeNames: null })],
+      activeSession: makeSession({ exeName: null }),
+      showProcessPicker: true,
+    });
+
+    const { result } = renderHook(() => useLaunchLifecycle());
+
+    await act(async () => {
+      await result.current.onProcessSelected("game.exe", 1234);
+    });
+
+    const updateCall = mockInvoke.mock.calls.find(
+      (c: unknown[]) => c[0] === "update_game",
+    );
+    expect(updateCall).toBeDefined();
+    expect(updateCall![1]).toEqual({
+      id: "g1",
+      fields: { potentialExeNames: "game.exe", exeName: "game.exe" },
+    });
+  });
+
+  it("does NOT overwrite exeName when game already has one", async () => {
+    useGameStore.setState({
+      games: [makeGame({ exeName: "existing.exe", potentialExeNames: "existing.exe" })],
+      activeSession: makeSession({ exeName: "existing.exe" }),
+      showProcessPicker: true,
+    });
+
+    const { result } = renderHook(() => useLaunchLifecycle());
+
+    await act(async () => {
+      await result.current.onProcessSelected("another.exe", 5678);
+    });
+
+    const updateCall = mockInvoke.mock.calls.find(
+      (c: unknown[]) => c[0] === "update_game",
+    );
+    expect(updateCall).toBeDefined();
+    expect(updateCall![1]).toEqual({
+      id: "g1",
+      fields: { potentialExeNames: "existing.exe, another.exe" },
+    });
+  });
+
+  it("appends to existing potentialExeNames without duplicates", async () => {
+    useGameStore.setState({
+      games: [makeGame({ exeName: "launcher.exe", potentialExeNames: "launcher.exe, helper.exe" })],
+      activeSession: makeSession({ exeName: "launcher.exe" }),
+      showProcessPicker: true,
+    });
+
+    const { result } = renderHook(() => useLaunchLifecycle());
+
+    await act(async () => {
+      await result.current.onProcessSelected("Helper.exe", 9999);
+    });
+
+    const updateCall = mockInvoke.mock.calls.find(
+      (c: unknown[]) => c[0] === "update_game",
+    );
+    expect(updateCall![1]).toEqual({
+      id: "g1",
+      fields: { potentialExeNames: "launcher.exe, helper.exe" },
+    });
+  });
+
+  it("updates activeSession with new exeName and potentialExeNames", async () => {
+    useGameStore.setState({
+      games: [makeGame({ exeName: null, potentialExeNames: "old.exe" })],
+      activeSession: makeSession({ exeName: null, potentialExeNames: ["old.exe"] }),
+      showProcessPicker: true,
+    });
+
+    const { result } = renderHook(() => useLaunchLifecycle());
+
+    await act(async () => {
+      await result.current.onProcessSelected("new.exe", 4321);
+    });
+
+    const session = useGameStore.getState().activeSession;
+    expect(session?.exeName).toBe("new.exe");
+    expect(session?.potentialExeNames).toEqual(["old.exe", "new.exe"]);
+    expect(session?.processDetected).toBe(true);
+  });
+
+  it("calls refreshGames after persisting the exe", async () => {
+    let getGamesCallCount = 0;
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_games") {
+        getGamesCallCount++;
+        return [];
+      }
+      return undefined;
+    });
+
+    useGameStore.setState({
+      games: [makeGame()],
+      activeSession: makeSession(),
+      showProcessPicker: true,
+    });
+
+    const { result } = renderHook(() => useLaunchLifecycle());
+
+    await act(async () => {
+      await result.current.onProcessSelected("game.exe", 1234);
+    });
+
+    expect(getGamesCallCount).toBeGreaterThanOrEqual(1);
+  });
+});
