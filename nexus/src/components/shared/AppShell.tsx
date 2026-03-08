@@ -22,10 +22,11 @@ interface AppShellProps {
   onDeleteCollection?: (collection: Collection) => void;
   onStopGame?: () => void;
   onGameDetails?: (gameId: string) => void;
+  onForceIdentify?: () => void;
   hasPlayHistory?: boolean;
 }
 
-export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails, hasPlayHistory }: AppShellProps) {
+export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails, onForceIdentify, hasPlayHistory }: AppShellProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const healthIssueCount = useSettingsStore((s) => s.healthCheckIssueCount);
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
@@ -81,7 +82,7 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
             )}
             style={{ width: sidebarWidth }}
           >
-            <NowPlaying onStop={onStopGame} onDetails={onGameDetails} />
+            <NowPlaying onStop={onStopGame} onDetails={onGameDetails} onForceIdentify={onForceIdentify} />
 
             <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
               <Sidebar
@@ -253,7 +254,7 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
               data-testid="floating-now-playing"
               className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3"
             >
-              <NowPlaying onStop={onStopGame} onDetails={onGameDetails} />
+              <NowPlaying onStop={onStopGame} onDetails={onGameDetails} onForceIdentify={onForceIdentify} />
             </div>
           )}
         </main>

@@ -251,6 +251,16 @@ export function useLaunchLifecycle() {
     }
   }, [setShowProcessPicker, endSession]);
 
+  const onForceIdentifyCancel = React.useCallback(() => {
+    setShowProcessPicker(false);
+  }, [setShowProcessPicker]);
+
+  const openForceIdentifyPicker = React.useCallback(() => {
+    const session = useGameStore.getState().activeSession;
+    if (!session || session.processDetected) return;
+    setShowProcessPicker(true);
+  }, [setShowProcessPicker]);
+
   useTauriEvent<GameLaunchedEvent>("game-launched", handleGameLaunched);
   useTauriEvent<GameExitedEvent>("game-exited", handleGameExited);
 
@@ -405,7 +415,7 @@ export function useLaunchLifecycle() {
     [handleGameLaunched, setActiveSession],
   );
 
-  return { launch, onProcessSelected, onCancelProcessPicker };
+  return { launch, onProcessSelected, onCancelProcessPicker, onForceIdentifyCancel, openForceIdentifyPicker };
 }
 
 export { QUICK_EXIT_THRESHOLD_MS, GRACE_PERIOD_MS };

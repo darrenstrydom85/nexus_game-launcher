@@ -55,7 +55,8 @@ import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function MainApp() {
-  const { launch: launchGame, onProcessSelected, onCancelProcessPicker } = useLaunchLifecycle();
+  const { launch: launchGame, onProcessSelected, onCancelProcessPicker, onForceIdentifyCancel, openForceIdentifyPicker } = useLaunchLifecycle();
+  const forceIdentifyActiveRef = React.useRef(false);
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
   const setGames = useGameStore((s) => s.setGames);
@@ -107,6 +108,43 @@ function MainApp() {
     },
     [launchGame, addToast],
   );
+
+  const handleForceIdentify = React.useCallback(() => {
+    forceIdentifyActiveRef.current = true;
+    openForceIdentifyPicker();
+  }, [openForceIdentifyPicker]);
+
+  const handleProcessPickerCancel = React.useCallback(() => {
+    if (forceIdentifyActiveRef.current) {
+      forceIdentifyActiveRef.current = false;
+      onForceIdentifyCancel();
+    } else {
+      onCancelProcessPicker();
+    }
+  }, [onForceIdentifyCancel, onCancelProcessPicker]);
+
+  const handleProcessSelected = React.useCallback(
+    (exeName: string, pid: number) => {
+      forceIdentifyActiveRef.current = false;
+      onProcessSelected(exeName, pid);
+    },
+    [onProcessSelected],
+  );
+
+  // Auto-dismiss: if process detected while picker is open, close modal + toast
+  const prevProcessDetectedRef = React.useRef(false);
+  React.useEffect(() => {
+    const detected = activeSession?.processDetected ?? false;
+    if (detected && !prevProcessDetectedRef.current && showProcessPicker) {
+      forceIdentifyActiveRef.current = false;
+      useGameStore.getState().setShowProcessPicker(false);
+      addToast({
+        type: "success",
+        message: `Detected ${activeSession?.exeName ?? "process"} automatically`,
+      });
+    }
+    prevProcessDetectedRef.current = detected;
+  }, [activeSession?.processDetected, activeSession?.exeName, showProcessPicker, addToast]);
 
   React.useEffect(() => {
     loadSettings();
@@ -491,6 +529,7 @@ function MainApp() {
       onGameDetails={(gameId) => {
         useUiStore.getState().setDetailOverlayGameId(gameId);
       }}
+      onForceIdentify={handleForceIdentify}
     >
       {activeNav === "wrapped" ? (
         <WrappedView onClose={() => useUiStore.getState().setActiveNav("stats")} />
@@ -522,11 +561,13 @@ function MainApp() {
           <DetailContent
             game={game}
             isPlaying={activeSession?.gameId === game.id}
+            processDetected={activeSession?.gameId === game.id ? activeSession?.processDetected : undefined}
             youtubeId={game.trailerUrl ? extractYoutubeId(game.trailerUrl) : null}
             collections={collections
               .filter((c) => c.gameIds.includes(game.id))
               .map((c) => `${c.icon} ${c.name}`)}
             onPlay={() => launch(game)}
+            onForceIdentify={handleForceIdentify}
             onStatusChange={(status) => {
               invoke("update_game", { id: game.id, fields: { status } })
                 .then(() => invoke<Game[]>("get_games", { params: {} }))
@@ -647,8 +688,8 @@ function MainApp() {
       <ProcessPickerModal
         open={showProcessPicker}
         gameName={activeSession?.gameName ?? ""}
-        onProcessSelected={onProcessSelected}
-        onCancel={onCancelProcessPicker}
+        onProcessSelected={handleProcessSelected}
+        onCancel={handleProcessPickerCancel}
       />
       <TwitchToastContainer />
       <ToastNotifications />

@@ -11,10 +11,12 @@ import { Plus } from "lucide-react";
 interface DetailContentProps {
   game: Game;
   isPlaying?: boolean;
+  processDetected?: boolean;
   screenshots?: string[];
   youtubeId?: string | null;
   collections?: string[];
   onPlay?: () => void;
+  onForceIdentify?: () => void;
   onStatusChange?: (status: import("@/stores/gameStore").GameStatus) => void;
   onRatingChange?: (rating: number | null) => void;
   onEdit?: () => void;
@@ -104,10 +106,12 @@ function GameInfoStrip({ game }: { game: Game }) {
 export function DetailContent({
   game,
   isPlaying,
+  processDetected,
   screenshots = [],
   youtubeId = null,
   collections = [],
   onPlay,
+  onForceIdentify,
   onStatusChange,
   onRatingChange,
   onEdit,
@@ -123,7 +127,9 @@ export function DetailContent({
       <ActionBar
         game={game}
         isPlaying={isPlaying}
+        processDetected={processDetected}
         onPlay={onPlay}
+        onForceIdentify={onForceIdentify}
         onStatusChange={onStatusChange}
         onRatingChange={onRatingChange}
         onEdit={onEdit}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useGameStore } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
-import { Square, Info } from "lucide-react";
+import { Square, Info, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function formatTimer(elapsedMs: number): string {
@@ -21,9 +21,10 @@ function formatTimer(elapsedMs: number): string {
 interface NowPlayingProps {
   onStop?: () => void;
   onDetails?: (gameId: string) => void;
+  onForceIdentify?: () => void;
 }
 
-export function NowPlaying({ onStop, onDetails }: NowPlayingProps) {
+export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingProps) {
   const activeSession = useGameStore((s) => s.activeSession);
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const sidebarVisible = useUiStore((s) => s.sidebarVisible);
@@ -126,6 +127,18 @@ export function NowPlaying({ onStop, onDetails }: NowPlayingProps) {
                 {formatTimer(elapsed)}
               </span>
 
+              {!processDetected && (
+                <button
+                  data-testid="now-playing-force-identify"
+                  className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  onClick={onForceIdentify}
+                  aria-label="Identify game process"
+                >
+                  <Crosshair className="size-3.5" />
+                  Can&apos;t find game?
+                </button>
+              )}
+
               <div className="flex shrink-0 gap-2">
                 <Button
                   data-testid="now-playing-stop"
@@ -190,6 +203,18 @@ export function NowPlaying({ onStop, onDetails }: NowPlayingProps) {
                 {activeSession.gameName}
               </span>
 
+              {!processDetected && (
+                <button
+                  data-testid="now-playing-force-identify"
+                  className="inline-flex items-center gap-1 self-start text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  onClick={onForceIdentify}
+                  aria-label="Identify game process"
+                >
+                  <Crosshair className="size-3.5" />
+                  Can&apos;t find game?
+                </button>
+              )}
+
               <span
                 data-testid="now-playing-timer"
                 className="font-mono text-lg tabular-nums text-foreground"
@@ -251,6 +276,17 @@ export function NowPlaying({ onStop, onDetails }: NowPlayingProps) {
                   processDetected ? "bg-success" : "bg-warning animate-pulse",
                 )} />
               </span>
+              {!processDetected && (
+                <button
+                  data-testid="now-playing-force-identify"
+                  className="rounded-md p-1 text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  onClick={onForceIdentify}
+                  aria-label="Identify game process"
+                  title="Identify game process"
+                >
+                  <Crosshair className="size-3.5" />
+                </button>
+              )}
               <span
                 data-testid="now-playing-timer-compact"
                 className="font-mono text-[10px] tabular-nums text-muted-foreground"

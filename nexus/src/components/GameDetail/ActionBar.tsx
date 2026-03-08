@@ -14,6 +14,7 @@ import {
   FolderOpen,
   EyeOff,
   ImagePlus,
+  Crosshair,
 } from "lucide-react";
 
 const STATUSES: { value: GameStatus; label: string; color: string }[] = [
@@ -28,7 +29,9 @@ const STATUSES: { value: GameStatus; label: string; color: string }[] = [
 interface ActionBarProps {
   game: Game;
   isPlaying?: boolean;
+  processDetected?: boolean;
   onPlay?: () => void;
+  onForceIdentify?: () => void;
   onStatusChange?: (status: GameStatus) => void;
   onRatingChange?: (rating: number | null) => void;
   onAddToCollection?: () => void;
@@ -42,7 +45,9 @@ interface ActionBarProps {
 export function ActionBar({
   game,
   isPlaying = false,
+  processDetected = false,
   onPlay,
+  onForceIdentify,
   onStatusChange,
   onRatingChange,
   onAddToCollection,
@@ -107,6 +112,21 @@ export function ActionBar({
           </>
         )}
       </Button>
+
+      {isPlaying && !processDetected && (
+        <button
+          data-testid="action-force-identify"
+          className={cn(
+            "inline-flex items-center gap-1.5 text-sm transition-colors duration-200",
+            "text-muted-foreground hover:text-foreground",
+          )}
+          onClick={onForceIdentify}
+          aria-label="Identify game process"
+        >
+          <Crosshair className="size-4" />
+          Can&apos;t find game?
+        </button>
+      )}
 
       {/* Status dropdown */}
       <div className="relative">
