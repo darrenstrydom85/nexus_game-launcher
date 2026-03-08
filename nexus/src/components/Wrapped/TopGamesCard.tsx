@@ -1,22 +1,12 @@
 import { motion } from "motion/react";
 import { formatPlayTime } from "@/lib/utils";
+import { resolveUrl } from "@/lib/url";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { WrappedReport } from "@/types/wrapped";
-import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface TopGamesCardProps {
   report: WrappedReport;
   isVisible: boolean;
-}
-
-function resolveUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  try {
-    return convertFileSrc(url);
-  } catch {
-    return url;
-  }
 }
 
 export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {

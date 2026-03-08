@@ -1,14 +1,16 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { formatPlayTime } from "@/lib/utils";
+import { PodiumVisual } from "./PodiumVisual";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface HeroCardProps {
   report: WrappedReport;
+  isVisible?: boolean;
 }
 
 const MAX_HOURS = 500;
 
-export function HeroCard({ report }: HeroCardProps) {
+export function HeroCard({ report, isVisible = true }: HeroCardProps) {
   const totalHours = report.totalPlayTimeS / 3600;
   const filledPercent = Math.min(totalHours / MAX_HOURS, 1);
   const filled = filledPercent * 100;
@@ -24,14 +26,14 @@ export function HeroCard({ report }: HeroCardProps) {
   return (
     <div
       data-testid="hero-card"
-      className="flex h-full flex-col items-center justify-center gap-8 px-8 py-12"
+      className="flex h-full flex-col items-center justify-center gap-6 px-8 py-8"
     >
       <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
         {report.periodLabel}
       </p>
 
       {/* Circular progress ring */}
-      <div className="relative flex size-56 items-center justify-center">
+      <div className="relative flex size-44 items-center justify-center">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -57,6 +59,11 @@ export function HeroCard({ report }: HeroCardProps) {
           <span className="text-xs text-muted-foreground">played</span>
         </div>
       </div>
+
+      {/* Top 3 podium */}
+      {report.topGames.length > 0 && (
+        <PodiumVisual topGames={report.topGames} isVisible={isVisible} />
+      )}
 
       {/* Headline */}
       <div className="text-center">

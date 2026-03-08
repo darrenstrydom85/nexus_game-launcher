@@ -242,7 +242,9 @@ export function WrappedView({ onClose }: WrappedViewProps) {
                     : "bg-gradient-to-b from-card/40 to-background",
                 )}
               >
-                {cardId === "hero" && <HeroCard report={report} />}
+                {cardId === "hero" && (
+                  <HeroCard report={report} isVisible={activeIndex === i} />
+                )}
                 {cardId === "top-game" && <TopGameCard report={report} />}
                 {cardId === "top-games" && (
                   <TopGamesCard report={report} isVisible={activeIndex === i} />
