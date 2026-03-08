@@ -56,6 +56,21 @@ export function stopGame(pid: number): Promise<void> {
   return invoke<void>("stop_game", { pid });
 }
 
+// ── Process Picker (Story 22.1) ───────────────────────────────────
+export interface RunningProcessInfo {
+  exeName: string;
+  pid: number;
+  windowTitle: string | null;
+}
+
+export function listRunningProcesses(
+  windowedOnly?: boolean,
+): Promise<RunningProcessInfo[]> {
+  return invoke<RunningProcessInfo[]>("list_running_processes", {
+    windowedOnly: windowedOnly ?? null,
+  });
+}
+
 // ── Playtime Commands ──────────────────────────────────────────────
 export interface PlaytimeRecord {
   gameId: string;

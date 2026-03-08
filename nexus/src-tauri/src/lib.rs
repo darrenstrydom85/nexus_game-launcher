@@ -39,7 +39,7 @@ use commands::{
     health::check_library_health,
     events::emit_test_event,
     games::{confirm_games, delete_game, get_game, get_games, search_games, update_game},
-    launcher::{check_process_running, find_game_process, launch_game, stop_game},
+    launcher::{check_process_running, find_game_process, launch_game, list_running_processes, stop_game},
     metadata::{
         apply_steamgrid_artwork, clear_cache, fetch_all_metadata, fetch_artwork, fetch_metadata,
         fetch_metadata_with_igdb_id, get_cache_stats, get_key_status, get_metadata,
@@ -182,6 +182,7 @@ pub fn run() {
             stop_game,
             check_process_running,
             find_game_process,
+            list_running_processes,
             get_playtime,
             get_metadata,
             get_db_status,

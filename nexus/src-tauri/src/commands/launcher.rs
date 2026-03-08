@@ -1,10 +1,112 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use std::collections::HashMap;
 use std::process::Command;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
 use super::error::CommandError;
+
+// ── System Process Blocklist ──────────────────────────────────────
+// Filtered from `list_running_processes` results. Generous blocklist
+// because the user picks from this list during a time-sensitive
+// game-launch moment — fewer irrelevant entries means faster selection.
+const SYSTEM_PROCESS_BLOCKLIST: &[&str] = &[
+    // Windows core
+    "svchost.exe",
+    "csrss.exe",
+    "smss.exe",
+    "wininit.exe",
+    "winlogon.exe",
+    "lsass.exe",
+    "services.exe",
+    "dwm.exe",
+    "fontdrvhost.exe",
+    "sihost.exe",
+    "taskhostw.exe",
+    "explorer.exe",
+    "ctfmon.exe",
+    "conhost.exe",
+    "dllhost.exe",
+    "spoolsv.exe",
+    "wudfhost.exe",
+    "dashost.exe",
+    "lsaiso.exe",
+    "memory compression",
+    "registry",
+    "system",
+    "idle",
+    // Windows runtime / UWP
+    "runtimebroker.exe",
+    "applicationframehost.exe",
+    "systemsettings.exe",
+    "shellexperiencehost.exe",
+    "startmenuexperiencehost.exe",
+    "textinputhost.exe",
+    "windowsinternal.composableshell.experiences.textinput.inputapp.exe",
+    "lockapp.exe",
+    "searchhost.exe",
+    "searchindexer.exe",
+    "searchprotocolhost.exe",
+    "searchfilterhost.exe",
+    "widgetservice.exe",
+    "widgets.exe",
+    "phoneexperiencehost.exe",
+    // Windows security / defender
+    "securityhealthservice.exe",
+    "securityhealthsystray.exe",
+    "msmpeng.exe",
+    "nissrv.exe",
+    "mpcmdrun.exe",
+    "sgrmbroker.exe",
+    "smartscreen.exe",
+    // Windows networking / services
+    "lsm.exe",
+    "wlanext.exe",
+    "wlms.exe",
+    "audiodg.exe",
+    "audioses.exe",
+    // Windows management
+    "tasklist.exe",
+    "taskmgr.exe",
+    "wmic.exe",
+    "cmd.exe",
+    "powershell.exe",
+    "pwsh.exe",
+    "wmiprvse.exe",
+    "msiexec.exe",
+    "trustedinstaller.exe",
+    "tiworker.exe",
+    "musnotification.exe",
+    "musnotifyicon.exe",
+    // Graphics / display drivers
+    "igfxem.exe",
+    "igfxhk.exe",
+    "igfxtray.exe",
+    "nvcontainer.exe",
+    "nvdisplay.container.exe",
+    "nvspcaps64.exe",
+    "nvoawrappercache.exe",
+    "atiesrxx.exe",
+    "atieclxx.exe",
+    "amdrsserv.exe",
+    "amddvr.exe",
+    "radarsilence.exe",
+    // Common background / tray apps
+    "onedrive.exe",
+    "msedge.exe",
+    "msedgewebview2.exe",
+    "gamebarpresencewriter.exe",
+    "gamebar.exe",
+    "gamebarftserver.exe",
+    "gameinputsvc.exe",
+    "xbox.tcui.exe",
+    "xboxgamebarsvc.exe",
+    // Tauri / this app
+    "nexus.exe",
+];
+
+// ── Structs ───────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +117,23 @@ pub struct LaunchResult {
     pub pid: Option<u32>,
     pub error: Option<String>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningProcess {
+    pub exe_name: String,
+    pub pid: u32,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningProcessInfo {
+    pub exe_name: String,
+    pub pid: u32,
+    pub window_title: Option<String>,
+}
+
+// ── Launch Commands ───────────────────────────────────────────────
 
 #[tauri::command]
 pub fn launch_game(
@@ -99,6 +218,8 @@ fn launch_url(game_id: &str, url: &str) -> Result<LaunchResult, CommandError> {
     }
 }
 
+// ── Process Management Commands ───────────────────────────────────
+
 #[tauri::command]
 pub fn stop_game(pid: u32) -> Result<(), CommandError> {
     #[cfg(target_os = "windows")]
@@ -155,13 +276,6 @@ fn is_exe_running(exe_name: &str) -> bool {
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RunningProcess {
-    pub exe_name: String,
-    pub pid: u32,
-}
-
 /// Find a running process whose executable path is inside the given folder.
 /// Uses WMIC to get the full executable path of all running processes and
 /// checks if any reside within `folder_path`. Returns the first match.
@@ -208,4 +322,362 @@ pub fn find_game_process(folder_path: String) -> Result<Option<RunningProcess>, 
     }
 
     Ok(None)
+}
+
+// ── List Running Processes (Story 22.1) ───────────────────────────
+
+/// Parse a single CSV field, handling double-quote escaping per RFC 4180.
+fn parse_csv_field(input: &str) -> (&str, &str) {
+    let s = input.trim_start();
+    if s.starts_with('"') {
+        let inner = &s[1..];
+        let mut end = 0;
+        let bytes = inner.as_bytes();
+        while end < bytes.len() {
+            if bytes[end] == b'"' {
+                if end + 1 < bytes.len() && bytes[end + 1] == b'"' {
+                    end += 2;
+                    continue;
+                }
+                let value = &inner[..end];
+                let rest = &inner[end + 1..];
+                let rest = rest.strip_prefix(',').unwrap_or(rest);
+                return (value, rest);
+            }
+            end += 1;
+        }
+        (inner, "")
+    } else {
+        match s.find(',') {
+            Some(i) => (&s[..i], &s[i + 1..]),
+            None => (s, ""),
+        }
+    }
+}
+
+/// Parse a full CSV line from `tasklist /V /FO CSV` into its fields.
+fn parse_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut remaining = line;
+    while !remaining.is_empty() {
+        let (field, rest) = parse_csv_field(remaining);
+        fields.push(field.to_string());
+        remaining = rest;
+    }
+    fields
+}
+
+/// Normalize a window title from tasklist output. Returns `None` for
+/// titles that indicate no visible window ("N/A" or empty).
+fn normalize_window_title(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() || trimmed == "N/A" {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Check if an exe_name is in the system process blocklist (case-insensitive).
+fn is_blocked(exe_name: &str) -> bool {
+    let lower = exe_name.to_lowercase();
+    SYSTEM_PROCESS_BLOCKLIST.contains(&lower.as_str())
+}
+
+/// Filter and deduplicate a parsed process list.
+/// Accepts pre-parsed entries of (exe_name, pid, window_title) for testability.
+/// Deduplicates by exe_name (case-insensitive), keeping the entry with the
+/// lowest PID. Returns results sorted alphabetically by exe_name.
+pub(crate) fn filter_and_dedup_processes(
+    entries: Vec<(String, u32, Option<String>)>,
+    windowed_only: bool,
+) -> Vec<RunningProcessInfo> {
+    let mut best: HashMap<String, RunningProcessInfo> = HashMap::new();
+
+    for (exe_name, pid, title) in entries {
+        if is_blocked(&exe_name) {
+            continue;
+        }
+
+        let window_title = title.as_deref().and_then(normalize_window_title);
+
+        if windowed_only && window_title.is_none() {
+            continue;
+        }
+
+        let key = exe_name.to_lowercase();
+        best.entry(key)
+            .and_modify(|existing| {
+                if pid < existing.pid {
+                    existing.exe_name = exe_name.clone();
+                    existing.pid = pid;
+                    existing.window_title = window_title.clone();
+                }
+            })
+            .or_insert_with(|| RunningProcessInfo {
+                exe_name,
+                pid,
+                window_title,
+            });
+    }
+
+    let mut results: Vec<RunningProcessInfo> = best.into_values().collect();
+    results.sort_by(|a, b| a.exe_name.to_lowercase().cmp(&b.exe_name.to_lowercase()));
+    results
+}
+
+/// Parse `tasklist /V /FO CSV` output into (exe_name, pid, window_title) tuples.
+/// The /V (verbose) format has 9 columns:
+/// "Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+fn parse_tasklist_csv(stdout: &str) -> Vec<(String, u32, Option<String>)> {
+    let mut entries = Vec::new();
+
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let fields = parse_csv_line(line);
+
+        // Skip the header row
+        if fields.first().map_or(false, |f| f == "Image Name") {
+            continue;
+        }
+
+        // Need at least 9 fields for /V format
+        if fields.len() < 9 {
+            continue;
+        }
+
+        let exe_name = fields[0].clone();
+        let pid: u32 = match fields[1].parse() {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
+        let window_title = Some(fields[8].clone());
+
+        entries.push((exe_name, pid, window_title));
+    }
+
+    entries
+}
+
+/// Returns a filtered, deduplicated list of currently running processes.
+/// When `windowed_only` is true, only processes with a visible window title
+/// are included. Results are sorted alphabetically by exe_name.
+#[tauri::command]
+pub fn list_running_processes(windowed_only: Option<bool>) -> Vec<RunningProcessInfo> {
+    let windowed = windowed_only.unwrap_or(false);
+
+    let output = Command::new("tasklist")
+        .args(["/V", "/FO", "CSV"])
+        .creation_flags(0x08000000)
+        .output();
+
+    let out = match output {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let entries = parse_tasklist_csv(&stdout);
+    filter_and_dedup_processes(entries, windowed)
+}
+
+// ── Tests ─────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_entry(exe: &str, pid: u32, title: Option<&str>) -> (String, u32, Option<String>) {
+        (exe.to_string(), pid, title.map(|t| t.to_string()))
+    }
+
+    #[test]
+    fn blocklist_filters_system_processes() {
+        let entries = vec![
+            make_entry("svchost.exe", 100, None),
+            make_entry("csrss.exe", 200, None),
+            make_entry("MyGame.exe", 300, Some("My Game Window")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].exe_name, "MyGame.exe");
+    }
+
+    #[test]
+    fn blocklist_is_case_insensitive() {
+        let entries = vec![
+            make_entry("SVCHOST.EXE", 100, None),
+            make_entry("Explorer.exe", 200, Some("Desktop")),
+            make_entry("game.exe", 300, Some("Game")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].exe_name, "game.exe");
+    }
+
+    #[test]
+    fn dedup_keeps_lowest_pid() {
+        let entries = vec![
+            make_entry("game.exe", 500, Some("Window A")),
+            make_entry("game.exe", 200, Some("Window B")),
+            make_entry("game.exe", 800, Some("Window C")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].pid, 200);
+        assert_eq!(result[0].window_title, Some("Window B".to_string()));
+    }
+
+    #[test]
+    fn dedup_is_case_insensitive() {
+        let entries = vec![
+            make_entry("Game.exe", 500, Some("Title A")),
+            make_entry("game.exe", 200, Some("Title B")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].pid, 200);
+    }
+
+    #[test]
+    fn windowed_only_filters_no_window() {
+        let entries = vec![
+            make_entry("background.exe", 100, None),
+            make_entry("service.exe", 200, Some("N/A")),
+            make_entry("empty.exe", 300, Some("")),
+            make_entry("visible.exe", 400, Some("My Window")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, true);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].exe_name, "visible.exe");
+    }
+
+    #[test]
+    fn windowed_false_includes_all_non_blocked() {
+        let entries = vec![
+            make_entry("background.exe", 100, None),
+            make_entry("service.exe", 200, Some("N/A")),
+            make_entry("visible.exe", 400, Some("My Window")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn results_sorted_alphabetically() {
+        let entries = vec![
+            make_entry("Zelda.exe", 100, Some("Zelda")),
+            make_entry("Apex.exe", 200, Some("Apex")),
+            make_entry("minecraft.exe", 300, Some("Minecraft")),
+        ];
+
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result[0].exe_name, "Apex.exe");
+        assert_eq!(result[1].exe_name, "minecraft.exe");
+        assert_eq!(result[2].exe_name, "Zelda.exe");
+    }
+
+    #[test]
+    fn empty_input_returns_empty() {
+        let result = filter_and_dedup_processes(Vec::new(), false);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn window_title_na_normalized_to_none() {
+        let entries = vec![make_entry("app.exe", 100, Some("N/A"))];
+        let result = filter_and_dedup_processes(entries, false);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].window_title, None);
+    }
+
+    #[test]
+    fn parse_csv_line_basic() {
+        let line = r#""Image Name","PID","Session Name""#;
+        let fields = parse_csv_line(line);
+        assert_eq!(fields, vec!["Image Name", "PID", "Session Name"]);
+    }
+
+    #[test]
+    fn parse_csv_line_with_embedded_comma() {
+        let line = r#""notepad.exe","1234","Console","1","10,000 K","Running","USER","0:00:01","Untitled - Notepad""#;
+        let fields = parse_csv_line(line);
+        assert_eq!(fields.len(), 9);
+        assert_eq!(fields[0], "notepad.exe");
+        assert_eq!(fields[1], "1234");
+        assert_eq!(fields[4], "10,000 K");
+        assert_eq!(fields[8], "Untitled - Notepad");
+    }
+
+    #[test]
+    fn parse_tasklist_csv_skips_header() {
+        let csv = r#""Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+"notepad.exe","1234","Console","1","10,000 K","Running","USER","0:00:01","Untitled - Notepad"
+"game.exe","5678","Console","1","50,000 K","Running","USER","0:01:00","My Game"
+"#;
+        let entries = parse_tasklist_csv(csv);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].0, "notepad.exe");
+        assert_eq!(entries[0].1, 1234);
+        assert_eq!(entries[1].0, "game.exe");
+        assert_eq!(entries[1].1, 5678);
+        assert_eq!(entries[1].2, Some("My Game".to_string()));
+    }
+
+    #[test]
+    fn parse_tasklist_csv_skips_malformed_lines() {
+        let csv = r#""short","line"
+"valid.exe","999","Console","1","5,000 K","Running","USER","0:00:00","Title"
+"#;
+        let entries = parse_tasklist_csv(csv);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].0, "valid.exe");
+    }
+
+    #[test]
+    fn full_pipeline_integration() {
+        let csv = r#""Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+"svchost.exe","100","Services","0","10,000 K","Running","SYSTEM","0:00:05","N/A"
+"explorer.exe","200","Console","1","80,000 K","Running","USER","0:00:10","Desktop"
+"MyGame.exe","500","Console","1","200,000 K","Running","USER","0:05:00","My Awesome Game"
+"MyGame.exe","300","Console","1","150,000 K","Running","USER","0:02:00","My Awesome Game - Loading"
+"csrss.exe","50","Services","0","5,000 K","Running","SYSTEM","0:00:01","N/A"
+"AnotherApp.exe","600","Console","1","30,000 K","Running","USER","0:00:30","N/A"
+"#;
+        let entries = parse_tasklist_csv(csv);
+        let result = filter_and_dedup_processes(entries, false);
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].exe_name, "AnotherApp.exe");
+        assert_eq!(result[0].window_title, None);
+        assert_eq!(result[1].exe_name, "MyGame.exe");
+        assert_eq!(result[1].pid, 300);
+        assert_eq!(
+            result[1].window_title,
+            Some("My Awesome Game - Loading".to_string())
+        );
+    }
+
+    #[test]
+    fn full_pipeline_windowed_only() {
+        let csv = r#""Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+"MyGame.exe","300","Console","1","200,000 K","Running","USER","0:05:00","My Game"
+"background.exe","400","Console","1","10,000 K","Running","USER","0:00:01","N/A"
+"#;
+        let entries = parse_tasklist_csv(csv);
+        let result = filter_and_dedup_processes(entries, true);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].exe_name, "MyGame.exe");
+    }
 }
