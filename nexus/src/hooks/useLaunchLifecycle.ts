@@ -10,7 +10,7 @@ const PROCESS_POLL_INTERVAL_MS = 5000;
 const INITIAL_POLL_DELAY_MS = 15000;
 // Extended to accommodate launchers like Ubisoft Connect / Epic that can take
 // several minutes to load before handing off to the actual game process.
-const GRACE_PERIOD_MS = 3.5 * 60 * 1000; // 3.5 minutes
+const GRACE_PERIOD_MS = 5 * 60 * 1000; // 5 minutes
 const CONSECUTIVE_MISSES_TO_EXIT = 3;
 
 export interface GameLaunchedEvent {
@@ -26,6 +26,19 @@ export interface GameExitedEvent {
   sessionId: string;
   gameId: string;
   durationS: number;
+}
+
+export function buildUpdatedExeNames(current: string | null, newExe: string): string {
+  const existing = current
+    ? current.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const isDuplicate = existing.some(
+    (e) => e.toLowerCase() === newExe.toLowerCase(),
+  );
+  if (!isDuplicate) {
+    existing.push(newExe);
+  }
+  return existing.join(", ");
 }
 
 function formatDuration(seconds: number): string {
@@ -94,14 +107,18 @@ async function checkProcessAlive(session: ActiveSession): Promise<{ alive: boole
 
 export function useLaunchLifecycle() {
   const setActiveSession = useGameStore((s) => s.setActiveSession);
+  const setShowProcessPicker = useGameStore((s) => s.setShowProcessPicker);
   const activeSession = useGameStore((s) => s.activeSession);
   const addToast = useToastStore((s) => s.addToast);
   const launchTimeRef = React.useRef<number>(0);
+  const promptShownRef = React.useRef(false);
+  const pollingResumeRef = React.useRef<(() => void) | null>(null);
 
   const endSession = React.useCallback(
     async (session: ActiveSession) => {
       setActiveSession(null);
       setRunningGame(null);
+      setShowProcessPicker(false);
 
       const startMs = new Date(session.startedAt).getTime();
       const durationS = Math.floor((Date.now() - startMs) / 1000);
@@ -127,12 +144,14 @@ export function useLaunchLifecycle() {
         });
       }
     },
-    [setActiveSession, addToast],
+    [setActiveSession, setShowProcessPicker, addToast],
   );
 
   const handleGameLaunched = React.useCallback(
     (event: GameLaunchedEvent & { pid?: number; exeName?: string | null; folderPath?: string | null; potentialExeNames?: string | null; hasDbSession?: boolean }) => {
       launchTimeRef.current = Date.now();
+      promptShownRef.current = false;
+      pollingResumeRef.current = null;
       const potentialExeNames = event.potentialExeNames
         ? event.potentialExeNames.split(",").map((s) => s.trim()).filter(Boolean)
         : null;
@@ -185,6 +204,53 @@ export function useLaunchLifecycle() {
     [setActiveSession, addToast],
   );
 
+  const onProcessSelected = React.useCallback(
+    async (exeName: string, _pid: number) => {
+      const session = useGameStore.getState().activeSession;
+      if (!session) return;
+
+      setShowProcessPicker(false);
+
+      const game = useGameStore.getState().games.find((g) => g.id === session.gameId);
+      const currentExeNames = game?.potentialExeNames ?? null;
+      const updatedPotentialExeNames = buildUpdatedExeNames(currentExeNames, exeName);
+
+      const updateFields: Record<string, unknown> = {
+        potentialExeNames: updatedPotentialExeNames,
+      };
+      if (!game?.exeName) {
+        updateFields.exeName = exeName;
+      }
+      invoke("update_game", { id: session.gameId, fields: updateFields }).catch(() => {});
+
+      const updatedList = updatedPotentialExeNames.split(",").map((s) => s.trim()).filter(Boolean);
+      useGameStore.getState().setActiveSession({
+        ...session,
+        exeName: exeName,
+        potentialExeNames: updatedList,
+        processDetected: true,
+      });
+
+      await refreshGames();
+
+      addToast({
+        type: "success",
+        message: `Now tracking ${session.gameName} via ${exeName}`,
+      });
+
+      pollingResumeRef.current?.();
+    },
+    [setShowProcessPicker, addToast],
+  );
+
+  const onCancelProcessPicker = React.useCallback(() => {
+    setShowProcessPicker(false);
+    const session = useGameStore.getState().activeSession;
+    if (session) {
+      endSession(session);
+    }
+  }, [setShowProcessPicker, endSession]);
+
   useTauriEvent<GameLaunchedEvent>("game-launched", handleGameLaunched);
   useTauriEvent<GameExitedEvent>("game-exited", handleGameExited);
 
@@ -198,10 +264,11 @@ export function useLaunchLifecycle() {
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let consecutiveMisses = 0;
     let processEverFound = false;
+    let waitingForPicker = false;
     const launchTime = Date.now();
 
-    const delayTimer = setTimeout(() => {
-      if (cancelled) return;
+    const startPolling = () => {
+      if (cancelled || intervalId) return;
 
       intervalId = setInterval(async () => {
         if (cancelled) return;
@@ -238,13 +305,27 @@ export function useLaunchLifecycle() {
           return;
         }
 
-        // Process not found — but don't end immediately
         consecutiveMisses++;
 
-        // During the grace period, only end if we previously confirmed
-        // the process was running and now it's gone
         const inGracePeriod = (Date.now() - launchTime) < GRACE_PERIOD_MS;
         if (inGracePeriod && !processEverFound) {
+          return;
+        }
+
+        // Grace period expired, process never found — show picker once
+        if (!processEverFound && !promptShownRef.current && !waitingForPicker) {
+          promptShownRef.current = true;
+          waitingForPicker = true;
+          if (intervalId) { clearInterval(intervalId); intervalId = null; }
+
+          pollingResumeRef.current = () => {
+            waitingForPicker = false;
+            consecutiveMisses = 0;
+            processEverFound = true;
+            if (!cancelled) startPolling();
+          };
+
+          useGameStore.getState().setShowProcessPicker(true);
           return;
         }
 
@@ -253,12 +334,18 @@ export function useLaunchLifecycle() {
           endSession(session);
         }
       }, PROCESS_POLL_INTERVAL_MS);
+    };
+
+    const delayTimer = setTimeout(() => {
+      if (cancelled) return;
+      startPolling();
     }, INITIAL_POLL_DELAY_MS);
 
     return () => {
       cancelled = true;
       clearTimeout(delayTimer);
       if (intervalId) clearInterval(intervalId);
+      pollingResumeRef.current = null;
     };
   }, [activeSession?.sessionId, endSession]);
 
@@ -318,7 +405,7 @@ export function useLaunchLifecycle() {
     [handleGameLaunched, setActiveSession],
   );
 
-  return { launch };
+  return { launch, onProcessSelected, onCancelProcessPicker };
 }
 
-export { QUICK_EXIT_THRESHOLD_MS };
+export { QUICK_EXIT_THRESHOLD_MS, GRACE_PERIOD_MS };

@@ -51,11 +51,13 @@ import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
 import { CloseConfirmDialog } from "@/components/Settings/CloseConfirmDialog";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
+import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function MainApp() {
-  const { launch: launchGame } = useLaunchLifecycle();
+  const { launch: launchGame, onProcessSelected, onCancelProcessPicker } = useLaunchLifecycle();
   const activeSession = useGameStore((s) => s.activeSession);
+  const showProcessPicker = useGameStore((s) => s.showProcessPicker);
   const setGames = useGameStore((s) => s.setGames);
   const activeNav = useUiStore((s) => s.activeNav);
   const loadSettings = useSettingsStore((s) => s.loadFromBackend);
@@ -641,6 +643,12 @@ function MainApp() {
       <CloseConfirmDialog
         open={closeConfirmDialogOpen}
         onClose={() => setCloseConfirmDialogOpen(false)}
+      />
+      <ProcessPickerModal
+        open={showProcessPicker}
+        gameName={activeSession?.gameName ?? ""}
+        onProcessSelected={onProcessSelected}
+        onCancel={onCancelProcessPicker}
       />
       <TwitchToastContainer />
       <ToastNotifications />

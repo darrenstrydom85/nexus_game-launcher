@@ -103,6 +103,7 @@ export interface ActiveSession {
 export interface GameState {
   games: Game[];
   activeSession: ActiveSession | null;
+  showProcessPicker: boolean;
   isLoading: boolean;
   error: string | null;
 }
@@ -110,6 +111,7 @@ export interface GameState {
 export interface GameActions {
   setGames: (games: Game[]) => void;
   setActiveSession: (session: ActiveSession | null) => void;
+  setShowProcessPicker: (show: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 }
@@ -119,6 +121,7 @@ export type GameStore = GameState & GameActions;
 const initialState: GameState = {
   games: [],
   activeSession: null,
+  showProcessPicker: false,
   isLoading: false,
   error: null,
 };
@@ -159,6 +162,8 @@ export const useGameStore = create<GameStore>()(
       },
       setActiveSession: (session) =>
         set({ activeSession: session }, false, "setActiveSession"),
+      setShowProcessPicker: (show) =>
+        set({ showProcessPicker: show }, false, "setShowProcessPicker"),
       setLoading: (loading) => set({ isLoading: loading }, false, "setLoading"),
       setError: (error) => set({ error }, false, "setError"),
     }),
