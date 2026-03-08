@@ -138,15 +138,54 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.9 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.9">
+        <!-- ── v0.1.10 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.10">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.9</h2>
+              <h2 class="type-title1 mb-0">v0.1.10</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-08">March 8, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Smarter game process detection — when Nexus can't automatically identify a running game,
+              a process picker now lets you select the right executable. Plus a new Wrapped podium visual.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">Added</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Process Picker</strong> — When Nexus can't detect which process belongs to a launched game, a modal now lists running processes so you can pick the right one. Your choice is remembered for future launches.</li>
+                <li><strong>Auto-Prompt on Grace Period</strong> — If the game process isn't found within the grace period, the process picker opens automatically instead of silently failing.</li>
+                <li><strong>Force Identify Button</strong> — While a game shows "Launching…", a new button lets you manually trigger the process picker without waiting.</li>
+                <li><strong>List Running Processes</strong> — New backend command that enumerates running processes for the picker UI.</li>
+                <li><strong>Wrapped Podium</strong> — The Library Wrapped hero card now shows a top-3 podium visual for your most-played games.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Process picker performance</strong> — Resolved a freeze and slow loading issue when opening the process picker on systems with many running processes.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.9 ── -->
+        <article class="changelog-entry" id="v0.1.9">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.9</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-07">March 7, 2026</time>
           </div>

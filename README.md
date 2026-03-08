@@ -1,6 +1,6 @@
 # Nexus — Game Launcher
 
-**v0.1.9** · All your games. One place.
+**v0.1.10** · All your games. One place.
 
 Nexus is a unified game launcher for Windows that brings together games from **Steam**, **Epic**, **GOG**, **Xbox**, **Battle.net**, **Ubisoft Connect**, and standalone executables into one library. Track play time, organize with collections, enrich with metadata and artwork, and launch any game from a single dark-themed, cinematic interface.
 
