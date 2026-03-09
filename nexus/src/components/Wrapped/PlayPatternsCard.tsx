@@ -21,9 +21,10 @@ const tooltipStyle = {
     background: "var(--card)",
     border: "1px solid var(--border)",
     borderRadius: "6px",
-    color: "var(--foreground)",
     fontSize: "11px",
   },
+  itemStyle: { color: "var(--foreground)" },
+  labelStyle: { color: "var(--foreground)" },
 };
 
 function toHours(s: number) {

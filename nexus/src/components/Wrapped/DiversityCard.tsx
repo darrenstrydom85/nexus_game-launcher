@@ -95,9 +95,10 @@ export function DiversityCard({ report }: DiversityCardProps) {
                     background: "var(--card)",
                     border: "1px solid var(--border)",
                     borderRadius: "6px",
-                    color: "var(--foreground)",
                     fontSize: "12px",
                   }}
+                  itemStyle={{ color: "var(--foreground)" }}
+                  labelStyle={{ color: "var(--foreground)" }}
                   formatter={(v: number | undefined) => [`${v ?? 0}%`, "Share"]}
                 />
                 <Bar dataKey="percent" radius={[0, 4, 4, 0]}>

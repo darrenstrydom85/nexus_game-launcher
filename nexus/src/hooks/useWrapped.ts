@@ -53,6 +53,7 @@ export interface UseWrappedReturn {
   report: WrappedReport | null;
   available: AvailableWrappedPeriods | null;
   loading: boolean;
+  error: string | null;
   selection: PeriodSelection;
   setSelection: (sel: PeriodSelection) => void;
 }
@@ -65,6 +66,7 @@ export function useWrapped(): UseWrappedReturn {
   });
   const [report, setReport] = React.useState<WrappedReport | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const initializedRef = React.useRef(false);
 
   // Fetch available periods once on mount
@@ -87,12 +89,25 @@ export function useWrapped(): UseWrappedReturn {
     if (!initializedRef.current && available === null) return;
     let cancelled = false;
     setLoading(true);
+    setError(null);
     getWrappedReport(selectionToPeriod(selection))
       .then((r) => {
         if (!cancelled) setReport(r);
       })
-      .catch(() => {
-        if (!cancelled) setReport(null);
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("[Wrapped] Failed to load report:", err);
+          setReport(null);
+          const msg =
+            err instanceof Error
+              ? err.message
+              : typeof err === "object" && err?.message
+                ? String(err.message)
+                : typeof err === "string"
+                  ? err
+                  : "Failed to load Wrapped data";
+          setError(msg);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -102,5 +117,5 @@ export function useWrapped(): UseWrappedReturn {
     };
   }, [selection, available]);
 
-  return { report, available, loading, selection, setSelection };
+  return { report, available, loading, error, selection, setSelection };
 }

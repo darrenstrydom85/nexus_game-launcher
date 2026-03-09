@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 import { Calendar, Clock, Gamepad2, GamepadIcon, Gift, Trophy, TrendingUp } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
 import { ActivityChart } from "./stats/ActivityChart";
@@ -159,7 +160,7 @@ function filterSessionsByRange(
   });
 }
 
-function deriveStatsFromSessions(sessions: SessionRecord[]): PlayStats {
+function deriveStatsFromSessions(sessions: SessionRecord[], totalLibraryGames: number): PlayStats {
   const totalPlayTimeS = sessions.reduce((sum, s) => sum + s.durationS, 0);
   const gameIds = new Set(sessions.map((s) => s.gameId));
   const byGame = new Map<string, { name: string; durationS: number }>();
@@ -176,10 +177,11 @@ function deriveStatsFromSessions(sessions: SessionRecord[]): PlayStats {
       mostPlayedGame = v.name;
     }
   });
+  const gamesPlayed = gameIds.size;
   return {
     totalPlayTimeS,
-    gamesPlayed: gameIds.size,
-    gamesUnplayed: 0,
+    gamesPlayed,
+    gamesUnplayed: Math.max(0, totalLibraryGames - gamesPlayed),
     mostPlayedGame,
     weeklyPlayTimeS: totalPlayTimeS,
   };
@@ -263,10 +265,14 @@ export function LibraryStats({
     () => filterSessionsByRange(sessions, dateRange),
     [sessions, dateRange],
   );
+  const visibleGameCount = React.useMemo(
+    () => storeGames.filter((g) => !g.isHidden && g.status !== "removed").length,
+    [storeGames],
+  );
   const displayStats = React.useMemo((): PlayStats => {
     if (dateRange === "all") return stats;
-    return deriveStatsFromSessions(filteredSessions);
-  }, [dateRange, stats, filteredSessions]);
+    return deriveStatsFromSessions(filteredSessions, visibleGameCount);
+  }, [dateRange, stats, filteredSessions, visibleGameCount]);
   const coverByGameId = React.useMemo(
     () => new Map(topGames.map((g) => [g.id, g.coverUrl])),
     [topGames],
@@ -343,8 +349,13 @@ export function LibraryStats({
   }, [statsProp]);
 
   const isCustomRange = dateRange !== "all";
+  const todayStr = React.useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const isValidRange = rangeStart.length === 10 && rangeEnd.length === 10 && rangeStart <= rangeEnd;
   const applyRange = () => {
-    if (rangeStart && rangeEnd) setDateRange({ start: rangeStart, end: rangeEnd });
+    if (isValidRange) setDateRange({ start: rangeStart, end: rangeEnd });
   };
 
   return (
@@ -386,27 +397,35 @@ export function LibraryStats({
             All time
           </button>
           <span className="text-xs text-muted-foreground">From</span>
-          <input
-            type="date"
+          <DatePicker
             data-testid="stats-range-start"
-            className="h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground"
             value={rangeStart}
-            onChange={(e) => setRangeStart(e.target.value)}
-            aria-label="Start date"
+            onChange={setRangeStart}
+            label="Start date"
+            maxDate={rangeEnd || todayStr}
+            triggerClassName="h-8"
           />
           <span className="text-xs text-muted-foreground">To</span>
-          <input
-            type="date"
+          <DatePicker
             data-testid="stats-range-end"
-            className="h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground"
             value={rangeEnd}
-            onChange={(e) => setRangeEnd(e.target.value)}
-            aria-label="End date"
+            onChange={setRangeEnd}
+            label="End date"
+            minDate={rangeStart || undefined}
+            maxDate={todayStr}
+            triggerClassName="h-8"
           />
           <button
             type="button"
             data-testid="stats-range-apply"
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={!isValidRange}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isValidRange
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
             onClick={applyRange}
           >
             Apply
@@ -438,7 +457,7 @@ export function LibraryStats({
             <StatCard
               icon={<GamepadIcon className="size-5" />}
               label="Games Unplayed"
-              value={isCustomRange ? "—" : String(displayStats.gamesUnplayed)}
+              value={String(displayStats.gamesUnplayed)}
             />
             <StatCard
               icon={<Trophy className="size-5" />}

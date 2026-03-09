@@ -53,6 +53,32 @@ function EmptyState({ periodLabel }: { periodLabel: string }) {
   );
 }
 
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div
+      data-testid="wrapped-error"
+      className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center"
+    >
+      <p className="text-5xl">⚠️</p>
+      <h2 className="text-2xl font-bold text-foreground">
+        Something went wrong
+      </h2>
+      <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className={cn(
+          "mt-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground",
+          "transition-colors hover:bg-primary/90",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
 type CardDef =
   | { id: string; alwaysShow: true }
   | { id: string; alwaysShow: false; hasData: (r: WrappedReport) => boolean };
@@ -76,7 +102,7 @@ function getVisibleCards(report: WrappedReport): string[] {
 }
 
 export function WrappedView({ onClose }: WrappedViewProps) {
-  const { report, available, loading, selection, setSelection } = useWrapped();
+  const { report, available, loading, error, selection, setSelection } = useWrapped();
   const shouldReduceMotion = useReducedMotion();
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -208,6 +234,17 @@ export function WrappedView({ onClose }: WrappedViewProps) {
             style={{ scrollSnapAlign: "start", height: "calc(100vh - var(--titlebar-height, 36px) - 44px)" }}
           >
             <SkeletonCard />
+          </div>
+        ) : error || (!report && !loading) ? (
+          <div
+            data-card
+            data-card-index={0}
+            style={{ scrollSnapAlign: "start", height: "calc(100vh - var(--titlebar-height, 36px) - 44px)" }}
+          >
+            <ErrorState
+              message={error ?? "No data available for this period. Try selecting a different date range."}
+              onRetry={() => setSelection({ ...selection })}
+            />
           </div>
         ) : isEmpty ? (
           <div

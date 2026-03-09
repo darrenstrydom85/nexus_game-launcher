@@ -40,7 +40,7 @@ export function GenreCard({ report }: GenreCardProps) {
   const chartData = genres.map((g) => ({
     name: g.name,
     value: g.playTimeS,
-    percent: g.percent,
+    pct: g.percent,
   }));
 
   return (
@@ -75,8 +75,8 @@ export function GenreCard({ report }: GenreCardProps) {
               outerRadius="80%"
               dataKey="value"
               strokeWidth={0}
-              label={({ name, percent: pct }) =>
-                `${name} ${((pct ?? 0) * 100).toFixed(0)}%`
+              label={({ name, pct }) =>
+                `${name} ${Math.round(pct ?? 0)}%`
               }
               labelLine={false}
             >
@@ -92,9 +92,10 @@ export function GenreCard({ report }: GenreCardProps) {
                 background: "var(--card)",
                 border: "1px solid var(--border)",
                 borderRadius: "6px",
-                color: "var(--foreground)",
                 fontSize: "12px",
               }}
+              itemStyle={{ color: "var(--foreground)" }}
+              labelStyle={{ color: "var(--foreground)" }}
               formatter={(value: number | undefined, name: string | undefined) => [
                 `${Math.round((value ?? 0) / 3600)}h`,
                 name ?? "",

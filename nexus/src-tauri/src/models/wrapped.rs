@@ -15,7 +15,9 @@ pub enum WrappedPeriod {
     Preset(String),
     /// Custom start/end (ISO date strings YYYY-MM-DD).
     Custom {
+        #[serde(rename = "startDate")]
         start_date: String,
+        #[serde(rename = "endDate")]
         end_date: String,
     },
 }
@@ -160,4 +162,53 @@ pub struct AvailableWrappedPeriods {
     pub this_year_has_data: bool,
     /// Whether "last_year" has data.
     pub last_year_has_data: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_period_deserializes_camel_case_fields() {
+        // rename_all = "camelCase" on the enum should rename struct variant fields too
+        let json = r#"{"custom":{"startDate":"2026-01-01","endDate":"2026-03-09"}}"#;
+        let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
+        assert!(result.is_ok(), "camelCase fields should deserialize: {:?}", result.err());
+        match result.unwrap() {
+            WrappedPeriod::Custom { start_date, end_date } => {
+                assert_eq!(start_date, "2026-01-01");
+                assert_eq!(end_date, "2026-03-09");
+            }
+            other => panic!("Expected Custom, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn custom_period_rejects_snake_case_fields() {
+        let json = r#"{"custom":{"start_date":"2026-01-01","end_date":"2026-03-09"}}"#;
+        let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
+        assert!(result.is_err(), "snake_case fields should be rejected after rename");
+    }
+
+    #[test]
+    fn preset_period_deserializes() {
+        let json = r#"{"preset":"this_year"}"#;
+        let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            WrappedPeriod::Preset(p) => assert_eq!(p, "this_year"),
+            other => panic!("Expected Preset, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn year_period_deserializes() {
+        let json = r#"{"year":2025}"#;
+        let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
+        match result.unwrap() {
+            WrappedPeriod::Year(y) => assert_eq!(y, 2025),
+            other => panic!("Expected Year, got: {:?}", other),
+        }
+    }
 }

@@ -356,7 +356,7 @@ export const WrappedShareCard = React.forwardRef<
             textTransform: "uppercase",
           }}
         >
-          My {report.periodLabel} in Gaming
+          {report.periodLabel} in Gaming
         </span>
       </div>
 
@@ -530,7 +530,7 @@ export const WrappedShareCard = React.forwardRef<
             flexShrink: 0,
           }}
         >
-          nexus.gg
+          www.nexusgamelauncher.com
         </span>
       </div>
     </div>

@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { AvailableWrappedPeriods } from "@/types/wrapped";
 import type { PeriodSelection, WrappedPreset } from "@/hooks/useWrapped";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface PeriodSelectorProps {
   selection: PeriodSelection;
@@ -43,8 +44,15 @@ export function PeriodSelector({ selection, available, onChange }: PeriodSelecto
 
   const years = available?.yearsWithSessions ?? [];
 
+  const todayStr = React.useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const isValidRange = customStart.length === 10 && customEnd.length === 10 && customStart <= customEnd;
+
   const applyCustom = () => {
-    if (customStart && customEnd) {
+    if (isValidRange) {
       onChange({ kind: "custom", startDate: customStart, endDate: customEnd });
       setShowCustom(false);
     }
@@ -108,28 +116,36 @@ export function PeriodSelector({ selection, available, onChange }: PeriodSelecto
 
       {showCustom && (
         <div className="flex items-center gap-2">
-          <input
-            type="date"
+          <DatePicker
             data-testid="period-custom-start"
             value={customStart}
-            onChange={(e) => setCustomStart(e.target.value)}
-            aria-label="Custom start date"
-            className="h-7 rounded-md border border-border bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={setCustomStart}
+            label="Start date"
+            maxDate={customEnd || todayStr}
+            popoverClassName="z-[46]"
           />
           <span className="text-xs text-muted-foreground">–</span>
-          <input
-            type="date"
+          <DatePicker
             data-testid="period-custom-end"
             value={customEnd}
-            onChange={(e) => setCustomEnd(e.target.value)}
-            aria-label="Custom end date"
-            className="h-7 rounded-md border border-border bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onChange={setCustomEnd}
+            label="End date"
+            minDate={customStart || undefined}
+            maxDate={todayStr}
+            popoverClassName="z-[46]"
           />
           <button
             type="button"
             data-testid="period-custom-apply"
+            disabled={!isValidRange}
             onClick={applyCustom}
-            className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(
+              "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isValidRange
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
           >
             Apply
           </button>
