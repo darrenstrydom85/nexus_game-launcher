@@ -6,6 +6,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface GenreCardProps {
@@ -75,9 +76,10 @@ export function GenreCard({ report }: GenreCardProps) {
               outerRadius="80%"
               dataKey="value"
               strokeWidth={0}
-              label={({ name, pct }) =>
-                `${name} ${Math.round(pct ?? 0)}%`
-              }
+              label={(props: PieLabelRenderProps) => {
+                const pct = (props.payload as { pct?: number })?.pct ?? 0;
+                return `${props.name} ${Math.round(pct)}%`;
+              }}
               labelLine={false}
             >
               {chartData.map((_, i) => (

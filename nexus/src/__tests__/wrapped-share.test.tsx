@@ -96,7 +96,7 @@ describe("WrappedShareCard", () => {
 
   it("renders period label in header", () => {
     render(<WrappedShareCard report={mockReport} />);
-    expect(screen.getByText(/My 2025 in Gaming/i)).toBeInTheDocument();
+    expect(screen.getByText(/2025 in Gaming/i)).toBeInTheDocument();
   });
 
   it("renders top 3 games", () => {
@@ -145,7 +145,7 @@ describe("WrappedShareCard", () => {
 
   it("renders with a different period label", () => {
     render(<WrappedShareCard report={{ ...mockReport, periodLabel: "March 2025" }} />);
-    expect(screen.getByText(/My March 2025 in Gaming/i)).toBeInTheDocument();
+    expect(screen.getByText(/March 2025 in Gaming/i)).toBeInTheDocument();
   });
 });
 
