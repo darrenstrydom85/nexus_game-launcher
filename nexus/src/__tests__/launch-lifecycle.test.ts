@@ -244,7 +244,12 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
           playCount: 0,
           addedAt: new Date().toISOString(),
           isHidden: false,
-        },
+          hltbMainH: null,
+          hltbMainExtraH: null,
+          hltbCompletionistH: null,
+          hltbId: null,
+          hltbFetchedAt: null,
+        } as import("@/stores/gameStore").Game,
       ],
       activeSession: {
         sessionId: "s1",
@@ -320,6 +325,11 @@ describe("Story 22.5: Persist Selected EXE", () => {
     addedAt: new Date().toISOString(),
     isHidden: false,
     ...overrides,
+    hltbMainH: overrides.hltbMainH ?? null,
+    hltbMainExtraH: overrides.hltbMainExtraH ?? null,
+    hltbCompletionistH: overrides.hltbCompletionistH ?? null,
+    hltbId: overrides.hltbId ?? null,
+    hltbFetchedAt: overrides.hltbFetchedAt ?? null,
   });
 
   const makeSession = (overrides: Partial<import("@/stores/gameStore").ActiveSession> = {}): import("@/stores/gameStore").ActiveSession => ({

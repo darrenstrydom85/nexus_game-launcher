@@ -41,6 +41,11 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   playCount: 0,
   addedAt: "2026-01-01",
   isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
   ...overrides,
 });
 

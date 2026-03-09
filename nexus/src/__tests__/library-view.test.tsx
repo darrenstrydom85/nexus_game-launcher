@@ -55,6 +55,11 @@ const makeGame = (id: string, name: string): Game => ({
   playCount: 0,
   addedAt: "2026-01-01",
   isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
 });
 
 describe("Story 6.5: Library View Composition", () => {

@@ -37,6 +37,11 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   addedAt: "2026-01-01",
   isHidden: false,
   ...overrides,
+  hltbMainH: overrides.hltbMainH ?? null,
+  hltbMainExtraH: overrides.hltbMainExtraH ?? null,
+  hltbCompletionistH: overrides.hltbCompletionistH ?? null,
+  hltbId: overrides.hltbId ?? null,
+  hltbFetchedAt: overrides.hltbFetchedAt ?? null,
 });
 
 const games: Game[] = [

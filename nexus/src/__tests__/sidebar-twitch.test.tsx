@@ -38,6 +38,11 @@ const defaultGame = {
   playCount: 0,
   addedAt: "2026-01-01",
   isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
 };
 
 describe("Story 19.3: Twitch Sidebar Nav + Live Count Badge", () => {

@@ -21,6 +21,11 @@ const makeGame = (id: string, name: string, overrides: Partial<Game> = {}): Game
   criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null,
   status: "unset", rating: null,
   totalPlayTimeS: 3600, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
   ...overrides,
 });
 
