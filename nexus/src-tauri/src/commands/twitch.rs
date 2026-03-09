@@ -263,8 +263,16 @@ async fn ensure_valid_twitch_token(
                         let _ = tokens::clear_all(&conn);
                         drop(conn);
                         let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": false }));
+                        return Err(e);
                     }
-                    return Err(e);
+                    // Transient error (network/5xx) — if the token is already past
+                    // its expiry, don't return it because API calls will 401 and
+                    // cascade into a full disconnect. Surface the error instead.
+                    let hard_expired = expires_at_opt.map_or(true, |e| now_secs >= e);
+                    if hard_expired {
+                        return Err(e);
+                    }
+                    // Token not yet hard-expired; fall through to return stored token.
                 }
             }
         }
@@ -536,6 +544,11 @@ pub async fn validate_twitch_token(
                         })
                     }
                     Err(_) => {
+                        // Transient error refreshing after a 401 — the access token
+                        // is confirmed invalid but the refresh token may still be good.
+                        // Keep tokens for retry. Report authenticated so the UI doesn't
+                        // flash the connect prompt; the visibilitychange handler or
+                        // next polling tick will retry the refresh.
                         let expires_at = {
                             let conn = db
                                 .conn

@@ -307,9 +307,11 @@ function MainApp() {
       });
   }, []);
 
-  // Validate token hourly per Twitch requirement (detect revoked tokens proactively)
+  // Validate token every 15 minutes. Twitch requires hourly validation, but
+  // more frequent checks ensure the backend's 5-min-before-expiry refresh
+  // window is actually hit even if intervals drift after sleep/resume.
   React.useEffect(() => {
-    const HOUR_MS = 60 * 60 * 1000;
+    const INTERVAL_MS = 15 * 60 * 1000;
     const id = setInterval(() => {
       if (!useTwitchStore.getState().isAuthenticated) return;
       validateTwitchToken()
@@ -317,7 +319,7 @@ function MainApp() {
           useTwitchStore.getState().setIsAuthenticated(status.authenticated);
         })
         .catch(() => {});
-    }, HOUR_MS);
+    }, INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 
@@ -335,6 +337,42 @@ function MainApp() {
       useTwitchStore.getState().fetchTrending();
     }
   }, [isOnline]);
+
+  // Re-validate Twitch token when app resumes from background/sleep.
+  // setInterval timers freeze during OS sleep; this ensures we immediately
+  // check connectivity, refresh the token if expired, and fetch fresh data.
+  const lastVisibilityCheck = React.useRef(0);
+  React.useEffect(() => {
+    const RESUME_DEBOUNCE_MS = 5_000;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastVisibilityCheck.current < RESUME_DEBOUNCE_MS) return;
+      lastVisibilityCheck.current = now;
+
+      useConnectivityStore.getState().checkConnectivity();
+
+      if (!useTwitchStore.getState().isAuthenticated) return;
+      useTwitchStore.getState().setRecoveryRefresh(true);
+      validateTwitchToken()
+        .then((status) => {
+          useTwitchStore.getState().setIsAuthenticated(status.authenticated);
+          if (status.authenticated) {
+            useTwitchStore.getState().fetchFollowedStreams().finally(() => {
+              useTwitchStore.getState().setRecoveryRefresh(false);
+            });
+            useTwitchStore.getState().fetchTrending();
+          } else {
+            useTwitchStore.getState().setRecoveryRefresh(false);
+          }
+        })
+        .catch(() => {
+          useTwitchStore.getState().setRecoveryRefresh(false);
+        });
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   // Story 19.10: Twitch polling from settings (interval 0 = manual only; twitchEnabled off = no polling)
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);

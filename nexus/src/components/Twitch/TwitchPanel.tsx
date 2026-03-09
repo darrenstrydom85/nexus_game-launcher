@@ -81,13 +81,17 @@ export function TwitchPanel() {
     () => channels.filter((c) => c.isFavorite === true).length,
     [channels],
   );
+  const [mountRecoveryAttempted, setMountRecoveryAttempted] = React.useState(false);
+
   // Seed auth state and fetch on mount — use validateTwitchToken so expired
   // tokens are refreshed (not just locally checked). Falls back to local-only
   // twitchAuthStatus if validate fails (e.g. no client ID).
   React.useEffect(() => {
+    setMountRecoveryAttempted(false);
     validateTwitchToken()
       .then((status) => {
         setIsAuthenticated(status.authenticated);
+        setMountRecoveryAttempted(true);
         if (status.authenticated) {
           fetchFollowedStreams();
           fetchTrending();
@@ -97,12 +101,16 @@ export function TwitchPanel() {
         twitchAuthStatus()
           .then((status) => {
             setIsAuthenticated(status.authenticated);
+            setMountRecoveryAttempted(true);
             if (status.authenticated) {
               fetchFollowedStreams();
               fetchTrending();
             }
           })
-          .catch(() => setIsAuthenticated(false));
+          .catch(() => {
+            setIsAuthenticated(false);
+            setMountRecoveryAttempted(true);
+          });
       });
   }, [setIsAuthenticated, fetchFollowedStreams, fetchTrending]);
 
@@ -182,7 +190,21 @@ export function TwitchPanel() {
     [toggleFavorite],
   );
 
-  // Unauthenticated
+  // Still checking auth on mount — show skeleton, not the connect prompt
+  if (!isAuthenticated && !mountRecoveryAttempted) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <div className="sticky top-0 z-10 flex flex-col gap-2 border-b border-border bg-background px-6 py-4">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Twitch
+          </h1>
+          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthenticated (confirmed after mount recovery check)
   if (!isAuthenticated && !isLoading) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden bg-background">
