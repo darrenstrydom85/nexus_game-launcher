@@ -232,7 +232,7 @@ pub async fn fetch_metadata_for_game(
     Ok(())
 }
 
-/// Apply a specific IGDB game (by id) to a library game, then optionally HLTB and SteamGridDB.
+/// Apply a specific IGDB game (by id) to a library game, then optionally SteamGridDB.
 /// When `skip_steamgrid` is true, SteamGridDB is not fetched; caller can show artwork picker and call apply_steamgrid_artwork_for_game.
 pub async fn fetch_metadata_for_game_with_igdb_id(
     db: &DbState,
