@@ -53,3 +53,14 @@ impl CollectionWithCount {
         })
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionWithGameIds {
+    pub id: String,
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: i64,
+    pub game_ids: Vec<String>,
+}

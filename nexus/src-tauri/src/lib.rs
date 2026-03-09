@@ -33,7 +33,8 @@ use commands::{
     analytics::{get_per_game_session_stats, get_session_distribution},
     collections::{
         add_to_collection, create_collection, delete_collection, get_collection_games,
-        get_collections, remove_from_collection, reorder_collections, update_collection,
+        get_collections, get_collections_with_game_ids, remove_from_collection,
+        reorder_collections, update_collection,
     },
     database::{clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all, reset_keep_keys, reset_library_keep_stats},
     health::check_library_health,
@@ -213,6 +214,7 @@ pub fn run() {
             get_wrapped_report,
             get_available_wrapped_periods,
             get_collections,
+            get_collections_with_game_ids,
             create_collection,
             update_collection,
             delete_collection,

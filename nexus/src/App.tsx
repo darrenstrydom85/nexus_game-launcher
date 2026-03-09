@@ -28,6 +28,7 @@ import { useTauriEvent } from "@/hooks/use-tauri-event";
 import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
+import { useCollections } from "@/hooks/useCollections";
 import { useUiStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSettingsApplier } from "@/hooks/useSettingsApplier";
@@ -62,6 +63,7 @@ function MainApp() {
   const setGames = useGameStore((s) => s.setGames);
   const activeNav = useUiStore((s) => s.activeNav);
   const loadSettings = useSettingsStore((s) => s.loadFromBackend);
+  useCollections();
   const collections = useCollectionStore((s) => s.collections);
   const searchOpen = useUiStore((s) => s.searchOpen);
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);

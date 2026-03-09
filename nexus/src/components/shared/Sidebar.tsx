@@ -196,6 +196,7 @@ export function Sidebar({
   const toggleGenreFilter = useUiStore((s) => s.toggleGenreFilter);
   const games = useGameStore((s) => s.games);
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
+  const hiddenGameIds = useSettingsStore((s) => s.hiddenGameIds);
   const liveCount = useTwitchStore((s) => s.liveCount);
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
 
@@ -210,6 +211,11 @@ export function Sidebar({
   const [badgePulse, setBadgePulse] = React.useState(false);
   const reducedMotion = useSettingsStore((s) => s.reducedMotion);
 
+  const visibleGames = React.useMemo(
+    () => games.filter((g) => !hiddenGameIds.includes(g.id) && g.status !== "removed"),
+    [games, hiddenGameIds],
+  );
+
   React.useEffect(() => {
     if (liveCount !== prevLiveCountRef.current) {
       prevLiveCountRef.current = liveCount;
@@ -223,17 +229,17 @@ export function Sidebar({
 
   const genres = React.useMemo(() => {
     const genreSet = new Set<string>();
-    games.forEach((g) => {
+    visibleGames.forEach((g) => {
       const gs = Array.isArray(g.genres) ? g.genres : [];
       gs.forEach((genre) => genreSet.add(genre));
     });
     return Array.from(genreSet).slice(0, 10);
-  }, [games]);
+  }, [visibleGames]);
 
   const activeSources = React.useMemo(() => {
-    const sourceSet = new Set(games.map((g) => g.source));
+    const sourceSet = new Set(visibleGames.map((g) => g.source));
     return Array.from(sourceSet) as GameSource[];
-  }, [games]);
+  }, [visibleGames]);
 
   const baseNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: "library", label: "Library", icon: <Library className="size-4" /> },
@@ -485,7 +491,7 @@ export function Sidebar({
             const isEnabled = enabledSources
               ? enabledSources.includes(source)
               : true;
-            const count = games.filter((g) => g.source === source).length;
+            const count = visibleGames.filter((g) => g.source === source).length;
             const IconComponent = SOURCE_ICON_COMPONENTS[source];
             return (
               <button

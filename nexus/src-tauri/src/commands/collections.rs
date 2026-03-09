@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::error::CommandError;
 use super::utils::now_iso;
 use crate::db::DbState;
-use crate::models::collection::{Collection, CollectionWithCount};
+use crate::models::collection::{Collection, CollectionWithCount, CollectionWithGameIds};
 use crate::models::game::Game;
 
 #[tauri::command]
@@ -35,6 +35,64 @@ pub fn get_collections(
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(collections)
+}
+
+#[tauri::command]
+pub fn get_collections_with_game_ids(
+    db: State<'_, DbState>,
+) -> Result<Vec<CollectionWithGameIds>, CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let mut coll_stmt = conn
+        .prepare(
+            "SELECT id, name, icon, color, sort_order
+             FROM collections
+             ORDER BY sort_order ASC, name ASC",
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let collections: Vec<(String, String, Option<String>, Option<String>, i64)> = coll_stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>("id")?,
+                row.get::<_, String>("name")?,
+                row.get::<_, Option<String>>("icon")?,
+                row.get::<_, Option<String>>("color")?,
+                row.get::<_, i64>("sort_order")?,
+            ))
+        })
+        .map_err(|e| CommandError::Database(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let mut game_stmt = conn
+        .prepare("SELECT game_id FROM collection_games WHERE collection_id = ?1")
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let result = collections
+        .into_iter()
+        .map(|(id, name, icon, color, sort_order)| {
+            let game_ids = game_stmt
+                .query_map(params![id], |row| row.get::<_, String>(0))
+                .map_err(|e| CommandError::Database(e.to_string()))?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| CommandError::Database(e.to_string()))?;
+
+            Ok(CollectionWithGameIds {
+                id,
+                name,
+                icon,
+                color,
+                sort_order,
+                game_ids,
+            })
+        })
+        .collect::<Result<Vec<_>, CommandError>>()?;
+
+    Ok(result)
 }
 
 #[tauri::command]
