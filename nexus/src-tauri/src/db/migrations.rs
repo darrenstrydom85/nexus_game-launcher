@@ -52,6 +52,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "session_source_columns",
         sql: include_str!("migrations/009_session_source_columns.sql"),
     },
+    Migration {
+        version: 10,
+        name: "hltb_times_v2",
+        sql: include_str!("migrations/010_hltb_times_v2.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -203,6 +208,11 @@ mod tests {
             "critic_score_count",
             "community_score",
             "community_score_count",
+            "hltb_main_h",
+            "hltb_main_extra_h",
+            "hltb_completionist_h",
+            "hltb_id",
+            "hltb_fetched_at",
         ];
         for col in &expected {
             assert!(cols.contains(&col.to_string()), "games missing column: {col}");

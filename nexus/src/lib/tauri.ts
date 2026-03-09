@@ -191,6 +191,27 @@ export function runScoreBackfill(): Promise<number> {
   return invoke<number>("run_score_backfill");
 }
 
+// ── HLTB Commands (Story 24.1) ──────────────────────────────────
+export function saveHltbData(
+  gameId: string,
+  hltbId: string,
+  mainH: number | null,
+  mainExtraH: number | null,
+  completionistH: number | null,
+): Promise<void> {
+  return invoke<void>("save_hltb_data", {
+    gameId,
+    hltbId,
+    mainH,
+    mainExtraH,
+    completionistH,
+  });
+}
+
+export function clearHltbData(gameId: string): Promise<void> {
+  return invoke<void>("clear_hltb_data", { gameId });
+}
+
 // ── Score Backfill Progress Event ─────────────────────────────────
 export interface ScoreBackfillProgressEvent {
   completed: number;

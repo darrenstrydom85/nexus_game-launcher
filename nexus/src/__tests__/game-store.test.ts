@@ -34,6 +34,11 @@ const mockGame: Game = {
   playCount: 0,
   addedAt: "2026-01-01T00:00:00Z",
   isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
 };
 
 const mockSession: ActiveSession = {

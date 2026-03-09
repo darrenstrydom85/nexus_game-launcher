@@ -155,6 +155,11 @@ export function SourcesStep() {
         playCount: 0,
         addedAt: new Date().toISOString(),
         isHidden: false,
+        hltbMainH: null,
+        hltbMainExtraH: null,
+        hltbCompletionistH: null,
+        hltbId: null,
+        hltbFetchedAt: null,
       }));
 
       setGames(games);

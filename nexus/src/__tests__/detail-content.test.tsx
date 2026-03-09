@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
+
+vi.mock("@/lib/hltb", () => ({
+  searchHltb: vi.fn().mockResolvedValue([]),
+}));
+
 import { DetailContent } from "@/components/GameDetail/DetailContent";
 import { GameMetadata } from "@/components/GameDetail/GameMetadata";
 import { GamePlayStats } from "@/components/GameDetail/GamePlayStats";
@@ -48,6 +53,11 @@ const mockGame: Game = {
   playCount: 0,
   addedAt: "2026-01-01",
   isHidden: false,
+  hltbMainH: null,
+  hltbMainExtraH: null,
+  hltbCompletionistH: null,
+  hltbId: null,
+  hltbFetchedAt: null,
 };
 
 const screenshots = [

@@ -65,9 +65,14 @@ export interface Game {
   playCount: number;
   addedAt: string;
   isHidden: boolean;
+  hltbMainH: number | null;
+  hltbMainExtraH: number | null;
+  hltbCompletionistH: number | null;
+  hltbId: string | null;
+  hltbFetchedAt: string | null;
 }
 
-interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl"> {
+interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt"> {
   totalPlayTime?: number;
   totalPlayTimeS?: number;
   lastPlayed?: string | null;
@@ -82,6 +87,11 @@ interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "pl
   communityScore?: number | null;
   communityScoreCount?: number | null;
   trailerUrl?: string | null;
+  hltbMainH?: number | null;
+  hltbMainExtraH?: number | null;
+  hltbCompletionistH?: number | null;
+  hltbId?: string | null;
+  hltbFetchedAt?: string | null;
 }
 
 export interface ActiveSession {
@@ -156,6 +166,11 @@ export const useGameStore = create<GameStore>()(
           communityScoreCount: g.communityScoreCount ?? null,
           trailerUrl: g.trailerUrl ?? null,
           isHidden: g.isHidden ?? false,
+          hltbMainH: g.hltbMainH ?? null,
+          hltbMainExtraH: g.hltbMainExtraH ?? null,
+          hltbCompletionistH: g.hltbCompletionistH ?? null,
+          hltbId: g.hltbId ?? null,
+          hltbFetchedAt: g.hltbFetchedAt ?? null,
         } as Game));
         set({ games: mapped }, false, "setGames");
         useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));

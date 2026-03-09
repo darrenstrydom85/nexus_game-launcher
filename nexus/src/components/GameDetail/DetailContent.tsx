@@ -4,6 +4,7 @@ import { GameMetadata } from "./GameMetadata";
 import { GamePlayStats } from "./GamePlayStats";
 import { GameTrailer } from "./GameTrailer";
 import { GameScreenshots } from "./GameScreenshots";
+import { HltbSection } from "./HltbSection";
 import { LiveOnTwitch } from "./LiveOnTwitch";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { Plus } from "lucide-react";
@@ -191,8 +192,9 @@ export function DetailContent({
           )}
         </div>
 
-        {/* Right column — 40%: play stats + trailer */}
+        {/* Right column — 40%: HLTB + play stats + trailer */}
         <div data-testid="detail-right-col" className="group flex w-[40%] flex-col gap-4">
+          <HltbSection game={game} />
           <GamePlayStats
             game={game}
             onViewFullStats={onViewFullStats}

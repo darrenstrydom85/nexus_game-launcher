@@ -116,6 +116,11 @@ pub struct Game {
     pub added_at: String,
     pub updated_at: String,
     pub source_folder_id: Option<String>,
+    pub hltb_main_h: Option<f64>,
+    pub hltb_main_extra_h: Option<f64>,
+    pub hltb_completionist_h: Option<f64>,
+    pub hltb_id: Option<String>,
+    pub hltb_fetched_at: Option<String>,
 }
 
 impl Game {
@@ -159,6 +164,11 @@ impl Game {
             added_at: row.get("added_at")?,
             updated_at: row.get("updated_at")?,
             source_folder_id: row.get("source_folder_id")?,
+            hltb_main_h: row.get("hltb_main_h")?,
+            hltb_main_extra_h: row.get("hltb_main_extra_h")?,
+            hltb_completionist_h: row.get("hltb_completionist_h")?,
+            hltb_id: row.get("hltb_id")?,
+            hltb_fetched_at: row.get("hltb_fetched_at")?,
         })
     }
 }

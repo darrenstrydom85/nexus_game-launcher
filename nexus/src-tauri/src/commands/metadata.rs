@@ -492,6 +492,52 @@ pub async fn run_score_backfill(
     Ok(count)
 }
 
+#[tauri::command]
+pub fn save_hltb_data(
+    db: State<'_, DbState>,
+    game_id: String,
+    hltb_id: String,
+    main_h: Option<f64>,
+    main_extra_h: Option<f64>,
+    completionist_h: Option<f64>,
+) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let fetched_at = super::utils::now_iso();
+
+    conn.execute(
+        "UPDATE games SET hltb_id = ?1, hltb_main_h = ?2, hltb_main_extra_h = ?3, \
+         hltb_completionist_h = ?4, hltb_fetched_at = ?5 WHERE id = ?6",
+        params![hltb_id, main_h, main_extra_h, completionist_h, fetched_at, game_id],
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_hltb_data(
+    db: State<'_, DbState>,
+    game_id: String,
+) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    conn.execute(
+        "UPDATE games SET hltb_id = NULL, hltb_main_h = NULL, hltb_main_extra_h = NULL, \
+         hltb_completionist_h = NULL, hltb_fetched_at = NULL WHERE id = ?1",
+        params![game_id],
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(())
+}
+
 fn get_setting(conn: &rusqlite::Connection, key: &str) -> Option<String> {
     conn.query_row(
         "SELECT value FROM settings WHERE key = ?1",
@@ -698,5 +744,139 @@ mod tests {
         assert!(status.steamgrid);
         assert!(!status.igdb);
         assert_eq!(status.availability, "steamgrid_only");
+    }
+
+    fn save_hltb_data_inner(
+        state: &DbState,
+        game_id: String,
+        hltb_id: String,
+        main_h: Option<f64>,
+        main_extra_h: Option<f64>,
+        completionist_h: Option<f64>,
+    ) -> Result<(), CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let fetched_at = super::super::utils::now_iso();
+        conn.execute(
+            "UPDATE games SET hltb_id = ?1, hltb_main_h = ?2, hltb_main_extra_h = ?3, \
+             hltb_completionist_h = ?4, hltb_fetched_at = ?5 WHERE id = ?6",
+            params![hltb_id, main_h, main_extra_h, completionist_h, fetched_at, game_id],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(())
+    }
+
+    fn clear_hltb_data_inner(state: &DbState, game_id: String) -> Result<(), CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        conn.execute(
+            "UPDATE games SET hltb_id = NULL, hltb_main_h = NULL, hltb_main_extra_h = NULL, \
+             hltb_completionist_h = NULL, hltb_fetched_at = NULL WHERE id = ?1",
+            params![game_id],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(())
+    }
+
+    #[test]
+    fn save_hltb_data_persists_all_fields() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Test Game");
+        drop(conn);
+
+        save_hltb_data_inner(
+            &state,
+            "g1".into(),
+            "12345".into(),
+            Some(34.0),
+            Some(50.5),
+            Some(80.0),
+        )
+        .unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let (hltb_id, main_h, extra_h, comp_h, fetched_at): (
+            Option<String>,
+            Option<f64>,
+            Option<f64>,
+            Option<f64>,
+            Option<String>,
+        ) = conn
+            .query_row(
+                "SELECT hltb_id, hltb_main_h, hltb_main_extra_h, hltb_completionist_h, hltb_fetched_at FROM games WHERE id = 'g1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )
+            .unwrap();
+
+        assert_eq!(hltb_id, Some("12345".to_string()));
+        assert_eq!(main_h, Some(34.0));
+        assert_eq!(extra_h, Some(50.5));
+        assert_eq!(comp_h, Some(80.0));
+        assert!(fetched_at.is_some());
+        assert!(fetched_at.unwrap().contains("T"));
+    }
+
+    #[test]
+    fn clear_hltb_data_resets_all_columns() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Test Game");
+        conn.execute(
+            "UPDATE games SET hltb_id = '999', hltb_main_h = 10.0, hltb_main_extra_h = 20.0, \
+             hltb_completionist_h = 30.0, hltb_fetched_at = '2026-01-01T00:00:00Z' WHERE id = 'g1'",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        clear_hltb_data_inner(&state, "g1".into()).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let (hltb_id, main_h, extra_h, comp_h, fetched_at): (
+            Option<String>,
+            Option<f64>,
+            Option<f64>,
+            Option<f64>,
+            Option<String>,
+        ) = conn
+            .query_row(
+                "SELECT hltb_id, hltb_main_h, hltb_main_extra_h, hltb_completionist_h, hltb_fetched_at FROM games WHERE id = 'g1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )
+            .unwrap();
+
+        assert_eq!(hltb_id, None);
+        assert_eq!(main_h, None);
+        assert_eq!(extra_h, None);
+        assert_eq!(comp_h, None);
+        assert_eq!(fetched_at, None);
+    }
+
+    #[test]
+    fn save_hltb_data_sets_fetched_at_automatically() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game(&conn, "g1", "Test Game");
+        drop(conn);
+
+        save_hltb_data_inner(&state, "g1".into(), "555".into(), None, None, None).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let fetched_at: Option<String> = conn
+            .query_row(
+                "SELECT hltb_fetched_at FROM games WHERE id = 'g1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(fetched_at.is_some(), "hltb_fetched_at should be set even when times are NULL");
     }
 }

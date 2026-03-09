@@ -24,6 +24,20 @@ export function formatPlayTime(seconds: number): string {
 }
 
 /**
+ * Formats HLTB hours to a human-readable duration string.
+ * Returns "--" for null/zero, "Xm" for sub-hour, "Xh Ym" for fractional, "Xh" for exact/100+.
+ */
+export function formatHltbTime(hours: number | null): string {
+  if (hours == null || hours <= 0) return "\u2014";
+  if (hours >= 100) return `${Math.round(hours)}h`;
+  if (hours < 1) return `${Math.round(hours * 60)}m`;
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/**
  * Compact viewer count for Twitch (Story 19.9): 1.2K, 45.3K, 1.2M.
  */
 export function formatViewerCount(n: number): string {

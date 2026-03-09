@@ -24,6 +24,7 @@ const makeGame = (id: string, name: string, source: string = "steam"): Game => (
   criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null,
   status: "unset", rating: null,
   totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false,
+  hltbMainH: null, hltbMainExtraH: null, hltbCompletionistH: null, hltbId: null, hltbFetchedAt: null,
 });
 
 describe("Story 9.2: WelcomeStep", () => {

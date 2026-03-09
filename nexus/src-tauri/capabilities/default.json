@@ -71,7 +71,8 @@
         { "url": "https://api.twitch.tv/**" },
         { "url": "https://id.twitch.tv/**" },
         { "url": "https://images.igdb.com/**" },
-        { "url": "https://api.jsonbin.io/**" }
+        { "url": "https://api.jsonbin.io/**" },
+        { "url": "https://howlongtobeat.com/**" }
       ]
     }
   ]
