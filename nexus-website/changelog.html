@@ -138,15 +138,43 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.12 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.12">
+        <!-- ── v0.1.13 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.13">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.12</h2>
+              <h2 class="type-title1 mb-0">v0.1.13</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-09">March 9, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Twitch integration reliability — the connection now survives sleep, overnight idle, and network interruptions without requiring manual re-authentication.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Twitch stays connected after sleep</strong> — The app now re-validates your Twitch token and refreshes data immediately when you return from sleep or minimize, instead of waiting for the next polling interval.</li>
+                <li><strong>No more false disconnects</strong> — Expired tokens during network hiccups no longer cascade into clearing your auth, which previously showed the "Connect your Twitch account" prompt even though you were still linked.</li>
+                <li><strong>Faster token refresh</strong> — Token validation now runs every 15 minutes (previously hourly), ensuring tokens are refreshed well before they expire.</li>
+                <li><strong>Smoother Twitch panel loading</strong> — The panel now shows a loading skeleton while checking auth on mount, instead of briefly flashing the connect prompt.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.12 ── -->
+        <article class="changelog-entry" id="v0.1.12">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.12</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-09">March 9, 2026</time>
           </div>
