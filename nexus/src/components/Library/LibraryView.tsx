@@ -217,7 +217,7 @@ export function LibraryView({
           <>
           <ContinuePlayingRow
             games={visibleGames}
-            sourceFilter={sourceFilter}
+            sourceFilter={sourceFilter as GameSource | null}
             filterSources={filterSources}
             isCollectionActive={activeCollectionId !== null}
             onPlay={onPlay}
