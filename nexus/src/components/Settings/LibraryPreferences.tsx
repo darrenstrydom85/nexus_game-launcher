@@ -8,6 +8,10 @@ export function LibraryPreferences() {
   const setDefaultSort = useSettingsStore((s) => s.setDefaultSort);
   const defaultView = useSettingsStore((s) => s.defaultView);
   const setDefaultView = useSettingsStore((s) => s.setDefaultView);
+  const cpEnabled = useSettingsStore((s) => s.continuePlayingEnabled);
+  const setCpEnabled = useSettingsStore((s) => s.setContinuePlayingEnabled);
+  const cpMax = useSettingsStore((s) => s.continuePlayingMax);
+  const setCpMax = useSettingsStore((s) => s.setContinuePlayingMax);
 
   return (
     <section data-testid="library-preferences">
@@ -50,6 +54,40 @@ export function LibraryPreferences() {
             className="size-4 rounded border-border"
           />
         </label>
+
+        {/* Continue Playing preferences */}
+        <div className="mt-1 border-t border-border pt-3">
+          <span className="mb-2 block text-xs font-medium text-muted-foreground">
+            Continue Playing
+          </span>
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center justify-between">
+              <span className="text-sm text-foreground">Show Continue Playing row</span>
+              <input
+                data-testid="pref-continue-playing-enabled"
+                type="checkbox"
+                checked={cpEnabled}
+                onChange={() => setCpEnabled(!cpEnabled)}
+                className="size-4 rounded border-border"
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span className="text-sm text-foreground">Max games shown</span>
+              <select
+                data-testid="pref-continue-playing-max"
+                className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground disabled:opacity-50"
+                value={cpMax}
+                onChange={(e) => setCpMax(Number(e.target.value))}
+                disabled={!cpEnabled}
+              >
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+                <option value={8}>8</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
         <HiddenGamesList />
       </div>
     </section>

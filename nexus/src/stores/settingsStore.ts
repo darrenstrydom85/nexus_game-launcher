@@ -49,6 +49,8 @@ export interface SettingsState {
   twitchNotificationsEnabled: boolean;
   /** Story 19.6/19.10: Only show toasts for favorited streamers (default false). */
   twitchNotificationsFavoritesOnly: boolean;
+  continuePlayingEnabled: boolean;
+  continuePlayingMax: number;
   _hydrated: boolean;
 }
 
@@ -82,6 +84,8 @@ export interface SettingsActions {
   setTwitchRefreshInterval: (value: number) => void;
   setTwitchNotificationsEnabled: (value: boolean) => void;
   setTwitchNotificationsFavoritesOnly: (value: boolean) => void;
+  setContinuePlayingEnabled: (value: boolean) => void;
+  setContinuePlayingMax: (value: number) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -127,6 +131,8 @@ const initialState: SettingsState = {
   twitchRefreshInterval: 60,
   twitchNotificationsEnabled: true,
   twitchNotificationsFavoritesOnly: false,
+  continuePlayingEnabled: true,
+  continuePlayingMax: 5,
   _hydrated: false,
 };
 
@@ -184,6 +190,13 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.twitch_notifications_favorites_only !== undefined) {
               patch.twitchNotificationsFavoritesOnly = settings.twitch_notifications_favorites_only === "true";
+            }
+            if (settings.continue_playing_enabled !== undefined) {
+              patch.continuePlayingEnabled = settings.continue_playing_enabled !== "false";
+            }
+            if (settings.continue_playing_max !== undefined && settings.continue_playing_max !== null) {
+              const n = parseInt(settings.continue_playing_max, 10);
+              if (!Number.isNaN(n) && n > 0) patch.continuePlayingMax = n;
             }
 
             set(patch, false, "loadFromBackend");
@@ -333,6 +346,14 @@ export const useSettingsStore = create<SettingsStore>()(
         setTwitchNotificationsFavoritesOnly: (value) => {
           persistSetting("twitch_notifications_favorites_only", String(value));
           set({ twitchNotificationsFavoritesOnly: value }, false, "setTwitchNotificationsFavoritesOnly");
+        },
+        setContinuePlayingEnabled: (value) => {
+          persistSetting("continue_playing_enabled", String(value));
+          set({ continuePlayingEnabled: value }, false, "setContinuePlayingEnabled");
+        },
+        setContinuePlayingMax: (value) => {
+          persistSetting("continue_playing_max", String(value));
+          set({ continuePlayingMax: value }, false, "setContinuePlayingMax");
         },
       }),
       { name: "nexus-settings" },

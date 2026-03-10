@@ -1,15 +1,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { Game, GameSource } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { ContinuePlayingCard } from "./ContinuePlayingCard";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_CARDS = 5;
 
 function getContinuePlayingGames(
   games: Game[],
   sourceFilter: GameSource | null,
   filterSources: GameSource[],
+  maxCards: number,
 ): Game[] {
   const now = Date.now();
   const cutoff = now - SEVEN_DAYS_MS;
@@ -33,7 +34,7 @@ function getContinuePlayingGames(
       new Date(b.lastPlayedAt!).getTime() - new Date(a.lastPlayedAt!).getTime(),
   );
 
-  return candidates.slice(0, MAX_CARDS);
+  return candidates.slice(0, maxCards);
 }
 
 interface ContinuePlayingRowProps {
@@ -53,9 +54,12 @@ export function ContinuePlayingRow({
   onPlay,
   onGameClick,
 }: ContinuePlayingRowProps) {
+  const enabled = useSettingsStore((s) => s.continuePlayingEnabled);
+  const maxCards = useSettingsStore((s) => s.continuePlayingMax);
+
   const qualifying = React.useMemo(
-    () => getContinuePlayingGames(games, sourceFilter, filterSources),
-    [games, sourceFilter, filterSources],
+    () => getContinuePlayingGames(games, sourceFilter, filterSources, maxCards),
+    [games, sourceFilter, filterSources, maxCards],
   );
 
   const prefersReducedMotion = React.useMemo(() => {
@@ -63,7 +67,7 @@ export function ContinuePlayingRow({
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, []);
 
-  if (isCollectionActive || qualifying.length === 0) return null;
+  if (!enabled || isCollectionActive || qualifying.length === 0) return null;
 
   return (
     <section
