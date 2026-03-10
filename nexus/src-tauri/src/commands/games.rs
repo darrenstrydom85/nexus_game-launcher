@@ -316,6 +316,31 @@ pub struct DetectedGame {
     pub is_hidden: bool,
 }
 
+/// Merge two comma-separated exe-name lists, preserving all unique entries
+/// (case-insensitive dedup). The `existing` value comes from the DB and may
+/// contain manually-selected process names that must survive a resync.
+fn merge_potential_exe_names(existing: Option<&str>, scanned: Option<&str>) -> Option<String> {
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut merged: Vec<String> = Vec::new();
+
+    for source in [existing, scanned] {
+        if let Some(csv) = source {
+            for entry in csv.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()) {
+                let key = entry.to_lowercase();
+                if seen.insert(key) {
+                    merged.push(entry.to_string());
+                }
+            }
+        }
+    }
+
+    if merged.is_empty() {
+        None
+    } else {
+        Some(merged.join(", "))
+    }
+}
+
 /// Core confirm_games logic. Used by the Tauri command and by tests.
 pub(crate) fn confirm_games_impl(
     db: &DbState,
@@ -364,19 +389,19 @@ pub(crate) fn confirm_games_impl(
 
         // Check if a game with the same source+source_id already exists.
         // For standalone games (no source_id), match on folder_path instead.
-        let existing_id: Option<String> = if let Some(ref sid) = g.source_id {
+        let existing: Option<(String, Option<String>)> = if let Some(ref sid) = g.source_id {
             tx.query_row(
-                "SELECT id FROM games WHERE source = ?1 AND source_id = ?2 LIMIT 1",
+                "SELECT id, potential_exe_names FROM games WHERE source = ?1 AND source_id = ?2 LIMIT 1",
                 params![g.source, sid],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()
             .map_err(|e| CommandError::Database(e.to_string()))?
         } else if let Some(ref fp) = g.folder_path {
             tx.query_row(
-                "SELECT id FROM games WHERE folder_path = ?1 LIMIT 1",
+                "SELECT id, potential_exe_names FROM games WHERE folder_path = ?1 LIMIT 1",
                 params![fp],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()
             .map_err(|e| CommandError::Database(e.to_string()))?
@@ -384,19 +409,28 @@ pub(crate) fn confirm_games_impl(
             None
         };
 
-        let game_id = if let Some(ref id) = existing_id {
-            // Update mutable fields on the existing game, always refreshing
-            // exe_path, exe_name, and potential_exe_names from the latest scan.
+        let game_id = if let Some((ref id, ref existing_exe_names)) = existing {
+            // Merge scanned potential_exe_names with existing DB value so that
+            // manually-selected process names (from the process picker) are never
+            // lost during a resync.
+            let merged_exe_names = merge_potential_exe_names(
+                existing_exe_names.as_deref(),
+                potential_exe_names.as_deref(),
+            );
+
+            // Update mutable fields on the existing game.
+            // exe_path and exe_name use COALESCE so a NULL from the scanner does
+            // not overwrite a value the user set via manual process identification.
             // If the game was previously 'removed' (re-installed), set status back to 'backlog'.
             // Do not update name: preserve any user-edited name; only new games get the source name.
             tx.execute(
                 "UPDATE games SET
                     folder_path = ?1,
-                    exe_path = ?2,
-                    exe_name = ?3,
+                    exe_path = COALESCE(?2, exe_path),
+                    exe_name = COALESCE(?3, exe_name),
                     launch_url = ?4,
                     source_folder_id = ?5,
-                    potential_exe_names = COALESCE(?6, potential_exe_names),
+                    potential_exe_names = ?6,
                     status = CASE WHEN status = 'removed' THEN 'backlog' ELSE status END,
                     updated_at = ?7
                  WHERE id = ?8",
@@ -406,7 +440,7 @@ pub(crate) fn confirm_games_impl(
                     g.exe_name,
                     g.launch_url,
                     g.source_folder_id,
-                    potential_exe_names,
+                    merged_exe_names,
                     now,
                     id,
                 ],
@@ -979,6 +1013,94 @@ mod tests {
         assert_eq!(games.len(), 1);
         assert_eq!(games[0].id, "existing-id");
         assert_eq!(games[0].name, "My Custom Name", "resync must not overwrite user-edited name");
+    }
+
+    #[test]
+    fn confirm_games_preserves_manual_exe_on_resync() {
+        let state = setup_db();
+        {
+            let conn = state.conn.lock().unwrap();
+            conn.execute(
+                "INSERT INTO games (id, name, source, source_id, exe_path, exe_name, potential_exe_names, status, added_at, updated_at) \
+                 VALUES ('g-manual', 'Test Game', 'steam', 'app_200', 'C:\\Games\\Test\\game.exe', 'game.exe', 'game.exe, launcher.exe', 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+                [],
+            ).unwrap();
+        }
+
+        let detected = vec![DetectedGame {
+            name: "Test Game".into(),
+            source: "steam".into(),
+            source_id: Some("app_200".into()),
+            folder_path: Some("C:\\Games\\Test".into()),
+            exe_path: None,
+            exe_name: None,
+            potential_exe_names: None,
+            ..Default::default()
+        }];
+
+        let games = confirm_games_impl(&state, detected).unwrap();
+        assert_eq!(games.len(), 1);
+        assert_eq!(games[0].exe_path.as_deref(), Some("C:\\Games\\Test\\game.exe"),
+            "resync with NULL exe_path must not wipe manual value");
+        assert_eq!(games[0].exe_name.as_deref(), Some("game.exe"),
+            "resync with NULL exe_name must not wipe manual value");
+        assert!(games[0].potential_exe_names.as_ref().unwrap().contains("game.exe"),
+            "manual exe must survive in potential_exe_names");
+        assert!(games[0].potential_exe_names.as_ref().unwrap().contains("launcher.exe"),
+            "previously stored exe must survive in potential_exe_names");
+    }
+
+    #[test]
+    fn confirm_games_merges_potential_exe_names_on_resync() {
+        let state = setup_db();
+        {
+            let conn = state.conn.lock().unwrap();
+            conn.execute(
+                "INSERT INTO games (id, name, source, source_id, folder_path, potential_exe_names, status, added_at, updated_at) \
+                 VALUES ('g-merge', 'Merge Game', 'steam', 'app_300', 'C:\\Games\\Merge', 'manual-pick.exe', 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+                [],
+            ).unwrap();
+        }
+
+        let detected = vec![DetectedGame {
+            name: "Merge Game".into(),
+            source: "steam".into(),
+            source_id: Some("app_300".into()),
+            folder_path: Some("C:\\Games\\Merge".into()),
+            potential_exe_names: Some("scanner-found.exe, manual-pick.exe".into()),
+            ..Default::default()
+        }];
+
+        let games = confirm_games_impl(&state, detected).unwrap();
+        let exe_names = games[0].potential_exe_names.as_ref().unwrap();
+        assert!(exe_names.contains("manual-pick.exe"),
+            "manually selected process must persist after resync");
+        assert!(exe_names.contains("scanner-found.exe"),
+            "newly scanned exe must be added");
+        let count = exe_names.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).count();
+        assert_eq!(count, 2, "duplicates must be deduped");
+    }
+
+    #[test]
+    fn merge_potential_exe_names_unit() {
+        assert_eq!(merge_potential_exe_names(None, None), None);
+        assert_eq!(
+            merge_potential_exe_names(Some("a.exe"), None),
+            Some("a.exe".into())
+        );
+        assert_eq!(
+            merge_potential_exe_names(None, Some("b.exe")),
+            Some("b.exe".into())
+        );
+        assert_eq!(
+            merge_potential_exe_names(Some("a.exe, b.exe"), Some("b.exe, c.exe")),
+            Some("a.exe, b.exe, c.exe".into()),
+        );
+        assert_eq!(
+            merge_potential_exe_names(Some("Game.exe"), Some("game.exe")),
+            Some("Game.exe".into()),
+            "dedup is case-insensitive, first occurrence wins"
+        );
     }
 
     // ── Test helpers: non-Tauri wrappers ──
