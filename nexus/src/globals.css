@@ -309,6 +309,23 @@
   }
 }
 
+/* Continue Playing row — slide-up entrance (200ms ease-out, spec Section 1.7) */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[slide-up_200ms_ease-out_both\] {
+    animation: none !important;
+  }
+}
+
 /* Titlebar drag regions */
 .titlebar-drag-region {
     -webkit-app-region: drag;

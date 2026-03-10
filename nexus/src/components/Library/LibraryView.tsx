@@ -10,6 +10,7 @@ import type { GameContextMenuHandlers } from "@/components/GameCard";
 import { GameGrid } from "./GameGrid";
 import { GameCard } from "@/components/GameCard";
 import { SkeletonCard } from "./SkeletonCard";
+import { ContinuePlayingRow } from "./ContinuePlayingRow";
 import { SyncProgressBanner } from "./SyncProgressBanner";
 import { SyncActivityDot } from "./SyncActivityDot";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -96,8 +97,13 @@ export function LibraryView({
   const minCriticScore = useFilterStore((s) => s.minCriticScore);
   const maxCriticScore = useFilterStore((s) => s.maxCriticScore);
 
+  const visibleGames = React.useMemo(
+    () => games.filter((g) => !hiddenGameIds.includes(g.id)),
+    [games, hiddenGameIds],
+  );
+
   const filteredGames = React.useMemo(() => {
-    let result = games.filter((g) => !hiddenGameIds.includes(g.id));
+    let result = visibleGames;
     if (activeCollection) {
       result = result.filter((g) => activeCollection.gameIds.includes(g.id));
     }
@@ -124,7 +130,7 @@ export function LibraryView({
       });
     }
     return result;
-  }, [games, hiddenGameIds, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore]);
+  }, [visibleGames, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore]);
 
   const isFiltered = searchQuery.length > 0 || sourceFilter !== null || genreFilter !== null || activeCollectionId !== null
     || filterSources.length > 0 || filterStatuses.length > 0 || filterGenres.length > 0
@@ -208,6 +214,15 @@ export function LibraryView({
             ))}
           </div>
         ) : (
+          <>
+          <ContinuePlayingRow
+            games={visibleGames}
+            sourceFilter={sourceFilter}
+            filterSources={filterSources}
+            isCollectionActive={activeCollectionId !== null}
+            onPlay={onPlay}
+            onGameClick={(id) => useUiStore.getState().setDetailOverlayGameId(id)}
+          />
           <GameGrid
             games={filteredGames}
             totalCount={games.length}
@@ -233,6 +248,7 @@ export function LibraryView({
             collections={collections}
             renderCard={(game) => <GameCard game={game} />}
           />
+          </>
         )}
       </div>
     </TooltipProvider>
