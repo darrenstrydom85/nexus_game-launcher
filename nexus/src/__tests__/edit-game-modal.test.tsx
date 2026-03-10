@@ -40,6 +40,7 @@ const mockGame: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 describe("Story 7.4: Edit Game Modal", () => {

@@ -49,6 +49,7 @@ const BASE_GAME: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 function makeGame(overrides: Partial<Game> & { id: string }): Game {

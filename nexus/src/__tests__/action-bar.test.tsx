@@ -40,6 +40,7 @@ const mockGame: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 describe("Story 7.2: Action Bar", () => {

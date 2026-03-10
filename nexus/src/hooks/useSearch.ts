@@ -3,6 +3,19 @@ import Fuse from "fuse.js";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 
+function extractSnippet(text: string, query: string): string {
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(query.toLowerCase());
+  if (idx === -1) return text.slice(0, 80);
+
+  const start = Math.max(0, idx - 40);
+  const end = Math.min(text.length, idx + query.length + 40);
+  let snippet = text.slice(start, end).replace(/\n/g, " ");
+  if (start > 0) snippet = "…" + snippet;
+  if (end < text.length) snippet = snippet + "…";
+  return snippet;
+}
+
 export interface SearchResult {
   type: "game" | "collection" | "action";
   id: string;
@@ -11,6 +24,7 @@ export interface SearchResult {
   icon?: string;
   game?: Game;
   collection?: Collection;
+  noteSnippet?: string;
 }
 
 export interface ActionItem {
@@ -66,15 +80,34 @@ export function useSearch(query: string): {
       };
     }
 
-    const gameResults: SearchResult[] = fuse
-      .search(query, { limit: 10 })
-      .map((r) => ({
-        type: "game" as const,
-        id: r.item.id,
-        name: r.item.name,
-        subtitle: `${r.item.source} · ${Math.floor(r.item.totalPlayTimeS / 3600)}h`,
-        game: r.item,
-      }));
+    const fuseResults = fuse.search(query, { limit: 10 });
+    const fuseIds = new Set(fuseResults.map((r) => r.item.id));
+
+    const nameResults: SearchResult[] = fuseResults.map((r) => ({
+      type: "game" as const,
+      id: r.item.id,
+      name: r.item.name,
+      subtitle: `${r.item.source} · ${Math.floor(r.item.totalPlayTimeS / 3600)}h`,
+      game: r.item,
+    }));
+
+    let noteResults: SearchResult[] = [];
+    if (query.length >= 3) {
+      const q = query.toLowerCase();
+      noteResults = games
+        .filter((g) => g.notes && g.notes.toLowerCase().includes(q) && !fuseIds.has(g.id))
+        .slice(0, 10)
+        .map((g) => ({
+          type: "game" as const,
+          id: g.id,
+          name: g.name,
+          subtitle: `Note: ${extractSnippet(g.notes!, query)}`,
+          game: g,
+          noteSnippet: extractSnippet(g.notes!, query),
+        }));
+    }
+
+    const gameResults = [...nameResults, ...noteResults].slice(0, 10);
 
     const collectionResults: SearchResult[] = collectionFuse
       .search(query, { limit: 5 })
@@ -102,5 +135,5 @@ export function useSearch(query: string): {
       collectionResults,
       actionResults,
     };
-  }, [query, fuse, collectionFuse]);
+  }, [query, games, fuse, collectionFuse]);
 }

@@ -27,6 +27,7 @@ const makeGame = (id: string, name: string): Game => ({
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 });
 
 describe("Story 10.1: CollectionsSidebar", () => {

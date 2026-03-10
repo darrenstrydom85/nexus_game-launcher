@@ -43,6 +43,7 @@ const defaultGame = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 const mockChannelLive = {

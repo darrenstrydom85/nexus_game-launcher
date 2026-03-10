@@ -121,6 +121,7 @@ pub struct Game {
     pub hltb_completionist_h: Option<f64>,
     pub hltb_id: Option<String>,
     pub hltb_fetched_at: Option<String>,
+    pub notes: Option<String>,
 }
 
 impl Game {
@@ -169,6 +170,7 @@ impl Game {
             hltb_completionist_h: row.get("hltb_completionist_h")?,
             hltb_id: row.get("hltb_id")?,
             hltb_fetched_at: row.get("hltb_fetched_at")?,
+            notes: row.get("notes")?,
         })
     }
 }

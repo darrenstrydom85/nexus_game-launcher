@@ -43,6 +43,7 @@ const defaultGame = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 describe("Story 19.3: Twitch Sidebar Nav + Live Count Badge", () => {

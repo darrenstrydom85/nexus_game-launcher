@@ -51,6 +51,7 @@ const baseGame: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 const liveStreamOne: LiveStreamItem = {

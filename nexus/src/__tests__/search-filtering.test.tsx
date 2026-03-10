@@ -26,6 +26,7 @@ const makeGame = (id: string, name: string, overrides: Partial<Game> = {}): Game
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
   ...overrides,
 });
 

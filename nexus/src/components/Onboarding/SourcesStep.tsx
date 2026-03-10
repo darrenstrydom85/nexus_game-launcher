@@ -160,6 +160,7 @@ export function SourcesStep() {
         hltbCompletionistH: null,
         hltbId: null,
         hltbFetchedAt: null,
+        notes: null,
       }));
 
       setGames(games);

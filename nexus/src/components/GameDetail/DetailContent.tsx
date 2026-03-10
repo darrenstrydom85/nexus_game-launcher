@@ -4,6 +4,7 @@ import { GameMetadata } from "./GameMetadata";
 import { GamePlayStats } from "./GamePlayStats";
 import { GameTrailer } from "./GameTrailer";
 import { GameScreenshots } from "./GameScreenshots";
+import { GameNotes } from "./GameNotes";
 import { HltbSection } from "./HltbSection";
 import { LiveOnTwitch } from "./LiveOnTwitch";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
@@ -161,6 +162,8 @@ export function DetailContent({
           <LiveOnTwitch gameName={game.name} />
 
           <GameMetadata game={game} />
+
+          <GameNotes game={game} />
 
           {/* Collections card */}
           <div data-testid="detail-collections" className="rounded-lg border border-border bg-card p-4">

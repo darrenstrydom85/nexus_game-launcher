@@ -146,8 +146,15 @@ export function SearchCommand({
                             </div>
                           )}
                           <div className="flex flex-1 flex-col text-left">
-                            <span className="font-medium">{r.name}</span>
-                            <span className="text-xs text-muted-foreground">{r.subtitle}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{r.name}</span>
+                              {r.noteSnippet && (
+                                <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                  Note match
+                                </span>
+                              )}
+                            </div>
+                            <span className="truncate text-xs text-muted-foreground">{r.subtitle}</span>
                           </div>
                         </button>
                       );

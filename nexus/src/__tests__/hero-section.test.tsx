@@ -41,6 +41,7 @@ const mockGame: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 const mockGame2: Game = {

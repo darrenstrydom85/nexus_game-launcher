@@ -57,6 +57,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "hltb_times_v2",
         sql: include_str!("migrations/010_hltb_times_v2.sql"),
     },
+    Migration {
+        version: 11,
+        name: "game_notes",
+        sql: include_str!("migrations/011_game_notes.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -213,6 +218,7 @@ mod tests {
             "hltb_completionist_h",
             "hltb_id",
             "hltb_fetched_at",
+            "notes",
         ];
         for col in &expected {
             assert!(cols.contains(&col.to_string()), "games missing column: {col}");

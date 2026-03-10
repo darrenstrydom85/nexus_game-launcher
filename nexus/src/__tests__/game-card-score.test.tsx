@@ -50,6 +50,7 @@ const baseGame: Game = {
   hltbCompletionistH: null,
   hltbId: null,
   hltbFetchedAt: null,
+  notes: null,
 };
 
 describe("GameCard score badge", () => {

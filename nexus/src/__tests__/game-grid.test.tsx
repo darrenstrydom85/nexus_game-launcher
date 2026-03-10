@@ -42,6 +42,7 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   hltbCompletionistH: overrides.hltbCompletionistH ?? null,
   hltbId: overrides.hltbId ?? null,
   hltbFetchedAt: overrides.hltbFetchedAt ?? null,
+  notes: overrides.notes ?? null,
 });
 
 const games: Game[] = [

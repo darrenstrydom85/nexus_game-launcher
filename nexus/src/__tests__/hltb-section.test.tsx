@@ -53,6 +53,7 @@ function makeGame(overrides: Partial<Game> = {}): Game {
     hltbCompletionistH: null,
     hltbId: null,
     hltbFetchedAt: null,
+    notes: null,
     ...overrides,
   };
 }

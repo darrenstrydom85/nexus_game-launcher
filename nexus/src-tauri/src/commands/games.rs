@@ -83,6 +83,7 @@ pub fn get_game(db: State<'_, DbState>, id: String) -> Result<Game, CommandError
 pub fn search_games(
     db: State<'_, DbState>,
     query: String,
+    include_notes: Option<bool>,
 ) -> Result<Vec<Game>, CommandError> {
     let conn = db
         .conn
@@ -91,8 +92,14 @@ pub fn search_games(
 
     let pattern = format!("%{query}%");
 
+    let sql = if include_notes.unwrap_or(false) {
+        "SELECT * FROM games WHERE (name LIKE ?1 OR notes LIKE ?1) AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
+    } else {
+        "SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
+    };
+
     let mut stmt = conn
-        .prepare("SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC")
+        .prepare(sql)
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let games = stmt
@@ -151,6 +158,8 @@ pub struct UpdateGameFields {
     pub play_count: Option<i64>,
     pub source_folder_id: Option<String>,
     pub is_hidden: Option<bool>,
+    #[serde(default, deserialize_with = "deserialize_nullable")]
+    pub notes: Option<Option<String>>,
 }
 
 #[tauri::command]
@@ -236,6 +245,7 @@ pub fn update_game(
     push_field!(fields.play_count, "play_count");
     push_field!(fields.source_folder_id, "source_folder_id");
     push_field!(fields.is_hidden, "is_hidden");
+    push_nullable_field!(fields.notes, "notes");
 
     if set_clauses.is_empty() {
         return Err(CommandError::Parse("no fields provided for update".into()));
@@ -669,7 +679,7 @@ mod tests {
         insert_test_game(&conn, "g3", "Doom Eternal", "steam");
         drop(conn);
 
-        let results = search_games_inner(&state, "witch".into()).unwrap();
+        let results = search_games_inner(&state, "witch".into(), false).unwrap();
         assert_eq!(results.len(), 2);
     }
 
@@ -681,7 +691,7 @@ mod tests {
         insert_hidden_game(&conn, "g2", "Halo Wars");
         drop(conn);
 
-        let results = search_games_inner(&state, "Halo".into()).unwrap();
+        let results = search_games_inner(&state, "Halo".into(), false).unwrap();
         assert_eq!(results.len(), 2, "returns both so frontend can sync hidden state");
         assert!(results.iter().any(|g| g.name == "Halo Infinite" && !g.is_hidden));
         assert!(results.iter().any(|g| g.name == "Halo Wars" && g.is_hidden));
@@ -694,7 +704,7 @@ mod tests {
         insert_test_game(&conn, "g1", "Some Game", "steam");
         drop(conn);
 
-        let results = search_games_inner(&state, "zzzzz".into()).unwrap();
+        let results = search_games_inner(&state, "zzzzz".into(), false).unwrap();
         assert!(results.is_empty());
     }
 
@@ -1010,12 +1020,15 @@ mod tests {
         Ok(game)
     }
 
-    fn search_games_inner(state: &DbState, query: String) -> Result<Vec<Game>, CommandError> {
+    fn search_games_inner(state: &DbState, query: String, include_notes: bool) -> Result<Vec<Game>, CommandError> {
         let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let pattern = format!("%{query}%");
-        let mut stmt = conn
-            .prepare("SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        let sql = if include_notes {
+            "SELECT * FROM games WHERE (name LIKE ?1 OR notes LIKE ?1) AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
+        } else {
+            "SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
+        };
+        let mut stmt = conn.prepare(sql).map_err(|e| CommandError::Database(e.to_string()))?;
         let games = stmt.query_map(params![pattern], Game::from_row)
             .map_err(|e| CommandError::Database(e.to_string()))?
             .collect::<Result<Vec<_>, _>>()
@@ -1090,6 +1103,7 @@ mod tests {
         push_field!(fields.last_played, "last_played");
         push_field!(fields.play_count, "play_count");
         push_field!(fields.source_folder_id, "source_folder_id");
+        push_nullable_field!(fields.notes, "notes");
 
         if set_clauses.is_empty() {
             return Err(CommandError::Parse("no fields provided for update".into()));
@@ -1120,6 +1134,135 @@ mod tests {
             return Err(CommandError::NotFound(format!("game {id}")));
         }
         Ok(())
+    }
+
+    // ── notes field ──
+
+    #[test]
+    fn update_game_sets_notes() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            notes: Some(Some("my note".into())),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.notes, Some("my note".into()));
+    }
+
+    #[test]
+    fn update_game_clears_notes_with_null() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 'old note', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            notes: Some(None),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.notes, None);
+    }
+
+    #[test]
+    fn update_game_leaves_notes_unchanged_when_absent() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 'keep me', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            name: Some("Renamed".into()),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.notes, Some("keep me".into()));
+    }
+
+    #[test]
+    fn get_game_returns_notes() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 'hello world', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let game = get_game_inner(&state, "g1".into()).unwrap();
+        assert_eq!(game.notes, Some("hello world".into()));
+    }
+
+    // ── search_games with include_notes ──
+
+    #[test]
+    fn search_games_finds_by_notes_when_enabled() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Dark Souls', 'steam', 'backlog', 'stuck on ice level boss', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        insert_test_game(&conn, "g2", "Hollow Knight", "steam");
+        drop(conn);
+
+        let results = search_games_inner(&state, "ice level".into(), true).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Dark Souls");
+    }
+
+    #[test]
+    fn search_games_ignores_notes_when_disabled() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Dark Souls', 'steam', 'backlog', 'stuck on ice level boss', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let results = search_games_inner(&state, "ice level".into(), false).unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn search_games_notes_is_case_insensitive() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Elden Ring', 'steam', 'backlog', 'Build Guide for Strength', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let results = search_games_inner(&state, "build guide".into(), true).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Elden Ring");
+    }
+
+    #[test]
+    fn search_games_returns_name_and_notes_matches() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Ice Climber", "steam");
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g2', 'Dark Souls', 'steam', 'backlog', 'ice level tips', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let results = search_games_inner(&state, "ice".into(), true).unwrap();
+        assert_eq!(results.len(), 2);
     }
 
 }
