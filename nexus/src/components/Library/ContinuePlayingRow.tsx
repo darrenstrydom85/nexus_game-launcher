@@ -87,9 +87,9 @@ export function ContinuePlayingRow({
         className="relative"
         style={{
           maskImage:
-            "linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent)",
+            "linear-gradient(to right, black calc(100% - 32px), transparent)",
           WebkitMaskImage:
-            "linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent)",
+            "linear-gradient(to right, black calc(100% - 32px), transparent)",
         }}
       >
         <div
