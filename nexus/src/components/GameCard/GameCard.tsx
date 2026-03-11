@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
+import { useTagStore } from "@/stores/tagStore";
 import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
 import { formatPlayTime } from "@/components/Library/HeroSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
@@ -86,7 +87,15 @@ interface GameCardProps {
 
 export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
+  const allTags = useTagStore((s) => s.tags);
+  const gameTagMap = useTagStore((s) => s.gameTagMap);
   const [isHovered, setIsHovered] = React.useState(false);
+
+  const gameTags = React.useMemo(() => {
+    const ids = gameTagMap[game.id];
+    if (!ids || ids.length === 0) return [];
+    return allTags.filter((t) => ids.includes(t.id));
+  }, [allTags, gameTagMap, game.id]);
 
   const handleClick = React.useCallback(() => {
     onClick?.(game.id);
@@ -177,6 +186,21 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
         <div className="flex items-center gap-2">
           <PlayTimeBadge seconds={game.totalPlayTimeS} />
           <StatusBadge status={game.status} />
+          {gameTags.length > 0 && (
+            <div className="flex items-center gap-0.5">
+              {gameTags.slice(0, 4).map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: tag.color || "#6B7280" }}
+                  title={tag.name}
+                />
+              ))}
+              {gameTags.length > 4 && (
+                <span className="text-[9px] text-white/60">+{gameTags.length - 4}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

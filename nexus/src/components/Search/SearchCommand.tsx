@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { useSearch, type SearchResult } from "@/hooks/useSearch";
 import { useUiStore } from "@/stores/uiStore";
+import { useFilterStore } from "@/stores/filterStore";
 import { Search, X } from "lucide-react";
 
 interface SearchCommandProps {
@@ -25,7 +26,8 @@ export function SearchCommand({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
 
-  const { results, gameResults, collectionResults, actionResults } = useSearch(query);
+  const { results, gameResults, collectionResults, actionResults, tagResults } = useSearch(query);
+  const toggleTag = useFilterStore((s) => s.toggleTag);
 
   React.useEffect(() => {
     if (open) {
@@ -68,10 +70,13 @@ export function SearchCommand({
         onSelectCollection?.(result.id);
       } else if (result.type === "action") {
         onSelectAction?.(result.id);
+      } else if (result.type === "tag" && result.tagId) {
+        toggleTag(result.tagId);
+        useUiStore.getState().setActiveNav("library");
       }
       onClose();
     },
-    [onSelectGame, onSelectCollection, onSelectAction, setDetailOverlayGameId, onClose],
+    [onSelectGame, onSelectCollection, onSelectAction, setDetailOverlayGameId, onClose, toggleTag],
   );
 
   return (
@@ -182,6 +187,35 @@ export function SearchCommand({
                         >
                           <span className="text-base">{r.icon}</span>
                           <span>{r.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {tagResults.length > 0 && (
+                  <div data-testid="search-group-tags">
+                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Tags
+                    </p>
+                    {tagResults.map((r) => {
+                      const globalIdx = results.indexOf(r);
+                      return (
+                        <button
+                          key={r.id}
+                          data-testid={`search-result-${r.id}`}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm",
+                            "hover:bg-accent",
+                            globalIdx === selectedIndex && "bg-accent",
+                          )}
+                          onClick={() => handleSelect(r)}
+                        >
+                          <span className="text-base">🏷</span>
+                          <div className="flex flex-1 flex-col text-left">
+                            <span className="font-medium">{r.name}</span>
+                            <span className="text-xs text-muted-foreground">{r.subtitle}</span>
+                          </div>
                         </button>
                       );
                     })}

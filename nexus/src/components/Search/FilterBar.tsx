@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useFilterStore } from "@/stores/filterStore";
+import { useTagStore } from "@/stores/tagStore";
 import { useGameStore, type GameSource, type GameStatus } from "@/stores/gameStore";
 import { X } from "lucide-react";
 
@@ -25,6 +26,7 @@ interface FilterBarProps {
 export function FilterBar({ totalCount, filteredCount }: FilterBarProps) {
   const filters = useFilterStore();
   const games = useGameStore((s) => s.games);
+  const allTags = useTagStore((s) => s.tags);
 
   const allGenres = React.useMemo(() => {
     const set = new Set<string>();
@@ -39,13 +41,17 @@ export function FilterBar({ totalCount, filteredCount }: FilterBarProps) {
     filters.sources.forEach((s) => chips.push({ type: "source", value: s, label: SOURCE_LABELS[s] }));
     filters.statuses.forEach((s) => chips.push({ type: "status", value: s, label: STATUS_LABELS[s] }));
     filters.genres.forEach((g) => chips.push({ type: "genre", value: g, label: g }));
+    filters.tags.forEach((tagId) => {
+      const tag = allTags.find((t) => t.id === tagId);
+      if (tag) chips.push({ type: "tag", value: tagId, label: tag.name });
+    });
     if (filters.minRating) chips.push({ type: "rating", value: "", label: `${filters.minRating}+ stars` });
     if (filters.maxPlayTimeH) chips.push({ type: "playTime", value: "", label: `<${filters.maxPlayTimeH}h` });
     if (filters.minCriticScore > 0 || filters.maxCriticScore < 100) {
       chips.push({ type: "criticScore", value: "", label: `Score ${filters.minCriticScore}–${filters.maxCriticScore}` });
     }
     return chips;
-  }, [filters.sources, filters.statuses, filters.genres, filters.minRating, filters.maxPlayTimeH, filters.minCriticScore, filters.maxCriticScore]);
+  }, [filters.sources, filters.statuses, filters.genres, filters.tags, filters.minRating, filters.maxPlayTimeH, filters.minCriticScore, filters.maxCriticScore, allTags]);
 
   const pillClass = (active: boolean) => cn(
     "rounded-full px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",

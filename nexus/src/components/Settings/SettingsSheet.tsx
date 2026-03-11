@@ -16,6 +16,7 @@ import { DataManagement } from "./DataManagement";
 import { LibraryHealth } from "./LibraryHealth";
 import { TwitchSettings } from "./TwitchSettings";
 import { AboutSection } from "./AboutSection";
+import { TagManager } from "@/components/Tags/TagManager";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 interface SettingsSheetProps {
@@ -86,6 +87,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     <SourceToggles />
                     <FolderManager />
                     <LibraryPreferences />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="tags" data-testid="settings-group-tags">
+                  <AccordionTrigger>Tags</AccordionTrigger>
+                  <AccordionContent>
+                    <TagManager />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="appearance" data-testid="settings-group-appearance">

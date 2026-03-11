@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useUiStore, type NavItem } from "@/stores/uiStore";
 import { useGameStore, type GameSource } from "@/stores/gameStore";
 import { useFilterStore } from "@/stores/filterStore";
+import { useTagStore } from "@/stores/tagStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
@@ -208,8 +209,13 @@ export function Sidebar({
   const maxCriticScore = useFilterStore((s) => s.maxCriticScore);
   const setCriticScoreRange = useFilterStore((s) => s.setCriticScoreRange);
 
+  const allTags = useTagStore((s) => s.tags);
+  const filterTags = useFilterStore((s) => s.tags);
+  const toggleTag = useFilterStore((s) => s.toggleTag);
+
   const [collectionsOpen, setCollectionsOpen] = React.useState(true);
   const [genresOpen, setGenresOpen] = React.useState(false);
+  const [tagsOpen, setTagsOpen] = React.useState(false);
   const [scoreOpen, setScoreOpen] = React.useState(false);
   const [sourcesOpen, setSourcesOpen] = React.useState(false);
   const prevLiveCountRef = React.useRef(liveCount);
@@ -437,6 +443,74 @@ export function Sidebar({
                 }}
                 >
                   <span className="truncate">{name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tags accordion */}
+      {allTags.length > 0 && (
+        <div className="flex flex-col px-2 py-1">
+          <button
+            data-testid="accordion-tags"
+            className={cn(
+              "flex h-8 w-full items-center gap-2 rounded-md px-3 text-xs font-medium uppercase tracking-wider",
+              "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              filterTags.length > 0 && "text-primary",
+            )}
+            onClick={() => sidebarOpen && setTagsOpen((o) => !o)}
+            title={!sidebarOpen ? "Tags" : undefined}
+            aria-expanded={tagsOpen}
+          >
+            <Tag className="size-3.5 shrink-0" />
+            {sidebarOpen && (
+              <>
+                <span className="flex-1 text-left">Tags</span>
+                {filterTags.length > 0 && (
+                  <span className="text-[10px] tabular-nums text-primary">
+                    {filterTags.length}
+                  </span>
+                )}
+                <ChevronDown
+                  className={cn(
+                    "size-3 transition-transform duration-200",
+                    tagsOpen && "rotate-180",
+                  )}
+                />
+              </>
+            )}
+          </button>
+
+          {sidebarOpen && tagsOpen && (
+            <div className="mt-0.5 flex flex-col gap-0.5" data-testid="tags-list" role="list">
+              {allTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  role="listitem"
+                  data-testid={`sidebar-tag-${tag.name}`}
+                  className={cn(
+                    "flex h-8 w-full items-center gap-3 rounded-md px-3 text-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    filterTags.includes(tag.id)
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                  )}
+                  onClick={() => {
+                    if (activeNav !== "library") onNavigate?.("library");
+                    toggleTag(tag.id);
+                  }}
+                >
+                  <span
+                    className="inline-block size-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: tag.color || "#6B7280" }}
+                  />
+                  <span className="flex-1 truncate text-left">{tag.name}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {tag.gameCount}
+                  </span>
                 </button>
               ))}
             </div>

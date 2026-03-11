@@ -4,6 +4,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useCollectionStore } from "@/stores/collectionStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useFilterStore } from "@/stores/filterStore";
+import { useTagStore } from "@/stores/tagStore";
 import { useSyncStore } from "@/stores/syncStore";
 import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
 import type { GameContextMenuHandlers } from "@/components/GameCard";
@@ -94,8 +95,11 @@ export function LibraryView({
   const filterSources = useFilterStore((s) => s.sources);
   const filterStatuses = useFilterStore((s) => s.statuses);
   const filterGenres = useFilterStore((s) => s.genres);
+  const filterTags = useFilterStore((s) => s.tags);
+  const tagFilterMode = useFilterStore((s) => s.tagFilterMode);
   const minCriticScore = useFilterStore((s) => s.minCriticScore);
   const maxCriticScore = useFilterStore((s) => s.maxCriticScore);
+  const gameTagMap = useTagStore((s) => s.gameTagMap);
 
   const visibleGames = React.useMemo(
     () => games.filter((g) => !hiddenGameIds.includes(g.id)),
@@ -129,11 +133,21 @@ export function LibraryView({
         return g.criticScore >= minCriticScore && g.criticScore <= maxCriticScore;
       });
     }
+    if (filterTags.length > 0) {
+      result = result.filter((g) => {
+        const gameTags = gameTagMap[g.id] ?? [];
+        if (tagFilterMode === "and") {
+          return filterTags.every((t) => gameTags.includes(t));
+        }
+        return filterTags.some((t) => gameTags.includes(t));
+      });
+    }
     return result;
-  }, [visibleGames, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore]);
+  }, [visibleGames, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore, filterTags, tagFilterMode, gameTagMap]);
 
   const isFiltered = searchQuery.length > 0 || sourceFilter !== null || genreFilter !== null || activeCollectionId !== null
     || filterSources.length > 0 || filterStatuses.length > 0 || filterGenres.length > 0
+    || filterTags.length > 0
     || minCriticScore > 0 || maxCriticScore < 100;
 
   const heading = React.useMemo(() => buildHeading({

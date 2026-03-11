@@ -56,6 +56,7 @@ import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useQueueStore } from "@/stores/queueStore";
+import { useTagStore } from "@/stores/tagStore";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function SessionNotePromptWrapper() {
@@ -169,6 +170,11 @@ function MainApp() {
   React.useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  React.useEffect(() => {
+    useTagStore.getState().loadTags();
+    useTagStore.getState().loadGameTagMap();
+  }, []);
 
   React.useEffect(() => {
     if (playHistoryChecked.current) return;

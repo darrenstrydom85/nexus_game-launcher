@@ -81,6 +81,11 @@ use commands::{
         get_play_queue, add_to_play_queue, remove_from_play_queue,
         reorder_play_queue, clear_play_queue,
     },
+    tags::{
+        get_tags, create_tag, delete_tag, rename_tag, update_tag_color,
+        add_tag_to_game, remove_tag_from_game, get_game_tags, get_games_by_tag,
+        get_all_game_tag_ids,
+    },
 };
 
 /// Story 20.1: Read ask_before_close from settings. Default true (show dialog).
@@ -283,6 +288,16 @@ pub fn run() {
             remove_from_play_queue,
             reorder_play_queue,
             clear_play_queue,
+            get_tags,
+            create_tag,
+            delete_tag,
+            rename_tag,
+            update_tag_color,
+            add_tag_to_game,
+            remove_tag_from_game,
+            get_game_tags,
+            get_games_by_tag,
+            get_all_game_tag_ids,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

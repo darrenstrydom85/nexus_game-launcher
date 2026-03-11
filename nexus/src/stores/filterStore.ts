@@ -2,10 +2,14 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { GameSource, GameStatus } from "./gameStore";
 
+export type TagFilterMode = "or" | "and";
+
 export interface FilterState {
   sources: GameSource[];
   statuses: GameStatus[];
   genres: string[];
+  tags: string[];
+  tagFilterMode: TagFilterMode;
   minRating: number | null;
   maxPlayTimeH: number | null;
   collectionId: string | null;
@@ -17,6 +21,8 @@ export interface FilterActions {
   toggleSource: (source: GameSource) => void;
   toggleStatus: (status: GameStatus) => void;
   toggleGenre: (genre: string) => void;
+  toggleTag: (tagId: string) => void;
+  setTagFilterMode: (mode: TagFilterMode) => void;
   setMinRating: (rating: number | null) => void;
   setMaxPlayTimeH: (hours: number | null) => void;
   setCollectionId: (id: string | null) => void;
@@ -32,6 +38,8 @@ const initialState: FilterState = {
   sources: [],
   statuses: [],
   genres: [],
+  tags: [],
+  tagFilterMode: "or",
   minRating: null,
   maxPlayTimeH: null,
   collectionId: null,
@@ -53,6 +61,10 @@ export const useFilterStore = create<FilterStore>()(
         set((s) => ({ statuses: toggleInArray(s.statuses, status) }), false, "toggleStatus"),
       toggleGenre: (genre) =>
         set((s) => ({ genres: toggleInArray(s.genres, genre) }), false, "toggleGenre"),
+      toggleTag: (tagId) =>
+        set((s) => ({ tags: toggleInArray(s.tags, tagId) }), false, "toggleTag"),
+      setTagFilterMode: (mode) =>
+        set({ tagFilterMode: mode }, false, "setTagFilterMode"),
       setMinRating: (rating) =>
         set({ minRating: rating }, false, "setMinRating"),
       setMaxPlayTimeH: (hours) =>
@@ -67,6 +79,7 @@ export const useFilterStore = create<FilterStore>()(
             case "source": return { sources: s.sources.filter((x) => x !== value) };
             case "status": return { statuses: s.statuses.filter((x) => x !== value) };
             case "genre": return { genres: s.genres.filter((x) => x !== value) };
+            case "tag": return { tags: s.tags.filter((x) => x !== value) };
             case "rating": return { minRating: null };
             case "playTime": return { maxPlayTimeH: null };
             case "collection": return { collectionId: null };
@@ -81,6 +94,7 @@ export const useFilterStore = create<FilterStore>()(
           s.sources.length > 0 ||
           s.statuses.length > 0 ||
           s.genres.length > 0 ||
+          s.tags.length > 0 ||
           s.minRating !== null ||
           s.maxPlayTimeH !== null ||
           s.collectionId !== null ||

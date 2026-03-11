@@ -7,6 +7,7 @@ import { GameScreenshots } from "./GameScreenshots";
 import { GameNotes } from "./GameNotes";
 import { HltbSection } from "./HltbSection";
 import { LiveOnTwitch } from "./LiveOnTwitch";
+import { GameTagsSection } from "@/components/Tags/GameTagsSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { Plus } from "lucide-react";
 
@@ -164,6 +165,9 @@ export function DetailContent({
           <GameMetadata game={game} />
 
           <GameNotes game={game} />
+
+          {/* Tags card */}
+          <GameTagsSection gameId={game.id} />
 
           {/* Collections card */}
           <div data-testid="detail-collections" className="rounded-lg border border-border bg-card p-4">

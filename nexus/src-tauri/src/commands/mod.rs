@@ -18,6 +18,7 @@ pub mod scanner;
 pub mod sessions;
 pub mod settings;
 pub mod sources;
+pub mod tags;
 pub mod twitch;
 pub mod utils;
 pub mod version_check;

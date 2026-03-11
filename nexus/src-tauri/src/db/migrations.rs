@@ -72,6 +72,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "play_queue",
         sql: include_str!("migrations/013_play_queue.sql"),
     },
+    Migration {
+        version: 14,
+        name: "game_tags",
+        sql: include_str!("migrations/014_game_tags.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -160,11 +165,13 @@ mod tests {
             "collections",
             "game_duplicate_members",
             "game_duplicates",
+            "game_tags",
             "games",
             "play_queue",
             "play_sessions",
             "schema_version",
             "settings",
+            "tags",
             "twitch_followed_channels",
             "twitch_game_cache",
             "twitch_stream_cache",

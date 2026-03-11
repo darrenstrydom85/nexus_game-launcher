@@ -2,6 +2,7 @@ import * as React from "react";
 import Fuse from "fuse.js";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
+import { useTagStore } from "@/stores/tagStore";
 
 function extractSnippet(text: string, query: string): string {
   const lower = text.toLowerCase();
@@ -17,7 +18,7 @@ function extractSnippet(text: string, query: string): string {
 }
 
 export interface SearchResult {
-  type: "game" | "collection" | "action";
+  type: "game" | "collection" | "action" | "tag";
   id: string;
   name: string;
   subtitle?: string;
@@ -25,6 +26,7 @@ export interface SearchResult {
   game?: Game;
   collection?: Collection;
   noteSnippet?: string;
+  tagId?: string;
 }
 
 export interface ActionItem {
@@ -45,9 +47,11 @@ export function useSearch(query: string): {
   gameResults: SearchResult[];
   collectionResults: SearchResult[];
   actionResults: SearchResult[];
+  tagResults: SearchResult[];
 } {
   const games = useGameStore((s) => s.games);
   const collections = useCollectionStore((s) => s.collections);
+  const allTags = useTagStore((s) => s.tags);
 
   const fuse = React.useMemo(
     () =>
@@ -78,6 +82,31 @@ export function useSearch(query: string): {
         gameResults: [],
         collectionResults: [],
         actionResults: [],
+        tagResults: [],
+      };
+    }
+
+    const isTagSearch = query.toLowerCase().startsWith("tag:");
+    const tagQuery = isTagSearch ? query.slice(4).trim().toLowerCase() : "";
+
+    if (isTagSearch) {
+      const tagResults: SearchResult[] = allTags
+        .filter((t) => !tagQuery || t.name.toLowerCase().includes(tagQuery))
+        .slice(0, 10)
+        .map((t) => ({
+          type: "tag" as const,
+          id: `tag-${t.id}`,
+          name: t.name,
+          subtitle: `${t.gameCount} game${t.gameCount !== 1 ? "s" : ""}`,
+          tagId: t.id,
+        }));
+
+      return {
+        results: tagResults,
+        gameResults: [],
+        collectionResults: [],
+        actionResults: [],
+        tagResults,
       };
     }
 
@@ -135,6 +164,7 @@ export function useSearch(query: string): {
       gameResults,
       collectionResults,
       actionResults,
+      tagResults: [],
     };
-  }, [query, games, fuse, collectionFuse]);
+  }, [query, games, fuse, collectionFuse, allTags]);
 }

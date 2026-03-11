@@ -16,8 +16,11 @@ import {
   Loader2,
   ListPlus,
   ListMinus,
+  Tag,
+  Check,
 } from "lucide-react";
 import { useQueueStore } from "@/stores/queueStore";
+import { useTagStore } from "@/stores/tagStore";
 
 const STATUSES: { value: GameStatus; label: string }[] = [
   { value: "playing", label: "Playing" },
@@ -70,8 +73,13 @@ export function GameCardContextMenu({
   const queueRemove = useQueueStore((s) => s.remove);
   const [refetching, setRefetching] = React.useState(false);
   const busy = isRefetching || refetching;
+  const allTags = useTagStore((s) => s.tags);
+  const gameTagMap = useTagStore((s) => s.gameTagMap);
+  const gameTagIds = gameTagMap[game.id] ?? [];
+  const tagAddToGame = useTagStore((s) => s.addToGame);
+  const tagRemoveFromGame = useTagStore((s) => s.removeFromGame);
   const [subMenu, setSubMenu] = React.useState<
-    "status" | "rating" | "collection" | null
+    "status" | "rating" | "collection" | "tags" | null
   >(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const [adjustedPos, setAdjustedPos] = React.useState(position);
@@ -302,6 +310,58 @@ export function GameCardContextMenu({
           </div>
         )}
       </div>
+
+      {/* Tags */}
+      {allTags.length > 0 && (
+        <div className="relative">
+          <button
+            data-testid="ctx-tags"
+            className={menuItemClass}
+            role="menuitem"
+            onMouseEnter={() => setSubMenu("tags")}
+          >
+            <Tag className="size-4" />
+            Tags
+            <span className="ml-auto text-xs text-muted-foreground">{flipSub ? "\u25C2" : "\u25B8"}</span>
+          </button>
+          {subMenu === "tags" && (
+            <div
+              data-testid="ctx-tags-submenu"
+              className={cn(
+                "absolute top-0 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-lg",
+                flipSub ? "right-full mr-1" : "left-full ml-1",
+              )}
+              role="menu"
+            >
+              {allTags.slice(0, 10).map((tag) => {
+                const isAssigned = gameTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    data-testid={`ctx-tag-${tag.name}`}
+                    className={cn(menuItemClass, isAssigned && "bg-accent")}
+                    role="menuitem"
+                    onClick={async () => {
+                      if (isAssigned) {
+                        await tagRemoveFromGame(game.id, tag.id);
+                      } else {
+                        await tagAddToGame(game.id, tag.id);
+                      }
+                    }}
+                  >
+                    <span
+                      className="inline-block size-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: tag.color || "#6B7280" }}
+                    />
+                    <span className="flex-1 truncate text-left">{tag.name}</span>
+                    {isAssigned && <Check className="size-3.5 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add to / Remove from Queue */}
       <button

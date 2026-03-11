@@ -566,3 +566,64 @@ export function reorderPlayQueue(gameIds: string[]): Promise<void> {
 export function clearPlayQueue(): Promise<void> {
   return invoke<void>("clear_play_queue");
 }
+
+// ── Game Tags (Story 29.1) ────────────────────────────────────────────
+export interface Tag {
+  id: string;
+  name: string;
+  color: string | null;
+  createdAt: string;
+}
+
+export interface TagWithCount extends Tag {
+  gameCount: number;
+}
+
+export function getTags(): Promise<TagWithCount[]> {
+  return invoke<TagWithCount[]>("get_tags");
+}
+
+export function createTag(
+  name: string,
+  color?: string | null,
+): Promise<Tag> {
+  return invoke<Tag>("create_tag", { name, color: color ?? null });
+}
+
+export function deleteTag(tagId: string): Promise<void> {
+  return invoke<void>("delete_tag", { tagId });
+}
+
+export function renameTag(tagId: string, name: string): Promise<Tag> {
+  return invoke<Tag>("rename_tag", { tagId, name });
+}
+
+export function updateTagColor(
+  tagId: string,
+  color: string | null,
+): Promise<Tag> {
+  return invoke<Tag>("update_tag_color", { tagId, color });
+}
+
+export function addTagToGame(gameId: string, tagId: string): Promise<void> {
+  return invoke<void>("add_tag_to_game", { gameId, tagId });
+}
+
+export function removeTagFromGame(
+  gameId: string,
+  tagId: string,
+): Promise<void> {
+  return invoke<void>("remove_tag_from_game", { gameId, tagId });
+}
+
+export function getGameTags(gameId: string): Promise<Tag[]> {
+  return invoke<Tag[]>("get_game_tags", { gameId });
+}
+
+export function getGamesByTag(tagId: string): Promise<string[]> {
+  return invoke<string[]>("get_games_by_tag", { tagId });
+}
+
+export function getAllGameTagIds(): Promise<[string, string][]> {
+  return invoke<[string, string][]>("get_all_game_tag_ids");
+}
