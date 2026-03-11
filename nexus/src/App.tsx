@@ -79,7 +79,6 @@ function MainApp() {
   const forceIdentifyActiveRef = React.useRef(false);
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
-  const setGames = useGameStore((s) => s.setGames);
   const activeNav = useUiStore((s) => s.activeNav);
   const loadSettings = useSettingsStore((s) => s.loadFromBackend);
   useCollections();
@@ -449,12 +448,10 @@ function MainApp() {
   React.useEffect(() => {
     initSyncStore({
       onLegacyComplete: () => {
-        invoke<Game[]>("get_games", { params: {} })
-          .then((games) => setGames(games))
-          .catch(() => {});
+        refreshGames().catch(() => {});
       },
     });
-  }, [setGames]);
+  }, []);
 
   React.useEffect(() => {
     if (
@@ -463,12 +460,10 @@ function MainApp() {
       overallTotal > 0 &&
       overallCompleted === overallTotal
     ) {
-      invoke<Game[]>("get_games", { params: {} })
-        .then((games) => setGames(games))
-        .catch(() => {});
+      refreshGames().catch(() => {});
     }
     prevSyncActiveRef.current = syncIsActive;
-  }, [syncIsActive, overallCompleted, overallTotal, setGames]);
+  }, [syncIsActive, overallCompleted, overallTotal]);
 
   const handleResync = React.useCallback(async () => {
     setIsSyncing(true);
@@ -523,9 +518,8 @@ function MainApp() {
   const handleLibrarySetStatus = React.useCallback(
     (gameId: string, status: GameStatus) => {
       invoke("update_game", { id: gameId, fields: { status } })
-        .then(() => invoke<Game[]>("get_games", { params: {} }))
-        .then((updatedGames) => {
-          setGames(updatedGames);
+        .then(() => refreshGames())
+        .then(() => {
           if (status === "completed" || status === "dropped") {
             const qs = useQueueStore.getState();
             if (qs.isQueued(gameId)) {
@@ -536,16 +530,15 @@ function MainApp() {
         })
         .catch(() => {});
     },
-    [setGames],
+    [],
   );
   const handleLibrarySetRating = React.useCallback(
     (gameId: string, rating: number | null) => {
       invoke("update_game", { id: gameId, fields: { rating } })
-        .then(() => invoke<Game[]>("get_games", { params: {} }))
-        .then((games) => setGames(games))
+        .then(() => refreshGames())
         .catch(() => {});
     },
-    [setGames],
+    [],
   );
   const handleLibraryAddToCollection = React.useCallback(
     (gameId: string, collectionLabel: string) => {
@@ -650,9 +643,8 @@ function MainApp() {
             onForceIdentify={handleForceIdentify}
             onStatusChange={(status) => {
               invoke("update_game", { id: game.id, fields: { status } })
-                .then(() => invoke<Game[]>("get_games", { params: {} }))
-                .then((updatedGames) => {
-                  setGames(updatedGames);
+                .then(() => refreshGames())
+                .then(() => {
                   if (status === "completed" || status === "dropped") {
                     const qs = useQueueStore.getState();
                     if (qs.isQueued(game.id)) {
@@ -664,8 +656,7 @@ function MainApp() {
             }}
             onRatingChange={(rating) => {
               invoke("update_game", { id: game.id, fields: { rating } })
-                .then(() => invoke<Game[]>("get_games", { params: {} }))
-                .then((games) => setGames(games))
+                .then(() => refreshGames())
                 .catch(() => {});
             }}
             onRefetchMetadata={async () => {
@@ -792,27 +783,60 @@ function MainApp() {
         editCollection={editCollectionTarget}
         onSave={(data) => {
           if (editCollectionTarget) {
-            invoke("update_collection", {
-              id: editCollectionTarget.id,
+            const fields: Record<string, unknown> = {
               name: data.name,
               icon: data.icon,
               color: data.color,
-            })
-              .then(() =>
-                useCollectionStore.getState().updateCollection(editCollectionTarget.id, {
+            };
+            if (editCollectionTarget.isSmart) {
+              fields.rulesJson = data.rulesJson;
+            }
+            invoke("update_collection", { id: editCollectionTarget.id, fields })
+              .then(() => {
+                const storeUpdates: Partial<Collection> = {
                   name: data.name,
                   icon: data.icon,
                   color: data.color,
-                }),
-              )
+                };
+                if (editCollectionTarget.isSmart) {
+                  storeUpdates.rulesJson = data.rulesJson;
+                }
+                useCollectionStore.getState().updateCollection(editCollectionTarget.id, storeUpdates);
+                if (editCollectionTarget.isSmart && data.rulesJson) {
+                  invoke<string[]>("evaluate_smart_collection", { rulesJson: data.rulesJson })
+                    .then((ids) => {
+                      useCollectionStore.getState().updateCollection(editCollectionTarget.id, { gameIds: ids });
+                    })
+                    .catch(() => {});
+                }
+              })
               .catch(() => {});
           } else {
             const gameIdToAdd = gameIdToAddToNewCollectionRef.current;
             gameIdToAddToNewCollectionRef.current = null;
-            invoke<Collection>("create_collection", { name: data.name, icon: data.icon, color: data.color })
+            invoke<{ id: string; name: string; icon: string | null; color: string | null; sortOrder: number; isSmart: boolean; rulesJson: string | null }>(
+              "create_collection",
+              { name: data.name, icon: data.icon, color: data.color, isSmart: data.isSmart, rulesJson: data.rulesJson },
+            )
               .then((created) => {
-                useCollectionStore.getState().addCollection({ ...created, gameIds: [] });
-                if (gameIdToAdd) {
+                const store = useCollectionStore.getState();
+                store.addCollection({
+                  id: created.id,
+                  name: created.name,
+                  icon: created.icon ?? "",
+                  color: created.color,
+                  sortOrder: created.sortOrder,
+                  isSmart: created.isSmart,
+                  rulesJson: created.rulesJson,
+                  gameIds: [],
+                });
+                if (created.isSmart && data.rulesJson) {
+                  invoke<string[]>("evaluate_smart_collection", { rulesJson: data.rulesJson })
+                    .then((ids) => {
+                      useCollectionStore.getState().updateCollection(created.id, { gameIds: ids });
+                    })
+                    .catch(() => {});
+                } else if (gameIdToAdd) {
                   invoke("add_to_collection", { collectionId: created.id, gameId: gameIdToAdd })
                     .then(() => useCollectionStore.getState().addGameToCollection(created.id, gameIdToAdd))
                     .catch(() => {});

@@ -77,6 +77,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "game_tags",
         sql: include_str!("migrations/014_game_tags.sql"),
     },
+    Migration {
+        version: 15,
+        name: "smart_collections",
+        sql: include_str!("migrations/015_smart_collections.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {

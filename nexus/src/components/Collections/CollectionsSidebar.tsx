@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useUiStore } from "@/stores/uiStore";
-import { Library, Plus, Pencil, Trash2 } from "lucide-react";
+import { Library, Plus, Pencil, Trash2, Sparkles } from "lucide-react";
 
 interface CollectionsSidebarProps {
   onCreateCollection?: () => void;
@@ -26,8 +26,13 @@ export function CollectionsSidebar({
     y: number;
   } | null>(null);
 
-  const sorted = React.useMemo(
-    () => [...collections].sort((a, b) => a.sortOrder - b.sortOrder),
+  const manualCollections = React.useMemo(
+    () => [...collections].filter((c) => !c.isSmart).sort((a, b) => a.sortOrder - b.sortOrder),
+    [collections],
+  );
+
+  const smartCollections = React.useMemo(
+    () => [...collections].filter((c) => c.isSmart).sort((a, b) => a.sortOrder - b.sortOrder),
     [collections],
   );
 
@@ -43,6 +48,44 @@ export function CollectionsSidebar({
     };
   }, [contextMenu]);
 
+  const handleClick = React.useCallback(
+    (id: string | null) => {
+      if (activeNav !== "library") setActiveNav("library");
+      setActiveCollectionId(id);
+    },
+    [activeNav, setActiveNav, setActiveCollectionId],
+  );
+
+  const renderEntry = (collection: Collection) => (
+    <button
+      key={collection.id}
+      data-testid={`collection-entry-${collection.id}`}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm",
+        "transition-colors hover:bg-accent",
+        activeCollectionId === collection.id && "bg-accent text-accent-foreground",
+      )}
+      onClick={() => handleClick(collection.id)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenu({ collection, x: e.clientX, y: e.clientY });
+      }}
+    >
+      {collection.isSmart ? (
+        <Sparkles className="size-4 text-primary" />
+      ) : (
+        <span className="text-base">{collection.icon || "📁"}</span>
+      )}
+      <span className="flex-1 truncate text-left">{collection.name}</span>
+      <span
+        data-testid={`collection-count-${collection.id}`}
+        className="rounded-full bg-secondary px-1.5 text-[10px] tabular-nums text-muted-foreground"
+      >
+        {collection.gameIds.length}
+      </span>
+    </button>
+  );
+
   return (
     <div data-testid="collections-sidebar" className="flex flex-col gap-0.5">
       {/* All Games */}
@@ -53,44 +96,14 @@ export function CollectionsSidebar({
           "transition-colors hover:bg-accent",
           activeCollectionId === null && "bg-accent text-accent-foreground",
         )}
-        onClick={() => {
-          if (activeNav !== "library") setActiveNav("library");
-          setActiveCollectionId(null);
-        }}
+        onClick={() => handleClick(null)}
       >
         <Library className="size-4" />
         <span className="flex-1 text-left">All Games</span>
       </button>
 
-      {/* Collection entries */}
-      {sorted.map((collection) => (
-        <button
-          key={collection.id}
-          data-testid={`collection-entry-${collection.id}`}
-          className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm",
-            "transition-colors hover:bg-accent",
-            activeCollectionId === collection.id && "bg-accent text-accent-foreground",
-          )}
-          onClick={() => {
-            if (activeNav !== "library") setActiveNav("library");
-            setActiveCollectionId(collection.id);
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setContextMenu({ collection, x: e.clientX, y: e.clientY });
-          }}
-        >
-          <span className="text-base">{collection.icon || "📁"}</span>
-          <span className="flex-1 truncate text-left">{collection.name}</span>
-          <span
-            data-testid={`collection-count-${collection.id}`}
-            className="rounded-full bg-secondary px-1.5 text-[10px] tabular-nums text-muted-foreground"
-          >
-            {collection.gameIds.length}
-          </span>
-        </button>
-      ))}
+      {/* Manual collection entries */}
+      {manualCollections.map(renderEntry)}
 
       {/* Add button */}
       <button
@@ -104,6 +117,19 @@ export function CollectionsSidebar({
         <Plus className="size-4" />
         <span>New Collection</span>
       </button>
+
+      {/* Smart collections group */}
+      {smartCollections.length > 0 && (
+        <>
+          <div className="mt-2 px-3 pb-1 pt-2">
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="size-3" />
+              Smart
+            </span>
+          </div>
+          {smartCollections.map(renderEntry)}
+        </>
+      )}
 
       {/* Context menu */}
       {contextMenu && (

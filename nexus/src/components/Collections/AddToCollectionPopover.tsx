@@ -22,7 +22,11 @@ export function AddToCollectionPopover({
   onNewCollection,
   onToggle,
 }: AddToCollectionPopoverProps) {
-  const collections = useCollectionStore((s) => s.collections);
+  const allCollections = useCollectionStore((s) => s.collections);
+  const collections = React.useMemo(
+    () => allCollections.filter((c) => !c.isSmart),
+    [allCollections],
+  );
   const addGameToCollection = useCollectionStore((s) => s.addGameToCollection);
   const removeGameFromCollection = useCollectionStore((s) => s.removeGameFromCollection);
   const addToast = useToastStore((s) => s.addToast);

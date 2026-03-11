@@ -21,6 +21,11 @@ import { setRunningGame } from "@/lib/launcher";
 describe("Story 8.2: Launch Lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_games") return [];
+      if (cmd === "evaluate_smart_collection") return [];
+      return undefined;
+    });
     useGameStore.setState({ activeSession: null });
     useToastStore.setState({ toasts: [] });
     setRunningGame(null);
@@ -120,6 +125,7 @@ describe("Story 8.2: Launch Lifecycle", () => {
 
     await act(async () => {
       exitedHandler({ payload: { sessionId: "s1", gameId: "g1", durationS: 600 } });
+      await new Promise((r) => setTimeout(r, 50));
     });
 
     expect(useToastStore.getState().toasts.length).toBeGreaterThan(0);
@@ -174,6 +180,11 @@ describe("Story 22.3: buildUpdatedExeNames", () => {
 describe("Story 22.3: Grace Period Auto-Prompt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_games") return [];
+      if (cmd === "evaluate_smart_collection") return [];
+      return undefined;
+    });
     useGameStore.setState({ activeSession: null, showProcessPicker: false });
     useToastStore.setState({ toasts: [] });
     setRunningGame(null);
@@ -270,12 +281,11 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
       showProcessPicker: true,
     });
 
-    mockInvoke.mockResolvedValue(undefined);
-
     const { result } = renderHook(() => useLaunchLifecycle());
 
     await act(async () => {
       await result.current.onProcessSelected("testgame.exe", 1234);
+      await new Promise((r) => setTimeout(r, 50));
     });
 
     const session = useGameStore.getState().activeSession;
@@ -287,8 +297,9 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
 
     const toasts = useToastStore.getState().toasts;
     expect(toasts.length).toBeGreaterThan(0);
-    expect(toasts[0].message).toContain("Now tracking");
-    expect(toasts[0].message).toContain("testgame.exe");
+    const trackingToast = toasts.find((t: { message: string }) => t.message.includes("Now tracking"));
+    expect(trackingToast).toBeDefined();
+    expect(trackingToast!.message).toContain("testgame.exe");
   });
 });
 
@@ -353,10 +364,14 @@ describe("Story 22.5: Persist Selected EXE", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_games") return [];
+      if (cmd === "evaluate_smart_collection") return [];
+      return undefined;
+    });
     useGameStore.setState({ activeSession: null, showProcessPicker: false, games: [] });
     useToastStore.setState({ toasts: [] });
     setRunningGame(null);
-    mockInvoke.mockResolvedValue(undefined);
   });
 
   it("calls update_game with potentialExeNames and exeName when exeName was null", async () => {
@@ -453,6 +468,7 @@ describe("Story 22.5: Persist Selected EXE", () => {
         getGamesCallCount++;
         return [];
       }
+      if (cmd === "evaluate_smart_collection") return [];
       return undefined;
     });
 

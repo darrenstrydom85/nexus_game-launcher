@@ -627,3 +627,66 @@ export function getGamesByTag(tagId: string): Promise<string[]> {
 export function getAllGameTagIds(): Promise<[string, string][]> {
   return invoke<[string, string][]>("get_all_game_tag_ids");
 }
+
+// ── Smart Collections (Story 30.1) ────────────────────────────────────
+
+export type SmartRuleField =
+  | "status"
+  | "source"
+  | "genre"
+  | "tag"
+  | "rating"
+  | "totalPlayTime"
+  | "playCount"
+  | "lastPlayed"
+  | "addedAt"
+  | "hltbMainH"
+  | "criticScore"
+  | "isHidden";
+
+export type SmartRuleOperator =
+  | "equals"
+  | "not_equals"
+  | "in"
+  | "contains"
+  | "not_contains"
+  | "has"
+  | "not_has"
+  | "gt"
+  | "lt"
+  | "between"
+  | "within_days"
+  | "before_days_ago"
+  | "never";
+
+export interface SmartCollectionRule {
+  field: SmartRuleField;
+  op: SmartRuleOperator;
+  value: unknown;
+}
+
+export interface SmartCollectionRuleGroup {
+  operator: "and" | "or";
+  conditions: (SmartCollectionRule | SmartCollectionRuleGroup)[];
+}
+
+export function evaluateSmartCollection(
+  rulesJson: string,
+): Promise<string[]> {
+  return invoke<string[]>("evaluate_smart_collection", { rulesJson });
+}
+
+export function createSmartCollection(
+  name: string,
+  rulesJson: string,
+  icon?: string | null,
+  color?: string | null,
+): Promise<unknown> {
+  return invoke("create_collection", {
+    name,
+    icon: icon ?? null,
+    color: color ?? null,
+    isSmart: true,
+    rulesJson,
+  });
+}

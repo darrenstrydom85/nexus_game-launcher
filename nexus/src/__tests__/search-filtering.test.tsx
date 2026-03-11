@@ -41,7 +41,7 @@ describe("Story 11.1: useSearch hook", () => {
   beforeEach(() => {
     useGameStore.setState({ games });
     useCollectionStore.setState({
-      collections: [{ id: "c1", name: "Favorites", icon: "⭐", color: null, sortOrder: 0, gameIds: [] }],
+      collections: [{ id: "c1", name: "Favorites", icon: "⭐", color: null, sortOrder: 0, isSmart: false, rulesJson: null, gameIds: [] }],
     });
   });
 

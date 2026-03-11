@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface Collection {
   id: string;
@@ -7,6 +8,8 @@ export interface Collection {
   icon: string;
   color: string | null;
   sortOrder: number;
+  isSmart: boolean;
+  rulesJson: string | null;
   gameIds: string[];
 }
 
@@ -115,3 +118,20 @@ export const useCollectionStore = create<CollectionStore>()(
     { name: "CollectionStore", enabled: import.meta.env.DEV },
   ),
 );
+
+export async function refreshSmartCollections(): Promise<void> {
+  const { collections, updateCollection } = useCollectionStore.getState();
+  const smartOnes = collections.filter((c) => c.isSmart && c.rulesJson);
+  await Promise.all(
+    smartOnes.map(async (c) => {
+      try {
+        const ids = await invoke<string[]>("evaluate_smart_collection", {
+          rulesJson: c.rulesJson,
+        });
+        updateCollection(c.id, { gameIds: ids });
+      } catch {
+        // best-effort
+      }
+    }),
+  );
+}

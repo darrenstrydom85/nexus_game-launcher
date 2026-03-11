@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useGameStore, type Game } from "@/stores/gameStore";
-import { Pencil, FolderPlus } from "lucide-react";
+import { Pencil, FolderPlus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CollectionViewProps {
@@ -28,11 +28,17 @@ export function CollectionView({
 
   if (!collection) return null;
 
+  const isSmart = collection.isSmart;
+
   if (filteredGames.length === 0) {
     return (
       <div data-testid="collection-view" className="flex flex-col gap-4 p-6">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{collection.icon}</span>
+          {isSmart ? (
+            <Sparkles className="size-6 text-primary" />
+          ) : (
+            <span className="text-2xl">{collection.icon}</span>
+          )}
           <h2 data-testid="collection-heading" className="text-xl font-bold text-foreground">
             {collection.name}
           </h2>
@@ -49,10 +55,21 @@ export function CollectionView({
           data-testid="collection-empty"
           className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-12 text-center"
         >
-          <FolderPlus className="size-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">
-            No games in this collection yet. Drag games here or use "Add to Collection".
-          </p>
+          {isSmart ? (
+            <>
+              <Sparkles className="size-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                No games match the current rules. Edit the collection to adjust conditions.
+              </p>
+            </>
+          ) : (
+            <>
+              <FolderPlus className="size-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                No games in this collection yet. Drag games here or use "Add to Collection".
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -61,13 +78,22 @@ export function CollectionView({
   return (
     <div data-testid="collection-view" className="flex flex-col gap-4 p-6">
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{collection.icon}</span>
+        {isSmart ? (
+          <Sparkles className="size-6 text-primary" />
+        ) : (
+          <span className="text-2xl">{collection.icon}</span>
+        )}
         <h2 data-testid="collection-heading" className="text-xl font-bold text-foreground">
           {collection.name}
         </h2>
         <span className="text-sm text-muted-foreground">
           {filteredGames.length} game{filteredGames.length !== 1 ? "s" : ""}
         </span>
+        {isSmart && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            Auto-updating
+          </span>
+        )}
         <Button
           data-testid="collection-edit-button"
           variant="ghost"

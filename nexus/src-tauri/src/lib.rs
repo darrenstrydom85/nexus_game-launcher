@@ -32,9 +32,9 @@ pub static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
 use commands::{
     analytics::{get_per_game_session_stats, get_session_distribution},
     collections::{
-        add_to_collection, create_collection, delete_collection, get_collection_games,
-        get_collections, get_collections_with_game_ids, remove_from_collection,
-        reorder_collections, update_collection,
+        add_to_collection, create_collection, delete_collection, evaluate_smart_collection,
+        get_collection_games, get_collections, get_collections_with_game_ids,
+        remove_from_collection, reorder_collections, update_collection,
     },
     database::{clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all, reset_keep_keys, reset_library_keep_stats},
     health::check_library_health,
@@ -233,6 +233,7 @@ pub fn run() {
             remove_from_collection,
             reorder_collections,
             get_collection_games,
+            evaluate_smart_collection,
             get_setting,
             set_setting,
             get_settings,

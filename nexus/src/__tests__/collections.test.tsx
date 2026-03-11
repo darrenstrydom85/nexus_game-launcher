@@ -10,7 +10,7 @@ import { useGameStore, type Game } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
 
 const makeCollection = (id: string, name: string, gameIds: string[] = [], sortOrder = 0): Collection => ({
-  id, name, icon: "🎮", color: null, sortOrder, gameIds,
+  id, name, icon: "🎮", color: null, sortOrder, isSmart: false, rulesJson: null, gameIds,
 });
 
 const makeGame = (id: string, name: string): Game => ({
@@ -158,6 +158,8 @@ describe("Story 10.2: CollectionEditor", () => {
       name: "My Collection",
       icon: "📁",
       color: null,
+      isSmart: false,
+      rulesJson: null,
     });
   });
 

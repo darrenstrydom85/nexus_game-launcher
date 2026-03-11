@@ -8,6 +8,8 @@ interface BackendCollection {
   icon: string | null;
   color: string | null;
   sortOrder: number;
+  isSmart: boolean;
+  rulesJson: string | null;
   gameIds: string[];
 }
 
@@ -34,6 +36,8 @@ export function useCollections() {
           icon: row.icon ?? "",
           color: row.color,
           sortOrder: row.sortOrder,
+          isSmart: row.isSmart,
+          rulesJson: row.rulesJson,
           gameIds: row.gameIds,
         }));
 
