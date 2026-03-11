@@ -345,6 +345,8 @@ describe("Story 22.5: Persist Selected EXE", () => {
     hltbId: overrides.hltbId ?? null,
     hltbFetchedAt: overrides.hltbFetchedAt ?? null,
     notes: overrides.notes ?? null,
+    progress: overrides.progress ?? null,
+    milestonesJson: overrides.milestonesJson ?? null,
   });
 
   const makeSession = (overrides: Partial<import("@/stores/gameStore").ActiveSession> = {}): import("@/stores/gameStore").ActiveSession => ({

@@ -52,6 +52,8 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   hltbId: overrides.hltbId ?? null,
   hltbFetchedAt: overrides.hltbFetchedAt ?? null,
   notes: overrides.notes ?? null,
+  progress: overrides.progress ?? null,
+  milestonesJson: overrides.milestonesJson ?? null,
 });
 
 describe("Story 8.1: Multi-Protocol Launch Dispatcher", () => {

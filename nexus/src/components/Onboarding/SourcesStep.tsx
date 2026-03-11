@@ -161,6 +161,8 @@ export function SourcesStep() {
         hltbId: null,
         hltbFetchedAt: null,
         notes: null,
+        progress: null,
+        milestonesJson: null,
       }));
 
       setGames(games);
