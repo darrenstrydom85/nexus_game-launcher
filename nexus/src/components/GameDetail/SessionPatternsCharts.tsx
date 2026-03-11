@@ -17,8 +17,6 @@ const MONTH_LABELS = [
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const ACCENT = "#3B82F6";
-
 interface PatternsTooltipProps {
   active?: boolean;
   payload?: Array<{ payload: { label: string; playTimeS: number } }>;
@@ -46,13 +44,17 @@ interface SessionPatternsChartsProps {
   playTimeByDayOfWeek: DayBucket[];
   averageGapDays: number;
   totalSessions: number;
+  accentColor?: string;
 }
+
+const DEFAULT_ACCENT = "#3B82F6";
 
 export function SessionPatternsCharts({
   playTimeByMonth,
   playTimeByDayOfWeek,
   averageGapDays,
   totalSessions,
+  accentColor = DEFAULT_ACCENT,
 }: SessionPatternsChartsProps) {
   const monthData = React.useMemo(
     () =>
@@ -94,7 +96,7 @@ export function SessionPatternsCharts({
                 tickFormatter={(v: number) => formatPlayTime(v)}
               />
               <Tooltip content={<PatternsTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-              <Bar dataKey="playTimeS" fill={ACCENT} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="playTimeS" fill={accentColor} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -121,7 +123,7 @@ export function SessionPatternsCharts({
                 tickFormatter={(v: number) => formatPlayTime(v)}
               />
               <Tooltip content={<PatternsTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-              <Bar dataKey="playTimeS" fill={ACCENT} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="playTimeS" fill={accentColor} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

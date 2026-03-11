@@ -398,6 +398,38 @@ pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, Comman
 }
 
 #[tauri::command]
+pub fn update_session_note(
+    db: State<'_, DbState>,
+    session_id: String,
+    note: Option<String>,
+) -> Result<(), CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let exists: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM play_sessions WHERE id = ?1)",
+            params![session_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    if !exists {
+        return Err(CommandError::NotFound(format!("session {session_id}")));
+    }
+
+    conn.execute(
+        "UPDATE play_sessions SET note = ?1 WHERE id = ?2",
+        params![note, session_id],
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, CommandError> {
     let conn = db
         .conn
@@ -408,7 +440,7 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
         "SELECT ps.id,
                 COALESCE(g.id, ps.game_id) as game_id,
                 COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
-                ps.started_at, ps.ended_at, ps.duration_s
+                ps.started_at, ps.ended_at, ps.duration_s, ps.note
          FROM play_sessions ps
          {GAME_LEFT_JOIN}
          WHERE ps.ended_at IS NOT NULL
@@ -428,6 +460,7 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
                 started_at: row.get("started_at")?,
                 ended_at: row.get("ended_at")?,
                 duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
+                note: row.get("note")?,
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?
@@ -970,7 +1003,7 @@ mod tests {
             "SELECT ps.id,
                     COALESCE(g.id, ps.game_id) as game_id,
                     COALESCE(g.name, ps.game_name, 'Unknown Game') as game_name,
-                    ps.started_at, ps.ended_at, ps.duration_s
+                    ps.started_at, ps.ended_at, ps.duration_s, ps.note
              FROM play_sessions ps
              {GAME_LEFT_JOIN}
              WHERE ps.ended_at IS NOT NULL
@@ -986,6 +1019,7 @@ mod tests {
                     started_at: row.get("started_at")?,
                     ended_at: row.get("ended_at")?,
                     duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
+                    note: row.get("note")?,
                 })
             })
             .map_err(|e| CommandError::Database(e.to_string()))?
@@ -1103,5 +1137,102 @@ mod tests {
         assert_eq!(top.len(), 1);
         assert_eq!(top[0].id, "new-uuid");
         assert_eq!(top[0].total_play_time_s, 10800); // 7200 + 3600 merged
+    }
+
+    // ── update_session_note ──
+
+    fn update_session_note_inner(state: &DbState, session_id: String, note: Option<String>) -> Result<(), CommandError> {
+        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+        let exists: bool = conn
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM play_sessions WHERE id = ?1)",
+                params![session_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+
+        if !exists {
+            return Err(CommandError::NotFound(format!("session {session_id}")));
+        }
+
+        conn.execute(
+            "UPDATE play_sessions SET note = ?1 WHERE id = ?2",
+            params![note, session_id],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn update_session_note_persists() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Test Game");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        drop(conn);
+
+        update_session_note_inner(&state, "s1".into(), Some("Beat the boss".into())).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let note: Option<String> = conn
+            .query_row("SELECT note FROM play_sessions WHERE id = 's1'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(note, Some("Beat the boss".into()));
+    }
+
+    #[test]
+    fn update_session_note_clears_with_none() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Test Game");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        drop(conn);
+
+        update_session_note_inner(&state, "s1".into(), Some("A note".into())).unwrap();
+        update_session_note_inner(&state, "s1".into(), None).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let note: Option<String> = conn
+            .query_row("SELECT note FROM play_sessions WHERE id = 's1'", [], |row| row.get(0))
+            .unwrap();
+        assert!(note.is_none());
+    }
+
+    #[test]
+    fn update_session_note_not_found() {
+        let state = setup_db();
+        let result = update_session_note_inner(&state, "nonexistent".into(), Some("note".into()));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[test]
+    fn get_play_sessions_returns_note() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Test Game");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        conn.execute("UPDATE play_sessions SET note = 'My note' WHERE id = 's1'", []).unwrap();
+        drop(conn);
+
+        let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].note, Some("My note".into()));
+    }
+
+    #[test]
+    fn get_all_sessions_returns_note() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Test Game");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        conn.execute("UPDATE play_sessions SET note = 'Session note' WHERE id = 's1'", []).unwrap();
+        drop(conn);
+
+        let sessions = get_all_sessions_inner(&state).unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].note, Some("Session note".into()));
     }
 }

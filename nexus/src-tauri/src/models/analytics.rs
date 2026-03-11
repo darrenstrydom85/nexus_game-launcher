@@ -56,6 +56,7 @@ pub struct SessionRecord {
     pub ended_at: String,
     pub duration_s: i64,
     pub tracking_method: String,
+    pub note: Option<String>,
 }
 
 /// Full per-game session analytics response.

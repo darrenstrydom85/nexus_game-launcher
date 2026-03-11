@@ -53,6 +53,7 @@ use commands::{
     sessions::{
         create_session, end_session, get_activity_data, get_all_sessions, get_library_stats,
         get_orphaned_sessions, get_play_sessions, get_play_stats, get_top_games,
+        update_session_note,
     },
     clipboard::write_image_to_clipboard,
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
@@ -209,6 +210,7 @@ pub fn run() {
             get_library_stats,
             get_top_games,
             get_all_sessions,
+            update_session_note,
             get_session_distribution,
             get_per_game_session_stats,
             get_wrapped_report,

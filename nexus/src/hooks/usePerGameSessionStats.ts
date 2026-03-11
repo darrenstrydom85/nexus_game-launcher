@@ -8,6 +8,8 @@ export interface UsePerGameSessionStatsResult {
   error: string | null;
   /** Trigger the fetch. No-op if already fetched and cached. */
   fetch: () => void;
+  /** Optimistically update a session's note in the cached stats. */
+  patchNote: (sessionId: string, note: string | null) => void;
 }
 
 /**
@@ -43,5 +45,17 @@ export function usePerGameSessionStats(
       });
   }, [gameId]);
 
-  return { stats, isLoading, error, fetch };
+  const patchNote = React.useCallback((sessionId: string, note: string | null) => {
+    setStats((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sessions: prev.sessions.map((s) =>
+          s.id === sessionId ? { ...s, note } : s,
+        ),
+      };
+    });
+  }, []);
+
+  return { stats, isLoading, error, fetch, patchNote };
 }

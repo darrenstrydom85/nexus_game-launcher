@@ -62,6 +62,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "game_notes",
         sql: include_str!("migrations/011_game_notes.sql"),
     },
+    Migration {
+        version: 12,
+        name: "session_notes",
+        sql: include_str!("migrations/012_session_notes.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {

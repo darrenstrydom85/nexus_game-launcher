@@ -208,7 +208,7 @@ pub fn get_per_game_session_stats(
     // ── Session list ──────────────────────────────────────────────────
     let mut stmt = conn
         .prepare(
-            "SELECT id, started_at, ended_at, duration_s, tracking \
+            "SELECT id, started_at, ended_at, duration_s, tracking, note \
              FROM play_sessions \
              WHERE game_id = ?1 AND ended_at IS NOT NULL \
              ORDER BY started_at DESC \
@@ -224,6 +224,7 @@ pub fn get_per_game_session_stats(
                 ended_at: row.get("ended_at")?,
                 duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
                 tracking_method: row.get("tracking")?,
+                note: row.get("note")?,
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?

@@ -23,7 +23,7 @@ interface GamePlayStatsProps {
 export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
   const [stats, setStats] = React.useState<PlayStats | null>(null);
   const [expanded, setExpanded] = React.useState(false);
-  const { stats: sessionStats, isLoading, fetch: fetchSessionStats } = usePerGameSessionStats(game.id);
+  const { stats: sessionStats, isLoading, fetch: fetchSessionStats, patchNote } = usePerGameSessionStats(game.id);
 
   React.useEffect(() => {
     invoke<{
@@ -127,6 +127,7 @@ export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
                   stats={sessionStats}
                   isLoading={isLoading}
                   onViewFullStats={onViewFullStats}
+                  onNoteUpdated={patchNote}
                 />
               </div>
             </motion.div>

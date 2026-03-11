@@ -2,12 +2,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 import { useGameStore } from "@/stores/gameStore";
+import { InlineNoteEdit } from "@/components/Sessions/InlineNoteEdit";
 import type { SessionRecord } from "../LibraryStats";
 
 const PAGE_SIZE = 20;
 
 interface SessionHistoryProps {
   sessions: SessionRecord[];
+  onNoteUpdated?: (sessionId: string, note: string | null) => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -32,7 +34,7 @@ function formatTime(iso: string): string {
   });
 }
 
-export function SessionHistory({ sessions }: SessionHistoryProps) {
+export function SessionHistory({ sessions, onNoteUpdated }: SessionHistoryProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const storeGames = useGameStore((s) => s.games);
   const gameIdSet = React.useMemo(() => new Set(storeGames.map((g) => g.id)), [storeGames]);
@@ -64,30 +66,41 @@ export function SessionHistory({ sessions }: SessionHistoryProps) {
               <div
                 key={s.id}
                 data-testid={`session-${s.id}`}
-                className="grid items-center border-b border-border px-2 py-2 text-sm transition-colors hover:bg-white/5"
-                style={{ gridTemplateColumns: "1fr 7rem 9rem 4rem" }}
+                className="border-b border-border px-2 py-2 transition-colors hover:bg-white/5"
               >
-                {matchedId ? (
-                  <button
-                    className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
-                    onClick={() => setDetailOverlayGameId(matchedId)}
-                  >
-                    {s.gameName}
-                  </button>
-                ) : (
-                  <span className="truncate text-left font-medium text-muted-foreground">
-                    {s.gameName}
+                <div
+                  className="grid items-center text-sm"
+                  style={{ gridTemplateColumns: "1fr 7rem 9rem 4rem" }}
+                >
+                  {matchedId ? (
+                    <button
+                      className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
+                      onClick={() => setDetailOverlayGameId(matchedId)}
+                    >
+                      {s.gameName}
+                    </button>
+                  ) : (
+                    <span className="truncate text-left font-medium text-muted-foreground">
+                      {s.gameName}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(s.startedAt)}
                   </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(s.startedAt)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
-                </span>
-                <span className="text-right text-xs tabular-nums text-muted-foreground">
-                  {formatDuration(s.durationS)}
-                </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
+                  </span>
+                  <span className="text-right text-xs tabular-nums text-muted-foreground">
+                    {formatDuration(s.durationS)}
+                  </span>
+                </div>
+                <div className="mt-1">
+                  <InlineNoteEdit
+                    sessionId={s.id}
+                    note={s.note}
+                    onNoteUpdated={onNoteUpdated}
+                  />
+                </div>
               </div>
               );
             })}

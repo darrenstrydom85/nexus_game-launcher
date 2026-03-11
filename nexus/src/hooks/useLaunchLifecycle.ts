@@ -4,6 +4,7 @@ import { useTauriEvent } from "./use-tauri-event";
 import { useGameStore, type Game, type ActiveSession, refreshGames } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
 import { dispatchLaunch, setRunningGame, type LaunchResult } from "@/lib/launcher";
+import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 
 const QUICK_EXIT_THRESHOLD_MS = 5000;
 const PROCESS_POLL_INTERVAL_MS = 5000;
@@ -142,6 +143,14 @@ export function useLaunchLifecycle() {
           type: "success",
           message: `Session ended — ${formatDuration(durationS)} played`,
         });
+
+        if (session.hasDbSession) {
+          useSessionNoteStore.getState().enqueue({
+            sessionId: session.sessionId,
+            gameName: session.gameName,
+            durationS,
+          });
+        }
       }
     },
     [setActiveSession, setShowProcessPicker, addToast],
@@ -199,6 +208,14 @@ export function useLaunchLifecycle() {
           type: "success",
           message: `Session ended — ${formatDuration(event.durationS)} played`,
         });
+
+        if (session?.hasDbSession) {
+          useSessionNoteStore.getState().enqueue({
+            sessionId: session.sessionId,
+            gameName: session.gameName,
+            durationS: event.durationS,
+          });
+        }
       }
     },
     [setActiveSession, addToast],

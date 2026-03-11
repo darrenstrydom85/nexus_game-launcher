@@ -2,6 +2,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SessionList } from "./SessionList";
 import { SessionPatternsCharts } from "./SessionPatternsCharts";
 import { SessionHistogram } from "@/components/Stats/SessionHistogram";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { PerGameSessionStats } from "@/types/analytics";
 
 interface SessionsSkeletonProps {
@@ -29,13 +30,17 @@ export interface PerGameSessionPanelProps {
   stats: PerGameSessionStats | null;
   isLoading: boolean;
   onViewFullStats?: () => void;
+  onNoteUpdated?: (sessionId: string, note: string | null) => void;
 }
 
 export function PerGameSessionPanel({
   stats,
   isLoading,
   onViewFullStats,
+  onNoteUpdated,
 }: PerGameSessionPanelProps) {
+  const accentColor = useSettingsStore((s) => s.accentColor);
+
   return (
     <div data-testid="per-game-session-panel">
       <Tabs defaultValue="sessions">
@@ -55,7 +60,7 @@ export function PerGameSessionPanel({
           {isLoading ? (
             <SessionsSkeleton />
           ) : stats ? (
-            <SessionList sessions={stats.sessions} />
+            <SessionList sessions={stats.sessions} onNoteUpdated={onNoteUpdated} />
           ) : null}
         </TabsContent>
 
@@ -68,6 +73,7 @@ export function PerGameSessionPanel({
               playTimeByDayOfWeek={stats.playTimeByDayOfWeek}
               averageGapDays={stats.averageGapDays}
               totalSessions={stats.sessions.length}
+              accentColor={accentColor}
             />
           ) : null}
         </TabsContent>
@@ -80,6 +86,7 @@ export function PerGameSessionPanel({
               distribution={stats.distribution}
               isLoading={false}
               hideScope
+              accentColor={accentColor}
             />
           ) : null}
         </TabsContent>

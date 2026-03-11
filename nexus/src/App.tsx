@@ -53,7 +53,24 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { CloseConfirmDialog } from "@/components/Settings/CloseConfirmDialog";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
 import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
+import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
+import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
+
+function SessionNotePromptWrapper() {
+  const queue = useSessionNoteStore((s) => s.queue);
+  const dequeue = useSessionNoteStore((s) => s.dequeue);
+  const enabled = useSettingsStore((s) => s.sessionNotePromptEnabled);
+  const timeoutS = useSettingsStore((s) => s.sessionNotePromptTimeout);
+  if (!enabled) return null;
+  return (
+    <SessionNotePrompt
+      queue={queue}
+      onDismiss={dequeue}
+      autoDismissMs={timeoutS > 0 ? timeoutS * 1000 : 0}
+    />
+  );
+}
 
 function MainApp() {
   const { launch: launchGame, onProcessSelected, onCancelProcessPicker, onForceIdentifyCancel, openForceIdentifyPicker } = useLaunchLifecycle();
@@ -548,6 +565,8 @@ function MainApp() {
       onStopGame={async () => {
         const session = useGameStore.getState().activeSession;
         if (session) {
+          const startMs = new Date(session.startedAt).getTime();
+          const durationS = Math.floor((Date.now() - startMs) / 1000);
           if (session.pid) {
             invoke("stop_game", { pid: session.pid }).catch(() => {});
           }
@@ -562,6 +581,11 @@ function MainApp() {
             } catch {
               // best-effort
             }
+            useSessionNoteStore.getState().enqueue({
+              sessionId: session.sessionId,
+              gameName: session.gameName,
+              durationS,
+            });
           }
           await refreshGames();
         }
@@ -731,6 +755,7 @@ function MainApp() {
         onProcessSelected={handleProcessSelected}
         onCancel={handleProcessPickerCancel}
       />
+      <SessionNotePromptWrapper />
       <TwitchToastContainer />
       <ToastNotifications />
       <CollectionEditor

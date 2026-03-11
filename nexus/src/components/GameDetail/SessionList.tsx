@@ -1,11 +1,13 @@
 import * as React from "react";
 import type { SessionRecord } from "@/types/analytics";
 import { formatPlayTime } from "@/lib/utils";
+import { InlineNoteEdit } from "@/components/Sessions/InlineNoteEdit";
 
 const PAGE_SIZE = 20;
 
 interface SessionListProps {
   sessions: SessionRecord[];
+  onNoteUpdated?: (sessionId: string, note: string | null) => void;
 }
 
 function TrackingBadge({ method }: { method: string }) {
@@ -35,7 +37,7 @@ function formatSessionDate(iso: string): string {
   return `${day} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-export function SessionList({ sessions }: SessionListProps) {
+export function SessionList({ sessions, onNoteUpdated }: SessionListProps) {
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
 
   const visibleSessions = sessions.slice(0, visibleCount);
@@ -61,19 +63,28 @@ export function SessionList({ sessions }: SessionListProps) {
               <div
                 key={s.id}
                 data-testid="session-row"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-muted/50"
+                className="rounded-md px-2 py-1.5 text-xs hover:bg-muted/50"
               >
-                <span
-                  className="text-foreground"
-                  title={new Date(s.startedAt).toLocaleString()}
-                >
-                  {formatSessionDate(s.startedAt)}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="tabular-nums text-foreground">
-                    {formatPlayTime(s.durationS)}
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-foreground"
+                    title={new Date(s.startedAt).toLocaleString()}
+                  >
+                    {formatSessionDate(s.startedAt)}
                   </span>
-                  <TrackingBadge method={s.trackingMethod} />
+                  <div className="flex items-center gap-2">
+                    <span className="tabular-nums text-foreground">
+                      {formatPlayTime(s.durationS)}
+                    </span>
+                    <TrackingBadge method={s.trackingMethod} />
+                  </div>
+                </div>
+                <div className="mt-1">
+                  <InlineNoteEdit
+                    sessionId={s.id}
+                    note={s.note}
+                    onNoteUpdated={onNoteUpdated}
+                  />
                 </div>
               </div>
             ))}

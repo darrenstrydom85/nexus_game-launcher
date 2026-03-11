@@ -9,6 +9,7 @@ pub struct PlaySession {
     pub ended_at: Option<String>,
     pub duration_s: Option<i64>,
     pub tracking: String,
+    pub note: Option<String>,
 }
 
 impl PlaySession {
@@ -20,6 +21,7 @@ impl PlaySession {
             ended_at: row.get("ended_at")?,
             duration_s: row.get("duration_s")?,
             tracking: row.get("tracking")?,
+            note: row.get("note")?,
         })
     }
 }
@@ -72,4 +74,5 @@ pub struct SessionEntry {
     pub started_at: String,
     pub ended_at: String,
     pub duration_s: i64,
+    pub note: Option<String>,
 }

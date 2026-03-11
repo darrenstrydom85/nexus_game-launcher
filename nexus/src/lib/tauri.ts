@@ -472,6 +472,14 @@ export function fetchKnownIssues(): Promise<KnownIssuesResult> {
   return invoke<KnownIssuesResult>("fetch_known_issues");
 }
 
+// ── Session Notes (Story 27.1) ────────────────────────────────────────
+export function updateSessionNote(
+  sessionId: string,
+  note: string | null,
+): Promise<void> {
+  return invoke<void>("update_session_note", { sessionId, note });
+}
+
 // ── Session Analytics (Story 17.1) ────────────────────────────────────
 export type {
   SessionScope,

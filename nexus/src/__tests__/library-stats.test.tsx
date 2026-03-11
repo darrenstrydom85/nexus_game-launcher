@@ -91,6 +91,7 @@ const mockSessions: SessionRecord[] = Array.from({ length: 25 }, (_, i) => ({
   startedAt: `2026-02-${String(i + 1).padStart(2, "0")}T10:00:00Z`,
   endedAt: `2026-02-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
   durationS: 7200,
+  note: null,
 }));
 
 describe("Story 6.7: Library Stats Page", () => {
@@ -133,9 +134,11 @@ describe("Story 6.7: Library Stats Page", () => {
     expect(screen.getByTestId("activity-chart")).toBeInTheDocument();
     expect(screen.getByTestId("stats-date-range")).toBeInTheDocument();
     expect(screen.getByTestId("stats-range-all")).toBeInTheDocument();
-    expect(screen.getByTestId("stats-range-start")).toBeInTheDocument();
-    expect(screen.getByTestId("stats-range-end")).toBeInTheDocument();
-    expect(screen.getByTestId("stats-range-apply")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-this_week")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-this_month")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-last_30_days")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-this_year")).toBeInTheDocument();
+    expect(screen.getByTestId("stats-range-custom-toggle")).toBeInTheDocument();
   });
 
   it("renders activity heatmap", () => {

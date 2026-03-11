@@ -51,6 +51,9 @@ export interface SettingsState {
   twitchNotificationsFavoritesOnly: boolean;
   continuePlayingEnabled: boolean;
   continuePlayingMax: number;
+  sessionNotePromptEnabled: boolean;
+  /** Auto-dismiss timeout in seconds: 30, 60, 90, or 0 = never. */
+  sessionNotePromptTimeout: number;
   _hydrated: boolean;
 }
 
@@ -86,6 +89,8 @@ export interface SettingsActions {
   setTwitchNotificationsFavoritesOnly: (value: boolean) => void;
   setContinuePlayingEnabled: (value: boolean) => void;
   setContinuePlayingMax: (value: number) => void;
+  setSessionNotePromptEnabled: (value: boolean) => void;
+  setSessionNotePromptTimeout: (value: number) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -133,6 +138,8 @@ const initialState: SettingsState = {
   twitchNotificationsFavoritesOnly: false,
   continuePlayingEnabled: true,
   continuePlayingMax: 5,
+  sessionNotePromptEnabled: true,
+  sessionNotePromptTimeout: 60,
   _hydrated: false,
 };
 
@@ -197,6 +204,13 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.continue_playing_max !== undefined && settings.continue_playing_max !== null) {
               const n = parseInt(settings.continue_playing_max, 10);
               if (!Number.isNaN(n) && n > 0) patch.continuePlayingMax = n;
+            }
+            if (settings.session_note_prompt_enabled !== undefined) {
+              patch.sessionNotePromptEnabled = settings.session_note_prompt_enabled !== "false";
+            }
+            if (settings.session_note_prompt_timeout !== undefined && settings.session_note_prompt_timeout !== null) {
+              const n = parseInt(settings.session_note_prompt_timeout, 10);
+              if (!Number.isNaN(n) && n >= 0) patch.sessionNotePromptTimeout = n;
             }
 
             set(patch, false, "loadFromBackend");
@@ -354,6 +368,14 @@ export const useSettingsStore = create<SettingsStore>()(
         setContinuePlayingMax: (value) => {
           persistSetting("continue_playing_max", String(value));
           set({ continuePlayingMax: value }, false, "setContinuePlayingMax");
+        },
+        setSessionNotePromptEnabled: (value) => {
+          persistSetting("session_note_prompt_enabled", String(value));
+          set({ sessionNotePromptEnabled: value }, false, "setSessionNotePromptEnabled");
+        },
+        setSessionNotePromptTimeout: (value) => {
+          persistSetting("session_note_prompt_timeout", String(value));
+          set({ sessionNotePromptTimeout: value }, false, "setSessionNotePromptTimeout");
         },
       }),
       { name: "nexus-settings" },

@@ -31,6 +31,7 @@ function makeSessions(count: number): SessionRecord[] {
     endedAt: `2026-02-${String(Math.min(i + 1, 28)).padStart(2, "0")}T12:00:00Z`,
     durationS: 7200,
     trackingMethod: i % 3 === 0 ? "manual" : "direct",
+    note: null,
   }));
 }
 

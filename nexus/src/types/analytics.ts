@@ -47,6 +47,7 @@ export interface SessionRecord {
   endedAt: string;
   durationS: number;
   trackingMethod: string;
+  note: string | null;
 }
 
 /** Full per-game session analytics response. */

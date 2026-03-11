@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
-import { Calendar, Clock, Gamepad2, GamepadIcon, Gift, Trophy, TrendingUp } from "lucide-react";
+import { Clock, Gamepad2, GamepadIcon, Gift, Trophy, TrendingUp } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
@@ -44,6 +44,7 @@ export interface SessionRecord {
   startedAt: string;
   endedAt: string;
   durationS: number;
+  note: string | null;
 }
 
 // Raw shapes returned by the Tauri backend
@@ -75,6 +76,7 @@ interface BackendSession {
   startedAt: string;
   endedAt: string;
   durationS: number;
+  note: string | null;
 }
 
 /** Formats play time in seconds as "Xh Ym" or "Xm". Exported for tests. */
@@ -131,15 +133,54 @@ const DEFAULT_STATS: PlayStats = {
   weeklyPlayTimeS: 0,
 };
 
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function getCurrentMonthRange(): { start: string; end: string } {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
   return {
-    start: `${y}-${m}-01`,
-    end: now.toISOString().slice(0, 10),
+    start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
+    end: toDateStr(now),
   };
 }
+
+type StatsPreset = "this_week" | "this_month" | "last_30_days" | "this_year" | "all";
+
+function getPresetRange(preset: StatsPreset): StatsDateRange {
+  if (preset === "all") return "all";
+  const now = new Date();
+  const todayStr = toDateStr(now);
+  switch (preset) {
+    case "this_week": {
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const monday = new Date(now);
+      monday.setDate(monday.getDate() - mondayOffset);
+      return { start: toDateStr(monday), end: todayStr };
+    }
+    case "this_month":
+      return getCurrentMonthRange();
+    case "last_30_days": {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 29);
+      return { start: toDateStr(start), end: todayStr };
+    }
+    case "this_year":
+      return { start: `${now.getFullYear()}-01-01`, end: todayStr };
+  }
+}
+
+const PRESETS: { id: StatsPreset; label: string }[] = [
+  { id: "this_week", label: "This week" },
+  { id: "this_month", label: "This month" },
+  { id: "last_30_days", label: "Last 30 days" },
+  { id: "this_year", label: "This year" },
+  { id: "all", label: "All time" },
+];
 
 function filterByDateRange<T extends { date: string }>(
   items: T[],
@@ -231,6 +272,10 @@ export function LibraryStats({
   const [dateRange, setDateRange] = React.useState<StatsDateRange>(() =>
     defaultRange,
   );
+  const [activePreset, setActivePreset] = React.useState<StatsPreset | null>(() =>
+    initialDateRange === "all" ? "all" : "this_month",
+  );
+  const [showCustom, setShowCustom] = React.useState(false);
   const [rangeStart, setRangeStart] = React.useState(() =>
     defaultRange === "all" ? "" : defaultRange.start,
   );
@@ -335,6 +380,7 @@ export function LibraryStats({
             startedAt: s.startedAt,
             endedAt: s.endedAt,
             durationS: s.durationS,
+            note: s.note,
           })),
         );
       } catch {
@@ -349,13 +395,23 @@ export function LibraryStats({
   }, [statsProp]);
 
   const isCustomRange = dateRange !== "all";
-  const todayStr = React.useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
+  const todayStr = React.useMemo(() => toDateStr(new Date()), []);
   const isValidRange = rangeStart.length === 10 && rangeEnd.length === 10 && rangeStart <= rangeEnd;
   const applyRange = () => {
-    if (isValidRange) setDateRange({ start: rangeStart, end: rangeEnd });
+    if (isValidRange) {
+      setActivePreset(null);
+      setDateRange({ start: rangeStart, end: rangeEnd });
+    }
+  };
+  const handlePreset = (preset: StatsPreset) => {
+    setActivePreset(preset);
+    setShowCustom(false);
+    const range = getPresetRange(preset);
+    setDateRange(range);
+    if (range !== "all") {
+      setRangeStart(range.start);
+      setRangeEnd(range.end);
+    }
   };
 
   return (
@@ -382,54 +438,74 @@ export function LibraryStats({
           data-testid="stats-date-range"
           className="flex flex-wrap items-center gap-2"
         >
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              data-testid={`stats-range-${p.id}`}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                activePreset === p.id
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card/60 text-muted-foreground hover:bg-card hover:text-foreground",
+              )}
+              onClick={() => handlePreset(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
           <button
             type="button"
-            data-testid="stats-range-all"
+            data-testid="stats-range-custom-toggle"
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              dateRange === "all"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-            )}
-            onClick={() => setDateRange("all")}
-          >
-            <Calendar className="size-3.5" aria-hidden />
-            All time
-          </button>
-          <span className="text-xs text-muted-foreground">From</span>
-          <DatePicker
-            data-testid="stats-range-start"
-            value={rangeStart}
-            onChange={setRangeStart}
-            label="Start date"
-            maxDate={rangeEnd || todayStr}
-            triggerClassName="h-8"
-          />
-          <span className="text-xs text-muted-foreground">To</span>
-          <DatePicker
-            data-testid="stats-range-end"
-            value={rangeEnd}
-            onChange={setRangeEnd}
-            label="End date"
-            minDate={rangeStart || undefined}
-            maxDate={todayStr}
-            triggerClassName="h-8"
-          />
-          <button
-            type="button"
-            data-testid="stats-range-apply"
-            disabled={!isValidRange}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isValidRange
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-muted text-muted-foreground cursor-not-allowed",
+              showCustom || (activePreset === null && dateRange !== "all")
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card/60 text-muted-foreground hover:bg-card hover:text-foreground",
             )}
-            onClick={applyRange}
+            onClick={() => setShowCustom((v) => !v)}
           >
-            Apply
+            Custom
           </button>
+          {showCustom && (
+            <div className="flex items-center gap-2">
+              <DatePicker
+                data-testid="stats-range-start"
+                value={rangeStart}
+                onChange={setRangeStart}
+                label="Start date"
+                maxDate={rangeEnd || todayStr}
+                triggerClassName="h-8"
+              />
+              <span className="text-xs text-muted-foreground">&ndash;</span>
+              <DatePicker
+                data-testid="stats-range-end"
+                value={rangeEnd}
+                onChange={setRangeEnd}
+                label="End date"
+                minDate={rangeStart || undefined}
+                maxDate={todayStr}
+                triggerClassName="h-8"
+              />
+              <button
+                type="button"
+                data-testid="stats-range-apply"
+                disabled={!isValidRange}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isValidRange
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-muted text-muted-foreground cursor-not-allowed",
+                )}
+                onClick={applyRange}
+              >
+                Apply
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -479,7 +555,7 @@ export function LibraryStats({
           {/* Heatmap + Top Games side by side */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
-              <ActivityHeatmap data={filteredActivity} />
+              <ActivityHeatmap data={filteredActivity} dateRange={dateRange} />
             </div>
             <div className="rounded-lg border border-border bg-card p-4">
               <TopGamesChart games={displayTopGames} />
@@ -488,7 +564,14 @@ export function LibraryStats({
 
           {/* Session History */}
           <div className="rounded-lg border border-border bg-card p-4">
-            <SessionHistory sessions={filteredSessions} />
+            <SessionHistory
+              sessions={filteredSessions}
+              onNoteUpdated={(sessionId, note) => {
+                setSessions((prev) =>
+                  prev.map((s) => (s.id === sessionId ? { ...s, note } : s)),
+                );
+              }}
+            />
           </div>
 
           {/* Session Lengths Histogram */}
