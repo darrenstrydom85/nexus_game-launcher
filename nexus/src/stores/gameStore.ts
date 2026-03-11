@@ -71,6 +71,8 @@ export interface Game {
   hltbId: string | null;
   hltbFetchedAt: string | null;
   notes: string | null;
+  progress: number | null;
+  milestonesJson: string | null;
 }
 
 interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt"> {
@@ -93,6 +95,15 @@ interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "pl
   hltbCompletionistH?: number | null;
   hltbId?: string | null;
   hltbFetchedAt?: string | null;
+  progress?: number | null;
+  milestonesJson?: string | null;
+}
+
+export interface Milestone {
+  id: string;
+  label: string;
+  completed: boolean;
+  completedAt: string | null;
 }
 
 export interface ActiveSession {
@@ -173,6 +184,8 @@ export const useGameStore = create<GameStore>()(
           hltbId: g.hltbId ?? null,
           hltbFetchedAt: g.hltbFetchedAt ?? null,
           notes: g.notes ?? null,
+          progress: g.progress ?? null,
+          milestonesJson: g.milestonesJson ?? null,
         } as Game));
         set({ games: mapped }, false, "setGames");
         useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));

@@ -46,6 +46,8 @@ const makeGame = (id: string, name: string, coverUrl: string | null = null): Gam
   hltbId: null,
   hltbFetchedAt: null,
   notes: null,
+  progress: null,
+  milestonesJson: null,
 });
 
 describe("Story 12.8: HiddenGamesList", () => {

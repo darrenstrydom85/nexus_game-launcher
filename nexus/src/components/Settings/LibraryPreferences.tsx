@@ -16,6 +16,8 @@ export function LibraryPreferences() {
   const setNotePromptEnabled = useSettingsStore((s) => s.setSessionNotePromptEnabled);
   const notePromptTimeout = useSettingsStore((s) => s.sessionNotePromptTimeout);
   const setNotePromptTimeout = useSettingsStore((s) => s.setSessionNotePromptTimeout);
+  const showCardProgress = useSettingsStore((s) => s.showCardProgress);
+  const setShowCardProgress = useSettingsStore((s) => s.setShowCardProgress);
 
   return (
     <section data-testid="library-preferences">
@@ -55,6 +57,16 @@ export function LibraryPreferences() {
             type="checkbox"
             checked={autoStatus}
             onChange={() => setAutoStatus(!autoStatus)}
+            className="size-4 rounded border-border"
+          />
+        </label>
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-foreground">Show progress on game cards</span>
+          <input
+            data-testid="pref-show-card-progress"
+            type="checkbox"
+            checked={showCardProgress}
+            onChange={() => setShowCardProgress(!showCardProgress)}
             className="size-4 rounded border-border"
           />
         </label>

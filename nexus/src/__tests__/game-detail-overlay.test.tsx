@@ -42,6 +42,8 @@ const mockGame: Game = {
   hltbId: null,
   hltbFetchedAt: null,
   notes: null,
+  progress: null,
+  milestonesJson: null,
 };
 
 describe("Story 7.1: Game Detail Overlay Shell", () => {

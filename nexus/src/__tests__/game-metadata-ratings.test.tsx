@@ -41,6 +41,8 @@ const baseGame: Game = {
   hltbId: null,
   hltbFetchedAt: null,
   notes: null,
+  progress: null,
+  milestonesJson: null,
 };
 
 describe("GameMetadata ratings section", () => {

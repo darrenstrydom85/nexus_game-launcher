@@ -55,6 +55,7 @@ export interface SettingsState {
   /** Auto-dismiss timeout in seconds: 30, 60, 90, or 0 = never. */
   sessionNotePromptTimeout: number;
   queueCollapsed: boolean;
+  showCardProgress: boolean;
   _hydrated: boolean;
 }
 
@@ -93,6 +94,7 @@ export interface SettingsActions {
   setSessionNotePromptEnabled: (value: boolean) => void;
   setSessionNotePromptTimeout: (value: number) => void;
   setQueueCollapsed: (value: boolean) => void;
+  setShowCardProgress: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -143,6 +145,7 @@ const initialState: SettingsState = {
   sessionNotePromptEnabled: true,
   sessionNotePromptTimeout: 60,
   queueCollapsed: false,
+  showCardProgress: true,
   _hydrated: false,
 };
 
@@ -214,6 +217,9 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.session_note_prompt_timeout !== undefined && settings.session_note_prompt_timeout !== null) {
               const n = parseInt(settings.session_note_prompt_timeout, 10);
               if (!Number.isNaN(n) && n >= 0) patch.sessionNotePromptTimeout = n;
+            }
+            if (settings.show_card_progress !== undefined) {
+              patch.showCardProgress = settings.show_card_progress !== "false";
             }
 
             set(patch, false, "loadFromBackend");
@@ -382,6 +388,10 @@ export const useSettingsStore = create<SettingsStore>()(
         },
         setQueueCollapsed: (value) =>
           set({ queueCollapsed: value }, false, "setQueueCollapsed"),
+        setShowCardProgress: (value) => {
+          persistSetting("show_card_progress", String(value));
+          set({ showCardProgress: value }, false, "setShowCardProgress");
+        },
       }),
       { name: "nexus-settings" },
     ),

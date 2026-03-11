@@ -160,6 +160,10 @@ pub struct UpdateGameFields {
     pub is_hidden: Option<bool>,
     #[serde(default, deserialize_with = "deserialize_nullable")]
     pub notes: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_nullable")]
+    pub progress: Option<Option<i32>>,
+    #[serde(default, deserialize_with = "deserialize_nullable")]
+    pub milestones_json: Option<Option<String>>,
 }
 
 #[tauri::command]
@@ -191,6 +195,13 @@ pub fn update_game(
     }
     if let Some(ref status) = fields.status {
         crate::models::game::GameStatus::from_str(status).map_err(CommandError::Parse)?;
+    }
+    if let Some(Some(val)) = fields.progress {
+        if val < 0 || val > 100 {
+            return Err(CommandError::Parse(
+                "progress must be between 0 and 100".into(),
+            ));
+        }
     }
 
     let mut set_clauses: Vec<String> = Vec::new();
@@ -246,6 +257,8 @@ pub fn update_game(
     push_field!(fields.source_folder_id, "source_folder_id");
     push_field!(fields.is_hidden, "is_hidden");
     push_nullable_field!(fields.notes, "notes");
+    push_nullable_field!(fields.progress, "progress");
+    push_nullable_field!(fields.milestones_json, "milestones_json");
 
     if set_clauses.is_empty() {
         return Err(CommandError::Parse("no fields provided for update".into()));
@@ -1174,6 +1187,13 @@ mod tests {
         if let Some(ref status) = fields.status {
             crate::models::game::GameStatus::from_str(status).map_err(CommandError::Parse)?;
         }
+        if let Some(Some(val)) = fields.progress {
+            if val < 0 || val > 100 {
+                return Err(CommandError::Parse(
+                    "progress must be between 0 and 100".into(),
+                ));
+            }
+        }
 
         let mut set_clauses: Vec<String> = Vec::new();
         let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
@@ -1226,6 +1246,8 @@ mod tests {
         push_field!(fields.play_count, "play_count");
         push_field!(fields.source_folder_id, "source_folder_id");
         push_nullable_field!(fields.notes, "notes");
+        push_nullable_field!(fields.progress, "progress");
+        push_nullable_field!(fields.milestones_json, "milestones_json");
 
         if set_clauses.is_empty() {
             return Err(CommandError::Parse("no fields provided for update".into()));
@@ -1385,6 +1407,119 @@ mod tests {
 
         let results = search_games_inner(&state, "ice".into(), true).unwrap();
         assert_eq!(results.len(), 2);
+    }
+
+    // ── progress field ──
+
+    #[test]
+    fn update_game_sets_progress_to_50() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            progress: Some(Some(50)),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.progress, Some(50));
+    }
+
+    #[test]
+    fn update_game_sets_progress_to_zero() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            progress: Some(Some(0)),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.progress, Some(0), "0 is a valid progress value, not null");
+    }
+
+    #[test]
+    fn update_game_clears_progress_with_null() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, progress, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 75, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            progress: Some(None),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.progress, None);
+    }
+
+    #[test]
+    fn update_game_rejects_progress_below_zero() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            progress: Some(Some(-1)),
+            ..Default::default()
+        };
+        let result = update_game_inner(&state, "g1".into(), fields);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("progress"));
+    }
+
+    #[test]
+    fn update_game_rejects_progress_above_100() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let fields = UpdateGameFields {
+            progress: Some(Some(101)),
+            ..Default::default()
+        };
+        let result = update_game_inner(&state, "g1".into(), fields);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("progress"));
+    }
+
+    #[test]
+    fn update_game_milestones_json_round_trips() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game", "steam");
+        drop(conn);
+
+        let milestones = r#"[{"id":"m1","label":"Beat Act 1","completed":true,"completedAt":"2026-03-10T12:00:00Z"}]"#;
+        let fields = UpdateGameFields {
+            milestones_json: Some(Some(milestones.to_string())),
+            ..Default::default()
+        };
+        let game = update_game_inner(&state, "g1".into(), fields).unwrap();
+        assert_eq!(game.milestones_json, Some(milestones.to_string()));
+    }
+
+    #[test]
+    fn get_game_returns_progress_fields() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO games (id, name, source, status, progress, milestones_json, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 42, '[{\"id\":\"m1\",\"label\":\"Boss\",\"completed\":false}]', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let game = get_game_inner(&state, "g1".into()).unwrap();
+        assert_eq!(game.progress, Some(42));
+        assert!(game.milestones_json.as_ref().unwrap().contains("Boss"));
     }
 
 }

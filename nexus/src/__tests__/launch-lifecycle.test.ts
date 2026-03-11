@@ -261,6 +261,8 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
           hltbId: null,
           hltbFetchedAt: null,
           notes: null,
+          progress: null,
+          milestonesJson: null,
         } as import("@/stores/gameStore").Game,
       ],
       activeSession: {

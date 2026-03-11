@@ -44,6 +44,8 @@ const defaultGame = {
   hltbId: null,
   hltbFetchedAt: null,
   notes: null,
+  progress: null,
+  milestonesJson: null,
 };
 
 const mockChannelLive = {

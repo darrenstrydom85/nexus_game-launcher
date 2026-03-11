@@ -48,6 +48,8 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
           hltbId: null,
           hltbFetchedAt: null,
           notes: null,
+          progress: null,
+          milestonesJson: null,
         } as import("@/stores/gameStore").Game,
       ],
     });
@@ -167,8 +169,8 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
   it("source filters show aria-pressed state", () => {
     useGameStore.setState({
       games: [
-        { id: "1", name: "Steam Game", source: "steam" as GameSource, folderPath: null, exePath: null, exeName: null, launchUrl: null, igdbId: null, steamgridId: null, description: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, customCover: null, customHero: null, potentialExeNames: null, genres: [], releaseDate: null, criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null, status: "unset", rating: null, totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false, hltbMainH: null, hltbMainExtraH: null, hltbCompletionistH: null, hltbId: null, hltbFetchedAt: null, notes: null },
-        { id: "2", name: "Epic Game", source: "epic" as GameSource, folderPath: null, exePath: null, exeName: null, launchUrl: null, igdbId: null, steamgridId: null, description: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, customCover: null, customHero: null, potentialExeNames: null, genres: [], releaseDate: null, criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null, status: "unset", rating: null, totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false, hltbMainH: null, hltbMainExtraH: null, hltbCompletionistH: null, hltbId: null, hltbFetchedAt: null, notes: null },
+        { id: "1", name: "Steam Game", source: "steam" as GameSource, folderPath: null, exePath: null, exeName: null, launchUrl: null, igdbId: null, steamgridId: null, description: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, customCover: null, customHero: null, potentialExeNames: null, genres: [], releaseDate: null, criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null, status: "unset", rating: null, totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false, hltbMainH: null, hltbMainExtraH: null, hltbCompletionistH: null, hltbId: null, hltbFetchedAt: null, notes: null, progress: null, milestonesJson: null },
+        { id: "2", name: "Epic Game", source: "epic" as GameSource, folderPath: null, exePath: null, exeName: null, launchUrl: null, igdbId: null, steamgridId: null, description: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, customCover: null, customHero: null, potentialExeNames: null, genres: [], releaseDate: null, criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null, status: "unset", rating: null, totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false, hltbMainH: null, hltbMainExtraH: null, hltbCompletionistH: null, hltbId: null, hltbFetchedAt: null, notes: null, progress: null, milestonesJson: null },
       ],
     });
     render(

@@ -122,6 +122,8 @@ pub struct Game {
     pub hltb_id: Option<String>,
     pub hltb_fetched_at: Option<String>,
     pub notes: Option<String>,
+    pub progress: Option<i32>,
+    pub milestones_json: Option<String>,
 }
 
 impl Game {
@@ -171,6 +173,8 @@ impl Game {
             hltb_id: row.get("hltb_id")?,
             hltb_fetched_at: row.get("hltb_fetched_at")?,
             notes: row.get("notes")?,
+            progress: row.get("progress")?,
+            milestones_json: row.get("milestones_json")?,
         })
     }
 }

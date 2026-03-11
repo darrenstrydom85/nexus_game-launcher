@@ -6,6 +6,7 @@ import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
 import { formatPlayTime } from "@/components/Library/HeroSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { TwitchLiveBadge } from "@/components/Library/TwitchLiveBadge";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 function hashString(str: string): number {
   let hash = 0;
@@ -85,10 +86,19 @@ interface GameCardProps {
   onClick?: (gameId: string) => void;
 }
 
+const STATUS_BAR_COLORS: Record<string, string> = {
+  playing: "var(--success)",
+  completed: "var(--primary)",
+  backlog: "var(--warning)",
+  dropped: "var(--destructive)",
+  wishlist: "var(--info)",
+};
+
 export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const allTags = useTagStore((s) => s.tags);
   const gameTagMap = useTagStore((s) => s.gameTagMap);
+  const showCardProgress = useSettingsStore((s) => s.showCardProgress);
   const [isHovered, setIsHovered] = React.useState(false);
 
   const gameTags = React.useMemo(() => {
@@ -203,6 +213,18 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
           )}
         </div>
       </div>
+
+      {/* Thin progress bar at card bottom */}
+      {showCardProgress && game.progress != null && game.progress > 0 && (
+        <div
+          data-testid={`card-progress-${game.id}`}
+          className="absolute inset-x-0 bottom-0 h-0.5"
+          style={{
+            background: `linear-gradient(to right, ${STATUS_BAR_COLORS[game.status] ?? "var(--primary)"} ${game.progress}%, transparent ${game.progress}%)`,
+            opacity: 0.6,
+          }}
+        />
+      )}
     </div>
   );
 }
