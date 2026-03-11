@@ -14,7 +14,10 @@ import {
   RefreshCw,
   ImagePlus,
   Loader2,
+  ListPlus,
+  ListMinus,
 } from "lucide-react";
+import { useQueueStore } from "@/stores/queueStore";
 
 const STATUSES: { value: GameStatus; label: string }[] = [
   { value: "playing", label: "Playing" },
@@ -62,6 +65,9 @@ export function GameCardContextMenu({
 }: GameCardContextMenuProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const addToast = useToastStore((s) => s.addToast);
+  const isQueued = useQueueStore((s) => s.isQueued(game.id));
+  const queueAdd = useQueueStore((s) => s.add);
+  const queueRemove = useQueueStore((s) => s.remove);
   const [refetching, setRefetching] = React.useState(false);
   const busy = isRefetching || refetching;
   const [subMenu, setSubMenu] = React.useState<
@@ -296,6 +302,33 @@ export function GameCardContextMenu({
           </div>
         )}
       </div>
+
+      {/* Add to / Remove from Queue */}
+      <button
+        data-testid={isQueued ? "ctx-remove-queue" : "ctx-add-queue"}
+        className={menuItemClass}
+        role="menuitem"
+        onClick={() => {
+          if (isQueued) {
+            queueRemove(game.id, game.name);
+          } else {
+            queueAdd(game.id, game.name);
+          }
+          onClose();
+        }}
+      >
+        {isQueued ? (
+          <>
+            <ListMinus className="size-4" />
+            Remove from Queue
+          </>
+        ) : (
+          <>
+            <ListPlus className="size-4" />
+            Add to Queue
+          </>
+        )}
+      </button>
 
       <div className="my-1 border-t border-border" />
 

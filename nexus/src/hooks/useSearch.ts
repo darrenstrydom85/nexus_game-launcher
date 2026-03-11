@@ -37,6 +37,7 @@ const ACTIONS: ActionItem[] = [
   { id: "action-settings", name: "Open Settings", icon: "⚙️" },
   { id: "action-random", name: "Random Game", icon: "🎲" },
   { id: "action-scan", name: "Scan for Games", icon: "🔍" },
+  { id: "action-view-queue", name: "View Play Queue", icon: "📋" },
 ];
 
 export function useSearch(query: string): {

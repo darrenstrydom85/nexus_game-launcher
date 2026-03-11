@@ -15,7 +15,10 @@ import {
   EyeOff,
   ImagePlus,
   Crosshair,
+  ListPlus,
+  ListMinus,
 } from "lucide-react";
+import { useQueueStore } from "@/stores/queueStore";
 
 const STATUSES: { value: GameStatus; label: string; color: string }[] = [
   { value: "playing", label: "Playing", color: "bg-success" },
@@ -61,6 +64,9 @@ export function ActionBar({
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [hoveredStar, setHoveredStar] = React.useState(0);
   const [isRefetching, setIsRefetching] = React.useState(false);
+  const isQueued = useQueueStore((s) => s.isQueued(game.id));
+  const queueAdd = useQueueStore((s) => s.add);
+  const queueRemove = useQueueStore((s) => s.remove);
 
   const currentStatus = STATUSES.find((s) => s.value === game.status) ?? STATUSES[5];
 
@@ -198,6 +204,34 @@ export function ActionBar({
           Fetching metadata…
         </div>
       )}
+
+      {/* Queue toggle */}
+      <Button
+        data-testid={isQueued ? "action-remove-queue" : "action-add-queue"}
+        variant="secondary"
+        size="sm"
+        className="gap-2"
+        onClick={() => {
+          if (isQueued) {
+            queueRemove(game.id, game.name);
+          } else {
+            queueAdd(game.id, game.name);
+          }
+        }}
+        aria-label={isQueued ? "Remove from queue" : "Add to queue"}
+      >
+        {isQueued ? (
+          <>
+            <ListMinus className="size-4" />
+            Remove from Queue
+          </>
+        ) : (
+          <>
+            <ListPlus className="size-4" />
+            Add to Queue
+          </>
+        )}
+      </Button>
 
       {/* Update Artwork — dedicated entry point for metadata/artwork search */}
       <Button

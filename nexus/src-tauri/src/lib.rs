@@ -77,6 +77,10 @@ use commands::{
     known_issues::fetch_known_issues,
     version_check::check_update_available,
     window::{confirm_app_close, hide_main_window},
+    queue::{
+        get_play_queue, add_to_play_queue, remove_from_play_queue,
+        reorder_play_queue, clear_play_queue,
+    },
 };
 
 /// Story 20.1: Read ask_before_close from settings. Default true (show dialog).
@@ -274,6 +278,11 @@ pub fn run() {
             write_image_to_clipboard,
             confirm_app_close,
             hide_main_window,
+            get_play_queue,
+            add_to_play_queue,
+            remove_from_play_queue,
+            reorder_play_queue,
+            clear_play_queue,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

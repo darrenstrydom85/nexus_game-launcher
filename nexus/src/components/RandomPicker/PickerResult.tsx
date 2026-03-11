@@ -1,9 +1,10 @@
 import { motion } from "motion/react";
 import type { Game } from "@/stores/gameStore";
 import { Button } from "@/components/ui/button";
-import { Play, RefreshCw, Eye, ThumbsDown } from "lucide-react";
+import { Play, RefreshCw, Eye, ThumbsDown, ListPlus } from "lucide-react";
 import { placeholderGradient } from "@/components/GameCard/GameCard";
 import { formatPlayTime } from "@/components/Library/HeroSection";
+import { useQueueStore } from "@/stores/queueStore";
 
 interface PickerResultProps {
   game: Game;
@@ -20,6 +21,8 @@ export function PickerResult({
   onViewDetails,
   onReject,
 }: PickerResultProps) {
+  const isQueued = useQueueStore((s) => s.isQueued(game.id));
+  const queueAdd = useQueueStore((s) => s.add);
   return (
     <motion.div
       data-testid="picker-result"
@@ -70,6 +73,16 @@ export function PickerResult({
         <Button data-testid="result-details" variant="secondary" className="gap-2" onClick={onViewDetails}>
           <Eye className="size-4" /> View Details
         </Button>
+        {!isQueued && (
+          <Button
+            data-testid="result-queue"
+            variant="secondary"
+            className="gap-2"
+            onClick={() => queueAdd(game.id, game.name)}
+          >
+            <ListPlus className="size-4" /> Queue It
+          </Button>
+        )}
         <button
           data-testid="result-reject"
           className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

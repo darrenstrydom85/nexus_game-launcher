@@ -533,3 +533,36 @@ export function getAvailableWrappedPeriods(): Promise<
 > {
   return invoke("get_available_wrapped_periods");
 }
+
+// ── Play Queue (Story 28.1) ──────────────────────────────────────────
+export interface PlayQueueEntry {
+  id: string;
+  gameId: string;
+  position: number;
+  addedAt: string;
+  name: string;
+  coverUrl: string | null;
+  customCover: string | null;
+  status: string;
+  source: string;
+}
+
+export function getPlayQueue(): Promise<PlayQueueEntry[]> {
+  return invoke<PlayQueueEntry[]>("get_play_queue");
+}
+
+export function addToPlayQueue(gameId: string): Promise<PlayQueueEntry> {
+  return invoke<PlayQueueEntry>("add_to_play_queue", { gameId });
+}
+
+export function removeFromPlayQueue(gameId: string): Promise<void> {
+  return invoke<void>("remove_from_play_queue", { gameId });
+}
+
+export function reorderPlayQueue(gameIds: string[]): Promise<void> {
+  return invoke<void>("reorder_play_queue", { gameIds });
+}
+
+export function clearPlayQueue(): Promise<void> {
+  return invoke<void>("clear_play_queue");
+}

@@ -28,25 +28,25 @@ function selectionToPeriod(sel: PeriodSelection): WrappedPeriod {
 function defaultSelection(
   available: AvailableWrappedPeriods | null,
 ): PeriodSelection {
-  if (!available) return { kind: "preset", preset: "this_year" };
-  const currentYear = new Date().getFullYear();
-  if (available.lastYearHasData) {
-    return { kind: "year", year: currentYear - 1 };
-  }
-  if (available.thisYearHasData) {
-    return { kind: "preset", preset: "this_year" };
+  if (!available) return { kind: "preset", preset: "this_month" };
+  if (available.thisMonthHasData) {
+    return { kind: "preset", preset: "this_month" };
   }
   if (available.lastMonthHasData) {
     return { kind: "preset", preset: "last_month" };
   }
-  if (available.thisMonthHasData) {
-    return { kind: "preset", preset: "this_month" };
+  if (available.thisYearHasData) {
+    return { kind: "preset", preset: "this_year" };
+  }
+  const currentYear = new Date().getFullYear();
+  if (available.lastYearHasData) {
+    return { kind: "year", year: currentYear - 1 };
   }
   if (available.yearsWithSessions.length > 0) {
     const sorted = [...available.yearsWithSessions].sort((a, b) => b - a);
     return { kind: "year", year: sorted[0] };
   }
-  return { kind: "preset", preset: "this_year" };
+  return { kind: "preset", preset: "this_month" };
 }
 
 export interface UseWrappedReturn {
@@ -62,7 +62,7 @@ export function useWrapped(): UseWrappedReturn {
   const [available, setAvailable] = React.useState<AvailableWrappedPeriods | null>(null);
   const [selection, setSelection] = React.useState<PeriodSelection>({
     kind: "preset",
-    preset: "this_year",
+    preset: "this_month",
   });
   const [report, setReport] = React.useState<WrappedReport | null>(null);
   const [loading, setLoading] = React.useState(true);

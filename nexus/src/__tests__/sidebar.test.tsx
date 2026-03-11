@@ -103,6 +103,7 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
 
   it("renders source filter toggles only for sources with games", () => {
     render(<Sidebar />);
+    fireEvent.click(screen.getByTestId("accordion-sources"));
     expect(screen.getByTestId("source-filter-steam")).toBeInTheDocument();
     expect(screen.queryByTestId("source-filter-epic")).not.toBeInTheDocument();
     expect(screen.queryByTestId("source-filter-gog")).not.toBeInTheDocument();
@@ -111,6 +112,7 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
   it("source filter clicks call onToggleSource", () => {
     const onToggleSource = vi.fn();
     render(<Sidebar onToggleSource={onToggleSource} />);
+    fireEvent.click(screen.getByTestId("accordion-sources"));
     fireEvent.click(screen.getByTestId("source-filter-steam"));
     expect(onToggleSource).toHaveBeenCalledWith("steam");
   });
@@ -175,6 +177,7 @@ describe("Story 5.5: Sidebar Navigation Component", () => {
         onToggleSource={() => {}}
       />,
     );
+    fireEvent.click(screen.getByTestId("accordion-sources"));
     expect(screen.getByTestId("source-filter-steam")).toHaveAttribute(
       "aria-pressed",
       "true",

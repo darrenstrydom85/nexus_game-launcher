@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Gift,
   Heart,
+  Layers,
   Library,
   Shuffle,
   Star,
@@ -21,6 +22,7 @@ import { SOURCE_ICON_COMPONENTS } from "@/lib/source-icons";
 import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
 import { type Collection } from "@/stores/collectionStore";
+import { PlayQueueWidget } from "./PlayQueueWidget";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
   steam: "Steam",
@@ -178,6 +180,7 @@ interface SidebarProps {
   onToggleSource?: (source: GameSource) => void;
   /** Show the Wrapped nav item only when the user has play history. */
   hasPlayHistory?: boolean;
+  onPlayGame?: (gameId: string) => void;
 }
 
 export function Sidebar({
@@ -189,6 +192,7 @@ export function Sidebar({
   enabledSources,
   onToggleSource,
   hasPlayHistory = false,
+  onPlayGame,
 }: SidebarProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const sourceFilter = useUiStore((s) => s.sourceFilter);
@@ -207,6 +211,7 @@ export function Sidebar({
   const [collectionsOpen, setCollectionsOpen] = React.useState(true);
   const [genresOpen, setGenresOpen] = React.useState(false);
   const [scoreOpen, setScoreOpen] = React.useState(false);
+  const [sourcesOpen, setSourcesOpen] = React.useState(false);
   const prevLiveCountRef = React.useRef(liveCount);
   const [badgePulse, setBadgePulse] = React.useState(false);
   const reducedMotion = useSettingsStore((s) => s.reducedMotion);
@@ -340,6 +345,12 @@ export function Sidebar({
 
       {/* Separator */}
       <div className="mx-3 border-t border-border" />
+
+      {/* Play Queue widget */}
+      <PlayQueueWidget
+        sidebarOpen={sidebarOpen}
+        onPlayGame={onPlayGame ?? (() => {})}
+      />
 
       {/* Collections accordion */}
       <div className="flex flex-col px-2 py-1">
@@ -478,51 +489,75 @@ export function Sidebar({
       {/* Separator */}
       <div className="mx-3 border-t border-border" />
 
-      {/* Source Filter Toggles — only show sources that have games */}
+      {/* Sources accordion */}
       {activeSources.length > 0 && (
-        <div className="flex flex-col gap-0.5 px-2 py-2">
-          {sidebarOpen && (
-            <span className="px-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Sources
-            </span>
+        <div className="flex flex-col px-2 py-1">
+          <button
+            data-testid="accordion-sources"
+            className={cn(
+              "flex h-8 w-full items-center gap-2 rounded-md px-3 text-xs font-medium uppercase tracking-wider",
+              "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+            onClick={() => sidebarOpen && setSourcesOpen((o) => !o)}
+            title={!sidebarOpen ? "Sources" : undefined}
+            aria-expanded={sourcesOpen}
+          >
+            <Layers className="size-3.5 shrink-0" />
+            {sidebarOpen && (
+              <>
+                <span className="flex-1 text-left">Sources</span>
+                <ChevronDown
+                  className={cn(
+                    "size-3 transition-transform duration-200",
+                    sourcesOpen && "rotate-180",
+                  )}
+                />
+              </>
+            )}
+          </button>
+
+          {sidebarOpen && sourcesOpen && (
+            <div className="mt-0.5 flex flex-col gap-0.5">
+              {activeSources.map((source) => {
+                const isActive = sourceFilter === source;
+                const isEnabled = enabledSources
+                  ? enabledSources.includes(source)
+                  : true;
+                const count = visibleGames.filter((g) => g.source === source).length;
+                const IconComponent = SOURCE_ICON_COMPONENTS[source];
+                return (
+                  <button
+                    key={source}
+                    data-testid={`source-filter-${source}`}
+                    className={cn(
+                      "flex h-8 w-full items-center gap-3 rounded-md px-3 text-left text-sm transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive
+                        ? "bg-accent text-foreground"
+                        : isEnabled
+                          ? "text-muted-foreground hover:bg-accent hover:text-foreground"
+                          : "text-muted-foreground opacity-50",
+                    )}
+                    onClick={() => {
+                      if (activeNav !== "library") onNavigate?.("library");
+                      onToggleSource?.(source);
+                    }}
+                    title={!sidebarOpen ? SOURCE_LABELS[source] : undefined}
+                    aria-pressed={isActive || isEnabled}
+                  >
+                    <IconComponent className="size-4 shrink-0" />
+                    {sidebarOpen && (
+                      <>
+                        <span className="flex-1">{SOURCE_LABELS[source]}</span>
+                        <span className="text-xs text-muted-foreground">{count}</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           )}
-          {activeSources.map((source) => {
-            const isActive = sourceFilter === source;
-            const isEnabled = enabledSources
-              ? enabledSources.includes(source)
-              : true;
-            const count = visibleGames.filter((g) => g.source === source).length;
-            const IconComponent = SOURCE_ICON_COMPONENTS[source];
-            return (
-              <button
-                key={source}
-                data-testid={`source-filter-${source}`}
-                className={cn(
-                  "flex h-8 w-full items-center gap-3 rounded-md px-3 text-left text-sm transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive
-                    ? "bg-accent text-foreground"
-                    : isEnabled
-                      ? "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      : "text-muted-foreground opacity-50",
-                )}
-                onClick={() => {
-                  if (activeNav !== "library") onNavigate?.("library");
-                  onToggleSource?.(source);
-                }}
-                title={!sidebarOpen ? SOURCE_LABELS[source] : undefined}
-                aria-pressed={isActive || isEnabled}
-              >
-                <IconComponent className="size-4 shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="flex-1">{SOURCE_LABELS[source]}</span>
-                    <span className="text-xs text-muted-foreground">{count}</span>
-                  </>
-                )}
-              </button>
-            );
-          })}
         </div>
       )}
 

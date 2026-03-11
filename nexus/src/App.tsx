@@ -55,6 +55,7 @@ import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDial
 import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
+import { useQueueStore } from "@/stores/queueStore";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function SessionNotePromptWrapper() {
@@ -517,7 +518,16 @@ function MainApp() {
     (gameId: string, status: GameStatus) => {
       invoke("update_game", { id: gameId, fields: { status } })
         .then(() => invoke<Game[]>("get_games", { params: {} }))
-        .then((games) => setGames(games))
+        .then((updatedGames) => {
+          setGames(updatedGames);
+          if (status === "completed" || status === "dropped") {
+            const qs = useQueueStore.getState();
+            if (qs.isQueued(gameId)) {
+              const entry = qs.entries.find((e) => e.gameId === gameId);
+              qs.remove(gameId, entry?.name);
+            }
+          }
+        })
         .catch(() => {});
     },
     [setGames],
@@ -635,7 +645,15 @@ function MainApp() {
             onStatusChange={(status) => {
               invoke("update_game", { id: game.id, fields: { status } })
                 .then(() => invoke<Game[]>("get_games", { params: {} }))
-                .then((games) => setGames(games))
+                .then((updatedGames) => {
+                  setGames(updatedGames);
+                  if (status === "completed" || status === "dropped") {
+                    const qs = useQueueStore.getState();
+                    if (qs.isQueued(game.id)) {
+                      qs.remove(game.id, game.name);
+                    }
+                  }
+                })
                 .catch(() => {});
             }}
             onRatingChange={(rating) => {

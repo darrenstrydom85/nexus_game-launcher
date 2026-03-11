@@ -54,6 +54,7 @@ export interface SettingsState {
   sessionNotePromptEnabled: boolean;
   /** Auto-dismiss timeout in seconds: 30, 60, 90, or 0 = never. */
   sessionNotePromptTimeout: number;
+  queueCollapsed: boolean;
   _hydrated: boolean;
 }
 
@@ -91,6 +92,7 @@ export interface SettingsActions {
   setContinuePlayingMax: (value: number) => void;
   setSessionNotePromptEnabled: (value: boolean) => void;
   setSessionNotePromptTimeout: (value: number) => void;
+  setQueueCollapsed: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -140,6 +142,7 @@ const initialState: SettingsState = {
   continuePlayingMax: 5,
   sessionNotePromptEnabled: true,
   sessionNotePromptTimeout: 60,
+  queueCollapsed: false,
   _hydrated: false,
 };
 
@@ -377,6 +380,8 @@ export const useSettingsStore = create<SettingsStore>()(
           persistSetting("session_note_prompt_timeout", String(value));
           set({ sessionNotePromptTimeout: value }, false, "setSessionNotePromptTimeout");
         },
+        setQueueCollapsed: (value) =>
+          set({ queueCollapsed: value }, false, "setQueueCollapsed"),
       }),
       { name: "nexus-settings" },
     ),
