@@ -288,11 +288,115 @@ async fn ensure_valid_twitch_token(
     Ok((user_id, access_token))
 }
 
+/// Force-refresh the access token regardless of cooldown. Used when a Helix API call
+/// returns 401, proving the stored token is invalid even though `ensure_valid_twitch_token`
+/// thought it was fine. Returns (user_id, access_token) on success. On auth failure,
+/// clears tokens and emits unauthenticated. Transient errors are surfaced as-is.
+async fn force_refresh_token(
+    app: &AppHandle,
+    db: &State<'_, DbState>,
+) -> Result<(String, String), CommandError> {
+    let (refresh_token_opt, user_id_opt) = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        (tokens::load_refresh_token(&conn)?, tokens::load_user_id(&conn)?)
+    };
+
+    let user_id = user_id_opt
+        .ok_or_else(|| CommandError::Auth("Not logged in to Twitch".to_string()))?;
+    let refresh_token = refresh_token_opt
+        .ok_or_else(|| CommandError::Auth("No Twitch refresh token".to_string()))?;
+
+    match auth::refresh_access_token(twitch_client_id()?, &refresh_token).await {
+        Ok((access_token, new_refresh, expires_in)) => {
+            let now_secs = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64;
+            let new_expires_at = now_secs + expires_in;
+            let conn = db
+                .conn
+                .lock()
+                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let enc_access = tokens::encrypt(&access_token)?;
+            let enc_refresh = tokens::encrypt(&new_refresh)?;
+            tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_ACCESS_TOKEN, &enc_access)?;
+            tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
+            tokens::set_setting_raw(&conn, crate::models::settings::keys::TWITCH_TOKEN_EXPIRES_AT, &new_expires_at.to_string())?;
+            drop(conn);
+            mark_refresh_completed();
+            let _ = app.emit("twitch-auth-changed", serde_json::json!({ "authenticated": true }));
+            Ok((user_id, access_token))
+        }
+        Err(e) => {
+            if matches!(e, CommandError::Auth(_)) {
+                let conn = db
+                    .conn
+                    .lock()
+                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let _ = tokens::clear_all(&conn);
+                drop(conn);
+                let _ = app.emit(
+                    "twitch-auth-changed",
+                    serde_json::json!({ "authenticated": false, "displayName": null }),
+                );
+            }
+            Err(e)
+        }
+    }
+}
+
+/// When a Helix API call fails, check if the error is an auth error. If so, force-refresh
+/// the token and return the new credentials for a retry. Non-auth errors are returned as-is
+/// so the caller can fall through to cache.
+async fn try_recover_auth_error(
+    err: CommandError,
+    app: &AppHandle,
+    db: &State<'_, DbState>,
+) -> Result<(String, String), CommandError> {
+    if matches!(err, CommandError::Auth(_)) {
+        force_refresh_token(app, db).await
+    } else {
+        Err(err)
+    }
+}
+
 fn cached_at_now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+fn fallback_trending_cache(
+    cached: Vec<cache::CachedTrendingEntry>,
+) -> TwitchResponse<Vec<TrendingLibraryGame>> {
+    if cached.is_empty() {
+        return TwitchResponse {
+            data: vec![],
+            stale: false,
+            cached_at: None,
+        };
+    }
+    let cached_at_secs = cached.first().map(|e| e.cached_at);
+    let data = cached
+        .into_iter()
+        .map(|e| TrendingLibraryGame {
+            game_id: e.game_id,
+            game_name: e.game_name,
+            twitch_game_name: e.twitch_game_name,
+            twitch_viewer_count: e.twitch_viewer_count,
+            twitch_stream_count: e.twitch_stream_count,
+            twitch_rank: e.twitch_rank,
+        })
+        .collect();
+    TwitchResponse {
+        data,
+        stale: true,
+        cached_at: cached_at_secs,
+    }
 }
 
 /// Merge cached channels with cached streams into TwitchChannel list.
@@ -606,7 +710,7 @@ pub async fn get_twitch_followed_channels(
     app: AppHandle,
     db: State<'_, DbState>,
 ) -> Result<TwitchResponse<Vec<TwitchChannel>>, CommandError> {
-    let (user_id, access_token) = ensure_valid_twitch_token(&app, &db).await?;
+    let (mut user_id, mut access_token) = ensure_valid_twitch_token(&app, &db).await?;
 
     let (cached_channels, cached_streams) = {
         let conn = db
@@ -623,7 +727,16 @@ pub async fn get_twitch_followed_channels(
         let http = reqwest::Client::new();
         let channels = match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
             Ok(ch) => ch,
-            Err(_) => { /* fall through to cache */ vec![] }
+            Err(e) => match try_recover_auth_error(e, &app, &db).await {
+                Ok((new_uid, new_tok)) => {
+                    user_id = new_uid;
+                    access_token = new_tok;
+                    api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
+                        .await
+                        .unwrap_or_default()
+                }
+                Err(_) => vec![],
+            },
         };
         if !channels.is_empty() {
             {
@@ -680,7 +793,7 @@ pub async fn get_twitch_live_streams(
     app: AppHandle,
     db: State<'_, DbState>,
 ) -> Result<TwitchResponse<Vec<TwitchStream>>, CommandError> {
-    let (user_id, access_token) = ensure_valid_twitch_token(&app, &db).await?;
+    let (mut user_id, mut access_token) = ensure_valid_twitch_token(&app, &db).await?;
 
     let (cached, cached_at_secs) = {
         let conn = db
@@ -695,7 +808,17 @@ pub async fn get_twitch_live_streams(
     if check_twitch_api_available() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
-        let channels = api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await.ok();
+        let channels = match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
+            Ok(ch) => Some(ch),
+            Err(e) => match try_recover_auth_error(e, &app, &db).await {
+                Ok((new_uid, new_tok)) => {
+                    user_id = new_uid;
+                    access_token = new_tok;
+                    api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await.ok()
+                }
+                Err(_) => None,
+            },
+        };
         if let Some(chs) = channels {
             let user_ids: Vec<String> = chs.iter().map(|c| c.channel_id.clone()).collect();
             let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids).await.ok();
@@ -766,7 +889,7 @@ pub async fn get_twitch_streams_by_game(
         });
     }
 
-    let (_, access_token) = ensure_valid_twitch_token(&app, &db).await?;
+    let (_, mut access_token) = ensure_valid_twitch_token(&app, &db).await?;
 
     let (cached_mapping, cached_at_secs) = {
         let conn = db
@@ -783,9 +906,20 @@ pub async fn get_twitch_streams_by_game(
         let http = reqwest::Client::new();
         let game_id_opt = match &cached_mapping {
             Some(m) => Some((m.twitch_game_id.clone(), m.twitch_game_name.clone())),
-            None => api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
-                .await?
-                .map(|(id, name)| (id, name)),
+            None => match api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim()).await {
+                Ok(opt) => opt.map(|(id, name)| (id, name)),
+                Err(e) => match try_recover_auth_error(e, &app, &db).await {
+                    Ok((_, new_tok)) => {
+                        access_token = new_tok;
+                        api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
+                            .await
+                            .ok()
+                            .flatten()
+                            .map(|(id, name)| (id, name))
+                    }
+                    Err(_) => None,
+                },
+            },
         };
         if let Some((twitch_id, twitch_name)) = game_id_opt {
             match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await
@@ -821,7 +955,44 @@ pub async fn get_twitch_streams_by_game(
                         cached_at: Some(cached_at_now()),
                     });
                 }
-                Err(_) => { /* fall through */ }
+                Err(e) => {
+                    if let Ok((_, new_tok)) = try_recover_auth_error(e, &app, &db).await {
+                        access_token = new_tok;
+                        if let Ok((streams, twitch_game_name)) =
+                            api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await
+                        {
+                            let conn = db
+                                .conn
+                                .lock()
+                                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                            cache::cache_game_mapping(&conn, game_name.trim(), &twitch_id, &twitch_name)?;
+                            drop(conn);
+                            let out: Vec<TwitchStreamByGame> = streams
+                                .into_iter()
+                                .map(|s| TwitchStreamByGame {
+                                    user_id: s.user_id,
+                                    login: s.user_login,
+                                    display_name: s.user_name,
+                                    profile_image_url: s.profile_image_url,
+                                    title: s.title,
+                                    game_name: s.game_name,
+                                    game_id: s.game_id,
+                                    viewer_count: s.viewer_count,
+                                    thumbnail_url: s.thumbnail_url,
+                                    started_at: s.started_at,
+                                })
+                                .collect();
+                            return Ok(TwitchResponse {
+                                data: StreamsByGameData {
+                                    streams: out,
+                                    twitch_game_name,
+                                },
+                                stale: false,
+                                cached_at: Some(cached_at_now()),
+                            });
+                        }
+                    }
+                }
             }
         }
     }
@@ -858,7 +1029,7 @@ pub async fn get_twitch_trending_library_games(
     app: AppHandle,
     db: State<'_, DbState>,
 ) -> Result<TwitchResponse<Vec<TrendingLibraryGame>>, CommandError> {
-    let (_, access_token) = ensure_valid_twitch_token(&app, &db).await?;
+    let (_, mut access_token) = ensure_valid_twitch_token(&app, &db).await?;
 
     let cached = {
         let conn = db
@@ -894,32 +1065,20 @@ pub async fn get_twitch_trending_library_games(
         let http = reqwest::Client::new();
         let top_games = match api::fetch_top_games(&http, client_id, &access_token).await {
             Ok(t) => t,
-            Err(_) => {
-                if !cached.is_empty() {
-                    let cached_at_secs = cached.first().map(|e| e.cached_at);
-                    let data = cached
-                        .into_iter()
-                        .map(|e| TrendingLibraryGame {
-                            game_id: e.game_id,
-                            game_name: e.game_name,
-                            twitch_game_name: e.twitch_game_name,
-                            twitch_viewer_count: e.twitch_viewer_count,
-                            twitch_stream_count: e.twitch_stream_count,
-                            twitch_rank: e.twitch_rank,
-                        })
-                        .collect();
-                    return Ok(TwitchResponse {
-                        data,
-                        stale: true,
-                        cached_at: cached_at_secs,
-                    });
+            Err(e) => match try_recover_auth_error(e, &app, &db).await {
+                Ok((_, new_tok)) => {
+                    access_token = new_tok;
+                    match api::fetch_top_games(&http, client_id, &access_token).await {
+                        Ok(t) => t,
+                        Err(_) => {
+                            return Ok(fallback_trending_cache(cached));
+                        }
+                    }
                 }
-                return Ok(TwitchResponse {
-                    data: vec![],
-                    stale: false,
-                    cached_at: None,
-                });
-            }
+                Err(_) => {
+                    return Ok(fallback_trending_cache(cached));
+                }
+            },
         };
 
         let library = {
@@ -960,23 +1119,7 @@ pub async fn get_twitch_trending_library_games(
         });
     }
 
-    let cached_at_secs = cached.first().map(|e| e.cached_at);
-    let data = cached
-        .into_iter()
-        .map(|e| TrendingLibraryGame {
-            game_id: e.game_id,
-            game_name: e.game_name,
-            twitch_game_name: e.twitch_game_name,
-            twitch_viewer_count: e.twitch_viewer_count,
-            twitch_stream_count: e.twitch_stream_count,
-            twitch_rank: e.twitch_rank,
-        })
-        .collect();
-    Ok(TwitchResponse {
-        data,
-        stale: true,
-        cached_at: cached_at_secs,
-    })
+    Ok(fallback_trending_cache(cached))
 }
 
 /// Clear all Twitch tokens, user data, and offline cache; emit twitch-auth-changed (authenticated: false).

@@ -138,15 +138,50 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.16 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.16">
+        <!-- ── v0.1.17 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.17">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.16</h2>
+              <h2 class="type-title1 mb-0">v0.1.17</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-13">March 13, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Twitch token resilience and website improvements — Twitch API calls now automatically recover from expired tokens with force-refresh and retry, and the website features section has been redesigned with categorised lists.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Twitch 401 auto-recovery</strong> — When a Twitch API call returns 401 (invalid token), Nexus now force-refreshes the access token and retries the request automatically. This covers followed channels, live streams, streams-by-game, and trending games — no more silent failures or stale data after token expiry.</li>
+                <li><strong>Website feature section</strong> — The features section on the landing page has been redesigned with categorised feature lists grouped by Library Management, Tracking &amp; Stats, Organisation, Integrations, and Experience.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Trending games cache fallback</strong> — Deduplicated the trending-games cache fallback logic into a shared helper, fixing inconsistent stale-data handling across error paths.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.16 ── -->
+        <article class="changelog-entry" id="v0.1.16">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.16</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-11">March 11, 2026</time>
           </div>
