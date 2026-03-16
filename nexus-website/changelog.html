@@ -138,15 +138,52 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.17 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.17">
+        <!-- ── v0.1.18 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.18">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.17</h2>
+              <h2 class="type-title1 mb-0">v0.1.18</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-16">March 16, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Hardware branding and UI polish — your CPU and GPU brand logos now appear in the sidebar, GPU detection works on modern Windows without wmic, and the donate link moves to Settings.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">New</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Hardware detection backend</strong> — New <code>get_system_hardware</code> Tauri command detects CPU brand via sysinfo and GPU brand via WMI/PowerShell, with discrete-GPU preference for multi-GPU systems.</li>
+                <li><strong>Hardware branding sidebar</strong> — CPU and GPU brand logos (Intel, AMD, NVIDIA) now display in the sidebar footer. Expanded mode shows logo + model name; collapsed mode shows icon-only with tooltips.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>GPU detection fallback</strong> — When <code>wmic</code> is unavailable (removed in newer Windows builds), GPU detection falls back to PowerShell <code>Get-CimInstance</code> automatically.</li>
+                <li><strong>Support link relocated</strong> — "Support this project" moved from the sidebar to the Settings &gt; About section for a cleaner navigation experience.</li>
+                <li><strong>Game card progress bar</strong> — Completion progress bar is now thicker and more visible with a dark background track.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.17 ── -->
+        <article class="changelog-entry" id="v0.1.17">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.17</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-13">March 13, 2026</time>
           </div>

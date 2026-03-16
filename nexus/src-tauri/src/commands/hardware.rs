@@ -2,6 +2,12 @@ use serde::Serialize;
 use std::process::Command;
 use sysinfo::{CpuRefreshKind, RefreshKind, System};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HardwareInfo {
@@ -105,9 +111,16 @@ fn parse_powershell_output(output: &str) -> Vec<GpuEntry> {
         .collect()
 }
 
+fn new_hidden_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
 fn detect_gpu() -> (String, String) {
     // Try wmic first (available on older Windows builds)
-    if let Ok(output) = Command::new("wmic")
+    if let Ok(output) = new_hidden_command("wmic")
         .args(["path", "Win32_VideoController", "get", "Name", "/format:list"])
         .output()
     {
@@ -119,7 +132,7 @@ fn detect_gpu() -> (String, String) {
     }
 
     // Fallback: PowerShell Get-CimInstance (wmic removed in newer Windows)
-    if let Ok(output) = Command::new("powershell")
+    if let Ok(output) = new_hidden_command("powershell")
         .args([
             "-NoProfile",
             "-Command",
@@ -138,16 +151,25 @@ fn detect_gpu() -> (String, String) {
 }
 
 #[tauri::command]
-pub fn get_system_hardware() -> HardwareInfo {
-    let (cpu_brand, cpu_name) = detect_cpu();
-    let (gpu_brand, gpu_name) = detect_gpu();
+pub async fn get_system_hardware() -> HardwareInfo {
+    tokio::task::spawn_blocking(|| {
+        let (cpu_brand, cpu_name) = detect_cpu();
+        let (gpu_brand, gpu_name) = detect_gpu();
 
-    HardwareInfo {
-        cpu_brand,
-        cpu_name,
-        gpu_brand,
-        gpu_name,
-    }
+        HardwareInfo {
+            cpu_brand,
+            cpu_name,
+            gpu_brand,
+            gpu_name,
+        }
+    })
+    .await
+    .unwrap_or_else(|_| HardwareInfo {
+        cpu_brand: "unknown".to_string(),
+        cpu_name: String::new(),
+        gpu_brand: "unknown".to_string(),
+        gpu_name: String::new(),
+    })
 }
 
 #[cfg(test)]
