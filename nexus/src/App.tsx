@@ -571,6 +571,10 @@ function MainApp() {
           .then(() => useCollectionStore.getState().removeCollection(c.id))
           .catch(() => {});
       }}
+      onPlayGame={(gameId) => {
+        const game = useGameStore.getState().games.find((g) => g.id === gameId);
+        if (game) launch(game);
+      }}
       onStopGame={async () => {
         const session = useGameStore.getState().activeSession;
         if (session) {

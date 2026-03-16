@@ -46,6 +46,7 @@ getrandom = "0.2"
 urlencoding = "2"
 arboard = "3"
 png = "0.18"
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 
 [dev-dependencies]
 tempfile = "3"

@@ -11,14 +11,12 @@ import {
   ChevronDown,
   FolderOpen,
   Gift,
-  Heart,
   Layers,
   Library,
   Shuffle,
   Star,
   Tag,
 } from "lucide-react";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { SOURCE_ICON_COMPONENTS } from "@/lib/source-icons";
 import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
@@ -637,26 +635,6 @@ export function Sidebar({
 
       {/* Spacer */}
       <div className="flex-1" />
-
-      {/* Donate */}
-      <div className="px-2 pb-3">
-        <button
-          className={cn(
-            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm",
-            "text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            !sidebarOpen && "justify-center",
-          )}
-          onClick={() => openUrl("https://paypal.me/darrenstrydom85")}
-          title={!sidebarOpen ? "Support this project" : undefined}
-          aria-label="Support this project via PayPal"
-        >
-          <Heart className="size-3.5 shrink-0" />
-          {sidebarOpen && (
-            <span className="text-xs">Support this project</span>
-          )}
-        </button>
-      </div>
     </nav>
   );
 }

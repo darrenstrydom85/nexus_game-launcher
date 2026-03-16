@@ -6,6 +6,7 @@ pub mod dedup;
 pub mod error;
 pub mod events;
 pub mod games;
+pub mod hardware;
 pub mod health;
 pub mod jsonbin;
 pub mod known_issues;

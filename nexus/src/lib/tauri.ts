@@ -628,6 +628,18 @@ export function getAllGameTagIds(): Promise<[string, string][]> {
   return invoke<[string, string][]>("get_all_game_tag_ids");
 }
 
+// ── Hardware Detection (Story 35.1) ────────────────────────────────────
+export interface HardwareInfo {
+  cpuBrand: "intel" | "amd" | "unknown";
+  cpuName: string;
+  gpuBrand: "nvidia" | "amd" | "intel" | "unknown";
+  gpuName: string;
+}
+
+export function getSystemHardware(): Promise<HardwareInfo> {
+  return invoke<HardwareInfo>("get_system_hardware");
+}
+
 // ── Smart Collections (Story 30.1) ────────────────────────────────────
 
 export type SmartRuleField =

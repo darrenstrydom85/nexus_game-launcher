@@ -1,6 +1,6 @@
 import * as React from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, CircleAlert, Download, MessageCircle } from "lucide-react";
+import { Bug, CircleAlert, Download, Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -69,6 +69,16 @@ export function AboutSection() {
         >
           <CircleAlert className="size-3.5" /> Known Issues
         </button>
+        <a
+          data-testid="about-support"
+          href="https://paypal.me/darrenstrydom85"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+          aria-label="Support this project via PayPal"
+        >
+          <Heart className="size-3.5" /> Support this project
+        </a>
         <span data-testid="about-license" className="text-xs">MIT License</span>
       </div>
       <KnownIssuesDialog

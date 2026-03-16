@@ -8,6 +8,7 @@ import { NowPlaying } from "./NowPlaying";
 import { ChevronLeft, ChevronRight, Menu, Settings, X } from "lucide-react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { AnimatePresence, motion } from "motion/react";
+import { HardwareBranding } from "./HardwareBranding";
 
 const SIDEBAR_EXPANDED = 240;
 const SIDEBAR_COLLAPSED = 64;
@@ -24,9 +25,10 @@ interface AppShellProps {
   onGameDetails?: (gameId: string) => void;
   onForceIdentify?: () => void;
   hasPlayHistory?: boolean;
+  onPlayGame?: (gameId: string) => void;
 }
 
-export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails, onForceIdentify, hasPlayHistory }: AppShellProps) {
+export function AppShell({ children, onSettingsClick, onAddCollection, onEditCollection, onDeleteCollection, onStopGame, onGameDetails, onForceIdentify, hasPlayHistory, onPlayGame }: AppShellProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const healthIssueCount = useSettingsStore((s) => s.healthCheckIssueCount);
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
@@ -93,8 +95,11 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
                 onEditCollection={onEditCollection}
                 onDeleteCollection={onDeleteCollection}
                 hasPlayHistory={hasPlayHistory}
+                onPlayGame={onPlayGame}
               />
             </div>
+
+            <HardwareBranding sidebarOpen={sidebarOpen} />
 
             <button
               data-testid="settings-button"
@@ -209,6 +214,8 @@ export function AppShell({ children, onSettingsClick, onAddCollection, onEditCol
                         hasPlayHistory={hasPlayHistory}
                       />
                     </div>
+
+                    <HardwareBranding sidebarOpen={true} />
 
                     <button
                       data-testid="settings-button"

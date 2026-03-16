@@ -218,10 +218,9 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
       {showCardProgress && game.progress != null && game.progress > 0 && (
         <div
           data-testid={`card-progress-${game.id}`}
-          className="absolute inset-x-0 bottom-0 h-0.5"
+          className="absolute inset-x-0 bottom-0 h-1.5 bg-black/40"
           style={{
-            background: `linear-gradient(to right, ${STATUS_BAR_COLORS[game.status] ?? "var(--primary)"} ${game.progress}%, transparent ${game.progress}%)`,
-            opacity: 0.6,
+            backgroundImage: `linear-gradient(to right, ${STATUS_BAR_COLORS[game.status] ?? "var(--primary)"} ${game.progress}%, transparent ${game.progress}%)`,
           }}
         />
       )}
