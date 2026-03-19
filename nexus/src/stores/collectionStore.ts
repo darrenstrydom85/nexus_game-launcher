@@ -119,19 +119,37 @@ export const useCollectionStore = create<CollectionStore>()(
   ),
 );
 
-export async function refreshSmartCollections(): Promise<void> {
-  const { collections, updateCollection } = useCollectionStore.getState();
-  const smartOnes = collections.filter((c) => c.isSmart && c.rulesJson);
-  await Promise.all(
-    smartOnes.map(async (c) => {
-      try {
-        const ids = await invoke<string[]>("evaluate_smart_collection", {
-          rulesJson: c.rulesJson,
-        });
-        updateCollection(c.id, { gameIds: ids });
-      } catch {
-        // best-effort
-      }
-    }),
-  );
+interface BackendCollection {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  sortOrder: number;
+  isSmart: boolean;
+  rulesJson: string | null;
+  gameIds: string[];
 }
+
+export async function refreshCollections(): Promise<void> {
+  try {
+    const rows = await invoke<BackendCollection[]>(
+      "get_collections_with_game_ids",
+    );
+    const mapped: Collection[] = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      icon: row.icon ?? "",
+      color: row.color,
+      sortOrder: row.sortOrder,
+      isSmart: row.isSmart,
+      rulesJson: row.rulesJson,
+      gameIds: row.gameIds,
+    }));
+    useCollectionStore.getState().setCollections(mapped);
+  } catch {
+    // best-effort refresh
+  }
+}
+
+/** @deprecated Use refreshCollections instead */
+export const refreshSmartCollections = refreshCollections;

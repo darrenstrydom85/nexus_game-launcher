@@ -488,7 +488,7 @@ function MainApp() {
 
   const games = useGameStore((s) => s.games);
   const collectionLabels = React.useMemo(
-    () => collections.map((c) => `${c.icon} ${c.name}`),
+    () => collections.filter((c) => !c.isSmart).map((c) => `${c.icon} ${c.name}`),
     [collections],
   );
   const handleLibraryEditGame = React.useCallback((game: Game) => {
@@ -559,6 +559,21 @@ function MainApp() {
     },
     [games, collections],
   );
+  const handleRemoveFromCollection = React.useCallback(
+    (gameId: string) => {
+      const collectionId = useCollectionStore.getState().activeCollectionId;
+      if (!collectionId) return;
+      invoke("remove_from_collection", { collectionId, gameId })
+        .then(() => useCollectionStore.getState().removeGameFromCollection(collectionId, gameId))
+        .catch(() => {});
+    },
+    [],
+  );
+  const activeCollectionId = useCollectionStore((s) => s.activeCollectionId);
+  const activeManualCollectionName = React.useMemo(() => {
+    const active = collections.find((c) => c.id === activeCollectionId);
+    return active && !active.isSmart ? active.name : null;
+  }, [collections, activeCollectionId]);
 
   return (
     <AppShell
@@ -630,6 +645,8 @@ function MainApp() {
           onSetStatus={handleLibrarySetStatus}
           onSetRating={handleLibrarySetRating}
           onAddToCollection={handleLibraryAddToCollection}
+          onRemoveFromCollection={handleRemoveFromCollection}
+          activeCollectionName={activeManualCollectionName}
           collections={collectionLabels}
         />
       )}

@@ -87,6 +87,8 @@ export function GameGrid({
   onSetStatus,
   onSetRating,
   onAddToCollection,
+  onRemoveFromCollection,
+  activeCollectionName,
   collections,
 }: GameGridProps) {
   const viewMode = useUiStore((s) => s.viewMode);
@@ -360,6 +362,8 @@ export function GameGrid({
           onSetStatus={onSetStatus}
           onSetRating={onSetRating}
           onAddToCollection={onAddToCollection}
+          onRemoveFromCollection={onRemoveFromCollection}
+          activeCollectionName={activeCollectionName}
           onEdit={onEdit}
           onRefetchMetadata={onRefetchMetadata}
           onSearchMetadata={onSearchMetadata}

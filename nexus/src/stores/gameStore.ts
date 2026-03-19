@@ -208,6 +208,6 @@ export async function refreshGames(): Promise<void> {
   } catch {
     // best-effort refresh
   }
-  const { refreshSmartCollections } = await import("@/stores/collectionStore");
-  refreshSmartCollections().catch(() => {});
+  const { refreshCollections } = await import("@/stores/collectionStore");
+  refreshCollections().catch(() => {});
 }

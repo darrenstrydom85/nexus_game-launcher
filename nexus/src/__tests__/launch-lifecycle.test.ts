@@ -23,7 +23,7 @@ describe("Story 8.2: Launch Lifecycle", () => {
     vi.clearAllMocks();
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_games") return [];
-      if (cmd === "evaluate_smart_collection") return [];
+      if (cmd === "get_collections_with_game_ids") return [];
       return undefined;
     });
     useGameStore.setState({ activeSession: null });
@@ -182,7 +182,7 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
     vi.clearAllMocks();
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_games") return [];
-      if (cmd === "evaluate_smart_collection") return [];
+      if (cmd === "get_collections_with_game_ids") return [];
       return undefined;
     });
     useGameStore.setState({ activeSession: null, showProcessPicker: false });
@@ -370,7 +370,7 @@ describe("Story 22.5: Persist Selected EXE", () => {
     vi.clearAllMocks();
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_games") return [];
-      if (cmd === "evaluate_smart_collection") return [];
+      if (cmd === "get_collections_with_game_ids") return [];
       return undefined;
     });
     useGameStore.setState({ activeSession: null, showProcessPicker: false, games: [] });
@@ -472,7 +472,7 @@ describe("Story 22.5: Persist Selected EXE", () => {
         getGamesCallCount++;
         return [];
       }
-      if (cmd === "evaluate_smart_collection") return [];
+      if (cmd === "get_collections_with_game_ids") return [];
       return undefined;
     });
 

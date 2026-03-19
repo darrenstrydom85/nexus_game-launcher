@@ -11,6 +11,7 @@ import {
   EyeOff,
   Pencil,
   Plus,
+  Minus,
   RefreshCw,
   ImagePlus,
   Loader2,
@@ -35,6 +36,8 @@ export interface GameContextMenuHandlers {
   onSetStatus?: (gameId: string, status: GameStatus) => void;
   onSetRating?: (gameId: string, rating: number | null) => void;
   onAddToCollection?: (gameId: string, collection: string) => void;
+  onRemoveFromCollection?: (gameId: string) => void;
+  activeCollectionName?: string | null;
   onEdit?: (game: Game) => void;
   onRefetchMetadata?: (game: Game) => Promise<void> | void;
   onSearchMetadata?: (game: Game) => void;
@@ -58,6 +61,8 @@ export function GameCardContextMenu({
   onSetStatus,
   onSetRating,
   onAddToCollection,
+  onRemoveFromCollection,
+  activeCollectionName,
   onEdit,
   onRefetchMetadata,
   onSearchMetadata,
@@ -310,6 +315,22 @@ export function GameCardContextMenu({
           </div>
         )}
       </div>
+
+      {/* Remove from Collection — only when viewing a manual collection */}
+      {activeCollectionName && onRemoveFromCollection && (
+        <button
+          data-testid="ctx-remove-from-collection"
+          className={menuItemClass}
+          role="menuitem"
+          onClick={() => {
+            onRemoveFromCollection(game.id);
+            onClose();
+          }}
+        >
+          <Minus className="size-4" />
+          Remove from {activeCollectionName}
+        </button>
+      )}
 
       {/* Tags */}
       {allTags.length > 0 && (
