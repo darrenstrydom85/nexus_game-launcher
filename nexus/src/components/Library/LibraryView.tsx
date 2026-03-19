@@ -72,6 +72,8 @@ export function LibraryView({
   onSetStatus,
   onSetRating,
   onAddToCollection,
+  onRemoveFromCollection,
+  activeCollectionName,
   collections,
 }: LibraryViewProps) {
   const { games, isLoading, error } = useGames();
@@ -259,6 +261,8 @@ export function LibraryView({
             onSetStatus={onSetStatus}
             onSetRating={onSetRating}
             onAddToCollection={onAddToCollection}
+            onRemoveFromCollection={onRemoveFromCollection}
+            activeCollectionName={activeCollectionName}
             collections={collections}
             renderCard={(game) => <GameCard game={game} />}
           />
