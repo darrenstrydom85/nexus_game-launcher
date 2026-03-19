@@ -138,15 +138,59 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.18 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.18">
+        <!-- ── v0.1.19 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.19">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.18</h2>
+              <h2 class="type-title1 mb-0">v0.1.19</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-19">March 19, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Smart collection reliability and collection management improvements — smart collections now reactively refresh when game data changes, and you can remove games from collections via the context menu.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Reactive smart collection refresh</strong> — Smart collections now re-fetch from the backend whenever game data changes (status, rating, metadata, etc.), ensuring membership is always up to date instead of relying on frontend-only filtering.</li>
+                <li><strong>Unified collection refresh</strong> — Replaced the separate smart collection refresh with a single <code>refreshCollections</code> function that re-fetches all collections, simplifying the data flow.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">New</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Remove from Collection</strong> — Right-click any game in a manual collection to remove it directly from the context menu.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Smart collections in context menu</strong> — Smart collections are now filtered out of the "Add to Collection" context menu picker, since their membership is rule-based and can't be manually edited.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.18 ── -->
+        <article class="changelog-entry" id="v0.1.18">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.18</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-16">March 16, 2026</time>
           </div>
