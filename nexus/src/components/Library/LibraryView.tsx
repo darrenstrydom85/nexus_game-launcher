@@ -57,6 +57,7 @@ interface LibraryViewProps extends GameContextMenuHandlers {
   onResync?: () => Promise<void>;
   isSyncing?: boolean;
   syncResult?: { added: number; updated: number } | null;
+  onSettingsClick?: () => void;
 }
 
 export function LibraryView({
@@ -75,6 +76,7 @@ export function LibraryView({
   onRemoveFromCollection,
   activeCollectionName,
   collections,
+  onSettingsClick,
 }: LibraryViewProps) {
   const { games, isLoading, error } = useGames();
   const searchQuery = useUiStore((s) => s.searchQuery);
@@ -244,6 +246,7 @@ export function LibraryView({
             totalCount={games.length}
             isFiltered={isFiltered}
             heading={heading}
+            onSettingsClick={onSettingsClick}
             onClearFilters={() => {
               useUiStore.getState().setSearchQuery("");
               useUiStore.getState().setSourceFilter(null);
