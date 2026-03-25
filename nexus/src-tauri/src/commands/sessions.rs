@@ -1,5 +1,5 @@
 use rusqlite::{params, OptionalExtension};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 use uuid::Uuid;
 
@@ -468,6 +468,104 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(entries)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShortSessionsCount {
+    pub sessions_count: i64,
+    pub games_affected: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkDeleteResult {
+    pub sessions_removed: i64,
+    pub games_affected: i64,
+}
+
+#[tauri::command]
+pub fn count_short_sessions(
+    db: State<'_, DbState>,
+    threshold_secs: i64,
+) -> Result<ShortSessionsCount, CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let (sessions_count, games_affected): (i64, i64) = conn
+        .query_row(
+            "SELECT COUNT(*), COUNT(DISTINCT game_id) FROM play_sessions
+             WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+            params![threshold_secs],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(ShortSessionsCount {
+        sessions_count,
+        games_affected,
+    })
+}
+
+#[tauri::command]
+pub fn bulk_delete_short_sessions(
+    db: State<'_, DbState>,
+    threshold_secs: i64,
+) -> Result<BulkDeleteResult, CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let mut stmt = tx
+        .prepare(
+            "SELECT DISTINCT game_id FROM play_sessions
+             WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    let affected_game_ids: Vec<String> = stmt
+        .query_map(params![threshold_secs], |row| row.get(0))
+        .map_err(|e| CommandError::Database(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    drop(stmt);
+
+    let sessions_removed = tx
+        .execute(
+            "DELETE FROM play_sessions
+             WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+            params![threshold_secs],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+
+    let now = now_iso();
+    for game_id in &affected_game_ids {
+        tx.execute(
+            "UPDATE games SET
+                total_play_time = COALESCE((SELECT SUM(duration_s) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL), 0),
+                play_count = (SELECT COUNT(*) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL),
+                last_played = (SELECT MAX(ended_at) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL),
+                updated_at = ?2
+             WHERE id = ?1",
+            params![game_id, now],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    }
+
+    tx.commit()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+
+    Ok(BulkDeleteResult {
+        sessions_removed,
+        games_affected: affected_game_ids.len() as i64,
+    })
 }
 
 #[cfg(test)]
@@ -1234,5 +1332,264 @@ mod tests {
         let sessions = get_all_sessions_inner(&state).unwrap();
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].note, Some("Session note".into()));
+    }
+
+    // ── count_short_sessions / bulk_delete_short_sessions helpers ──
+
+    fn count_short_sessions_inner(state: &DbState, threshold_secs: i64) -> Result<ShortSessionsCount, CommandError> {
+        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let (sessions_count, games_affected): (i64, i64) = conn
+            .query_row(
+                "SELECT COUNT(*), COUNT(DISTINCT game_id) FROM play_sessions
+                 WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+                params![threshold_secs],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(ShortSessionsCount { sessions_count, games_affected })
+    }
+
+    fn bulk_delete_short_sessions_inner(state: &DbState, threshold_secs: i64) -> Result<BulkDeleteResult, CommandError> {
+        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let tx = conn.unchecked_transaction().map_err(|e| CommandError::Database(e.to_string()))?;
+
+        let mut stmt = tx
+            .prepare(
+                "SELECT DISTINCT game_id FROM play_sessions
+                 WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        let affected_game_ids: Vec<String> = stmt
+            .query_map(params![threshold_secs], |row| row.get(0))
+            .map_err(|e| CommandError::Database(e.to_string()))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        drop(stmt);
+
+        let sessions_removed = tx
+            .execute(
+                "DELETE FROM play_sessions
+                 WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
+                params![threshold_secs],
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+
+        let now = now_iso();
+        for game_id in &affected_game_ids {
+            tx.execute(
+                "UPDATE games SET
+                    total_play_time = COALESCE((SELECT SUM(duration_s) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL), 0),
+                    play_count = (SELECT COUNT(*) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL),
+                    last_played = (SELECT MAX(ended_at) FROM play_sessions WHERE game_id = ?1 AND ended_at IS NOT NULL),
+                    updated_at = ?2
+                 WHERE id = ?1",
+                params![game_id, now],
+            )
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        }
+
+        tx.commit().map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(BulkDeleteResult { sessions_removed, games_affected: affected_game_ids.len() as i64 })
+    }
+
+    // ── count_short_sessions ──
+
+    #[test]
+    fn count_short_sessions_with_mixed_durations() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_game(&conn, "g2", "Game B");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:30Z"), Some(30));
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_test_session(&conn, "s3", "g2", "2026-01-12T10:00:00Z", Some("2026-01-12T10:00:45Z"), Some(45));
+        insert_test_session(&conn, "s4", "g2", "2026-01-13T10:00:00Z", Some("2026-01-13T10:02:00Z"), Some(120));
+        drop(conn);
+
+        let result = count_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_count, 2); // s1 (30s) and s3 (45s)
+        assert_eq!(result.games_affected, 2); // g1 and g2
+    }
+
+    #[test]
+    fn count_short_sessions_excludes_orphaned() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None); // orphaned, no ended_at
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        drop(conn);
+
+        let result = count_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_count, 1); // only s2
+        assert_eq!(result.games_affected, 1);
+    }
+
+    #[test]
+    fn count_short_sessions_zero_when_none_match() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        drop(conn);
+
+        let result = count_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_count, 0);
+        assert_eq!(result.games_affected, 0);
+    }
+
+    // ── bulk_delete_short_sessions ──
+
+    #[test]
+    fn bulk_delete_removes_only_short_sessions() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:30Z"), Some(30));
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        conn.execute(
+            "UPDATE games SET total_play_time = 3630, play_count = 2, last_played = '2026-01-11T11:00:00Z' WHERE id = 'g1'",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_removed, 1);
+        assert_eq!(result.games_affected, 1);
+
+        let conn = state.conn.lock().unwrap();
+        let remaining: i64 = conn
+            .query_row("SELECT COUNT(*) FROM play_sessions", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(remaining, 1);
+
+        let (total_play_time, play_count): (i64, i64) = conn
+            .query_row(
+                "SELECT total_play_time, play_count FROM games WHERE id = 'g1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(total_play_time, 3600);
+        assert_eq!(play_count, 1);
+    }
+
+    #[test]
+    fn bulk_delete_recomputes_last_played() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(&conn, "s2", "g1", "2026-01-15T10:00:00Z", Some("2026-01-15T10:00:05Z"), Some(5));
+        conn.execute(
+            "UPDATE games SET total_play_time = 3605, play_count = 2, last_played = '2026-01-15T10:00:05Z' WHERE id = 'g1'",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        bulk_delete_short_sessions_inner(&state, 60).unwrap();
+
+        let conn = state.conn.lock().unwrap();
+        let last_played: String = conn
+            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(last_played, "2026-01-10T11:00:00Z");
+    }
+
+    #[test]
+    fn bulk_delete_sets_null_when_all_sessions_removed() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:05Z"), Some(5));
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        conn.execute(
+            "UPDATE games SET total_play_time = 15, play_count = 2, last_played = '2026-01-11T10:00:10Z' WHERE id = 'g1'",
+            [],
+        ).unwrap();
+        drop(conn);
+
+        let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_removed, 2);
+
+        let conn = state.conn.lock().unwrap();
+        let (total_play_time, play_count): (i64, i64) = conn
+            .query_row(
+                "SELECT total_play_time, play_count FROM games WHERE id = 'g1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(total_play_time, 0);
+        assert_eq!(play_count, 0);
+
+        let last_played: Option<String> = conn
+            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| row.get(0))
+            .unwrap();
+        assert!(last_played.is_none());
+    }
+
+    #[test]
+    fn bulk_delete_noop_when_no_sessions_match() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        drop(conn);
+
+        let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_removed, 0);
+        assert_eq!(result.games_affected, 0);
+    }
+
+    #[test]
+    fn bulk_delete_skips_orphaned_sessions() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None); // orphaned
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        drop(conn);
+
+        let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_removed, 1); // only s2
+
+        let conn = state.conn.lock().unwrap();
+        let remaining: i64 = conn
+            .query_row("SELECT COUNT(*) FROM play_sessions", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(remaining, 1); // orphaned s1 still exists
+    }
+
+    #[test]
+    fn bulk_delete_handles_multiple_games() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_test_game(&conn, "g1", "Game A");
+        insert_test_game(&conn, "g2", "Game B");
+        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:20Z"), Some(20));
+        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_test_session(&conn, "s3", "g2", "2026-01-12T10:00:00Z", Some("2026-01-12T10:00:15Z"), Some(15));
+        insert_test_session(&conn, "s4", "g2", "2026-01-13T10:00:00Z", Some("2026-01-13T10:30:00Z"), Some(1800));
+        conn.execute("UPDATE games SET total_play_time = 3620, play_count = 2, last_played = '2026-01-11T11:00:00Z' WHERE id = 'g1'", []).unwrap();
+        conn.execute("UPDATE games SET total_play_time = 1815, play_count = 2, last_played = '2026-01-13T10:30:00Z' WHERE id = 'g2'", []).unwrap();
+        drop(conn);
+
+        let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
+        assert_eq!(result.sessions_removed, 2);
+        assert_eq!(result.games_affected, 2);
+
+        let conn = state.conn.lock().unwrap();
+        let (g1_time, g1_count): (i64, i64) = conn
+            .query_row("SELECT total_play_time, play_count FROM games WHERE id = 'g1'", [], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap();
+        assert_eq!(g1_time, 3600);
+        assert_eq!(g1_count, 1);
+
+        let (g2_time, g2_count): (i64, i64) = conn
+            .query_row("SELECT total_play_time, play_count FROM games WHERE id = 'g2'", [], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap();
+        assert_eq!(g2_time, 1800);
+        assert_eq!(g2_count, 1);
     }
 }

@@ -4,7 +4,7 @@ import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2 } from "lucide-react";
+import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
 
 interface CacheStats {
   totalBytes: number;
@@ -15,6 +15,16 @@ interface DbStatus {
   connected: boolean;
   version: number;
   path: string;
+}
+
+interface ShortSessionsCount {
+  sessionsCount: number;
+  gamesAffected: number;
+}
+
+interface BulkDeleteResult {
+  sessionsRemoved: number;
+  gamesAffected: number;
 }
 
 function formatBytes(bytes: number): string {
@@ -31,6 +41,12 @@ export function DataManagement() {
   const [confirmClear, setConfirmClear] = React.useState(false);
   const [confirmReset, setConfirmReset] = React.useState(0);
   const [busy, setBusy] = React.useState<string | null>(null);
+
+  const [shortSessionOpen, setShortSessionOpen] = React.useState(false);
+  const [threshold, setThreshold] = React.useState(60);
+  const [thresholdUnit, setThresholdUnit] = React.useState<"seconds" | "minutes">("seconds");
+  const [preview, setPreview] = React.useState<ShortSessionsCount | null>(null);
+  const [deleteResult, setDeleteResult] = React.useState<BulkDeleteResult | null>(null);
 
   React.useEffect(() => {
     invoke<CacheStats>("get_cache_stats", {}).then((stats) => {
@@ -95,6 +111,35 @@ export function DataManagement() {
       setConfirmClear(false);
     }
   }, []);
+
+  const thresholdSecs = thresholdUnit === "minutes" ? threshold * 60 : threshold;
+
+  const handlePreviewShortSessions = React.useCallback(async () => {
+    setBusy("previewShort");
+    setPreview(null);
+    setDeleteResult(null);
+    try {
+      const result = await invoke<ShortSessionsCount>("count_short_sessions", { thresholdSecs });
+      setPreview(result);
+    } catch {
+      // best-effort
+    } finally {
+      setBusy(null);
+    }
+  }, [thresholdSecs]);
+
+  const handleDeleteShortSessions = React.useCallback(async () => {
+    setBusy("deleteShort");
+    try {
+      const result = await invoke<BulkDeleteResult>("bulk_delete_short_sessions", { thresholdSecs });
+      setDeleteResult(result);
+      setPreview(null);
+    } catch {
+      // best-effort
+    } finally {
+      setBusy(null);
+    }
+  }, [thresholdSecs]);
 
   const handleReset = React.useCallback(async (mode: "keepStats" | "keepKeys" | "all") => {
     const busyKey = mode === "keepStats" ? "resetKeepStats" : mode === "keepKeys" ? "resetKeepKeys" : "reset";
@@ -193,6 +238,139 @@ export function DataManagement() {
             <Button size="xs" variant="secondary" onClick={() => setConfirmClear(false)}>
               Cancel
             </Button>
+          </div>
+        )}
+
+        {/* Remove short sessions */}
+        {!shortSessionOpen ? (
+          <Button
+            data-testid="data-short-sessions"
+            variant="secondary"
+            size="sm"
+            className="gap-1"
+            onClick={() => {
+              setShortSessionOpen(true);
+              setPreview(null);
+              setDeleteResult(null);
+            }}
+          >
+            <Timer className="size-3.5" /> Remove Short Sessions
+          </Button>
+        ) : (
+          <div
+            data-testid="data-short-sessions-panel"
+            className="rounded-md border border-border bg-secondary/20 p-3"
+          >
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">
+                Remove sessions shorter than
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={threshold}
+                onChange={(e) => {
+                  setThreshold(Math.max(1, parseInt(e.target.value) || 1));
+                  setPreview(null);
+                  setDeleteResult(null);
+                }}
+                className="h-7 w-16 rounded-md border border-border bg-background px-2 text-xs text-foreground tabular-nums focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="flex rounded-md border border-border">
+                <button
+                  type="button"
+                  className={`px-2 py-1 text-xs transition-colors ${
+                    thresholdUnit === "seconds"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setThresholdUnit("seconds");
+                    setPreview(null);
+                    setDeleteResult(null);
+                  }}
+                >
+                  sec
+                </button>
+                <button
+                  type="button"
+                  className={`px-2 py-1 text-xs transition-colors ${
+                    thresholdUnit === "minutes"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setThresholdUnit("minutes");
+                    setPreview(null);
+                    setDeleteResult(null);
+                  }}
+                >
+                  min
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2">
+              <Button
+                size="xs"
+                variant="secondary"
+                className="gap-1"
+                disabled={busy === "previewShort"}
+                onClick={handlePreviewShortSessions}
+              >
+                {busy === "previewShort" ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Search className="size-3" />
+                )}
+                Preview
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => {
+                  setShortSessionOpen(false);
+                  setPreview(null);
+                  setDeleteResult(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            {preview !== null && preview.sessionsCount > 0 && (
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-warning bg-warning/10 p-2">
+                <AlertTriangle className="size-4 shrink-0 text-warning" />
+                <span className="flex-1 text-xs text-foreground">
+                  {preview.sessionsCount} session{preview.sessionsCount !== 1 ? "s" : ""} across{" "}
+                  {preview.gamesAffected} game{preview.gamesAffected !== 1 ? "s" : ""} will be
+                  removed. Play time will be recalculated.
+                </span>
+                <Button
+                  size="xs"
+                  variant="destructive"
+                  disabled={busy === "deleteShort"}
+                  onClick={handleDeleteShortSessions}
+                >
+                  {busy === "deleteShort" ? "Removing..." : "Remove"}
+                </Button>
+              </div>
+            )}
+
+            {preview !== null && preview.sessionsCount === 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                No sessions found below that threshold.
+              </p>
+            )}
+
+            {deleteResult !== null && (
+              <p className="mt-2 text-xs text-green-500">
+                Removed {deleteResult.sessionsRemoved} session
+                {deleteResult.sessionsRemoved !== 1 ? "s" : ""} across{" "}
+                {deleteResult.gamesAffected} game{deleteResult.gamesAffected !== 1 ? "s" : ""}.
+                Play time has been recalculated.
+              </p>
+            )}
           </div>
         )}
 
