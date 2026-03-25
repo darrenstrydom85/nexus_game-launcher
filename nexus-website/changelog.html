@@ -138,15 +138,50 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.19 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.19">
+        <!-- ── v0.1.20 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.20">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.19</h2>
+              <h2 class="type-title1 mb-0">v0.1.20</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-03-25">March 25, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Edit game usability and session housekeeping — browse for files directly from the Edit Game modal, and bulk-delete short play sessions that clutter your stats.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">New</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>File picker in Edit Game</strong> — Browse buttons next to Executable Path, Custom Cover Art, and Custom Hero Art fields open a native file dialog so you no longer need to paste paths manually.</li>
+                <li><strong>Bulk delete short sessions</strong> — A new tool in Settings lets you find and remove play sessions shorter than a threshold you choose (seconds or minutes). Game stats are automatically recalculated after cleanup.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Empty library "Open Settings" button</strong> — The Settings shortcut on the empty library screen now works correctly instead of doing nothing.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.19 ── -->
+        <article class="changelog-entry" id="v0.1.19">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.19</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-19">March 19, 2026</time>
           </div>
