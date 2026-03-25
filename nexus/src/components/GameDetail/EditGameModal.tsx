@@ -1,9 +1,10 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { cn } from "@/lib/utils";
 import type { Game } from "@/stores/gameStore";
 import { Button } from "@/components/ui/button";
-import { X, RotateCcw } from "lucide-react";
+import { X, RotateCcw, FolderOpen } from "lucide-react";
 
 interface EditGameModalProps {
   game: Game | null;
@@ -85,6 +86,36 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
     setErrors({});
   }, [game]);
 
+  const browseExe = React.useCallback(async () => {
+    const selected = await openDialog({
+      multiple: false,
+      defaultPath: game?.folderPath ?? undefined,
+      filters: [{ name: "Executable", extensions: ["exe", "bat", "cmd", "sh", "app"] }],
+    });
+    if (selected && typeof selected === "string") setExePath(selected);
+  }, [game?.folderPath]);
+
+  const browseCover = React.useCallback(async () => {
+    const selected = await openDialog({
+      multiple: false,
+      filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }],
+    });
+    if (selected && typeof selected === "string") setCustomCover(selected);
+  }, []);
+
+  const browseHero = React.useCallback(async () => {
+    const selected = await openDialog({
+      multiple: false,
+      filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }],
+    });
+    if (selected && typeof selected === "string") setCustomHero(selected);
+  }, []);
+
+  const browseButtonClass = cn(
+    "flex-none rounded-md border border-border bg-input p-2 text-muted-foreground",
+    "hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring",
+  );
+
   const inputClass = cn(
     "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground",
     "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring",
@@ -151,14 +182,26 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
                 <label htmlFor="edit-exe" className="mb-1 block text-sm font-medium text-foreground">
                   Executable Path
                 </label>
-                <input
-                  id="edit-exe"
-                  data-testid="edit-exe"
-                  className={cn(inputClass, errors.exePath && "border-destructive")}
-                  value={exePath}
-                  onChange={(e) => setExePath(e.target.value)}
-                  placeholder="C:\Games\game.exe"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="edit-exe"
+                    data-testid="edit-exe"
+                    className={cn(inputClass, errors.exePath && "border-destructive")}
+                    value={exePath}
+                    onChange={(e) => setExePath(e.target.value)}
+                    placeholder="C:\Games\game.exe"
+                  />
+                  <button
+                    type="button"
+                    data-testid="edit-exe-browse"
+                    className={browseButtonClass}
+                    onClick={browseExe}
+                    aria-label="Browse for executable"
+                    title="Browse"
+                  >
+                    <FolderOpen className="size-4" />
+                  </button>
+                </div>
                 {errors.exePath && (
                   <p data-testid="edit-exe-error" className="mt-1 text-xs text-destructive">
                     {errors.exePath}
@@ -171,9 +214,9 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
                 <label className="mb-1 block text-sm font-medium text-foreground">
                   Custom Cover Art
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {(customCover || game.coverUrl) && (
-                    <div data-testid="edit-cover-preview" className="size-16 overflow-hidden rounded-lg">
+                    <div data-testid="edit-cover-preview" className="size-16 flex-none overflow-hidden rounded-lg">
                       <img
                         src={customCover ?? game.coverUrl ?? ""}
                         alt="Cover preview"
@@ -188,6 +231,16 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
                     onChange={(e) => setCustomCover(e.target.value || null)}
                     placeholder="https://... or C:\path\to\cover.png"
                   />
+                  <button
+                    type="button"
+                    data-testid="edit-cover-browse"
+                    className={browseButtonClass}
+                    onClick={browseCover}
+                    aria-label="Browse for cover image"
+                    title="Browse"
+                  >
+                    <FolderOpen className="size-4" />
+                  </button>
                 </div>
                 {errors.customCover && (
                   <p data-testid="edit-cover-error" className="mt-1 text-xs text-destructive">
@@ -201,13 +254,25 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
                 <label className="mb-1 block text-sm font-medium text-foreground">
                   Custom Hero Art
                 </label>
-                <input
-                  data-testid="edit-hero-input"
-                  className={cn(inputClass, errors.customHero && "border-destructive")}
-                  value={customHero ?? ""}
-                  onChange={(e) => setCustomHero(e.target.value || null)}
-                  placeholder="https://... or C:\path\to\hero.png"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    data-testid="edit-hero-input"
+                    className={cn(inputClass, errors.customHero && "border-destructive")}
+                    value={customHero ?? ""}
+                    onChange={(e) => setCustomHero(e.target.value || null)}
+                    placeholder="https://... or C:\path\to\hero.png"
+                  />
+                  <button
+                    type="button"
+                    data-testid="edit-hero-browse"
+                    className={browseButtonClass}
+                    onClick={browseHero}
+                    aria-label="Browse for hero image"
+                    title="Browse"
+                  >
+                    <FolderOpen className="size-4" />
+                  </button>
+                </div>
                 {errors.customHero && (
                   <p data-testid="edit-hero-error" className="mt-1 text-xs text-destructive">
                     {errors.customHero}

@@ -634,6 +634,7 @@ function MainApp() {
       ) : (
         <LibraryView
           onPlay={(game) => launch(game)}
+          onSettingsClick={() => setSettingsOpen(true)}
           onResync={handleResync}
           isSyncing={isSyncing}
           syncResult={syncResult}
