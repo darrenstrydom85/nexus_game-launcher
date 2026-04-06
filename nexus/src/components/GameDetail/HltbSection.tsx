@@ -47,6 +47,7 @@ export function HltbSection({ game }: HltbSectionProps) {
   const [searchQuery, setSearchQuery] = React.useState(game.name);
   const [searchResults, setSearchResults] = React.useState<HltbSearchResult[]>([]);
   const [searching, setSearching] = React.useState(false);
+  const [searchError, setSearchError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -146,11 +147,14 @@ export function HltbSection({ game }: HltbSectionProps) {
 
     setSearching(true);
     setSearchResults([]);
+    setSearchError(null);
     try {
       const results = await searchHltb(trimmed);
       setSearchResults(results);
-    } catch {
+    } catch (err) {
+      console.error("[HltbSection] manual search error:", err);
       setSearchResults([]);
+      setSearchError("Search failed \u2014 HLTB may be temporarily unavailable.");
     } finally {
       setSearching(false);
     }
@@ -181,12 +185,14 @@ export function HltbSection({ game }: HltbSectionProps) {
   const handleEnterSearchMode = React.useCallback(() => {
     setSearchMode(true);
     setSearchResults([]);
+    setSearchError(null);
     setSearchQuery(game.name);
   }, [game.name]);
 
   const handleCancelSearch = React.useCallback(() => {
     setSearchMode(false);
     setSearchResults([]);
+    setSearchError(null);
   }, []);
 
   const handleSearchKeyDown = React.useCallback(
@@ -302,6 +308,13 @@ export function HltbSection({ game }: HltbSectionProps) {
                 </div>
               ))}
             </div>
+          ) : searchError ? (
+            <p
+              data-testid="hltb-search-error"
+              className="py-4 text-center text-xs text-destructive"
+            >
+              {searchError}
+            </p>
           ) : searchResults.length > 0 ? (
             <div className="flex flex-col gap-0.5">
               {searchResults.map((result) => (
