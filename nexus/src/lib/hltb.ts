@@ -1,7 +1,7 @@
 import { fetch } from "@tauri-apps/plugin-http";
 
 const BASE_URL = "https://howlongtobeat.com/";
-const FALLBACK_SEARCH_PATH = "api/finder";
+const SEARCH_PATH = "api/find";
 
 export interface HltbSearchResult {
   id: number;
@@ -21,91 +21,69 @@ interface HltbApiGame {
   similarity: number;
 }
 
-let cachedSearchPath: string | null = null;
-
-const API_PATTERN =
-  /fetch\s*\(\s*["']\/api\/([a-zA-Z0-9_/]+)[^"']*["']\s*,\s*\{[^}]*method:\s*["']POST["'][^}]*\}/s;
-
-async function discoverSearchPath(): Promise<string> {
-  if (cachedSearchPath) return cachedSearchPath;
-
-  try {
-    const homeResp = await fetch(BASE_URL, {
-      method: "GET",
-      headers: { Referer: BASE_URL },
-    });
-
-    if (!homeResp.ok) {
-      console.warn("[HLTB] homepage fetch failed:", homeResp.status);
-      return FALLBACK_SEARCH_PATH;
-    }
-
-    const html = await homeResp.text();
-
-    const scriptUrls: string[] = [];
-    const scriptRegex = /src="(\/_next\/static\/[^"]+\.js)"/g;
-    let m: RegExpExecArray | null;
-    while ((m = scriptRegex.exec(html)) !== null) {
-      scriptUrls.push(m[1]);
-    }
-
-    console.log("[HLTB] found", scriptUrls.length, "Next.js scripts to scan");
-
-    for (const rawUrl of scriptUrls) {
-      const scriptUrl = rawUrl.startsWith("http")
-        ? rawUrl
-        : BASE_URL + rawUrl.replace(/^\//, "");
-
-      try {
-        const scriptResp = await fetch(scriptUrl, {
-          method: "GET",
-          headers: { Referer: BASE_URL },
-        });
-
-        if (!scriptResp.ok) continue;
-
-        const js = await scriptResp.text();
-        const apiMatch = API_PATTERN.exec(js);
-
-        if (apiMatch) {
-          const pathSuffix = apiMatch[1].split("/")[0];
-          cachedSearchPath = `api/${pathSuffix}`;
-          console.log("[HLTB] discovered search path:", cachedSearchPath, "from", rawUrl);
-          return cachedSearchPath;
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    console.warn("[HLTB] POST fetch pattern not found in any script, using fallback");
-  } catch (err) {
-    console.error("[HLTB] discoverSearchPath error:", err);
-  }
-
-  return FALLBACK_SEARCH_PATH;
+interface AuthSession {
+  token: string;
+  hpKey: string;
+  hpVal: string;
+  expiresAt: number;
 }
 
-async function getAuthToken(searchPath: string): Promise<string | null> {
+let cachedSession: AuthSession | null = null;
+const SESSION_TTL_MS = 55 * 60 * 1000;
+
+function invalidateSession(): void {
+  cachedSession = null;
+}
+
+async function getSession(signal?: AbortSignal): Promise<AuthSession | null> {
+  if (cachedSession && Date.now() < cachedSession.expiresAt) return cachedSession;
+
   try {
-    const t = Date.now();
-    const url = `${BASE_URL}${searchPath}/init?t=${t}`;
-    console.log("[HLTB] fetching auth token from:", url);
+    const url = `${BASE_URL}${SEARCH_PATH}/init?t=${Date.now()}`;
+    console.log("[HLTB] fetching session from:", url);
     const resp = await fetch(url, {
       method: "GET",
-      headers: { Referer: BASE_URL },
+      headers: {
+        Referer: `${BASE_URL}`,
+        Origin: BASE_URL,
+      },
+      signal,
     });
 
     if (!resp.ok) {
-      console.warn("[HLTB] auth token fetch failed:", resp.status);
+      console.warn("[HLTB] session init failed:", resp.status);
+      invalidateSession();
       return null;
     }
 
-    const json = (await resp.json()) as { token?: string };
-    console.log("[HLTB] auth token:", json.token ? `${json.token.slice(0, 16)}...` : "null");
-    return json.token ?? null;
+    const json = (await resp.json()) as {
+      token?: string;
+      hpKey?: string;
+      hpVal?: string;
+    };
+
+    if (!json.token || !json.hpKey || !json.hpVal) {
+      console.warn("[HLTB] session init missing fields:", Object.keys(json));
+      return null;
+    }
+
+    console.log(
+      "[HLTB] session acquired — token:",
+      json.token.slice(0, 16) + "...",
+      "hpKey:", json.hpKey,
+    );
+
+    cachedSession = {
+      token: json.token,
+      hpKey: json.hpKey,
+      hpVal: json.hpVal,
+      expiresAt: Date.now() + SESSION_TTL_MS,
+    };
+
+    return cachedSession;
   } catch (err) {
-    console.error("[HLTB] getAuthToken error:", err);
+    console.error("[HLTB] getSession error:", err);
+    invalidateSession();
     return null;
   }
 }
@@ -114,22 +92,10 @@ function secondsToHours(seconds: number): number {
   return seconds > 0 ? Math.round((seconds / 3600) * 10) / 10 : 0;
 }
 
-/**
- * Search HLTB via their API. Discovers the current endpoint dynamically
- * and obtains an auth token before searching.
- */
-export async function searchHltb(
-  query: string,
-  signal?: AbortSignal,
-): Promise<HltbSearchResult[]> {
-  const searchPath = await discoverSearchPath();
-  if (signal?.aborted) return [];
-  const authToken = await getAuthToken(searchPath);
-  if (signal?.aborted) return [];
-
-  const payload = {
+function buildPayload(query: string, hpKey: string, hpVal: string) {
+  const payload: Record<string, unknown> = {
     searchType: "games",
-    searchTerms: query.split(" "),
+    searchTerms: query.trim().split(/\s+/),
     searchPage: 1,
     size: 20,
     searchOptions: {
@@ -138,7 +104,7 @@ export async function searchHltb(
         platform: "",
         sortCategory: "popular",
         rangeCategory: "main",
-        rangeTime: { min: 0, max: 0 },
+        rangeTime: { min: null, max: null },
         gameplay: { perspective: "", flow: "", genre: "", difficulty: "" },
         rangeYear: { min: "", max: "" },
         modifier: "",
@@ -152,36 +118,12 @@ export async function searchHltb(
     useCache: true,
   };
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "*/*",
-    Origin: BASE_URL,
-    Referer: BASE_URL,
-  };
+  payload[hpKey] = hpVal;
 
-  if (authToken) {
-    headers["x-auth-token"] = authToken;
-  }
+  return payload;
+}
 
-  const searchUrl = `${BASE_URL}${searchPath}`;
-  console.log("[HLTB] POST", searchUrl, "query:", query, "hasToken:", !!authToken);
-
-  const response = await fetch(searchUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-    signal,
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    console.error("[HLTB] search failed:", response.status, body.slice(0, 200));
-    throw new Error(`HLTB search failed: ${response.status}`);
-  }
-
-  const json = await response.json();
-  console.log("[HLTB] response keys:", Object.keys(json as object), "data length:", Array.isArray((json as { data?: unknown[] }).data) ? (json as { data: unknown[] }).data.length : "N/A");
-
+function parseResults(json: unknown): HltbSearchResult[] {
   const data = (json as { data?: HltbApiGame[] }).data;
   if (!data || !Array.isArray(data)) {
     console.warn("[HLTB] no data array in response:", JSON.stringify(json).slice(0, 300));
@@ -196,4 +138,75 @@ export async function searchHltb(
     gameplayCompletionist: secondsToHours(g.comp_100),
     similarity: g.similarity ?? 0,
   }));
+}
+
+async function doSearch(
+  query: string,
+  session: AuthSession,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const searchUrl = `${BASE_URL}${SEARCH_PATH}`;
+  console.log("[HLTB] POST", searchUrl, "query:", query);
+
+  return fetch(searchUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "*/*",
+      Origin: BASE_URL,
+      Referer: `${BASE_URL}`,
+      "x-auth-token": session.token,
+      "x-hp-key": session.hpKey,
+      "x-hp-val": session.hpVal,
+    },
+    body: JSON.stringify(buildPayload(query, session.hpKey, session.hpVal)),
+    signal,
+  });
+}
+
+/**
+ * Search HLTB via their unofficial API.
+ * Obtains a session (token + fingerprint pair) from /api/find/init,
+ * then POSTs to /api/find with the required auth headers and payload field.
+ * On 403, invalidates the session and retries once with a fresh session.
+ */
+export async function searchHltb(
+  query: string,
+  signal?: AbortSignal,
+): Promise<HltbSearchResult[]> {
+  let session = await getSession(signal);
+  if (signal?.aborted) return [];
+
+  if (!session) {
+    throw new Error("HLTB search failed: could not obtain session");
+  }
+
+  let response = await doSearch(query, session, signal);
+
+  if (response.status === 403) {
+    console.warn("[HLTB] got 403 — refreshing session and retrying");
+    invalidateSession();
+    session = await getSession(signal);
+    if (signal?.aborted) return [];
+    if (!session) {
+      throw new Error("HLTB search failed: could not obtain session after retry");
+    }
+    response = await doSearch(query, session, signal);
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    console.error("[HLTB] search failed:", response.status, body.slice(0, 200));
+    throw new Error(`HLTB search failed: ${response.status}`);
+  }
+
+  const json = await response.json();
+  console.log(
+    "[HLTB] response keys:", Object.keys(json as object),
+    "data length:", Array.isArray((json as { data?: unknown[] }).data)
+      ? (json as { data: unknown[] }).data.length
+      : "N/A",
+  );
+
+  return parseResults(json);
 }

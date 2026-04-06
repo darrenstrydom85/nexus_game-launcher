@@ -138,15 +138,51 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.20 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.20">
+        <!-- ── v0.1.21 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.1.21">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.20</h2>
+              <h2 class="type-title1 mb-0">v0.1.21</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-04-06">April 6, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              HowLongToBeat integration fix and progress tracking improvements — HLTB data fetching works again after their API endpoint changed, and milestone drag-and-drop reordering is now reliable.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>HowLongToBeat integration restored</strong> — Updated the HLTB client to use the current <code>/api/find</code> endpoint with the new three-part authentication scheme (token + fingerprint pair). Auto-fetch, manual search, and refetch all work again.</li>
+                <li><strong>Milestone drag-and-drop</strong> — Replaced the broken native HTML5 drag-and-drop in the progress milestones list with the same @dnd-kit library used by Play Queue and Collections. Reordering now works reliably in WebView2.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>HLTB error messages</strong> — Manual search now shows a clear error message when HLTB is temporarily unavailable instead of silently returning empty results.</li>
+                <li><strong>Milestone drag handle</strong> — Drag-and-drop is now initiated only from the grip handle, so clicking checkboxes and delete buttons no longer accidentally starts a drag.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.20 ── -->
+        <article class="changelog-entry" id="v0.1.20">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.20</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-03-25">March 25, 2026</time>
           </div>
