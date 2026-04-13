@@ -138,14 +138,14 @@
         <section class="legal-section">
           <h2 class="type-title1">Overview</h2>
           <p class="type-body text-muted-foreground">
-            Nexus is a local-first desktop application. Your game library, play sessions, collections, notes, tags, and all personal data are stored in a local SQLite database on your computer. We do not operate user accounts, cloud servers, or backend databases that store your information.
+            Nexus is a local-first desktop application. Your game library, play sessions, collections, notes, tags, and all personal data are stored in a local SQLite database on your computer. We do not operate user accounts, cloud servers, or backend databases that store your information. An optional Google Drive backup feature lets you store encrypted copies of your database in your own Google account — this is entirely opt-in.
           </p>
         </section>
 
         <section class="legal-section">
           <h2 class="type-title1">Data We Do Not Collect</h2>
           <p class="type-body text-muted-foreground">
-            Nexus does not collect, transmit, or store any of the following on remote servers:
+            Nexus does not collect, transmit, or store any of the following on Nexus-operated servers (the optional Google Drive backup uploads data to <em>your own</em> Google account — see below):
           </p>
           <ul class="legal-list">
             <li>Personal information (name, email, address)</li>
@@ -198,6 +198,19 @@
             <h3 class="type-title2">Twitch Integration</h3>
             <p class="type-body text-muted-foreground">
               If you connect your Twitch account, Nexus uses the Twitch API to display live streams, followed channels, and trending games. Nexus stores your OAuth token locally and uses it to make API requests directly to Twitch. We never see or store your Twitch credentials on any server.
+            </p>
+          </div>
+
+          <div class="legal-subsection">
+            <h3 class="type-title2">Google Drive Backup</h3>
+            <p class="type-body text-muted-foreground">
+              If you enable cloud backup, Nexus connects to <strong>Google Drive</strong> using OAuth 2.0 with PKCE. When you authorise the connection, Nexus receives an access token and refresh token that are stored locally on your device (encrypted at rest). Nexus requests only the <code>drive.file</code> scope, which limits access to files created by Nexus — it cannot read or modify any other files in your Google Drive.
+            </p>
+            <p class="type-body text-muted-foreground">
+              Backups consist of a copy of your local SQLite database (containing your game library, play sessions, collections, tags, notes, milestones, and settings) uploaded to a dedicated "Nexus Backups" folder in your Google Drive. Your Google email address is stored locally so Nexus can display which account is connected. No backup data passes through any Nexus-operated server — uploads go directly from your device to Google's servers.
+            </p>
+            <p class="type-body text-muted-foreground">
+              You can disconnect Google Drive at any time from Settings, which deletes all locally stored tokens. Existing backups on your Google Drive are not deleted and can be managed from <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="legal-link">drive.google.com</a>.
             </p>
           </div>
 

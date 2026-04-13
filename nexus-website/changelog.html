@@ -138,15 +138,51 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.1.21 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.1.21">
+        <!-- ── v0.2.0 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.2.0">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.21</h2>
+              <h2 class="type-title1 mb-0">v0.2.0</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-04-13">April 13, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Google Drive cloud backup — back up your entire Nexus library to Google Drive and restore it on any machine. Automatic scheduled backups with configurable frequency and retention.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">New</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Google Drive cloud backup</strong> — Link your Google account from Settings to back up your library database to Google Drive. Supports manual and automatic backups (daily or weekly) with configurable retention (how many backups to keep).</li>
+                <li><strong>Restore from backup</strong> — Browse your cloud backups and restore any previous snapshot. Schema version checks prevent restoring a backup from a newer version of Nexus.</li>
+                <li><strong>OAuth callback page</strong> — After authorizing with Google, the browser now shows a styled confirmation page matching the Nexus dark theme instead of a plain text response.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Settings sidebar</strong> — All accordion sections now start collapsed when opening Settings, giving a cleaner overview.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.1.21 ── -->
+        <article class="changelog-entry" id="v0.1.21">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.1.21</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-04-06">April 6, 2026</time>
           </div>
