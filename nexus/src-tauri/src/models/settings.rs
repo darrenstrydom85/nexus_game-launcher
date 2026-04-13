@@ -77,4 +77,14 @@ pub mod keys {
 
     /// Story 20.1: When true, show close-vs-minimize dialog on window close. Default true.
     pub const ASK_BEFORE_CLOSE: &str = "ask_before_close";
+
+    // Google Drive Backup
+    pub const GDRIVE_ACCESS_TOKEN: &str = "gdrive_access_token";
+    pub const GDRIVE_REFRESH_TOKEN: &str = "gdrive_refresh_token";
+    pub const GDRIVE_TOKEN_EXPIRES_AT: &str = "gdrive_token_expires_at";
+    pub const GDRIVE_USER_EMAIL: &str = "gdrive_user_email";
+    pub const GDRIVE_FOLDER_ID: &str = "gdrive_folder_id";
+    pub const BACKUP_FREQUENCY: &str = "backup_frequency";
+    pub const BACKUP_LAST_AT: &str = "backup_last_at";
+    pub const BACKUP_RETENTION_COUNT: &str = "backup_retention_count";
 }

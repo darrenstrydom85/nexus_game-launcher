@@ -702,3 +702,70 @@ export function createSmartCollection(
     rulesJson,
   });
 }
+
+// ── Google Drive Backup ───────────────────────────────────────────────
+
+export interface GDriveAuthStatus {
+  authenticated: boolean;
+  email: string | null;
+  expiresAt: number | null;
+}
+
+export interface BackupEntry {
+  id: string;
+  name: string;
+  size: number;
+  createdAt: string;
+  schemaVersion: number;
+}
+
+export interface BackupResult {
+  fileId: string;
+  fileName: string;
+  sizeBytes: number;
+  prunedCount: number;
+}
+
+export interface BackupStatus {
+  connected: boolean;
+  email: string | null;
+  lastBackupAt: string | null;
+  frequency: "manual" | "daily" | "weekly";
+  retentionCount: number;
+}
+
+export function gdriveAuthStart(): Promise<GDriveAuthStatus> {
+  return invoke<GDriveAuthStatus>("gdrive_auth_start");
+}
+
+export function gdriveAuthStatus(): Promise<GDriveAuthStatus> {
+  return invoke<GDriveAuthStatus>("gdrive_auth_status");
+}
+
+export function gdriveAuthLogout(): Promise<void> {
+  return invoke<void>("gdrive_auth_logout");
+}
+
+export function runBackup(): Promise<BackupResult> {
+  return invoke<BackupResult>("run_backup");
+}
+
+export function listBackups(): Promise<BackupEntry[]> {
+  return invoke<BackupEntry[]>("list_backups");
+}
+
+export function restoreBackup(backupId: string): Promise<void> {
+  return invoke<void>("restore_backup", { backupId });
+}
+
+export function getBackupStatus(): Promise<BackupStatus> {
+  return invoke<BackupStatus>("get_backup_status");
+}
+
+export function setBackupFrequency(frequency: string): Promise<void> {
+  return invoke<void>("set_backup_frequency", { frequency });
+}
+
+export function setBackupRetention(count: number): Promise<void> {
+  return invoke<void>("set_backup_retention", { count });
+}

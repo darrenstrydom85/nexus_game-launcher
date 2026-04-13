@@ -20,7 +20,8 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://id.twitch.tv/**" },
-        { "url": "https://www.twitch.tv/**" }
+        { "url": "https://www.twitch.tv/**" },
+        { "url": "https://accounts.google.com/**" }
       ]
     },
     "process:default",
@@ -72,7 +73,10 @@
         { "url": "https://id.twitch.tv/**" },
         { "url": "https://images.igdb.com/**" },
         { "url": "https://api.jsonbin.io/**" },
-        { "url": "https://howlongtobeat.com/**" }
+        { "url": "https://howlongtobeat.com/**" },
+        { "url": "https://accounts.google.com/**" },
+        { "url": "https://oauth2.googleapis.com/**" },
+        { "url": "https://www.googleapis.com/**" }
       ]
     }
   ]
