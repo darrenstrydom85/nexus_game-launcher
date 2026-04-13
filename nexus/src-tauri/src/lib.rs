@@ -4,6 +4,7 @@ pub mod dedup;
 pub mod metadata;
 pub mod models;
 pub mod sources;
+pub mod gdrive;
 pub mod twitch;
 mod utils;
 
@@ -74,6 +75,11 @@ use commands::{
         check_connectivity, clear_twitch_cache, get_twitch_followed_channels, get_twitch_live_streams,
         get_twitch_streams_by_game, get_twitch_trending_library_games, set_twitch_favorite,
         twitch_auth_logout, twitch_auth_start, twitch_auth_status, validate_twitch_token,
+    },
+    backup::{
+        gdrive_auth_start, gdrive_auth_status, gdrive_auth_logout,
+        run_backup, list_backups, restore_backup,
+        get_backup_status, set_backup_frequency, set_backup_retention,
     },
     known_issues::fetch_known_issues,
     version_check::check_update_available,
@@ -185,6 +191,7 @@ pub fn run() {
         })
         .setup(|app| {
             setup_tray(app)?;
+            commands::backup::start_backup_scheduler(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -303,6 +310,15 @@ pub fn run() {
             get_game_tags,
             get_games_by_tag,
             get_all_game_tag_ids,
+            gdrive_auth_start,
+            gdrive_auth_status,
+            gdrive_auth_logout,
+            run_backup,
+            list_backups,
+            restore_backup,
+            get_backup_status,
+            set_backup_frequency,
+            set_backup_retention,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

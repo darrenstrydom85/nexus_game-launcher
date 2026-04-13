@@ -27,7 +27,7 @@ import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
 import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
-import { useCollectionStore, type Collection } from "@/stores/collectionStore";
+import { useCollectionStore, type Collection, refreshCollections } from "@/stores/collectionStore";
 import { useCollections } from "@/hooks/useCollections";
 import { useUiStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -195,6 +195,20 @@ function MainApp() {
 
   useTauriEvent<unknown>("nexus://show-close-dialog", () => {
     setCloseConfirmDialogOpen(true);
+  });
+
+  useTauriEvent<unknown>("backup-restored", () => {
+    refreshGames().catch(() => {});
+    refreshCollections().catch(() => {});
+    useTagStore.getState().loadTags();
+    useTagStore.getState().loadGameTagMap();
+    useQueueStore.getState().fetch();
+    loadSettings();
+    addToast({
+      type: "success",
+      message: "Library restored from backup successfully.",
+      duration: 5000,
+    });
   });
 
   React.useEffect(() => {

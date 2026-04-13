@@ -15,6 +15,7 @@ import { AppearanceSettings } from "./AppearanceSettings";
 import { DataManagement } from "./DataManagement";
 import { LibraryHealth } from "./LibraryHealth";
 import { TwitchSettings } from "./TwitchSettings";
+import { CloudBackupSettings } from "./CloudBackupSettings";
 import { AboutSection } from "./AboutSection";
 import { TagManager } from "@/components/Tags/TagManager";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -77,7 +78,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             <div className="flex flex-col gap-6 p-6">
               <Accordion
                 type="multiple"
-                defaultValue={["library", "appearance", "integrations", "data"]}
+                defaultValue={[]}
                 className="w-full"
                 data-testid="settings-accordion"
               >
@@ -106,6 +107,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   <AccordionContent className="flex flex-col gap-6">
                     <APIKeyManager />
                     <TwitchSettings />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="backup" data-testid="settings-group-backup">
+                  <AccordionTrigger>Cloud Backup</AccordionTrigger>
+                  <AccordionContent>
+                    <CloudBackupSettings />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="data" data-testid="settings-group-data">
