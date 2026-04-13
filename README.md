@@ -1,6 +1,6 @@
 # Nexus — Game Launcher
 
-**v0.1.21** · All your games. One place.
+**v0.2.0** · All your games. One place.
 
 Nexus is a unified game launcher for Windows that brings together games from **Steam**, **Epic**, **GOG**, **Xbox**, **Battle.net**, **Ubisoft Connect**, and standalone executables into one library. Track play time, organize with collections, enrich with metadata and artwork, and launch any game from a single dark-themed, cinematic interface.
 
@@ -9,12 +9,19 @@ Nexus is a unified game launcher for Windows that brings together games from **S
 ## Features
 
 - **Unified library** — Scan and aggregate games from multiple storefronts and custom folders
-- **Play tracking** — Automatic session detection and playtime stats with charts
-- **Collections** — Custom collections with drag-and-drop ordering
-- **Metadata & artwork** — Optional integration with IGDB and SteamGridDB (API keys required) for covers and screenshots
+- **Play tracking** — Automatic session detection, playtime stats, and charts
+- **Collections** — Custom collections with drag-and-drop ordering and emoji icons
+- **Tags** — Create and assign tags to games for flexible categorization and filtering
+- **Play Queue** — Drag-and-drop queue to plan what to play next
+- **Metadata & artwork** — Optional integration with IGDB and SteamGridDB (API keys required) for covers, screenshots, and ratings
+- **HowLongToBeat** — Estimated completion times fetched from HLTB, shown on game detail pages
+- **Wrapped** — Spotify Wrapped–style period-in-review with top games, genre breakdown, play patterns, milestones, and shareable cards
+- **Cloud backup** — Back up your library to Google Drive with manual or scheduled (daily/weekly) backups and one-click restore
 - **Duplicate detection** — Find and resolve duplicate entries across sources
 - **Library health** — Check for broken paths, missing executables, and data issues
+- **Analytics & hardware** — GPU/CPU detection and library-wide statistics
 - **Random picker** — “What should I play?” with filters
+- **Twitch integration** — Link your Twitch account for profile data
 - **Custom titlebar** — Frameless window with integrated app chrome
 - **Accessibility** — Keyboard navigation, focus management, and WCAG-oriented contrast (see design system)
 
@@ -91,18 +98,20 @@ npm run preview  # Preview production build
 ```
 nexus/
 ├── src/                    # Frontend (React + TypeScript)
-│   ├── components/         # UI components (Library, GameDetail, Settings, Onboarding, etc.)
+│   ├── components/         # UI components (Library, GameDetail, Settings, Wrapped, Tags, etc.)
 │   ├── lib/                # API bindings, stores, utilities
 │   ├── routes/             # Routing
 │   ├── test/               # Vitest setup
 │   └── __tests__/          # Component and integration tests
 ├── src-tauri/              # Backend (Rust)
 │   ├── src/
-│   │   ├── commands/       # Tauri invoke handlers (games, sessions, metadata, sources, …)
+│   │   ├── commands/       # Tauri invoke handlers (games, sessions, metadata, backup, …)
 │   │   ├── db/             # SQLite schema and migrations
 │   │   ├── dedup/          # Duplicate detection
-│   │   ├── metadata/       # IGDB, SteamGridDB, cache
+│   │   ├── gdrive/         # Google Drive OAuth, API client, token management
+│   │   ├── metadata/       # IGDB, SteamGridDB, HLTB, cache
 │   │   ├── models/         # Shared data structures
+│   │   ├── twitch/         # Twitch OAuth and API integration
 │   │   └── sources/        # Steam, Epic, GOG, Xbox, Battle.net, Ubisoft, standalone, watcher
 │   ├── Cargo.toml
 │   └── tauri.conf.json     # App id, window config, bundle settings, CSP
@@ -135,10 +144,12 @@ cd nexus/src-tauri; cargo test
 
 ## Configuration & Optional Services
 
-- **IGDB** (Twitch) — For game metadata and ratings. Optional; set in Settings → API Keys.
-- **SteamGridDB** — For custom grid artwork. Optional; set in Settings → API Keys.
+- **IGDB** (Twitch) — For game metadata and ratings. Optional; set in Settings → Integrations.
+- **SteamGridDB** — For custom grid artwork. Optional; set in Settings → Integrations.
+- **Twitch** — Link your Twitch account for profile data. Optional; set in Settings → Integrations.
+- **Google Drive** — Cloud backup and restore. Optional; connect in Settings → Cloud Backup. Requires a Google account.
 
-Data (SQLite DB, cache, settings) is stored in the Tauri app data directory (e.g. `%APPDATA%\com.darrenstrydom.nexus` on Windows).
+Data (SQLite DB, cache, settings) is stored in `%APPDATA%\nexus\` (e.g. `C:\Users\<you>\AppData\Roaming\nexus\games.db`).
 
 ---
 
