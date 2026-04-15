@@ -44,6 +44,7 @@ const mockGame: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 const mockGame2: Game = {

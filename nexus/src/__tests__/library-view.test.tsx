@@ -63,6 +63,7 @@ const makeGame = (id: string, name: string): Game => ({
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 });
 
 describe("Story 6.5: Library View Composition", () => {

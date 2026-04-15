@@ -44,6 +44,7 @@ const mockGame: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 describe("Story 7.1: Game Detail Overlay Shell", () => {

@@ -106,7 +106,7 @@ export function LibraryView({
   const gameTagMap = useTagStore((s) => s.gameTagMap);
 
   const visibleGames = React.useMemo(
-    () => games.filter((g) => !hiddenGameIds.includes(g.id)),
+    () => games.filter((g) => !hiddenGameIds.includes(g.id) && g.status !== "removed"),
     [games, hiddenGameIds],
   );
 

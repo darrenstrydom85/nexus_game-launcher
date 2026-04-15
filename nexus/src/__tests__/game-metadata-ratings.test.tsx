@@ -43,6 +43,7 @@ const baseGame: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 describe("GameMetadata ratings section", () => {

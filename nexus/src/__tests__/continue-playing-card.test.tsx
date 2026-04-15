@@ -48,6 +48,7 @@ const BASE_GAME: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 function makeGame(overrides?: Partial<Game>): Game {

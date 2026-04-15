@@ -73,6 +73,7 @@ export interface Game {
   notes: string | null;
   progress: number | null;
   milestonesJson: string | null;
+  completed: boolean;
 }
 
 interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt" | "progress" | "milestonesJson"> {
@@ -186,9 +187,11 @@ export const useGameStore = create<GameStore>()(
           notes: g.notes ?? null,
           progress: g.progress ?? null,
           milestonesJson: g.milestonesJson ?? null,
+          completed: (g as any).completed ?? false,
         } as Game));
         set({ games: mapped }, false, "setGames");
         useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));
+        useSettingsStore.getState().setRemovedGameIds(mapped.filter((g) => g.status === "removed").map((g) => g.id));
       },
       setActiveSession: (session) =>
         set({ activeSession: session }, false, "setActiveSession"),

@@ -1,8 +1,7 @@
-import * as React from "react";
 import { formatPlayTime } from "@/lib/utils";
-import { useUiStore } from "@/stores/uiStore";
-import { useGameStore } from "@/stores/gameStore";
+import { HardDriveDownload } from "lucide-react";
 import { placeholderGradient } from "@/components/GameCard/GameCard";
+import { useGameResolver } from "@/hooks/useGameResolver";
 import type { TopGame } from "../LibraryStats";
 
 interface TopGamesChartProps {
@@ -10,27 +9,9 @@ interface TopGamesChartProps {
 }
 
 export function TopGamesChart({ games }: TopGamesChartProps) {
-  const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
-  const storeGames = useGameStore((s) => s.games);
+  const { resolve, openGame } = useGameResolver();
   const top10 = games.slice(0, 10);
   const maxTime = top10[0]?.totalPlayTimeS ?? 1;
-
-  const storeById = React.useMemo(
-    () => new Map(storeGames.map((g) => [g.id, g])),
-    [storeGames],
-  );
-  const storeByName = React.useMemo(
-    () => new Map(storeGames.map((g) => [g.name.toLowerCase(), g])),
-    [storeGames],
-  );
-
-  const resolveStoreGame = (game: TopGame) =>
-    storeById.get(game.id) ?? storeByName.get(game.name.toLowerCase()) ?? null;
-
-  const handleClick = (game: TopGame) => {
-    const match = resolveStoreGame(game);
-    if (match) setDetailOverlayGameId(match.id);
-  };
 
   return (
     <div data-testid="top-games-chart">
@@ -43,16 +24,17 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
         <div className="flex flex-col gap-2">
           {top10.map((game, i) => {
             const pct = Math.round((game.totalPlayTimeS / maxTime) * 100);
-            const match = resolveStoreGame(game);
-            const coverUrl = game.coverUrl ?? match?.coverUrl ?? null;
+            const resolved = resolve(game.id, game.name);
+            const coverUrl = game.coverUrl ?? resolved?.game.coverUrl ?? null;
+            const isClickable = !!resolved;
             return (
               <button
                 key={game.id}
                 data-testid={`top-game-${i}`}
                 className="flex items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-white/5"
-                onClick={() => handleClick(game)}
+                onClick={() => openGame(game.id, game.name)}
               >
-                <div className="size-8 shrink-0 overflow-hidden rounded">
+                <div className="relative size-8 shrink-0 overflow-hidden rounded">
                   {coverUrl ? (
                     <img
                       src={coverUrl}
@@ -69,10 +51,15 @@ export function TopGamesChart({ games }: TopGamesChartProps) {
                       </span>
                     </div>
                   )}
+                  {resolved?.isRemoved && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60" title="Uninstalled">
+                      <HardDriveDownload className="size-3.5 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col gap-0.5">
                   <div className="flex items-center justify-between">
-                    <span className={`truncate text-xs font-medium ${match ? "text-foreground hover:text-primary hover:underline" : "text-muted-foreground"}`}>
+                    <span className={`truncate text-xs font-medium ${isClickable ? "text-foreground hover:text-primary hover:underline" : "text-muted-foreground"}`}>
                       {game.name}
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">

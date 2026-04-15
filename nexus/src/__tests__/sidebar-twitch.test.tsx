@@ -46,6 +46,7 @@ const defaultGame = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 describe("Story 19.3: Twitch Sidebar Nav + Live Count Badge", () => {

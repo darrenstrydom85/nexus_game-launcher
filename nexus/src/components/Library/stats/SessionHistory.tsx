@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useUiStore } from "@/stores/uiStore";
-import { useGameStore } from "@/stores/gameStore";
+import { HardDriveDownload } from "lucide-react";
+import { useGameResolver } from "@/hooks/useGameResolver";
 import { InlineNoteEdit } from "@/components/Sessions/InlineNoteEdit";
 import type { SessionRecord } from "../LibraryStats";
 
@@ -35,19 +35,10 @@ function formatTime(iso: string): string {
 }
 
 export function SessionHistory({ sessions, onNoteUpdated }: SessionHistoryProps) {
-  const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
-  const storeGames = useGameStore((s) => s.games);
-  const gameIdSet = React.useMemo(() => new Set(storeGames.map((g) => g.id)), [storeGames]);
-  const gameByName = React.useMemo(
-    () => new Map(storeGames.map((g) => [g.name.toLowerCase(), g.id])),
-    [storeGames],
-  );
+  const { resolve, openGame } = useGameResolver();
   const [page, setPage] = React.useState(0);
   const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
   const pageItems = sessions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const resolveGameId = (s: SessionRecord): string | null =>
-    gameIdSet.has(s.gameId) ? s.gameId : gameByName.get(s.gameName.toLowerCase()) ?? null;
 
   return (
     <div data-testid="session-history">
@@ -61,7 +52,7 @@ export function SessionHistory({ sessions, onNoteUpdated }: SessionHistoryProps)
         <>
           <div className="flex flex-col">
             {pageItems.map((s) => {
-              const matchedId = resolveGameId(s);
+              const resolved = resolve(s.gameId, s.gameName);
               return (
               <div
                 key={s.id}
@@ -72,12 +63,15 @@ export function SessionHistory({ sessions, onNoteUpdated }: SessionHistoryProps)
                   className="grid items-center text-sm"
                   style={{ gridTemplateColumns: "1fr 7rem 9rem 4rem" }}
                 >
-                  {matchedId ? (
+                  {resolved ? (
                     <button
-                      className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
-                      onClick={() => setDetailOverlayGameId(matchedId)}
+                      className="flex items-center gap-1.5 truncate text-left font-medium text-foreground hover:text-primary hover:underline"
+                      onClick={() => openGame(s.gameId, s.gameName)}
                     >
-                      {s.gameName}
+                      {resolved.isRemoved && (
+                        <HardDriveDownload className="size-3 shrink-0 text-muted-foreground" aria-label="Uninstalled" />
+                      )}
+                      <span className="truncate">{s.gameName}</span>
                     </button>
                   ) : (
                     <span className="truncate text-left font-medium text-muted-foreground">

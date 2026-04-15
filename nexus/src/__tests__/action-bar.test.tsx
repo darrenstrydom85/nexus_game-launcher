@@ -43,6 +43,7 @@ const mockGame: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 describe("Story 7.2: Action Bar", () => {

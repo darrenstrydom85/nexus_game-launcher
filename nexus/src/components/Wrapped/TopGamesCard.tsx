@@ -1,7 +1,9 @@
 import { motion } from "motion/react";
 import { formatPlayTime } from "@/lib/utils";
 import { resolveUrl } from "@/lib/url";
+import { HardDriveDownload } from "lucide-react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useGameResolver } from "@/hooks/useGameResolver";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface TopGamesCardProps {
@@ -11,6 +13,7 @@ interface TopGamesCardProps {
 
 export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {
   const shouldReduceMotion = useReducedMotion();
+  const { resolve, openGame } = useGameResolver();
   const games = report.topGames.slice(0, 10);
   const maxTime = games[0]?.playTimeS ?? 1;
 
@@ -37,11 +40,13 @@ export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {
               ? ((game.playTimeS / report.totalPlayTimeS) * 100).toFixed(1)
               : "0.0";
 
+          const resolved = resolve(game.id, game.name);
           return (
-            <div
+            <button
               key={game.id}
               data-testid={`top-game-row-${i}`}
-              className="flex items-center gap-3"
+              className="flex items-center gap-3 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-white/5"
+              onClick={() => openGame(game.id, game.name)}
             >
               {/* Rank */}
               <span className="w-5 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
@@ -49,7 +54,7 @@ export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {
               </span>
 
               {/* Cover thumbnail */}
-              <div className="size-10 shrink-0 overflow-hidden rounded-md bg-card">
+              <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-card">
                 {coverUrl ? (
                   <img
                     src={coverUrl}
@@ -59,12 +64,17 @@ export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {
                 ) : (
                   <div className="h-full w-full bg-muted" />
                 )}
+                {resolved?.isRemoved && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60" title="Uninstalled">
+                    <HardDriveDownload className="size-3.5 text-muted-foreground" />
+                  </div>
+                )}
               </div>
 
               {/* Bar + label */}
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-foreground">
+                  <span className="truncate text-sm font-medium text-foreground hover:text-primary hover:underline">
                     {game.name}
                   </span>
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -84,7 +94,7 @@ export function TopGamesCard({ report, isVisible }: TopGamesCardProps) {
                   />
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

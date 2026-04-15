@@ -7,6 +7,7 @@ import { useTagStore } from "@/stores/tagStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
+  Archive,
   BarChart3,
   ChevronDown,
   FolderOpen,
@@ -16,6 +17,7 @@ import {
   Shuffle,
   Star,
   Tag,
+  Trophy,
 } from "lucide-react";
 import { SOURCE_ICON_COMPONENTS } from "@/lib/source-icons";
 import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
@@ -200,6 +202,7 @@ export function Sidebar({
   const games = useGameStore((s) => s.games);
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
   const hiddenGameIds = useSettingsStore((s) => s.hiddenGameIds);
+  const removedGameIds = useSettingsStore((s) => s.removedGameIds);
   const liveCount = useTwitchStore((s) => s.liveCount);
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
 
@@ -250,6 +253,11 @@ export function Sidebar({
     return Array.from(sourceSet) as GameSource[];
   }, [visibleGames]);
 
+  const completedCount = React.useMemo(
+    () => games.filter((g) => g.completed).length,
+    [games],
+  );
+
   const baseNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: "library", label: "Library", icon: <Library className="size-4" /> },
     { id: "stats", label: "Stats", icon: <BarChart3 className="size-4" /> },
@@ -257,6 +265,8 @@ export function Sidebar({
       ? [{ id: "wrapped" as NavItem, label: "Wrapped", icon: <Gift className="size-4" /> }]
       : []),
     { id: "random", label: "Random", icon: <Shuffle className="size-4" /> },
+    { id: "completed" as NavItem, label: "Completed", icon: <Trophy className="size-4" /> },
+    { id: "archive" as NavItem, label: "Archive", icon: <Archive className="size-4" /> },
     {
       id: "twitch" as NavItem,
       label: "Twitch",
@@ -291,18 +301,37 @@ export function Sidebar({
             item.id === "twitch" &&
             liveCount > 0 &&
             isAuthenticated;
+          const archiveCount = removedGameIds.length;
+          const showArchiveBadge = item.id === "archive" && archiveCount > 0;
+          const showCompletedBadge = item.id === "completed" && completedCount > 0;
           const twitchTitle =
             item.id === "twitch" && !sidebarOpen
               ? showBadge
                 ? `Twitch (${liveCount} live)`
                 : "Twitch"
               : undefined;
+          const archiveTitle =
+            item.id === "archive" && !sidebarOpen && archiveCount > 0
+              ? `Archive (${archiveCount})`
+              : undefined;
+          const completedTitle =
+            item.id === "completed" && !sidebarOpen && completedCount > 0
+              ? `Completed (${completedCount})`
+              : undefined;
           const ariaLabel =
             item.id === "twitch"
               ? showBadge
                 ? `Twitch, ${liveCount} streamers live`
                 : "Twitch"
-              : undefined;
+              : item.id === "archive"
+                ? archiveCount > 0
+                  ? `Archive, ${archiveCount} games`
+                  : "Archive"
+                : item.id === "completed"
+                  ? completedCount > 0
+                    ? `Completed, ${completedCount} games`
+                    : "Completed"
+                  : undefined;
           return (
             <button
               key={item.id}
@@ -315,7 +344,7 @@ export function Sidebar({
                 activeNav === item.id && "bg-accent text-foreground",
               )}
               onClick={() => onNavigate?.(item.id)}
-              title={!sidebarOpen ? (twitchTitle ?? item.label) : undefined}
+              title={!sidebarOpen ? (twitchTitle ?? archiveTitle ?? completedTitle ?? item.label) : undefined}
               aria-current={activeNav === item.id ? "page" : undefined}
               aria-label={ariaLabel}
             >
@@ -338,6 +367,22 @@ export function Sidebar({
                       aria-hidden
                     >
                       {liveCount}
+                    </span>
+                  )}
+                  {showArchiveBadge && (
+                    <span
+                      className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-muted-foreground/30 px-1 text-[10px] font-medium tabular-nums text-muted-foreground"
+                      aria-hidden
+                    >
+                      {archiveCount}
+                    </span>
+                  )}
+                  {showCompletedBadge && (
+                    <span
+                      className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/20 px-1 text-[10px] font-medium tabular-nums text-primary"
+                      aria-hidden
+                    >
+                      {completedCount}
                     </span>
                   )}
                 </>

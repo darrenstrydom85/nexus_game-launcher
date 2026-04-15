@@ -1,4 +1,6 @@
 import { formatPlayTime } from "@/lib/utils";
+import { HardDriveDownload } from "lucide-react";
+import { useGameResolver } from "@/hooks/useGameResolver";
 import type { WrappedReport } from "@/types/wrapped";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
@@ -17,6 +19,7 @@ function resolveUrl(url: string | null): string | null {
 }
 
 export function TopGameCard({ report }: TopGameCardProps) {
+  const { resolve, openGame } = useGameResolver();
   const game = report.mostPlayedGame;
 
   if (!game) {
@@ -35,11 +38,13 @@ export function TopGameCard({ report }: TopGameCardProps) {
     report.totalPlayTimeS > 0
       ? ((game.playTimeS / report.totalPlayTimeS) * 100).toFixed(1)
       : "0.0";
+  const resolved = resolve(game.id, game.name);
 
   return (
-    <div
+    <button
       data-testid="top-game-card"
-      className="relative flex h-full flex-col items-center justify-end overflow-hidden"
+      className="relative flex h-full w-full flex-col items-center justify-end overflow-hidden text-left"
+      onClick={() => openGame(game.id, game.name)}
     >
       {/* Full-bleed hero image */}
       {coverUrl ? (
@@ -61,7 +66,15 @@ export function TopGameCard({ report }: TopGameCardProps) {
         <p className="text-sm font-medium uppercase tracking-widest text-primary">
           Your #1 Game
         </p>
-        <h2 className="text-4xl font-bold text-foreground">{game.name}</h2>
+        <h2 className="text-4xl font-bold text-foreground hover:text-primary transition-colors">
+          {game.name}
+        </h2>
+        {resolved?.isRemoved && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur-sm">
+            <HardDriveDownload className="size-3" />
+            Uninstalled
+          </span>
+        )}
         <p className="text-xl text-muted-foreground">
           {formatPlayTime(game.playTimeS)} played &middot;{" "}
           {game.sessionCount} session{game.sessionCount !== 1 ? "s" : ""}
@@ -72,6 +85,6 @@ export function TopGameCard({ report }: TopGameCardProps) {
           your gaming time here
         </p>
       </div>
-    </div>
+    </button>
   );
 }
