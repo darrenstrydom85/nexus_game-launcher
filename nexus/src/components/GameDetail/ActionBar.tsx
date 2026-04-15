@@ -17,6 +17,7 @@ import {
   Crosshair,
   ListPlus,
   ListMinus,
+  Archive,
 } from "lucide-react";
 import { useQueueStore } from "@/stores/queueStore";
 
@@ -33,6 +34,7 @@ interface ActionBarProps {
   game: Game;
   isPlaying?: boolean;
   processDetected?: boolean;
+  isArchived?: boolean;
   onPlay?: () => void;
   onForceIdentify?: () => void;
   onStatusChange?: (status: GameStatus) => void;
@@ -49,6 +51,7 @@ export function ActionBar({
   game,
   isPlaying = false,
   processDetected = false,
+  isArchived = false,
   onPlay,
   onForceIdentify,
   onStatusChange,
@@ -74,20 +77,26 @@ export function ActionBar({
     const handleKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "Enter") {
-        e.preventDefault();
-        onPlay?.();
+        if (!isArchived) {
+          e.preventDefault();
+          onPlay?.();
+        }
       } else if (e.key >= "1" && e.key <= "5") {
         const rating = parseInt(e.key);
         onRatingChange?.(game.rating === rating ? null : rating);
       } else if (e.key === "s" || e.key === "S") {
-        const currentIdx = STATUSES.findIndex((s) => s.value === game.status);
-        const nextIdx = (currentIdx + 1) % STATUSES.length;
-        onStatusChange?.(STATUSES[nextIdx].value);
+        if (isArchived) {
+          onStatusChange?.(game.completed ? "unset" : "completed");
+        } else {
+          const currentIdx = STATUSES.findIndex((s) => s.value === game.status);
+          const nextIdx = (currentIdx + 1) % STATUSES.length;
+          onStatusChange?.(STATUSES[nextIdx].value);
+        }
       }
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [game.status, game.rating, onPlay, onStatusChange, onRatingChange]);
+  }, [game.status, game.rating, game.completed, isArchived, onPlay, onStatusChange, onRatingChange]);
 
   const menuItemClass = cn(
     "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
@@ -100,24 +109,37 @@ export function ActionBar({
       className="flex items-center gap-3 border-b border-border px-6 py-3"
     >
       {/* Play button */}
-      <Button
-        data-testid="action-play"
-        className="gap-2 shadow-lg shadow-primary/25"
-        disabled={isPlaying}
-        onClick={onPlay}
-      >
-        {isPlaying ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            Playing...
-          </>
-        ) : (
-          <>
-            <Play className="size-4" />
-            Play
-          </>
-        )}
-      </Button>
+      {isArchived ? (
+        <Button
+          data-testid="action-play"
+          className="gap-2"
+          variant="secondary"
+          disabled
+          title="Reinstall and sync to play again"
+        >
+          <Archive className="size-4" />
+          Uninstalled
+        </Button>
+      ) : (
+        <Button
+          data-testid="action-play"
+          className="gap-2 shadow-lg shadow-primary/25"
+          disabled={isPlaying}
+          onClick={onPlay}
+        >
+          {isPlaying ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Playing...
+            </>
+          ) : (
+            <>
+              <Play className="size-4" />
+              Play
+            </>
+          )}
+        </Button>
+      )}
 
       {isPlaying && !processDetected && (
         <button
@@ -135,41 +157,55 @@ export function ActionBar({
       )}
 
       {/* Status dropdown */}
-      <div className="relative">
+      {isArchived ? (
         <button
           data-testid="action-status"
           className={cn(
             "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
             "bg-secondary text-secondary-foreground hover:bg-secondary/80",
           )}
-          onClick={() => setStatusOpen(!statusOpen)}
+          onClick={() => onStatusChange?.(game.completed ? "unset" : "completed")}
         >
-          <span className={cn("size-2 rounded-full", currentStatus.color)} />
-          {currentStatus.label}
-          <ChevronDown className="size-3.5" />
+          <span className={cn("size-2 rounded-full", game.completed ? "bg-primary" : "bg-muted-foreground")} />
+          {game.completed ? "Completed" : "Not Completed"}
         </button>
-        {statusOpen && (
-          <div
-            data-testid="action-status-menu"
-            className="absolute left-0 top-full z-10 mt-1 w-40 rounded-md border border-border bg-popover p-1 shadow-lg"
+      ) : (
+        <div className="relative">
+          <button
+            data-testid="action-status"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+              "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+            )}
+            onClick={() => setStatusOpen(!statusOpen)}
           >
-            {STATUSES.map((s) => (
-              <button
-                key={s.value}
-                data-testid={`action-status-${s.value}`}
-                className={cn(menuItemClass, game.status === s.value && "bg-accent")}
-                onClick={() => {
-                  onStatusChange?.(s.value);
-                  setStatusOpen(false);
-                }}
-              >
-                <span className={cn("size-2 rounded-full", s.color)} />
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+            <span className={cn("size-2 rounded-full", currentStatus.color)} />
+            {currentStatus.label}
+            <ChevronDown className="size-3.5" />
+          </button>
+          {statusOpen && (
+            <div
+              data-testid="action-status-menu"
+              className="absolute left-0 top-full z-10 mt-1 w-40 rounded-md border border-border bg-popover p-1 shadow-lg"
+            >
+              {STATUSES.map((s) => (
+                <button
+                  key={s.value}
+                  data-testid={`action-status-${s.value}`}
+                  className={cn(menuItemClass, game.status === s.value && "bg-accent")}
+                  onClick={() => {
+                    onStatusChange?.(s.value);
+                    setStatusOpen(false);
+                  }}
+                >
+                  <span className={cn("size-2 rounded-full", s.color)} />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rating stars */}
       <div data-testid="action-rating" className="flex items-center gap-0.5">
@@ -205,33 +241,35 @@ export function ActionBar({
         </div>
       )}
 
-      {/* Queue toggle */}
-      <Button
-        data-testid={isQueued ? "action-remove-queue" : "action-add-queue"}
-        variant="secondary"
-        size="sm"
-        className="gap-2"
-        onClick={() => {
-          if (isQueued) {
-            queueRemove(game.id, game.name);
-          } else {
-            queueAdd(game.id, game.name);
-          }
-        }}
-        aria-label={isQueued ? "Remove from queue" : "Add to queue"}
-      >
-        {isQueued ? (
-          <>
-            <ListMinus className="size-4" />
-            Remove from Queue
-          </>
-        ) : (
-          <>
-            <ListPlus className="size-4" />
-            Add to Queue
-          </>
-        )}
-      </Button>
+      {/* Queue toggle — hidden for archived games */}
+      {!isArchived && (
+        <Button
+          data-testid={isQueued ? "action-remove-queue" : "action-add-queue"}
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            if (isQueued) {
+              queueRemove(game.id, game.name);
+            } else {
+              queueAdd(game.id, game.name);
+            }
+          }}
+          aria-label={isQueued ? "Remove from queue" : "Add to queue"}
+        >
+          {isQueued ? (
+            <>
+              <ListMinus className="size-4" />
+              Remove from Queue
+            </>
+          ) : (
+            <>
+              <ListPlus className="size-4" />
+              Add to Queue
+            </>
+          )}
+        </Button>
+      )}
 
       {/* Update Artwork — dedicated entry point for metadata/artwork search */}
       <Button
@@ -294,15 +332,19 @@ export function ActionBar({
               )}
               {isRefetching ? "Fetching…" : "Re-fetch Metadata"}
             </button>
-            {game.folderPath && (
+            {!isArchived && game.folderPath && (
               <button data-testid="action-open-folder" className={menuItemClass} onClick={() => { onOpenFolder?.(); setMoreOpen(false); }}>
                 <FolderOpen className="size-4" /> Open Install Folder
               </button>
             )}
-            <div className="my-1 border-t border-border" />
-            <button data-testid="action-hide" className={menuItemClass} onClick={() => { onHide?.(); setMoreOpen(false); }}>
-              <EyeOff className="size-4" /> Hide from Library
-            </button>
+            {!isArchived && (
+              <>
+                <div className="my-1 border-t border-border" />
+                <button data-testid="action-hide" className={menuItemClass} onClick={() => { onHide?.(); setMoreOpen(false); }}>
+                  <EyeOff className="size-4" /> Hide from Library
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

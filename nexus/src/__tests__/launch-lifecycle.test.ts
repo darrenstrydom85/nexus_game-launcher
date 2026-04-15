@@ -263,6 +263,7 @@ describe("Story 22.3: Grace Period Auto-Prompt", () => {
           notes: null,
           progress: null,
           milestonesJson: null,
+          completed: false,
         } as import("@/stores/gameStore").Game,
       ],
       activeSession: {
@@ -347,6 +348,7 @@ describe("Story 22.5: Persist Selected EXE", () => {
     notes: overrides.notes ?? null,
     progress: overrides.progress ?? null,
     milestonesJson: overrides.milestonesJson ?? null,
+    completed: overrides.completed ?? false,
   });
 
   const makeSession = (overrides: Partial<import("@/stores/gameStore").ActiveSession> = {}): import("@/stores/gameStore").ActiveSession => ({

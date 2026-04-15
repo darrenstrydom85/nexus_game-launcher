@@ -12,6 +12,8 @@ import { AppShell } from "@/components/shared/AppShell";
 import { LibraryView } from "@/components/Library/LibraryView";
 import { LibraryStats } from "@/components/Library/LibraryStats";
 import { WrappedView } from "@/components/Wrapped/WrappedView";
+import { ArchiveView } from "@/components/Archive/ArchiveView";
+import { CompletedView } from "@/components/Completed/CompletedView";
 import { GameDetailOverlay } from "@/components/GameDetail/GameDetailOverlay";
 import { DetailContent } from "@/components/GameDetail/DetailContent";
 import { EditGameModal, type EditGameFields } from "@/components/GameDetail/EditGameModal";
@@ -645,6 +647,10 @@ function MainApp() {
         <LibraryStats
           onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
         />
+      ) : activeNav === "completed" ? (
+        <CompletedView />
+      ) : activeNav === "archive" ? (
+        <ArchiveView />
       ) : (
         <LibraryView
           onPlay={(game) => launch(game)}
@@ -666,55 +672,68 @@ function MainApp() {
         />
       )}
       <GameDetailOverlay>
-        {(game) => (
-          <DetailContent
-            game={game}
-            isPlaying={activeSession?.gameId === game.id}
-            processDetected={activeSession?.gameId === game.id ? activeSession?.processDetected : undefined}
-            youtubeId={game.trailerUrl ? extractYoutubeId(game.trailerUrl) : null}
-            collections={collections
-              .filter((c) => c.gameIds.includes(game.id))
-              .map((c) => `${c.icon} ${c.name}`)}
-            onPlay={() => launch(game)}
-            onForceIdentify={handleForceIdentify}
-            onStatusChange={(status) => {
-              invoke("update_game", { id: game.id, fields: { status } })
-                .then(() => refreshGames())
-                .then(() => {
-                  if (status === "completed" || status === "dropped") {
-                    const qs = useQueueStore.getState();
-                    if (qs.isQueued(game.id)) {
-                      qs.remove(game.id, game.name);
-                    }
-                  }
-                })
-                .catch(() => {});
-            }}
-            onRatingChange={(rating) => {
-              invoke("update_game", { id: game.id, fields: { rating } })
-                .then(() => refreshGames())
-                .catch(() => {});
-            }}
-            onRefetchMetadata={async () => {
-              await invoke("fetch_metadata", { gameId: game.id });
-              await refreshGames();
-            }}
-            onSearchMetadata={() => setMetadataSearchGame(game)}
-            onEdit={() => setEditGameTarget(game)}
-            onAddToCollection={() => setAddToCollectionTarget(game)}
-            onOpenFolder={() => {
-              if (game.folderPath) openPath(game.folderPath).catch(() => {});
-            }}
-            onHide={() => {
-              invoke("update_game", { id: game.id, fields: { isHidden: true } })
-                .then(() => {
-                  useSettingsStore.getState().hideGame(game.id);
-                  useUiStore.getState().setDetailOverlayGameId(null);
-                })
-                .catch(() => {});
-            }}
-          />
-        )}
+        {(game) => {
+          const gameIsArchived = game.status === "removed";
+          return (
+            <DetailContent
+              game={game}
+              isPlaying={activeSession?.gameId === game.id}
+              processDetected={activeSession?.gameId === game.id ? activeSession?.processDetected : undefined}
+              isArchived={gameIsArchived}
+              youtubeId={game.trailerUrl ? extractYoutubeId(game.trailerUrl) : null}
+              collections={collections
+                .filter((c) => c.gameIds.includes(game.id))
+                .map((c) => `${c.icon} ${c.name}`)}
+              onPlay={() => launch(game)}
+              onForceIdentify={handleForceIdentify}
+              onStatusChange={(status) => {
+                if (gameIsArchived) {
+                  invoke("update_game", {
+                    id: game.id,
+                    fields: { completed: status === "completed" },
+                  })
+                    .then(() => refreshGames())
+                    .catch(() => {});
+                } else {
+                  invoke("update_game", { id: game.id, fields: { status } })
+                    .then(() => refreshGames())
+                    .then(() => {
+                      if (status === "completed" || status === "dropped") {
+                        const qs = useQueueStore.getState();
+                        if (qs.isQueued(game.id)) {
+                          qs.remove(game.id, game.name);
+                        }
+                      }
+                    })
+                    .catch(() => {});
+                }
+              }}
+              onRatingChange={(rating) => {
+                invoke("update_game", { id: game.id, fields: { rating } })
+                  .then(() => refreshGames())
+                  .catch(() => {});
+              }}
+              onRefetchMetadata={async () => {
+                await invoke("fetch_metadata", { gameId: game.id });
+                await refreshGames();
+              }}
+              onSearchMetadata={() => setMetadataSearchGame(game)}
+              onEdit={() => setEditGameTarget(game)}
+              onAddToCollection={() => setAddToCollectionTarget(game)}
+              onOpenFolder={() => {
+                if (game.folderPath) openPath(game.folderPath).catch(() => {});
+              }}
+              onHide={() => {
+                invoke("update_game", { id: game.id, fields: { isHidden: true } })
+                  .then(() => {
+                    useSettingsStore.getState().hideGame(game.id);
+                    useUiStore.getState().setDetailOverlayGameId(null);
+                  })
+                  .catch(() => {});
+              }}
+            />
+          );
+        }}
       </GameDetailOverlay>
       {metadataSearchGame && (
         <MetadataSearchDialog

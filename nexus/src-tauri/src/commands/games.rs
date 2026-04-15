@@ -42,9 +42,10 @@ pub fn get_games(
         _ => "ASC",
     };
 
-    // Return all games (including hidden) so the frontend can sync hidden state; exclude removed so they don't show in the library.
+    // Return all games (including hidden and removed) so the frontend can manage visibility.
+    // The frontend filters removed/hidden games from the library; the Archive view shows removed games.
     let sql = format!(
-        "SELECT * FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY {sort_column} {sort_direction}"
+        "SELECT * FROM games ORDER BY {sort_column} {sort_direction}"
     );
 
     let mut stmt = conn
@@ -164,6 +165,7 @@ pub struct UpdateGameFields {
     pub progress: Option<Option<i32>>,
     #[serde(default, deserialize_with = "deserialize_nullable")]
     pub milestones_json: Option<Option<String>>,
+    pub completed: Option<bool>,
 }
 
 #[tauri::command]
@@ -250,6 +252,14 @@ pub fn update_game(
     push_nullable_field!(fields.custom_hero, "custom_hero");
     push_field!(fields.potential_exe_names, "potential_exe_names");
     push_field!(fields.status, "status");
+    if fields.completed.is_some() {
+        set_clauses.push("completed = ?".to_string());
+        values.push(Box::new(fields.completed.unwrap() as i32));
+    } else if let Some(ref status) = fields.status {
+        let is_completed = status == "completed";
+        set_clauses.push("completed = ?".to_string());
+        values.push(Box::new(is_completed as i32));
+    }
     push_field!(fields.rating, "rating");
     push_field!(fields.total_play_time, "total_play_time");
     push_field!(fields.last_played, "last_played");

@@ -163,6 +163,7 @@ export function SourcesStep() {
         notes: null,
         progress: null,
         milestonesJson: null,
+        completed: false,
       }));
 
       setGames(games);

@@ -34,6 +34,7 @@ export interface SettingsState {
   reducedMotion: boolean;
   hiddenSmartCollections: string[];
   hiddenGameIds: string[];
+  removedGameIds: string[];
   defaultSort: string;
   defaultView: "grid" | "list";
   sourcesEnabled: Record<string, boolean>;
@@ -78,6 +79,7 @@ export interface SettingsActions {
   hideGame: (gameId: string) => void;
   unhideGame: (gameId: string) => void;
   setHiddenGameIds: (ids: string[]) => void;
+  setRemovedGameIds: (ids: string[]) => void;
   setDefaultSort: (sort: string) => void;
   setDefaultView: (view: "grid" | "list") => void;
   setSourceEnabled: (sourceId: string, enabled: boolean) => void;
@@ -129,6 +131,7 @@ const initialState: SettingsState = {
   reducedMotion: false,
   hiddenSmartCollections: [],
   hiddenGameIds: [],
+  removedGameIds: [],
   defaultSort: "name",
   defaultView: "grid",
   sourcesEnabled: Object.fromEntries(SOURCE_IDS.map((id) => [id, true])),
@@ -322,6 +325,8 @@ export const useSettingsStore = create<SettingsStore>()(
           ),
         setHiddenGameIds: (ids) =>
           set({ hiddenGameIds: ids }, false, "setHiddenGameIds"),
+        setRemovedGameIds: (ids) =>
+          set({ removedGameIds: ids }, false, "setRemovedGameIds"),
         setDefaultSort: (sort) => {
           persistSetting("library_sort_by", sort);
           set({ defaultSort: sort }, false, "setDefaultSort");

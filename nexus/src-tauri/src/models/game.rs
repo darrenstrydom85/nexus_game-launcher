@@ -124,11 +124,13 @@ pub struct Game {
     pub notes: Option<String>,
     pub progress: Option<i32>,
     pub milestones_json: Option<String>,
+    pub completed: bool,
 }
 
 impl Game {
     pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
         let is_hidden_int: i32 = row.get("is_hidden")?;
+        let completed_int: i32 = row.get("completed")?;
         Ok(Game {
             id: row.get("id")?,
             name: row.get("name")?,
@@ -175,6 +177,7 @@ impl Game {
             notes: row.get("notes")?,
             progress: row.get("progress")?,
             milestones_json: row.get("milestones_json")?,
+            completed: completed_int != 0,
         })
     }
 }

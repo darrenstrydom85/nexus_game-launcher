@@ -1,6 +1,7 @@
 import * as React from "react";
-import { Flame, Trophy, Calendar, Gamepad2 } from "lucide-react";
+import { Flame, Trophy, Calendar, Gamepad2, HardDriveDownload } from "lucide-react";
 import { formatPlayTime } from "@/lib/utils";
+import { useGameResolver, type ResolvedGame } from "@/hooks/useGameResolver";
 import type { WrappedReport } from "@/types/wrapped";
 
 interface MilestonesCardProps {
@@ -24,11 +25,19 @@ interface MilestoneRowProps {
   label: string;
   value: string;
   sub?: string;
+  onClick?: () => void;
+  resolved?: ResolvedGame | null;
 }
 
-function MilestoneRow({ icon, label, value, sub }: MilestoneRowProps) {
+function MilestoneRow({ icon, label, value, sub, onClick, resolved }: MilestoneRowProps) {
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-border bg-card/40 p-4 backdrop-blur-sm">
+    <div
+      className={`flex items-start gap-4 rounded-xl border border-border bg-card/40 p-4 backdrop-blur-sm ${onClick ? "cursor-pointer transition-colors hover:bg-white/5" : ""}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         {icon}
       </div>
@@ -36,8 +45,9 @@ function MilestoneRow({ icon, label, value, sub }: MilestoneRowProps) {
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="mt-0.5 truncate text-base font-semibold text-foreground">
-          {value}
+        <p className={`mt-0.5 flex items-center gap-1.5 truncate text-base font-semibold ${onClick ? "text-foreground hover:text-primary" : "text-foreground"}`}>
+          {resolved?.isRemoved && <HardDriveDownload className="size-3.5 shrink-0 text-muted-foreground" />}
+          <span className="truncate">{value}</span>
         </p>
         {sub && (
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p>
@@ -48,6 +58,18 @@ function MilestoneRow({ icon, label, value, sub }: MilestoneRowProps) {
 }
 
 export function MilestonesCard({ report }: MilestonesCardProps) {
+  const { resolve, openGame } = useGameResolver();
+
+  const longestSessionResolved = report.longestSession
+    ? resolve(report.longestSession.gameId, report.longestSession.gameName)
+    : null;
+  const firstGameResolved = report.firstGamePlayed
+    ? resolve(report.firstGamePlayed.id, report.firstGamePlayed.name)
+    : null;
+  const lastGameResolved = report.lastGamePlayed
+    ? resolve(report.lastGamePlayed.id, report.lastGamePlayed.name)
+    : null;
+
   return (
     <div
       data-testid="milestones-card"
@@ -69,6 +91,8 @@ export function MilestonesCard({ report }: MilestonesCardProps) {
             label="Epic Binge"
             value={`${formatPlayTime(report.longestSession.durationS)} on ${report.longestSession.gameName}`}
             sub={formatDate(report.longestSession.startedAt)}
+            onClick={longestSessionResolved ? () => openGame(report.longestSession!.gameId, report.longestSession!.gameName) : undefined}
+            resolved={longestSessionResolved}
           />
         )}
 
@@ -94,6 +118,8 @@ export function MilestonesCard({ report }: MilestonesCardProps) {
             icon={<Gamepad2 className="size-5" />}
             label="First Game Played"
             value={report.firstGamePlayed.name}
+            onClick={firstGameResolved ? () => openGame(report.firstGamePlayed!.id, report.firstGamePlayed!.name) : undefined}
+            resolved={firstGameResolved}
           />
         )}
 
@@ -102,6 +128,8 @@ export function MilestonesCard({ report }: MilestonesCardProps) {
             icon={<Gamepad2 className="size-5" />}
             label="Last Game Played"
             value={report.lastGamePlayed.name}
+            onClick={lastGameResolved ? () => openGame(report.lastGamePlayed!.id, report.lastGamePlayed!.name) : undefined}
+            resolved={lastGameResolved}
           />
         )}
       </div>

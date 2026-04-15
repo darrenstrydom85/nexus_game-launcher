@@ -16,6 +16,7 @@ interface DetailContentProps {
   game: Game;
   isPlaying?: boolean;
   processDetected?: boolean;
+  isArchived?: boolean;
   screenshots?: string[];
   youtubeId?: string | null;
   collections?: string[];
@@ -111,6 +112,7 @@ export function DetailContent({
   game,
   isPlaying,
   processDetected,
+  isArchived,
   screenshots = [],
   youtubeId = null,
   collections = [],
@@ -132,6 +134,7 @@ export function DetailContent({
         game={game}
         isPlaying={isPlaying}
         processDetected={processDetected}
+        isArchived={isArchived}
         onPlay={onPlay}
         onForceIdentify={onForceIdentify}
         onStatusChange={onStatusChange}

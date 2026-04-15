@@ -29,6 +29,7 @@ const makeGame = (id: string, name: string, overrides: Partial<Game> = {}): Game
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
   ...overrides,
 });
 

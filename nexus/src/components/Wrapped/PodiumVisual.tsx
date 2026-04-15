@@ -1,7 +1,9 @@
 import { motion } from "motion/react";
 import { formatPlayTime } from "@/lib/utils";
 import { resolveUrl } from "@/lib/url";
+import { HardDriveDownload } from "lucide-react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useGameResolver } from "@/hooks/useGameResolver";
 import type { WrappedGame } from "@/types/wrapped";
 
 interface PodiumVisualProps {
@@ -19,6 +21,7 @@ const DISPLAY_ORDER = [1, 0, 2] as const;
 
 export function PodiumVisual({ topGames, isVisible }: PodiumVisualProps) {
   const shouldReduceMotion = useReducedMotion();
+  const { resolve, openGame } = useGameResolver();
   const games = topGames.slice(0, 3);
 
   if (games.length === 0) return null;
@@ -44,9 +47,10 @@ export function PodiumVisual({ topGames, isVisible }: PodiumVisualProps) {
       {items.map(({ game, config, staggerIdx }) => {
         const coverUrl = resolveUrl(game.coverUrl);
         const coverH = Math.round(config.coverW * 1.5);
+        const resolved = resolve(game.id, game.name);
 
         return (
-          <motion.div
+          <motion.button
             key={game.id}
             data-testid={`podium-position-${config.rank}`}
             className="flex flex-col items-center"
@@ -57,10 +61,11 @@ export function PodiumVisual({ topGames, isVisible }: PodiumVisualProps) {
                 ? { duration: 0.15 }
                 : { duration: 0.2, delay: staggerIdx * 0.1, ease: "easeOut" }
             }
+            onClick={() => openGame(game.id, game.name)}
           >
             {/* Cover art */}
             <div
-              className="overflow-hidden rounded-lg bg-card"
+              className="relative overflow-hidden rounded-lg bg-card transition-transform hover:scale-105"
               style={{ width: config.coverW, height: coverH }}
             >
               {coverUrl ? (
@@ -74,6 +79,11 @@ export function PodiumVisual({ topGames, isVisible }: PodiumVisualProps) {
                   <span className="truncate text-center text-xs text-muted-foreground">
                     {game.name}
                   </span>
+                </div>
+              )}
+              {resolved?.isRemoved && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60" title="Uninstalled">
+                  <HardDriveDownload className="size-4 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -99,7 +109,7 @@ export function PodiumVisual({ topGames, isVisible }: PodiumVisualProps) {
                 {config.label}
               </span>
             </div>
-          </motion.div>
+          </motion.button>
         );
       })}
     </div>

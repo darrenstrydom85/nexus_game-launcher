@@ -45,6 +45,7 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   notes: overrides.notes ?? null,
   progress: overrides.progress ?? null,
   milestonesJson: overrides.milestonesJson ?? null,
+  completed: overrides.completed ?? false,
 });
 
 const games: Game[] = [

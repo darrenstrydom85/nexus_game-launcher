@@ -50,6 +50,7 @@ const defaultGame = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 const mockLiveStream: LiveStreamItem = {

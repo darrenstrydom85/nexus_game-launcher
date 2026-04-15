@@ -54,6 +54,7 @@ const baseGame: Game = {
   notes: null,
   progress: null,
   milestonesJson: null,
+  completed: false,
 };
 
 const liveStreamOne: LiveStreamItem = {
