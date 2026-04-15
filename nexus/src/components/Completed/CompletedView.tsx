@@ -1,10 +1,23 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "motion/react";
+import { cn, formatPlayTime } from "@/lib/utils";
 import { invoke } from "@tauri-apps/api/core";
 import { useGameStore, type Game, refreshGames } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
 import { GameCard } from "@/components/GameCard";
-import { Search, Trophy, ChevronDown, Eye, Circle } from "lucide-react";
+import { useDominantColor } from "@/hooks/useDominantColor";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import {
+  Search,
+  Trophy,
+  ChevronDown,
+  Eye,
+  Circle,
+  Clock,
+  Star,
+  Gamepad2,
+  Layers,
+} from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 type SortField = "name" | "totalPlayTime" | "rating" | "lastPlayed";
@@ -37,8 +50,198 @@ function sortGames(games: Game[], field: SortField, _dir: SortDir): Game[] {
   });
 }
 
+/* ── Stats Banner ── */
+
+interface CompletedStats {
+  count: number;
+  totalPlayTimeS: number;
+  avgRating: number | null;
+  topGenre: string | null;
+}
+
+function deriveStats(games: Game[]): CompletedStats {
+  const totalPlayTimeS = games.reduce((sum, g) => sum + g.totalPlayTimeS, 0);
+
+  const rated = games.filter((g) => g.rating != null && g.rating > 0);
+  const avgRating =
+    rated.length > 0
+      ? rated.reduce((sum, g) => sum + g.rating!, 0) / rated.length
+      : null;
+
+  const genreCounts = new Map<string, number>();
+  for (const g of games) {
+    for (const genre of g.genres) {
+      genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1);
+    }
+  }
+  let topGenre: string | null = null;
+  let topCount = 0;
+  for (const [genre, count] of genreCounts) {
+    if (count > topCount) {
+      topCount = count;
+      topGenre = genre;
+    }
+  }
+
+  return { count: games.length, totalPlayTimeS, avgRating, topGenre };
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card/40 p-4 backdrop-blur-sm">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-0.5 truncate text-lg font-bold tabular-nums text-foreground">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function StatsBar({ stats }: { stats: CompletedStats }) {
+  return (
+    <div
+      data-testid="completed-stats"
+      className="grid grid-cols-2 gap-3 px-6 pt-6 sm:grid-cols-4"
+    >
+      <StatCard
+        icon={<Trophy className="size-5" />}
+        label="Games Completed"
+        value={stats.count}
+      />
+      <StatCard
+        icon={<Clock className="size-5" />}
+        label="Total Play Time"
+        value={formatPlayTime(stats.totalPlayTimeS)}
+      />
+      <StatCard
+        icon={<Star className="size-5" />}
+        label="Average Rating"
+        value={
+          stats.avgRating != null ? (
+            <span className="flex items-center gap-1">
+              {stats.avgRating.toFixed(1)}
+              <Star className="size-4 fill-yellow-400 text-yellow-400" />
+            </span>
+          ) : (
+            "—"
+          )
+        }
+      />
+      <StatCard
+        icon={<Layers className="size-5" />}
+        label="Top Genre"
+        value={stats.topGenre ?? "—"}
+      />
+    </div>
+  );
+}
+
+/* ── Spotlight Hero ── */
+
+function SpotlightHero({ game }: { game: Game }) {
+  const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
+  const heroImage = game.heroUrl ?? game.coverUrl;
+  const dominantColor = useDominantColor(heroImage);
+  const shouldReduceMotion = useReducedMotion();
+
+  if (!heroImage) return null;
+
+  const useCoverFallback = !game.heroUrl && !!game.coverUrl;
+
+  return (
+    <button
+      data-testid="completed-spotlight"
+      className="group relative mx-6 mt-4 overflow-hidden rounded-xl border border-border"
+      style={{ height: 220 }}
+      onClick={() => setDetailOverlayGameId(game.id)}
+    >
+      {/* Dominant color ambient glow */}
+      <div
+        className="pointer-events-none absolute -inset-4 opacity-30 blur-3xl"
+        style={{ background: dominantColor }}
+      />
+
+      {/* Hero / cover image */}
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={heroImage}
+          src={heroImage}
+          alt={game.name}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]",
+            useCoverFallback && "blur-sm scale-110",
+          )}
+          style={{ filter: "brightness(0.35)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.6, ease: "easeInOut" }}
+        />
+      </AnimatePresence>
+
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
+
+      {/* Content */}
+      <div className="relative z-10 flex h-full flex-col justify-end p-6">
+        <p className="mb-1 text-xs font-medium uppercase tracking-widest text-primary">
+          Most Played Completion
+        </p>
+        <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
+          {game.name}
+        </h3>
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Gamepad2 className="size-3.5" />
+            {formatPlayTime(game.totalPlayTimeS)}
+          </span>
+          {game.rating != null && game.rating > 0 && (
+            <span className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={cn(
+                    "size-3.5",
+                    s <= game.rating!
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-muted-foreground/40",
+                  )}
+                />
+              ))}
+            </span>
+          )}
+          {game.genres.length > 0 && (
+            <span className="truncate text-xs">
+              {game.genres.slice(0, 3).join(" / ")}
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* ── Main View ── */
+
 export function CompletedView() {
   const games = useGameStore((s) => s.games);
+  const shouldReduceMotion = useReducedMotion();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortField, setSortField] = React.useState<SortField>("name");
   const [sortDir] = React.useState<SortDir>("asc");
@@ -59,6 +262,18 @@ export function CompletedView() {
     () => games.filter((g) => g.completed),
     [games],
   );
+
+  const stats = React.useMemo(
+    () => deriveStats(completedGames),
+    [completedGames],
+  );
+
+  const spotlightGame = React.useMemo(() => {
+    if (completedGames.length === 0) return null;
+    return [...completedGames].sort(
+      (a, b) => b.totalPlayTimeS - a.totalPlayTimeS,
+    )[0];
+  }, [completedGames]);
 
   const searchFiltered = React.useMemo(() => {
     if (!searchQuery) return completedGames;
@@ -97,12 +312,19 @@ export function CompletedView() {
   return (
     <TooltipProvider>
       <div data-testid="completed-view" className="flex flex-col">
-        <section className="px-6 pt-6">
+        {/* Stats banner */}
+        <StatsBar stats={stats} />
+
+        {/* Spotlight hero */}
+        {spotlightGame && <SpotlightHero game={spotlightGame} />}
+
+        {/* Toolbar: heading + search + sort */}
+        <section className="px-6 pt-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="size-5 text-primary" />
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                Completed
+              <h2 className="text-xl font-bold tracking-tight text-foreground">
+                Trophy Shelf
               </h2>
               <span className="text-sm tabular-nums text-muted-foreground">
                 {completedGames.length} game
@@ -169,7 +391,7 @@ export function CompletedView() {
             </div>
           </div>
 
-          {/* Card grid */}
+          {/* Card grid with staggered entrance */}
           {sortedGames.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No games match your search.
@@ -182,10 +404,20 @@ export function CompletedView() {
                 gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
               }}
             >
-              {sortedGames.map((game) => (
-                <div key={game.id} onContextMenu={(e) => openContextMenu(e, game)}>
+              {sortedGames.map((game, i) => (
+                <motion.div
+                  key={game.id}
+                  initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={
+                    shouldReduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.3, delay: Math.min(i * 0.03, 0.5), ease: "easeOut" }
+                  }
+                  onContextMenu={(e) => openContextMenu(e, game)}
+                >
                   <GameCard game={game} />
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
