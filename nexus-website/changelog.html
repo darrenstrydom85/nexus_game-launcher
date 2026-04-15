@@ -138,15 +138,53 @@
     <div class="container">
       <div class="changelog-timeline">
 
-        <!-- ── v0.2.0 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.2.0">
+        <!-- ── v0.2.1 (latest) ── -->
+        <article class="changelog-entry changelog-entry--latest" id="v0.2.1">
           <div class="changelog-entry-header">
             <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.2.0</h2>
+              <h2 class="type-title1 mb-0">v0.2.1</h2>
               <span class="version-badge type-caption text-primary-accent">
                 <i data-lucide="sparkles" class="icon-xs"></i>
                 Latest
               </span>
+            </div>
+            <time class="type-footnote text-muted-foreground" datetime="2026-04-15">April 15, 2026</time>
+          </div>
+
+          <div class="changelog-entry-body">
+            <p class="type-body text-muted-foreground">
+              Archive and Completed views — track game completions across your entire library, even after uninstalling. The Completed page gets a full Trophy Room redesign with stats, a spotlight hero, and entrance animations.
+            </p>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--added">New</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Archive view</strong> — Browse games that were uninstalled and removed by library sync. Right-click to mark as completed or view details.</li>
+                <li><strong>Completed view (Trophy Room)</strong> — Dedicated page for all completed games with a stats banner (count, total play time, average rating, top genre), a spotlight hero for your most-played completion, and staggered card entrance animations.</li>
+                <li><strong>Completed flag</strong> — New persistent <code>completed</code> field that survives uninstallation. Mark any game as completed and it stays tracked even after removal.</li>
+                <li><strong>Stats click-through</strong> — Games in Library Stats and Wrapped views are now clickable, opening the detail overlay. Uninstalled games show a visual indicator.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-category">
+              <h3 class="changelog-category-title">
+                <span class="changelog-badge changelog-badge--changed">Improved</span>
+              </h3>
+              <ul class="changelog-list">
+                <li><strong>Archived game detail</strong> — Play button disabled for uninstalled games; status toggle simplified to Completed / Not Completed.</li>
+                <li><strong>Sidebar badges</strong> — Archive and Completed counts shown as badges in the sidebar navigation.</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ── v0.2.0 ── -->
+        <article class="changelog-entry" id="v0.2.0">
+          <div class="changelog-entry-header">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <h2 class="type-title1 mb-0">v0.2.0</h2>
             </div>
             <time class="type-footnote text-muted-foreground" datetime="2026-04-13">April 13, 2026</time>
           </div>
