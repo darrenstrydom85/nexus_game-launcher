@@ -49,6 +49,7 @@ import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { MilestoneToastStack } from "@/components/Milestones/MilestoneToastStack";
+import { AchievementsView } from "@/components/Achievements/AchievementsView";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
@@ -645,7 +646,9 @@ function MainApp() {
       }}
       onForceIdentify={handleForceIdentify}
     >
-      {activeNav === "wrapped" ? (
+      {activeNav === "achievements" ? (
+        <AchievementsView />
+      ) : activeNav === "wrapped" ? (
         <WrappedView onClose={() => useUiStore.getState().setActiveNav("stats")} />
       ) : activeNav === "twitch" ? (
         <TwitchPanel />

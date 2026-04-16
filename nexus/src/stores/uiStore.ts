@@ -13,7 +13,7 @@ export type SortField =
 
 export type SortDirection = "asc" | "desc";
 
-export type NavItem = "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive";
+export type NavItem = "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements";
 
 export interface UiState {
   selectedGameId: string | null;

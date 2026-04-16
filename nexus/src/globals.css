@@ -123,6 +123,13 @@
     --tier-gold: #FFD700;
     --tier-platinum: #E5E4E2;
     --tier-diamond: #B9F2FF;
+
+    /* Achievement rarity colors (Epic 39) */
+    --rarity-common: #9CA3AF;
+    --rarity-uncommon: #22C55E;
+    --rarity-rare: #3B82F6;
+    --rarity-epic: #A855F7;
+    --rarity-legendary: #EAB308;
 }
 
 @layer base {
@@ -401,6 +408,37 @@
   .animate-diamond-shimmer {
     animation: none;
   }
+}
+
+/* Achievement unlock glow pulse — rarity-colored hover (Epic 39) */
+@keyframes achievement-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px var(--glow-color, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--glow-color, transparent);
+  }
+}
+.animate-achievement-glow {
+  animation: achievement-glow 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-achievement-glow {
+    animation: none;
+  }
+}
+
+/* Achievement highlight flash — navigated-to card (Epic 39) */
+@keyframes achievement-highlight {
+  0% {
+    box-shadow: 0 0 0 2px var(--glow-color, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.animate-achievement-highlight {
+  animation: achievement-highlight 1s ease-out 1;
 }
 
 /* Titlebar drag regions */
