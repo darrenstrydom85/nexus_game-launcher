@@ -63,6 +63,7 @@ use commands::{
     milestones::{check_session_milestones, evaluate_milestones_batch},
     streak::{get_streak, recalculate_streak},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
+    xp::{award_xp, backfill_xp_from_history, get_xp_breakdown, get_xp_history, get_xp_summary},
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
         set_setting,
@@ -201,6 +202,10 @@ pub fn run() {
                 if let Ok(conn) = db.conn.lock() {
                     let _ = commands::streak::recalculate_streak_inner(&conn);
                     let _ = commands::achievements::evaluate_achievements_inner(&conn);
+
+                    if commands::xp::should_run_backfill(&conn) {
+                        let _ = commands::xp::backfill_xp_inner(&conn);
+                    }
                 }
             }
 
@@ -341,6 +346,11 @@ pub fn run() {
             get_unlocked_achievements,
             get_achievement_status,
             evaluate_achievements,
+            get_xp_summary,
+            get_xp_history,
+            get_xp_breakdown,
+            award_xp,
+            backfill_xp_from_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

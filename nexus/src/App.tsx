@@ -65,6 +65,8 @@ import { useQueueStore } from "@/stores/queueStore";
 import { useStreakStore } from "@/stores/streakStore";
 import { useMasteryStore } from "@/stores/masteryStore";
 import { useTagStore } from "@/stores/tagStore";
+import { useXpStore } from "@/stores/xpStore";
+import { LevelUpToast } from "@/components/Xp/LevelUpToast";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -180,6 +182,7 @@ function MainApp() {
     useTagStore.getState().loadGameTagMap();
     useStreakStore.getState().fetchStreak();
     useMasteryStore.getState().fetchAll();
+    useXpStore.getState().fetchXp();
     useAchievementStore.getState().initBadgeCount().then(() => {
       useAchievementStore.getState().evaluate();
     });
@@ -823,6 +826,7 @@ function MainApp() {
       <SessionNotePromptWrapper />
       <TwitchToastContainer />
       <MilestoneToastStack />
+      <LevelUpToast />
       <AchievementNotificationQueue />
       <ToastNotifications />
       <CollectionEditor

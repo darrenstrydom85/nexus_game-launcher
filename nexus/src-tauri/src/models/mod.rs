@@ -10,6 +10,7 @@ pub mod milestone;
 pub mod streak;
 pub mod mastery;
 pub mod wrapped;
+pub mod xp;
 
 pub use achievement::{
     AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
@@ -31,3 +32,4 @@ pub use wrapped::{
     AvailableWrappedPeriods, Comparison, DayBucket, FunFact, GenreShare, HiddenGem, HourBucket,
     MonthBucket, PlatformShare, WrappedGame, WrappedPeriod, WrappedReport, WrappedSession,
 };
+pub use xp::{XpBreakdownRow, XpEvent, XpSummary};

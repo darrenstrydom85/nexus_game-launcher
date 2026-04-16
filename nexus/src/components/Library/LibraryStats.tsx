@@ -14,6 +14,7 @@ import { useSessionDistribution } from "@/hooks/useSessionDistribution";
 import { StreakSection } from "@/components/Streak/StreakSection";
 import { MilestoneHistorySection } from "@/components/Milestones/MilestoneHistorySection";
 import { TierLegend } from "@/components/Stats/TierLegend";
+import { XpLevelSection } from "@/components/Xp/XpLevelSection";
 import type { SessionScope } from "@/lib/tauri";
 
 export type StatsDateRange =
@@ -565,6 +566,9 @@ export function LibraryStats({
             <StreakSection />
             <TierLegend />
           </div>
+
+          {/* 3.5. XP & Level section */}
+          <XpLevelSection />
 
           {/* 4. Heatmap + Top Games side by side */}
           <div className="grid gap-4 lg:grid-cols-2">

@@ -295,6 +295,19 @@ pub fn update_game(
         .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
+    // XP award for game completion — fire-and-forget
+    if let Some(ref status) = fields.status {
+        if status == "completed" {
+            let _ = super::xp::award_xp_inner(
+                &conn,
+                crate::models::xp::sources::GAME_COMPLETE,
+                Some(&id),
+                100,
+                &format!("Completed {} (+100 XP)", game.name),
+            );
+        }
+    }
+
     Ok(game)
 }
 
