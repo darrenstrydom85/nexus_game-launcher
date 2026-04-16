@@ -116,6 +116,7 @@ pub fn end_session(
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let _ = super::streak::recalculate_streak_inner(&conn);
+    let _ = super::achievements::evaluate_achievements_inner(&conn);
 
     Ok(session)
 }

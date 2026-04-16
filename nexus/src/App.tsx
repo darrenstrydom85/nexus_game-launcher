@@ -49,6 +49,9 @@ import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { MilestoneToastStack } from "@/components/Milestones/MilestoneToastStack";
+import { AchievementsView } from "@/components/Achievements/AchievementsView";
+import { AchievementNotificationQueue } from "@/components/Achievements/AchievementNotificationQueue";
+import { useAchievementStore } from "@/stores/achievementStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
@@ -62,7 +65,6 @@ import { useQueueStore } from "@/stores/queueStore";
 import { useStreakStore } from "@/stores/streakStore";
 import { useMasteryStore } from "@/stores/masteryStore";
 import { useTagStore } from "@/stores/tagStore";
-import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -113,8 +115,6 @@ function MainApp() {
   const [closeConfirmDialogOpen, setCloseConfirmDialogOpen] = React.useState(false);
   const updateCheckTriggered = React.useRef(false);
   const runUpdateCheck = useUpdateStore((s) => s.runCheck);
-  const [hasPlayHistory, setHasPlayHistory] = React.useState(false);
-  const playHistoryChecked = React.useRef(false);
 
   const lastHealthCheckAt = useSettingsStore((s) => s.lastHealthCheckAt);
   const healthCheckSnoozedUntil = useSettingsStore((s) => s.healthCheckSnoozedUntil);
@@ -180,23 +180,11 @@ function MainApp() {
     useTagStore.getState().loadGameTagMap();
     useStreakStore.getState().fetchStreak();
     useMasteryStore.getState().fetchAll();
+    useAchievementStore.getState().initBadgeCount().then(() => {
+      useAchievementStore.getState().evaluate();
+    });
   }, []);
 
-  React.useEffect(() => {
-    if (playHistoryChecked.current) return;
-    playHistoryChecked.current = true;
-    getAvailableWrappedPeriods()
-      .then((avail) => {
-        const hasData =
-          avail.thisMonthHasData ||
-          avail.lastMonthHasData ||
-          avail.thisYearHasData ||
-          avail.lastYearHasData ||
-          avail.yearsWithSessions.length > 0;
-        setHasPlayHistory(hasData);
-      })
-      .catch(() => {});
-  }, []);
 
   useSettingsApplier();
 
@@ -600,7 +588,6 @@ function MainApp() {
   return (
     <AppShell
       onSettingsClick={() => setSettingsOpen(true)}
-      hasPlayHistory={hasPlayHistory}
       onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
       onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
       onDeleteCollection={(c) => {
@@ -645,7 +632,9 @@ function MainApp() {
       }}
       onForceIdentify={handleForceIdentify}
     >
-      {activeNav === "wrapped" ? (
+      {activeNav === "achievements" ? (
+        <AchievementsView />
+      ) : activeNav === "wrapped" ? (
         <WrappedView onClose={() => useUiStore.getState().setActiveNav("stats")} />
       ) : activeNav === "twitch" ? (
         <TwitchPanel />
@@ -834,6 +823,7 @@ function MainApp() {
       <SessionNotePromptWrapper />
       <TwitchToastContainer />
       <MilestoneToastStack />
+      <AchievementNotificationQueue />
       <ToastNotifications />
       <CollectionEditor
         open={collectionEditorOpen}

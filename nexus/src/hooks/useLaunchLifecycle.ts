@@ -8,6 +8,7 @@ import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useStreakStore, checkMilestoneCrossed } from "@/stores/streakStore";
 import { useMilestoneStore } from "@/stores/milestoneStore";
 import { useMasteryStore } from "@/stores/masteryStore";
+import { useAchievementStore } from "@/stores/achievementStore";
 import { triggerMilestoneSound } from "@/components/Milestones/MilestoneToastStack";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -162,6 +163,8 @@ export function useLaunchLifecycle() {
         }
 
         useMasteryStore.getState().refreshGame(session.gameId);
+
+        useAchievementStore.getState().evaluate();
       }
 
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
@@ -247,6 +250,8 @@ export function useLaunchLifecycle() {
         }
 
         useMasteryStore.getState().refreshGame(session.gameId);
+
+        useAchievementStore.getState().evaluate();
       }
 
       const elapsed = Date.now() - launchTimeRef.current;

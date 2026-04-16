@@ -11,12 +11,12 @@ import {
   BarChart3,
   ChevronDown,
   FolderOpen,
-  Gift,
   Layers,
   Library,
   Shuffle,
   Star,
   Tag,
+  Award,
   Trophy,
 } from "lucide-react";
 import { SOURCE_ICON_COMPONENTS } from "@/lib/source-icons";
@@ -25,6 +25,7 @@ import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar"
 import { type Collection } from "@/stores/collectionStore";
 import { PlayQueueWidget } from "./PlayQueueWidget";
 import { StreakWidget } from "@/components/Streak/StreakWidget";
+import { useAchievementStore } from "@/stores/achievementStore";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
   steam: "Steam",
@@ -180,8 +181,6 @@ interface SidebarProps {
   onDeleteCollection?: (collection: Collection) => void;
   enabledSources?: GameSource[];
   onToggleSource?: (source: GameSource) => void;
-  /** Show the Wrapped nav item only when the user has play history. */
-  hasPlayHistory?: boolean;
   onPlayGame?: (gameId: string) => void;
 }
 
@@ -193,7 +192,6 @@ export function Sidebar({
   onDeleteCollection,
   enabledSources,
   onToggleSource,
-  hasPlayHistory = false,
   onPlayGame,
 }: SidebarProps) {
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
@@ -259,15 +257,17 @@ export function Sidebar({
     [games],
   );
 
+  const achievementBadgeCount = useAchievementStore(
+    (s) => s.statuses.filter((a) => a.unlocked).length,
+  );
+
   const baseNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: "library", label: "Library", icon: <Library className="size-4" /> },
     { id: "stats", label: "Stats", icon: <BarChart3 className="size-4" /> },
-    ...(hasPlayHistory
-      ? [{ id: "wrapped" as NavItem, label: "Wrapped", icon: <Gift className="size-4" /> }]
-      : []),
     { id: "random", label: "Random", icon: <Shuffle className="size-4" /> },
     { id: "completed" as NavItem, label: "Completed", icon: <Trophy className="size-4" /> },
     { id: "archive" as NavItem, label: "Archive", icon: <Archive className="size-4" /> },
+    { id: "achievements" as NavItem, label: "Achievements", icon: <Award className="size-4" /> },
     {
       id: "twitch" as NavItem,
       label: "Twitch",
@@ -305,6 +305,7 @@ export function Sidebar({
           const archiveCount = removedGameIds.length;
           const showArchiveBadge = item.id === "archive" && archiveCount > 0;
           const showCompletedBadge = item.id === "completed" && completedCount > 0;
+          const showAchievementBadge = item.id === "achievements" && achievementBadgeCount > 0;
           const twitchTitle =
             item.id === "twitch" && !sidebarOpen
               ? showBadge
@@ -384,6 +385,14 @@ export function Sidebar({
                       aria-hidden
                     >
                       {completedCount}
+                    </span>
+                  )}
+                  {showAchievementBadge && (
+                    <span
+                      className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--rarity-legendary)]/20 px-1 text-[10px] font-medium tabular-nums text-[var(--rarity-legendary)]"
+                      aria-hidden
+                    >
+                      {achievementBadgeCount}
                     </span>
                   )}
                 </>

@@ -1,3 +1,4 @@
+pub mod achievement;
 pub mod analytics;
 pub mod collection;
 pub mod game;
@@ -10,6 +11,10 @@ pub mod streak;
 pub mod mastery;
 pub mod wrapped;
 
+pub use achievement::{
+    AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
+    NewlyUnlocked, UnlockedAchievement,
+};
 pub use analytics::{
     DistributionBucket, PerGameSessionStats, SessionDistribution, SessionRecord, SessionScope,
 };

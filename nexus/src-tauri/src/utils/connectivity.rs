@@ -46,6 +46,7 @@ pub fn check_online() -> bool {
 }
 
 /// Return the last-known connectivity result without making a request.
+#[allow(dead_code)]
 pub fn is_cached_online() -> bool {
     CACHE
         .lock()

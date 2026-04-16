@@ -58,6 +58,8 @@ export interface SettingsState {
   queueCollapsed: boolean;
   showCardProgress: boolean;
   milestoneSoundsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
+  achievementSoundsEnabled: boolean;
   _hydrated: boolean;
 }
 
@@ -99,6 +101,8 @@ export interface SettingsActions {
   setQueueCollapsed: (value: boolean) => void;
   setShowCardProgress: (value: boolean) => void;
   setMilestoneSoundsEnabled: (value: boolean) => void;
+  setAchievementNotificationsEnabled: (value: boolean) => void;
+  setAchievementSoundsEnabled: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -152,6 +156,8 @@ const initialState: SettingsState = {
   queueCollapsed: false,
   showCardProgress: true,
   milestoneSoundsEnabled: true,
+  achievementNotificationsEnabled: true,
+  achievementSoundsEnabled: true,
   _hydrated: false,
 };
 
@@ -229,6 +235,12 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.milestone_sounds_enabled !== undefined) {
               patch.milestoneSoundsEnabled = settings.milestone_sounds_enabled !== "false";
+            }
+            if (settings.achievement_notifications_enabled !== undefined) {
+              patch.achievementNotificationsEnabled = settings.achievement_notifications_enabled !== "false";
+            }
+            if (settings.achievement_sounds_enabled !== undefined) {
+              patch.achievementSoundsEnabled = settings.achievement_sounds_enabled !== "false";
             }
 
             set(patch, false, "loadFromBackend");
@@ -406,6 +418,14 @@ export const useSettingsStore = create<SettingsStore>()(
         setMilestoneSoundsEnabled: (value) => {
           persistSetting("milestone_sounds_enabled", String(value));
           set({ milestoneSoundsEnabled: value }, false, "setMilestoneSoundsEnabled");
+        },
+        setAchievementNotificationsEnabled: (value) => {
+          persistSetting("achievement_notifications_enabled", String(value));
+          set({ achievementNotificationsEnabled: value }, false, "setAchievementNotificationsEnabled");
+        },
+        setAchievementSoundsEnabled: (value) => {
+          persistSetting("achievement_sounds_enabled", String(value));
+          set({ achievementSoundsEnabled: value }, false, "setAchievementSoundsEnabled");
         },
       }),
       { name: "nexus-settings" },

@@ -31,6 +31,7 @@ pub static TRAY_EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 pub static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
 
 use commands::{
+    achievements::{evaluate_achievements, get_achievement_definitions, get_achievement_status, get_unlocked_achievements},
     analytics::{get_per_game_session_stats, get_session_distribution},
     collections::{
         add_to_collection, create_collection, delete_collection, evaluate_smart_collection,
@@ -199,6 +200,7 @@ pub fn run() {
             if let Some(db) = app.try_state::<DbState>() {
                 if let Ok(conn) = db.conn.lock() {
                     let _ = commands::streak::recalculate_streak_inner(&conn);
+                    let _ = commands::achievements::evaluate_achievements_inner(&conn);
                 }
             }
 
@@ -335,6 +337,10 @@ pub fn run() {
             get_backup_status,
             set_backup_frequency,
             set_backup_retention,
+            get_achievement_definitions,
+            get_unlocked_achievements,
+            get_achievement_status,
+            evaluate_achievements,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
