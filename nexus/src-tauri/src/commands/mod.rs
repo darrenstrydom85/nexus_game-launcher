@@ -1,6 +1,7 @@
 pub mod achievements;
 pub mod analytics;
 pub mod backup;
+pub mod ceremony;
 pub mod clipboard;
 pub mod collections;
 pub mod database;

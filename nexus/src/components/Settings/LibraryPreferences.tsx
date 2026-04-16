@@ -18,6 +18,8 @@ export function LibraryPreferences() {
   const setNotePromptTimeout = useSettingsStore((s) => s.setSessionNotePromptTimeout);
   const showCardProgress = useSettingsStore((s) => s.showCardProgress);
   const setShowCardProgress = useSettingsStore((s) => s.setShowCardProgress);
+  const ceremonyEnabled = useSettingsStore((s) => s.retirementCeremonyEnabled);
+  const setCeremonyEnabled = useSettingsStore((s) => s.setRetirementCeremonyEnabled);
 
   return (
     <section data-testid="library-preferences">
@@ -102,6 +104,28 @@ export function LibraryPreferences() {
               </select>
             </label>
           </div>
+        </div>
+
+        {/* Retirement Ceremony preference (Epic 41) */}
+        <div className="mt-1 border-t border-border pt-3">
+          <span className="mb-2 block text-xs font-medium text-muted-foreground">
+            Retirement Ceremony
+          </span>
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-foreground">
+              Celebrate when marking a game Completed or Dropped
+            </span>
+            <input
+              data-testid="pref-retirement-ceremony-enabled"
+              type="checkbox"
+              checked={ceremonyEnabled}
+              onChange={() => setCeremonyEnabled(!ceremonyEnabled)}
+              className="size-4 rounded border-border"
+            />
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            You can always replay the ceremony from a game's detail page.
+          </p>
         </div>
 
         {/* Session Notes preferences */}

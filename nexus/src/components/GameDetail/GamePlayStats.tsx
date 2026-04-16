@@ -1,12 +1,13 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPlayTime } from "@/lib/utils";
 import type { Game } from "@/stores/gameStore";
 import { usePerGameSessionStats } from "@/hooks/usePerGameSessionStats";
 import { PerGameSessionPanel } from "./PerGameSessionPanel";
+import { useCeremonyStore } from "@/stores/ceremonyStore";
 
 interface PlayStats {
   sessionCount: number;
@@ -47,6 +48,12 @@ export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
   const totalTime = stats?.totalTime ?? game.totalPlayTimeS ?? 0;
   const avgSession = stats?.averageSession ?? (sessionCount > 0 ? Math.round(totalTime / sessionCount) : 0);
   const lastPlayed = stats?.lastPlayed ?? game.lastPlayedAt;
+
+  // A game is "retired" if it has a retirement signal we can celebrate:
+  // completed (survives uninstall), dropped, or explicitly status=completed.
+  const isRetired =
+    game.completed || game.status === "completed" || game.status === "dropped";
+  const openCeremony = useCeremonyStore((s) => s.openForGame);
 
   return (
     <div data-testid="game-play-stats" className="rounded-lg border border-border bg-card p-4">
@@ -90,6 +97,23 @@ export function GamePlayStats({ game, onViewFullStats }: GamePlayStatsProps) {
           </dd>
         </div>
       </dl>
+
+      {isRetired && sessionCount > 0 && (
+        <button
+          type="button"
+          data-testid="replay-ceremony-btn"
+          onClick={() => openCeremony(game.id, "replay").catch(() => {})}
+          className={cn(
+            "mt-3 flex w-full items-center justify-center gap-2 rounded-md",
+            "border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary",
+            "transition-colors hover:bg-primary/15",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          )}
+        >
+          <Sparkles className="size-3.5" />
+          Replay retirement ceremony
+        </button>
+      )}
 
       {/* Expandable session details */}
       <div className="mt-3 border-t border-border pt-3">

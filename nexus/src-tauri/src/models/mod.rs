@@ -1,5 +1,6 @@
 pub mod achievement;
 pub mod analytics;
+pub mod ceremony;
 pub mod collection;
 pub mod game;
 pub mod queue;
@@ -19,6 +20,7 @@ pub use achievement::{
 pub use analytics::{
     DistributionBucket, PerGameSessionStats, SessionDistribution, SessionRecord, SessionScope,
 };
+pub use ceremony::{GameCeremonyData, MonthPlayTime};
 pub use collection::{Collection, CollectionWithCount};
 pub use game::{Game, GameSource, GameStatus};
 pub use session::{ActivityBucket, PlaySession, PlayStats};
