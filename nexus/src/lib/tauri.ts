@@ -913,3 +913,60 @@ export interface NewlyUnlocked {
 export function evaluateAchievements(): Promise<NewlyUnlocked[]> {
   return invoke<NewlyUnlocked[]>("evaluate_achievements");
 }
+
+// ── XP & Level System ─────────────────────────────────────────────
+
+export interface XpEvent {
+  id: string;
+  source: string;
+  sourceId: string | null;
+  xpAmount: number;
+  description: string;
+  createdAt: string;
+}
+
+export interface XpSummary {
+  totalXp: number;
+  currentLevel: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  progressToNextLevel: number;
+  leveledUp: boolean;
+  newLevel: number | null;
+}
+
+export interface XpBreakdownRow {
+  sourceType: string;
+  totalXp: number;
+  eventCount: number;
+}
+
+export function getXpSummary(): Promise<XpSummary> {
+  return invoke<XpSummary>("get_xp_summary");
+}
+
+export function getXpHistory(limit?: number): Promise<XpEvent[]> {
+  return invoke<XpEvent[]>("get_xp_history", { limit: limit ?? null });
+}
+
+export function getXpBreakdown(): Promise<XpBreakdownRow[]> {
+  return invoke<XpBreakdownRow[]>("get_xp_breakdown");
+}
+
+export function awardXp(
+  source: string,
+  sourceId: string | null,
+  xpAmount: number,
+  description: string
+): Promise<XpSummary> {
+  return invoke<XpSummary>("award_xp", {
+    source,
+    sourceId,
+    xpAmount,
+    description,
+  });
+}
+
+export function backfillXpFromHistory(): Promise<XpSummary> {
+  return invoke<XpSummary>("backfill_xp_from_history");
+}

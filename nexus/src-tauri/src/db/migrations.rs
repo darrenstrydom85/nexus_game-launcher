@@ -102,6 +102,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "achievements",
         sql: include_str!("migrations/019_achievements.sql"),
     },
+    Migration {
+        version: 20,
+        name: "xp_events",
+        sql: include_str!("migrations/020_xp_events.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -204,6 +209,7 @@ mod tests {
             "twitch_stream_cache",
             "twitch_trending_library_cache",
             "watched_folders",
+            "xp_events",
         ] {
             assert!(
                 tables.contains(&expected.to_string()),

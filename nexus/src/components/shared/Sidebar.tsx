@@ -25,6 +25,7 @@ import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar"
 import { type Collection } from "@/stores/collectionStore";
 import { PlayQueueWidget } from "./PlayQueueWidget";
 import { StreakWidget } from "@/components/Streak/StreakWidget";
+import { LevelBadge } from "@/components/Xp/LevelBadge";
 import { useAchievementStore } from "@/stores/achievementStore";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
@@ -295,6 +296,17 @@ export function Sidebar({
       role="navigation"
       aria-label="Main navigation"
     >
+      {/* Level Badge — top of sidebar */}
+      <div className="px-2 pt-2">
+        <LevelBadge
+          sidebarOpen={sidebarOpen}
+          onClick={() => onNavigate?.("stats")}
+        />
+      </div>
+
+      {/* Separator */}
+      <div className="mx-3 mt-2 border-t border-border" />
+
       {/* Navigation Items */}
       <div className="flex flex-col gap-0.5 px-2 py-2" role="list">
         {navItems.map((item) => {

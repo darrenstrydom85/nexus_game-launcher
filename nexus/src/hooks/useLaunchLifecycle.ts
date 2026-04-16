@@ -11,6 +11,8 @@ import { useMasteryStore } from "@/stores/masteryStore";
 import { useAchievementStore } from "@/stores/achievementStore";
 import { triggerMilestoneSound } from "@/components/Milestones/MilestoneToastStack";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useXpStore } from "@/stores/xpStore";
+import { awardXp } from "@/lib/tauri";
 
 const QUICK_EXIT_THRESHOLD_MS = 5000;
 const PROCESS_POLL_INTERVAL_MS = 5000;
@@ -165,6 +167,13 @@ export function useLaunchLifecycle() {
         useMasteryStore.getState().refreshGame(session.gameId);
 
         useAchievementStore.getState().evaluate();
+
+        useXpStore.getState().refreshXp().then(() => {
+          const summary = useXpStore.getState().summary;
+          if (summary?.leveledUp && summary.newLevel) {
+            useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+          }
+        });
       }
 
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
@@ -252,6 +261,13 @@ export function useLaunchLifecycle() {
         useMasteryStore.getState().refreshGame(session.gameId);
 
         useAchievementStore.getState().evaluate();
+
+        useXpStore.getState().refreshXp().then(() => {
+          const summary = useXpStore.getState().summary;
+          if (summary?.leveledUp && summary.newLevel) {
+            useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+          }
+        });
       }
 
       const elapsed = Date.now() - launchTimeRef.current;
@@ -477,6 +493,9 @@ export function useLaunchLifecycle() {
           potentialExeNames: game.potentialExeNames ?? null,
           hasDbSession: dbSessionId !== null,
         });
+
+        const today = new Date().toISOString().slice(0, 10);
+        awardXp("game_launch", `${game.id}_${today}`, 5, `Launched ${game.name} (+5 XP)`).catch(() => {});
       }
 
       return result;

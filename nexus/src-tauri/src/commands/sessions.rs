@@ -115,8 +115,73 @@ pub fn end_session(
         )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
-    let _ = super::streak::recalculate_streak_inner(&conn);
-    let _ = super::achievements::evaluate_achievements_inner(&conn);
+    let prev_streak: i64 = conn
+        .query_row(
+            "SELECT current_streak FROM streak_snapshots WHERE id = 'singleton'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+
+    let streak_result = super::streak::recalculate_streak_inner(&conn);
+    let newly_unlocked = super::achievements::evaluate_achievements_inner(&conn);
+
+    // Achievement XP — award for each newly unlocked achievement
+    if let Ok(ref unlocked) = newly_unlocked {
+        for ach in unlocked {
+            let xp = ach.points as i64;
+            let _ = super::xp::award_xp_inner(
+                &conn,
+                crate::models::xp::sources::ACHIEVEMENT_UNLOCK,
+                Some(&ach.id),
+                xp,
+                &format!("Unlocked '{}' achievement (+{xp} XP)", ach.name),
+            );
+        }
+    }
+
+    // Streak XP — award if streak grew
+    if let Ok(ref snapshot) = streak_result {
+        if snapshot.current_streak > prev_streak {
+            let streak_days = snapshot.current_streak;
+            let xp = 10 * streak_days.min(30);
+            let today = super::utils::today_date();
+            let _ = super::xp::award_xp_inner(
+                &conn,
+                crate::models::xp::sources::STREAK_DAY,
+                Some(&today),
+                xp,
+                &format!("Day {streak_days} streak bonus (+{xp} XP)"),
+            );
+        }
+    }
+
+    // XP awards — fire-and-forget; never block the primary operation
+    if duration_s >= 30 {
+        let game_name: String = conn
+            .query_row("SELECT name FROM games WHERE id = ?1", params![game_id], |r| r.get(0))
+            .unwrap_or_else(|_| "Unknown".to_string());
+
+        let session_xp = 10 + duration_s / 600;
+        let mins = duration_s / 60;
+        let _ = super::xp::award_xp_inner(
+            &conn,
+            crate::models::xp::sources::SESSION_COMPLETE,
+            Some(&session_id),
+            session_xp,
+            &format!("Completed {mins}-minute session of {game_name} (+{session_xp} XP)"),
+        );
+
+        if duration_s >= 3600 {
+            let _ = super::xp::award_xp_inner(
+                &conn,
+                crate::models::xp::sources::SESSION_BONUS_1H,
+                Some(&session_id),
+                15,
+                &format!("1-hour session bonus for {game_name} (+15 XP)"),
+            );
+        }
+    }
 
     Ok(session)
 }

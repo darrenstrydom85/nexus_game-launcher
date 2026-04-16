@@ -30,6 +30,7 @@ pub mod utils;
 pub mod version_check;
 pub mod window;
 pub mod wrapped;
+pub mod xp;
 
 #[cfg(test)]
 mod tests;
