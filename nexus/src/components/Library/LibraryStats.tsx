@@ -12,6 +12,7 @@ import { SessionHistory } from "./stats/SessionHistory";
 import { SessionHistogram } from "@/components/Stats/SessionHistogram";
 import { useSessionDistribution } from "@/hooks/useSessionDistribution";
 import { StreakSection } from "@/components/Streak/StreakSection";
+import { MilestoneHistorySection } from "@/components/Milestones/MilestoneHistorySection";
 import type { SessionScope } from "@/lib/tauri";
 
 export type StatsDateRange =
@@ -332,6 +333,11 @@ export function LibraryStats({
     return deriveTopGamesFromSessions(filteredSessions, coverByGameId, coverByName);
   }, [dateRange, topGames, filteredSessions, coverByGameId, coverByName]);
 
+  const milestoneSessionIds = React.useMemo(
+    () => filteredSessions.map((s) => s.id),
+    [filteredSessions],
+  );
+
   React.useEffect(() => {
     if (statsProp !== undefined) return;
 
@@ -550,6 +556,9 @@ export function LibraryStats({
 
           {/* Streak Section */}
           <StreakSection />
+
+          {/* Milestone History */}
+          <MilestoneHistorySection sessionIds={milestoneSessionIds} />
 
           {/* Activity Chart */}
           <div className="rounded-lg border border-border bg-card p-4">

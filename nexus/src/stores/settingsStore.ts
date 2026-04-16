@@ -57,6 +57,7 @@ export interface SettingsState {
   sessionNotePromptTimeout: number;
   queueCollapsed: boolean;
   showCardProgress: boolean;
+  milestoneSoundsEnabled: boolean;
   _hydrated: boolean;
 }
 
@@ -97,6 +98,7 @@ export interface SettingsActions {
   setSessionNotePromptTimeout: (value: number) => void;
   setQueueCollapsed: (value: boolean) => void;
   setShowCardProgress: (value: boolean) => void;
+  setMilestoneSoundsEnabled: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -149,6 +151,7 @@ const initialState: SettingsState = {
   sessionNotePromptTimeout: 60,
   queueCollapsed: false,
   showCardProgress: true,
+  milestoneSoundsEnabled: true,
   _hydrated: false,
 };
 
@@ -223,6 +226,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.show_card_progress !== undefined) {
               patch.showCardProgress = settings.show_card_progress !== "false";
+            }
+            if (settings.milestone_sounds_enabled !== undefined) {
+              patch.milestoneSoundsEnabled = settings.milestone_sounds_enabled !== "false";
             }
 
             set(patch, false, "loadFromBackend");
@@ -396,6 +402,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setShowCardProgress: (value) => {
           persistSetting("show_card_progress", String(value));
           set({ showCardProgress: value }, false, "setShowCardProgress");
+        },
+        setMilestoneSoundsEnabled: (value) => {
+          persistSetting("milestone_sounds_enabled", String(value));
+          set({ milestoneSoundsEnabled: value }, false, "setMilestoneSoundsEnabled");
         },
       }),
       { name: "nexus-settings" },

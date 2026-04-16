@@ -5,6 +5,7 @@ pub mod queue;
 pub mod session;
 pub mod settings;
 pub mod tag;
+pub mod milestone;
 pub mod streak;
 pub mod wrapped;
 
@@ -16,6 +17,7 @@ pub use game::{Game, GameSource, GameStatus};
 pub use session::{ActivityBucket, PlaySession, PlayStats};
 pub use settings::{Setting, SettingsMap, WatchedFolder};
 pub use queue::PlayQueueEntry;
+pub use milestone::SessionMilestone;
 pub use streak::StreakSnapshot;
 pub use tag::{Tag, TagWithCount};
 pub use wrapped::{

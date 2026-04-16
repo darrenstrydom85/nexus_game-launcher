@@ -6,6 +6,9 @@ import { useToastStore } from "@/stores/toastStore";
 import { dispatchLaunch, setRunningGame, type LaunchResult } from "@/lib/launcher";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useStreakStore, checkMilestoneCrossed } from "@/stores/streakStore";
+import { useMilestoneStore } from "@/stores/milestoneStore";
+import { triggerMilestoneSound } from "@/components/Milestones/MilestoneToastStack";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 const QUICK_EXIT_THRESHOLD_MS = 5000;
 const PROCESS_POLL_INTERVAL_MS = 5000;
@@ -143,12 +146,18 @@ export function useLaunchLifecycle() {
         const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
         const snapshot = await useStreakStore.getState().refreshAfterSession();
         const newStreak = snapshot?.currentStreak ?? 0;
-        const milestone = checkMilestoneCrossed(prevStreak, newStreak);
-        if (milestone) {
+        const streakMilestone = checkMilestoneCrossed(prevStreak, newStreak);
+        if (streakMilestone) {
           addToast({
             type: "success",
-            message: `${milestone}-Day Streak! You're on fire!`,
+            message: `${streakMilestone}-Day Streak! You're on fire!`,
           });
+        }
+
+        await useMilestoneStore.getState().enqueueSessionMilestones(session.sessionId);
+        const soundsOn = useSettingsStore.getState().milestoneSoundsEnabled;
+        if (useMilestoneStore.getState().toastQueue.length > 0) {
+          triggerMilestoneSound(soundsOn);
         }
       }
 
@@ -220,12 +229,18 @@ export function useLaunchLifecycle() {
         const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
         const snapshot = await useStreakStore.getState().refreshAfterSession();
         const newStreak = snapshot?.currentStreak ?? 0;
-        const milestone = checkMilestoneCrossed(prevStreak, newStreak);
-        if (milestone) {
+        const streakMilestone = checkMilestoneCrossed(prevStreak, newStreak);
+        if (streakMilestone) {
           addToast({
             type: "success",
-            message: `${milestone}-Day Streak! You're on fire!`,
+            message: `${streakMilestone}-Day Streak! You're on fire!`,
           });
+        }
+
+        await useMilestoneStore.getState().enqueueSessionMilestones(session.sessionId);
+        const soundsOn = useSettingsStore.getState().milestoneSoundsEnabled;
+        if (useMilestoneStore.getState().toastQueue.length > 0) {
+          triggerMilestoneSound(soundsOn);
         }
       }
 
