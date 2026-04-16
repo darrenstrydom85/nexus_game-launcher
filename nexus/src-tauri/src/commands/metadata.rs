@@ -1,6 +1,5 @@
 use rusqlite::params;
 use serde::Serialize;
-use std::sync::Arc;
 use tauri::State;
 
 use super::error::CommandError;

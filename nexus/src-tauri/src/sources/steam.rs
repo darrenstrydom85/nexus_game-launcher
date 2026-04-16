@@ -102,6 +102,7 @@ impl VdfValue {
         self.as_section()?.get(key)
     }
 
+    #[allow(dead_code)]
     pub fn get_str(&self, key: &str) -> Option<&str> {
         self.get(key)?.as_str()
     }
