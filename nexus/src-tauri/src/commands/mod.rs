@@ -13,6 +13,7 @@ pub mod jsonbin;
 pub mod known_issues;
 pub mod launcher;
 pub mod metadata;
+pub mod milestones;
 pub mod ping;
 pub mod playtime;
 pub mod queue;

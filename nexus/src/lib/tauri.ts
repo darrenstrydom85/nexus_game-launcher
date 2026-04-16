@@ -788,3 +788,28 @@ export function getStreak(): Promise<StreakSnapshot> {
 export function recalculateStreak(): Promise<StreakSnapshot> {
   return invoke<StreakSnapshot>("recalculate_streak");
 }
+
+// ── Session Milestones ────────────────────────────────────────────
+
+export interface SessionMilestone {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  gameName: string;
+}
+
+export function checkSessionMilestones(
+  sessionId: string,
+): Promise<SessionMilestone[]> {
+  return invoke<SessionMilestone[]>("check_session_milestones", { sessionId });
+}
+
+export function evaluateMilestonesBatch(
+  sessionIds: string[],
+): Promise<[string, SessionMilestone[]][]> {
+  return invoke<[string, SessionMilestone[]][]>("evaluate_milestones_batch", {
+    sessionIds,
+  });
+}

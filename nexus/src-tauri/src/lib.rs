@@ -58,6 +58,7 @@ use commands::{
         get_play_sessions, get_play_stats, get_top_games, update_session_note,
     },
     clipboard::write_image_to_clipboard,
+    milestones::{check_session_milestones, evaluate_milestones_batch},
     streak::{get_streak, recalculate_streak},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
     settings::{
@@ -244,6 +245,8 @@ pub fn run() {
             get_available_wrapped_periods,
             get_streak,
             recalculate_streak,
+            check_session_milestones,
+            evaluate_milestones_batch,
             get_collections,
             get_collections_with_game_ids,
             create_collection,

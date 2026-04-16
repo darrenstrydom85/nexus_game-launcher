@@ -48,6 +48,7 @@ import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { ToastNotifications } from "@/components/shared/ToastNotifications";
+import { MilestoneToastStack } from "@/components/Milestones/MilestoneToastStack";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
@@ -829,6 +830,7 @@ function MainApp() {
       />
       <SessionNotePromptWrapper />
       <TwitchToastContainer />
+      <MilestoneToastStack />
       <ToastNotifications />
       <CollectionEditor
         open={collectionEditorOpen}
