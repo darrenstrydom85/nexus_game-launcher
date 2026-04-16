@@ -495,7 +495,14 @@ export function useLaunchLifecycle() {
         });
 
         const today = new Date().toISOString().slice(0, 10);
-        awardXp("game_launch", `${game.id}_${today}`, 5, `Launched ${game.name} (+5 XP)`).catch(() => {});
+        awardXp("game_launch", `${game.id}_${today}`, 5, `Launched ${game.name} (+5 XP)`)
+          .then((summary) => {
+            useXpStore.getState().refreshXp();
+            if (summary.leveledUp && summary.newLevel) {
+              useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+            }
+          })
+          .catch(() => {});
       }
 
       return result;
