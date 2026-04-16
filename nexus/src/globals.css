@@ -116,6 +116,13 @@
     --warning-foreground: hsl(0, 0%, 0%);
     --info: hsl(272, 100%, 43%);
     --info-foreground: hsl(0, 0%, 100%);
+
+    /* Mastery tier colors (Epic 38) */
+    --tier-bronze: #CD7F32;
+    --tier-silver: #C0C0C0;
+    --tier-gold: #FFD700;
+    --tier-platinum: #E5E4E2;
+    --tier-diamond: #B9F2FF;
 }
 
 @layer base {
@@ -375,6 +382,24 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-\[slide-up_200ms_ease-out_both\] {
     animation: none !important;
+  }
+}
+
+/* Diamond tier shimmer — 3s infinite gradient highlight (Epic 38) */
+@keyframes diamond-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-diamond-shimmer {
+  animation: diamond-shimmer 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-diamond-shimmer {
+    animation: none;
   }
 }
 

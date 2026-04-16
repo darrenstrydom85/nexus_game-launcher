@@ -10,6 +10,7 @@ import { LiveOnTwitch } from "./LiveOnTwitch";
 import { GameProgress } from "./GameProgress";
 import { GameTagsSection } from "@/components/Tags/GameTagsSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
+import { MasteryTierDetail } from "./MasteryTierDetail";
 import { Plus } from "lucide-react";
 
 interface DetailContentProps {
@@ -203,8 +204,9 @@ export function DetailContent({
           )}
         </div>
 
-        {/* Right column — 40%: HLTB + play stats + trailer */}
+        {/* Right column — 40%: mastery + HLTB + play stats + trailer */}
         <div data-testid="detail-right-col" className="group flex w-[40%] flex-col gap-4">
+          <MasteryTierDetail gameId={game.id} />
           <HltbSection game={game} />
           <GameProgress game={game} onStatusChange={onStatusChange} />
           <GamePlayStats
