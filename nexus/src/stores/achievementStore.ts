@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import {
@@ -6,6 +7,23 @@ import {
   type AchievementStatus,
   type NewlyUnlocked,
 } from "@/lib/tauri";
+
+const LAST_VIEW_KEY = "last_achievement_view_at";
+
+function persistLastViewAt(iso: string) {
+  invoke("set_setting", { key: LAST_VIEW_KEY, value: iso }).catch(() => {});
+}
+
+async function loadLastViewAt(): Promise<string | null> {
+  try {
+    const val = await invoke<string | null>("get_setting", {
+      key: LAST_VIEW_KEY,
+    });
+    return val;
+  } catch {
+    return null;
+  }
+}
 
 interface AchievementState {
   statuses: AchievementStatus[];
@@ -21,6 +39,7 @@ interface AchievementActions {
   dismissNotification: () => void;
   clearBadge: () => void;
   setHighlightId: (id: string | null) => void;
+  initBadgeCount: () => Promise<void>;
 }
 
 export type AchievementStore = AchievementState & AchievementActions;
@@ -41,6 +60,27 @@ export const useAchievementStore = create<AchievementStore>()(
           set({ statuses, loading: false }, false, "fetchStatuses/done");
         } catch {
           set({ loading: false }, false, "fetchStatuses/error");
+        }
+      },
+
+      initBadgeCount: async () => {
+        try {
+          const [statuses, lastViewAt] = await Promise.all([
+            getAchievementStatus(),
+            loadLastViewAt(),
+          ]);
+          const unseen = lastViewAt
+            ? statuses.filter(
+                (s) => s.unlocked && s.unlockedAt && s.unlockedAt > lastViewAt,
+              ).length
+            : statuses.filter((s) => s.unlocked).length;
+          set(
+            { statuses, loading: false, newUnlockCount: unseen },
+            false,
+            "initBadgeCount",
+          );
+        } catch {
+          // best-effort
         }
       },
 
@@ -78,6 +118,7 @@ export const useAchievementStore = create<AchievementStore>()(
       },
 
       clearBadge: () => {
+        persistLastViewAt(new Date().toISOString());
         set({ newUnlockCount: 0 }, false, "clearBadge");
       },
 

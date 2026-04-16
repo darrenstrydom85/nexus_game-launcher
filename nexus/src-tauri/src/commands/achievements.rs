@@ -369,12 +369,9 @@ struct LibraryStats {
 }
 
 fn fetch_library_stats(conn: &Connection) -> LibraryStats {
+    // Achievements measure lifetime accomplishments — include hidden/removed games
     let game_count = conn
-        .query_row(
-            "SELECT COUNT(*) FROM games WHERE is_hidden = 0",
-            [],
-            |r| r.get::<_, i64>(0),
-        )
+        .query_row("SELECT COUNT(*) FROM games", [], |r| r.get::<_, i64>(0))
         .unwrap_or(0);
 
     let collection_count = conn
@@ -385,7 +382,7 @@ fn fetch_library_stats(conn: &Connection) -> LibraryStats {
 
     let total_play_time_s = conn
         .query_row(
-            "SELECT COALESCE(SUM(total_play_time), 0) FROM games WHERE is_hidden = 0",
+            "SELECT COALESCE(SUM(total_play_time), 0) FROM games",
             [],
             |r| r.get::<_, i64>(0),
         )
@@ -393,7 +390,7 @@ fn fetch_library_stats(conn: &Connection) -> LibraryStats {
 
     let completed_count = conn
         .query_row(
-            "SELECT COUNT(*) FROM games WHERE completed = 1 AND is_hidden = 0",
+            "SELECT COUNT(*) FROM games WHERE completed = 1",
             [],
             |r| r.get::<_, i64>(0),
         )
@@ -457,7 +454,7 @@ fn check_backlog_slayer(conn: &Connection) -> bool {
         .query_row(
             "SELECT COUNT(DISTINCT g.id) FROM games g
              INNER JOIN play_sessions ps ON ps.game_id = g.id
-             WHERE g.completed = 1 AND g.is_hidden = 0
+             WHERE g.completed = 1
                AND ps.ended_at IS NOT NULL AND ps.duration_s >= 30",
             [],
             |r| r.get(0),
@@ -471,7 +468,7 @@ fn count_all_time_genres(conn: &Connection) -> i64 {
     let mut stmt = match conn.prepare(
         "SELECT DISTINCT g.genres FROM games g
          INNER JOIN play_sessions ps ON ps.game_id = g.id
-         WHERE g.genres IS NOT NULL AND g.genres != '' AND g.is_hidden = 0
+         WHERE g.genres IS NOT NULL AND g.genres != ''
            AND ps.ended_at IS NOT NULL AND ps.duration_s >= 30",
     ) {
         Ok(s) => s,
@@ -505,7 +502,7 @@ fn count_monthly_genres(conn: &Connection) -> i64 {
     let mut stmt = match conn.prepare(
         "SELECT DISTINCT g.genres FROM games g
          INNER JOIN play_sessions ps ON ps.game_id = g.id
-         WHERE g.genres IS NOT NULL AND g.genres != '' AND g.is_hidden = 0
+         WHERE g.genres IS NOT NULL AND g.genres != ''
            AND ps.ended_at IS NOT NULL AND ps.duration_s >= 30
            AND ps.started_at >= ?1",
     ) {
@@ -538,8 +535,7 @@ fn check_hidden_gem(conn: &Connection) -> bool {
     let count: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM games
-             WHERE is_hidden = 0
-               AND community_score IS NOT NULL AND community_score > 0 AND community_score < 70
+             WHERE community_score IS NOT NULL AND community_score > 0 AND community_score < 70
                AND total_play_time >= 18000",
             [],
             |r| r.get(0),
@@ -752,11 +748,8 @@ pub fn evaluate_achievements_inner(
         }
     }
 
-    if newly_unlocked.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Batch insert in a single transaction
+    // Always open a transaction to refresh context for already-unlocked achievements
+    // and insert any new ones.
     let tx = conn
         .unchecked_transaction()
         .map_err(|e| CommandError::Database(e.to_string()))?;
@@ -780,6 +773,32 @@ pub fn evaluate_achievements_inner(
             unlocked_at: unlocked_at.clone(),
             context_json: context.clone(),
         });
+    }
+
+    // Refresh context_json for already-unlocked threshold achievements
+    // so the displayed stat stays current (e.g. "8 games completed" not "1").
+    for def in ACHIEVEMENT_DEFINITIONS {
+        if !already_unlocked.contains(def.id) {
+            continue;
+        }
+        let ctx = match def.category {
+            AchievementCategory::Library => Some(build_context_num("gameCount", stats.game_count)),
+            AchievementCategory::Play => {
+                if def.id.contains("hours") {
+                    Some(build_context_num("totalHours", stats.total_play_time_s / 3600))
+                } else {
+                    Some(build_context_num("sessionCount", stats.session_count))
+                }
+            }
+            AchievementCategory::Completion => Some(build_context_num("completedCount", stats.completed_count)),
+            AchievementCategory::Streak => Some(build_context_num("streakDays", stats.current_streak)),
+            _ => continue,
+        };
+        tx.execute(
+            "UPDATE achievements SET context_json = ?1 WHERE id = ?2",
+            params![ctx, def.id],
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
     }
 
     tx.commit()

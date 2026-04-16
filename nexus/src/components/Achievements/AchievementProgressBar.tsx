@@ -16,6 +16,10 @@ interface AchievementProgressBarProps {
 export function AchievementProgressBar({ statuses }: AchievementProgressBarProps) {
   const total = statuses.length;
   const unlocked = statuses.filter((s) => s.unlocked).length;
+  const earnedXp = statuses
+    .filter((s) => s.unlocked)
+    .reduce((sum, s) => sum + s.points, 0);
+  const totalXp = statuses.reduce((sum, s) => sum + s.points, 0);
 
   const segments = (
     ["library", "play", "completion", "streak", "exploration", "session"] as AchievementCategory[]
@@ -33,10 +37,20 @@ export function AchievementProgressBar({ statuses }: AchievementProgressBarProps
   return (
     <div className="flex flex-col gap-2" data-testid="achievement-progress-bar">
       <div className="flex items-baseline justify-between">
-        <span className="text-lg font-semibold tabular-nums text-foreground">
-          {unlocked} / {total}
-        </span>
-        <span className="text-xs text-muted-foreground">Achievements Unlocked</span>
+        <div className="flex items-baseline gap-4">
+          <span className="text-lg font-semibold tabular-nums text-foreground">
+            {unlocked} / {total}
+          </span>
+          <span className="text-xs text-muted-foreground">Achievements Unlocked</span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-lg font-semibold tabular-nums text-[var(--rarity-legendary)]">
+            {earnedXp.toLocaleString()}
+          </span>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            / {totalXp.toLocaleString()} XP
+          </span>
+        </div>
       </div>
 
       <div className="flex h-2 w-full overflow-hidden rounded-full bg-[hsla(0,0%,100%,0.05)]">

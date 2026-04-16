@@ -148,24 +148,25 @@ export function AchievementsView() {
           })}
         </div>
 
-        <select
-          value={rarityFilter}
-          onChange={(e) =>
-            setRarityFilter(e.target.value as AchievementRarity | "all")
-          }
-          className={cn(
-            "rounded-md bg-[hsla(0,0%,100%,0.03)] px-3 py-1.5 text-xs",
-            "border border-[hsla(0,0%,100%,0.05)] text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
-          aria-label="Filter by rarity"
-        >
+        <div className="flex gap-1 rounded-lg bg-[hsla(0,0%,100%,0.03)] p-1" role="radiogroup" aria-label="Filter by rarity">
           {RARITY_FILTERS.map((r) => (
-            <option key={r.value} value={r.value}>
+            <button
+              key={r.value}
+              role="radio"
+              aria-checked={rarityFilter === r.value}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                rarityFilter === r.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => setRarityFilter(r.value)}
+            >
               {r.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
