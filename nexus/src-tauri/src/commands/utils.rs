@@ -81,6 +81,15 @@ pub fn date_only_to_end_epoch_secs(date_str: &str) -> Result<i64, String> {
     iso_to_epoch_secs(&iso)
 }
 
+/// Returns today's date as "YYYY-MM-DD" (UTC).
+pub fn today_date() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    epoch_secs_to_iso_date(now)
+}
+
 /// Converts epoch seconds to ISO date string "YYYY-MM-DD" (UTC).
 pub fn epoch_secs_to_iso_date(epoch_secs: i64) -> String {
     let days = (epoch_secs / 86400) as u64;

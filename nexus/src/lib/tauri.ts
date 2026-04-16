@@ -769,3 +769,22 @@ export function setBackupFrequency(frequency: string): Promise<void> {
 export function setBackupRetention(count: number): Promise<void> {
   return invoke<void>("set_backup_retention", { count });
 }
+
+// ── Streak ─────────────────────────────────────────────────────────
+
+export interface StreakSnapshot {
+  id: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastPlayDate: string | null;
+  streakStartedAt: string | null;
+  updatedAt: string;
+}
+
+export function getStreak(): Promise<StreakSnapshot> {
+  return invoke<StreakSnapshot>("get_streak");
+}
+
+export function recalculateStreak(): Promise<StreakSnapshot> {
+  return invoke<StreakSnapshot>("recalculate_streak");
+}

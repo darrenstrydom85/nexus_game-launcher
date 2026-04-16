@@ -92,6 +92,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "completed_flag",
         sql: include_str!("migrations/017_completed_flag.sql"),
     },
+    Migration {
+        version: 18,
+        name: "streak_snapshots",
+        sql: include_str!("migrations/018_streak_snapshots.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -186,6 +191,7 @@ mod tests {
             "play_sessions",
             "schema_version",
             "settings",
+            "streak_snapshots",
             "tags",
             "twitch_followed_channels",
             "twitch_game_cache",
