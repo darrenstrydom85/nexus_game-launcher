@@ -13,7 +13,7 @@ pub mod wrapped;
 
 pub use achievement::{
     AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
-    UnlockedAchievement,
+    NewlyUnlocked, UnlockedAchievement,
 };
 pub use analytics::{
     DistributionBucket, PerGameSessionStats, SessionDistribution, SessionRecord, SessionScope,

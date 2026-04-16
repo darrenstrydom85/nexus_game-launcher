@@ -74,6 +74,22 @@ pub struct AchievementStatus {
     pub context_json: Option<String>,
 }
 
+// ── Newly unlocked (returned by evaluate_achievements) ─────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewlyUnlocked {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub icon: String,
+    pub category: AchievementCategory,
+    pub rarity: AchievementRarity,
+    pub points: u32,
+    pub unlocked_at: String,
+    pub context_json: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

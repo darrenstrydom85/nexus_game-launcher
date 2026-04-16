@@ -897,3 +897,19 @@ export function getUnlockedAchievements(): Promise<UnlockedAchievement[]> {
 export function getAchievementStatus(): Promise<AchievementStatus[]> {
   return invoke<AchievementStatus[]>("get_achievement_status");
 }
+
+export interface NewlyUnlocked {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  rarity: AchievementRarity;
+  points: number;
+  unlockedAt: string;
+  contextJson: string | null;
+}
+
+export function evaluateAchievements(): Promise<NewlyUnlocked[]> {
+  return invoke<NewlyUnlocked[]>("evaluate_achievements");
+}
