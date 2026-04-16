@@ -11,6 +11,7 @@ import { TopGamesChart } from "./stats/TopGamesChart";
 import { SessionHistory } from "./stats/SessionHistory";
 import { SessionHistogram } from "@/components/Stats/SessionHistogram";
 import { useSessionDistribution } from "@/hooks/useSessionDistribution";
+import { StreakSection } from "@/components/Streak/StreakSection";
 import type { SessionScope } from "@/lib/tauri";
 
 export type StatsDateRange =
@@ -546,6 +547,9 @@ export function LibraryStats({
               value={formatPlayTime(displayStats.weeklyPlayTimeS)}
             />
           </div>
+
+          {/* Streak Section */}
+          <StreakSection />
 
           {/* Activity Chart */}
           <div className="rounded-lg border border-border bg-card p-4">

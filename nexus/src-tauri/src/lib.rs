@@ -58,6 +58,7 @@ use commands::{
         get_play_sessions, get_play_stats, get_top_games, update_session_note,
     },
     clipboard::write_image_to_clipboard,
+    streak::{get_streak, recalculate_streak},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
@@ -192,6 +193,13 @@ pub fn run() {
         .setup(|app| {
             setup_tray(app)?;
             commands::backup::start_backup_scheduler(app.handle().clone());
+
+            if let Some(db) = app.try_state::<DbState>() {
+                if let Ok(conn) = db.conn.lock() {
+                    let _ = commands::streak::recalculate_streak_inner(&conn);
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -234,6 +242,8 @@ pub fn run() {
             get_per_game_session_stats,
             get_wrapped_report,
             get_available_wrapped_periods,
+            get_streak,
+            recalculate_streak,
             get_collections,
             get_collections_with_game_ids,
             create_collection,

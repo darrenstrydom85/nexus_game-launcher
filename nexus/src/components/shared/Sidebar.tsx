@@ -24,6 +24,7 @@ import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
 import { type Collection } from "@/stores/collectionStore";
 import { PlayQueueWidget } from "./PlayQueueWidget";
+import { StreakWidget } from "@/components/Streak/StreakWidget";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
   steam: "Steam",
@@ -391,6 +392,12 @@ export function Sidebar({
           );
         })}
       </div>
+
+      {/* Streak Widget */}
+      <StreakWidget
+        sidebarOpen={sidebarOpen}
+        onNavigateToStats={() => onNavigate?.("stats")}
+      />
 
       {/* Separator */}
       <div className="mx-3 border-t border-border" />

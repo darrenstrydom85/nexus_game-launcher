@@ -20,6 +20,7 @@ pub mod scanner;
 pub mod sessions;
 pub mod settings;
 pub mod sources;
+pub mod streak;
 pub mod tags;
 pub mod twitch;
 pub mod utils;

@@ -58,6 +58,7 @@ import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useQueueStore } from "@/stores/queueStore";
+import { useStreakStore } from "@/stores/streakStore";
 import { useTagStore } from "@/stores/tagStore";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
@@ -175,6 +176,7 @@ function MainApp() {
   React.useEffect(() => {
     useTagStore.getState().loadTags();
     useTagStore.getState().loadGameTagMap();
+    useStreakStore.getState().fetchStreak();
   }, []);
 
   React.useEffect(() => {
