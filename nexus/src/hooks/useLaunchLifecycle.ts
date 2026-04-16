@@ -7,6 +7,7 @@ import { dispatchLaunch, setRunningGame, type LaunchResult } from "@/lib/launche
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useStreakStore, checkMilestoneCrossed } from "@/stores/streakStore";
 import { useMilestoneStore } from "@/stores/milestoneStore";
+import { useMasteryStore } from "@/stores/masteryStore";
 import { triggerMilestoneSound } from "@/components/Milestones/MilestoneToastStack";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -159,6 +160,8 @@ export function useLaunchLifecycle() {
         if (useMilestoneStore.getState().toastQueue.length > 0) {
           triggerMilestoneSound(soundsOn);
         }
+
+        useMasteryStore.getState().refreshGame(session.gameId);
       }
 
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
@@ -242,6 +245,8 @@ export function useLaunchLifecycle() {
         if (useMilestoneStore.getState().toastQueue.length > 0) {
           triggerMilestoneSound(soundsOn);
         }
+
+        useMasteryStore.getState().refreshGame(session.gameId);
       }
 
       const elapsed = Date.now() - launchTimeRef.current;

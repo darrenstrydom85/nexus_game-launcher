@@ -60,6 +60,7 @@ import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { useQueueStore } from "@/stores/queueStore";
 import { useStreakStore } from "@/stores/streakStore";
+import { useMasteryStore } from "@/stores/masteryStore";
 import { useTagStore } from "@/stores/tagStore";
 import { getAvailableWrappedPeriods } from "@/lib/tauri";
 
@@ -178,6 +179,7 @@ function MainApp() {
     useTagStore.getState().loadTags();
     useTagStore.getState().loadGameTagMap();
     useStreakStore.getState().fetchStreak();
+    useMasteryStore.getState().fetchAll();
   }, []);
 
   React.useEffect(() => {
@@ -207,6 +209,7 @@ function MainApp() {
     refreshCollections().catch(() => {});
     useTagStore.getState().loadTags();
     useTagStore.getState().loadGameTagMap();
+    useMasteryStore.getState().fetchAll();
     useQueueStore.getState().fetch();
     loadSettings();
     addToast({

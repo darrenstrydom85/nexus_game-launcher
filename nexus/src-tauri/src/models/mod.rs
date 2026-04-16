@@ -7,6 +7,7 @@ pub mod settings;
 pub mod tag;
 pub mod milestone;
 pub mod streak;
+pub mod mastery;
 pub mod wrapped;
 
 pub use analytics::{
@@ -18,6 +19,7 @@ pub use session::{ActivityBucket, PlaySession, PlayStats};
 pub use settings::{Setting, SettingsMap, WatchedFolder};
 pub use queue::PlayQueueEntry;
 pub use milestone::SessionMilestone;
+pub use mastery::{GameMasteryTier, MasteryTier};
 pub use streak::StreakSnapshot;
 pub use tag::{Tag, TagWithCount};
 pub use wrapped::{

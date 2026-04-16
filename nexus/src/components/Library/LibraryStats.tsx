@@ -13,6 +13,7 @@ import { SessionHistogram } from "@/components/Stats/SessionHistogram";
 import { useSessionDistribution } from "@/hooks/useSessionDistribution";
 import { StreakSection } from "@/components/Streak/StreakSection";
 import { MilestoneHistorySection } from "@/components/Milestones/MilestoneHistorySection";
+import { TierLegend } from "@/components/Stats/TierLegend";
 import type { SessionScope } from "@/lib/tauri";
 
 export type StatsDateRange =
@@ -522,7 +523,7 @@ export function LibraryStats({
         </div>
       ) : (
         <>
-          {/* Summary Cards */}
+          {/* 1. Summary Cards — at-a-glance KPIs */}
           <div
             data-testid="stats-summary"
             className="grid grid-cols-2 gap-4 lg:grid-cols-5"
@@ -554,18 +555,18 @@ export function LibraryStats({
             />
           </div>
 
-          {/* Streak Section */}
-          <StreakSection />
-
-          {/* Milestone History */}
-          <MilestoneHistorySection sessionIds={milestoneSessionIds} />
-
-          {/* Activity Chart */}
+          {/* 2. Activity Chart — play time trend */}
           <div className="rounded-lg border border-border bg-card p-4">
             <ActivityChart data={filteredActivity} accentColor={accentColor} />
           </div>
 
-          {/* Heatmap + Top Games side by side */}
+          {/* 3. Engagement row — Streak + Mastery Tiers side by side */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <StreakSection />
+            <TierLegend />
+          </div>
+
+          {/* 4. Heatmap + Top Games side by side */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
               <ActivityHeatmap data={filteredActivity} dateRange={dateRange} />
@@ -575,7 +576,20 @@ export function LibraryStats({
             </div>
           </div>
 
-          {/* Session History */}
+          {/* 5. Session Lengths Histogram — play pattern distribution */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <SessionHistogram
+              distribution={distribution}
+              isLoading={isDistributionLoading}
+              onScopeChange={handleScopeChange}
+              accentColor={accentColor}
+            />
+          </div>
+
+          {/* 6. Milestone History — achievement log */}
+          <MilestoneHistorySection sessionIds={milestoneSessionIds} />
+
+          {/* 7. Session History — detailed session log */}
           <div className="rounded-lg border border-border bg-card p-4">
             <SessionHistory
               sessions={filteredSessions}
@@ -584,16 +598,6 @@ export function LibraryStats({
                   prev.map((s) => (s.id === sessionId ? { ...s, note } : s)),
                 );
               }}
-            />
-          </div>
-
-          {/* Session Lengths Histogram */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <SessionHistogram
-              distribution={distribution}
-              isLoading={isDistributionLoading}
-              onScopeChange={handleScopeChange}
-              accentColor={accentColor}
             />
           </div>
         </>

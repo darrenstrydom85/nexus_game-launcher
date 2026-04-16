@@ -813,3 +813,29 @@ export function evaluateMilestonesBatch(
     sessionIds,
   });
 }
+
+// ── Mastery Tiers ─────────────────────────────────────────────────
+
+export type MasteryTierValue =
+  | "none"
+  | "bronze"
+  | "silver"
+  | "gold"
+  | "platinum"
+  | "diamond";
+
+export interface GameMasteryTier {
+  gameId: string;
+  tier: MasteryTierValue;
+  totalPlayTimeS: number;
+  nextTierThresholdS: number | null;
+  progressToNextTier: number;
+}
+
+export function getMasteryTier(gameId: string): Promise<GameMasteryTier> {
+  return invoke<GameMasteryTier>("get_mastery_tier", { gameId });
+}
+
+export function getMasteryTiersBulk(): Promise<GameMasteryTier[]> {
+  return invoke<GameMasteryTier[]>("get_mastery_tiers_bulk");
+}

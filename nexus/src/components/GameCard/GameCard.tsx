@@ -7,6 +7,7 @@ import { formatPlayTime } from "@/components/Library/HeroSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { TwitchLiveBadge } from "@/components/Library/TwitchLiveBadge";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { MasteryBadge } from "@/components/Library/MasteryBadge";
 
 function hashString(str: string): number {
   let hash = 0;
@@ -60,7 +61,7 @@ export function PlayTimeBadge({ seconds }: { seconds: number }) {
   return (
     <span
       data-testid="playtime-badge"
-      className="text-xs text-muted-foreground"
+      className="text-xs font-medium text-white/80"
     >
       {formatPlayTime(seconds)}
     </span>
@@ -186,7 +187,7 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
       <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/60 to-transparent" />
 
       {/* Bottom info */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-3">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 rounded-b-lg bg-black/60 p-3 backdrop-blur-[2px]">
         <span
           data-testid={`game-card-name-${game.id}`}
           className="line-clamp-2 text-sm font-semibold leading-tight text-white"
@@ -194,6 +195,7 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
           {game.name}
         </span>
         <div className="flex items-center gap-2">
+          <MasteryBadge gameId={game.id} size="card" />
           <PlayTimeBadge seconds={game.totalPlayTimeS} />
           <StatusBadge status={game.status} />
           {gameTags.length > 0 && (

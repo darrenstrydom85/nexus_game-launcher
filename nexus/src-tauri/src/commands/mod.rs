@@ -12,6 +12,7 @@ pub mod health;
 pub mod jsonbin;
 pub mod known_issues;
 pub mod launcher;
+pub mod mastery;
 pub mod metadata;
 pub mod milestones;
 pub mod ping;
