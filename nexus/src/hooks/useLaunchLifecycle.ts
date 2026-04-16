@@ -5,6 +5,7 @@ import { useGameStore, type Game, type ActiveSession, refreshGames } from "@/sto
 import { useToastStore } from "@/stores/toastStore";
 import { dispatchLaunch, setRunningGame, type LaunchResult } from "@/lib/launcher";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
+import { useStreakStore, checkMilestoneCrossed } from "@/stores/streakStore";
 
 const QUICK_EXIT_THRESHOLD_MS = 5000;
 const PROCESS_POLL_INTERVAL_MS = 5000;
@@ -138,6 +139,19 @@ export function useLaunchLifecycle() {
 
       await refreshGames();
 
+      if (session.hasDbSession) {
+        const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
+        const snapshot = await useStreakStore.getState().refreshAfterSession();
+        const newStreak = snapshot?.currentStreak ?? 0;
+        const milestone = checkMilestoneCrossed(prevStreak, newStreak);
+        if (milestone) {
+          addToast({
+            type: "success",
+            message: `${milestone}-Day Streak! You're on fire!`,
+          });
+        }
+      }
+
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
         addToast({
           type: "success",
@@ -201,6 +215,19 @@ export function useLaunchLifecycle() {
       }
 
       await refreshGames();
+
+      if (session?.hasDbSession) {
+        const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
+        const snapshot = await useStreakStore.getState().refreshAfterSession();
+        const newStreak = snapshot?.currentStreak ?? 0;
+        const milestone = checkMilestoneCrossed(prevStreak, newStreak);
+        if (milestone) {
+          addToast({
+            type: "success",
+            message: `${milestone}-Day Streak! You're on fire!`,
+          });
+        }
+      }
 
       const elapsed = Date.now() - launchTimeRef.current;
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {

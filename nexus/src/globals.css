@@ -238,6 +238,58 @@
     display: none;
 }
 
+/* Streak flame flicker — blaze intensity (7-29 days), 2s infinite loop */
+@keyframes streak-flicker {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.97);
+  }
+  75% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+.animate-streak-flicker {
+  animation: streak-flicker 2s ease-in-out infinite;
+}
+
+/* Streak flame inferno — max intensity (30+ days), 1.5s infinite + glow */
+@keyframes streak-inferno {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  33% {
+    opacity: 0.9;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  66% {
+    opacity: 1;
+    transform: scale(0.95);
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+}
+.animate-streak-inferno {
+  animation: streak-inferno 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-streak-flicker,
+  .animate-streak-inferno {
+    animation: none;
+  }
+}
+
 /* Play-pulse animation — design system (sync activity dot, play button glow) */
 @keyframes play-pulse {
   0% {
