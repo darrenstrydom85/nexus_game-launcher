@@ -67,6 +67,8 @@ import { useMasteryStore } from "@/stores/masteryStore";
 import { useTagStore } from "@/stores/tagStore";
 import { useXpStore } from "@/stores/xpStore";
 import { LevelUpToast } from "@/components/Xp/LevelUpToast";
+import { useCeremonyStore } from "@/stores/ceremonyStore";
+import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -539,6 +541,10 @@ function MainApp() {
               const entry = qs.entries.find((e) => e.gameId === gameId);
               qs.remove(gameId, entry?.name);
             }
+            // Epic 41: trigger retirement ceremony when game is retired.
+            if (useSettingsStore.getState().retirementCeremonyEnabled) {
+              useCeremonyStore.getState().openForGame(gameId, "retirement").catch(() => {});
+            }
           }
         })
         .catch(() => {});
@@ -686,11 +692,27 @@ function MainApp() {
               onForceIdentify={handleForceIdentify}
               onStatusChange={(status) => {
                 if (gameIsArchived) {
+                  const nextCompleted = status === "completed";
+                  const wasCompleted = game.completed;
                   invoke("update_game", {
                     id: game.id,
-                    fields: { completed: status === "completed" },
+                    fields: { completed: nextCompleted },
                   })
                     .then(() => refreshGames())
+                    .then(() => {
+                      // Epic 41: archived games stay status = "removed" so we
+                      // trigger off the `completed` flag transitioning to true.
+                      if (
+                        nextCompleted &&
+                        !wasCompleted &&
+                        useSettingsStore.getState().retirementCeremonyEnabled
+                      ) {
+                        useCeremonyStore
+                          .getState()
+                          .openForGame(game.id, "retirement")
+                          .catch(() => {});
+                      }
+                    })
                     .catch(() => {});
                 } else {
                   invoke("update_game", { id: game.id, fields: { status } })
@@ -700,6 +722,10 @@ function MainApp() {
                         const qs = useQueueStore.getState();
                         if (qs.isQueued(game.id)) {
                           qs.remove(game.id, game.name);
+                        }
+                        // Epic 41: trigger retirement ceremony when game is retired.
+                        if (useSettingsStore.getState().retirementCeremonyEnabled) {
+                          useCeremonyStore.getState().openForGame(game.id, "retirement").catch(() => {});
                         }
                       }
                     })
@@ -829,6 +855,7 @@ function MainApp() {
       <LevelUpToast />
       <AchievementNotificationQueue />
       <ToastNotifications />
+      <RetirementCeremony />
       <CollectionEditor
         open={collectionEditorOpen}
         onClose={() => {

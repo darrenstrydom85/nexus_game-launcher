@@ -60,6 +60,8 @@ export interface SettingsState {
   milestoneSoundsEnabled: boolean;
   achievementNotificationsEnabled: boolean;
   achievementSoundsEnabled: boolean;
+  /** Epic 41: auto-trigger retirement ceremony when a game is marked Completed or Dropped. Default true. */
+  retirementCeremonyEnabled: boolean;
   _hydrated: boolean;
 }
 
@@ -103,6 +105,7 @@ export interface SettingsActions {
   setMilestoneSoundsEnabled: (value: boolean) => void;
   setAchievementNotificationsEnabled: (value: boolean) => void;
   setAchievementSoundsEnabled: (value: boolean) => void;
+  setRetirementCeremonyEnabled: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -158,6 +161,7 @@ const initialState: SettingsState = {
   milestoneSoundsEnabled: true,
   achievementNotificationsEnabled: true,
   achievementSoundsEnabled: true,
+  retirementCeremonyEnabled: true,
   _hydrated: false,
 };
 
@@ -241,6 +245,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.achievement_sounds_enabled !== undefined) {
               patch.achievementSoundsEnabled = settings.achievement_sounds_enabled !== "false";
+            }
+            if (settings.retirement_ceremony_enabled !== undefined) {
+              patch.retirementCeremonyEnabled = settings.retirement_ceremony_enabled !== "false";
             }
 
             set(patch, false, "loadFromBackend");
@@ -426,6 +433,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setAchievementSoundsEnabled: (value) => {
           persistSetting("achievement_sounds_enabled", String(value));
           set({ achievementSoundsEnabled: value }, false, "setAchievementSoundsEnabled");
+        },
+        setRetirementCeremonyEnabled: (value) => {
+          persistSetting("retirement_ceremony_enabled", String(value));
+          set({ retirementCeremonyEnabled: value }, false, "setRetirementCeremonyEnabled");
         },
       }),
       { name: "nexus-settings" },

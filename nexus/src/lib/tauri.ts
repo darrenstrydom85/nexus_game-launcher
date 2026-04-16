@@ -840,6 +840,49 @@ export function getMasteryTiersBulk(): Promise<GameMasteryTier[]> {
   return invoke<GameMasteryTier[]>("get_mastery_tiers_bulk");
 }
 
+// ── Retirement Ceremony (Epic 41) ─────────────────────────────────
+
+export interface MonthPlayTime {
+  month: string;
+  playTimeS: number;
+}
+
+export interface GameCeremonyData {
+  gameId: string;
+  gameName: string;
+  coverArtUrl: string | null;
+  heroArtUrl: string | null;
+  /** Raw `games.status`: "completed" | "dropped" | "playing" | "backlog" | "wishlist" | "removed". */
+  status: string;
+  /**
+   * `games.completed` flag — survives status changes. Use this (not
+   * `status === "completed"`) as the canonical completion signal so archived/
+   * uninstalled games (status = "removed") still render correctly.
+   */
+  completed: boolean;
+  rating: number | null;
+  totalPlayTimeS: number;
+  totalSessions: number;
+  longestSessionS: number;
+  averageSessionS: number;
+  firstPlayedAt: string;
+  lastPlayedAt: string;
+  daysBetweenFirstAndLast: number;
+  playTimeByMonth: MonthPlayTime[];
+  /** 7 entries, Monday=0 through Sunday=6. */
+  playTimeByDayOfWeek: number[];
+  /** 24 entries, hour 0 through hour 23. */
+  playTimeByHourOfDay: number[];
+  funFacts: string[];
+  masteryTier: MasteryTierValue;
+  genres: string | null;
+  releaseYear: string | null;
+}
+
+export function getGameCeremonyData(gameId: string): Promise<GameCeremonyData> {
+  return invoke<GameCeremonyData>("get_game_ceremony_data", { gameId });
+}
+
 // ── Achievements ──────────────────────────────────────────────────
 
 export type AchievementCategory =
