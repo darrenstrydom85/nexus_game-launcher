@@ -50,6 +50,8 @@ import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { ToastNotifications } from "@/components/shared/ToastNotifications";
 import { MilestoneToastStack } from "@/components/Milestones/MilestoneToastStack";
 import { AchievementsView } from "@/components/Achievements/AchievementsView";
+import { AchievementNotificationQueue } from "@/components/Achievements/AchievementNotificationQueue";
+import { useAchievementStore } from "@/stores/achievementStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
@@ -181,6 +183,7 @@ function MainApp() {
     useTagStore.getState().loadGameTagMap();
     useStreakStore.getState().fetchStreak();
     useMasteryStore.getState().fetchAll();
+    useAchievementStore.getState().evaluate();
   }, []);
 
   React.useEffect(() => {
@@ -837,6 +840,7 @@ function MainApp() {
       <SessionNotePromptWrapper />
       <TwitchToastContainer />
       <MilestoneToastStack />
+      <AchievementNotificationQueue />
       <ToastNotifications />
       <CollectionEditor
         open={collectionEditorOpen}
