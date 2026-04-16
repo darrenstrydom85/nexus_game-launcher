@@ -839,3 +839,61 @@ export function getMasteryTier(gameId: string): Promise<GameMasteryTier> {
 export function getMasteryTiersBulk(): Promise<GameMasteryTier[]> {
   return invoke<GameMasteryTier[]>("get_mastery_tiers_bulk");
 }
+
+// ── Achievements ──────────────────────────────────────────────────
+
+export type AchievementCategory =
+  | "library"
+  | "play"
+  | "completion"
+  | "streak"
+  | "exploration"
+  | "session";
+
+export type AchievementRarity =
+  | "common"
+  | "uncommon"
+  | "rare"
+  | "epic"
+  | "legendary";
+
+export interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  rarity: AchievementRarity;
+  points: number;
+}
+
+export interface UnlockedAchievement {
+  id: string;
+  unlockedAt: string;
+  contextJson: string | null;
+}
+
+export interface AchievementStatus {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  rarity: AchievementRarity;
+  points: number;
+  unlocked: boolean;
+  unlockedAt: string | null;
+  contextJson: string | null;
+}
+
+export function getAchievementDefinitions(): Promise<AchievementDefinition[]> {
+  return invoke<AchievementDefinition[]>("get_achievement_definitions");
+}
+
+export function getUnlockedAchievements(): Promise<UnlockedAchievement[]> {
+  return invoke<UnlockedAchievement[]>("get_unlocked_achievements");
+}
+
+export function getAchievementStatus(): Promise<AchievementStatus[]> {
+  return invoke<AchievementStatus[]>("get_achievement_status");
+}

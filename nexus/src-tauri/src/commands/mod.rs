@@ -1,3 +1,4 @@
+pub mod achievements;
 pub mod analytics;
 pub mod backup;
 pub mod clipboard;

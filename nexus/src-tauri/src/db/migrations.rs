@@ -97,6 +97,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "streak_snapshots",
         sql: include_str!("migrations/018_streak_snapshots.sql"),
     },
+    Migration {
+        version: 19,
+        name: "achievements",
+        sql: include_str!("migrations/019_achievements.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {
@@ -181,6 +186,7 @@ mod tests {
             .collect();
 
         for expected in &[
+            "achievements",
             "collection_games",
             "collections",
             "game_duplicate_members",
