@@ -1,11 +1,11 @@
 /**
- * Story 20.1: Close confirmation — Close vs Minimize to system tray.
+ * Story 20.1: Close confirmation — Close, Minimize to system tray, or Cancel (stay open).
  * Shown when the user triggers window close (titlebar X, Alt+F4) and "Ask when closing" is on.
  */
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
-import { Minus, Power } from "lucide-react";
+import { Minus, Power, X } from "lucide-react";
 
 export interface CloseConfirmDialogProps {
   open: boolean;
@@ -100,9 +100,19 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
           id="close-confirm-dialog-desc"
           className="mt-2 text-sm text-muted-foreground"
         >
-          You can close the app or minimize to the system tray to keep it running in the background.
+          You can close the app, minimize to the system tray to keep it running in the background, or cancel to stay open.
         </p>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-2">
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={isClosing}
+            aria-label="Cancel and keep Nexus open"
+          >
+            <X className="mr-2 size-4" aria-hidden />
+            Cancel
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -117,6 +127,7 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
           <Button
             type="button"
             onClick={handleMinimizeToTray}
+            disabled={isClosing}
             aria-label="Minimize to system tray"
           >
             <Minus className="mr-2 size-4" aria-hidden />

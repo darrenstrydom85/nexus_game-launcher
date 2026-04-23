@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Cpu, Monitor } from "lucide-react";
+import { Cpu, Gpu } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -8,16 +8,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getSystemHardware, type HardwareInfo } from "@/lib/tauri";
-
-import intelLogo from "@/assets/hardware/intel.png";
-import amdLogo from "@/assets/hardware/amd.png";
-import nvidiaLogo from "@/assets/hardware/nvidia.png";
-
-const BRAND_LOGOS: Record<string, { src: string; label: string }> = {
-  intel: { src: intelLogo, label: "Intel" },
-  amd: { src: amdLogo, label: "AMD" },
-  nvidia: { src: nvidiaLogo, label: "NVIDIA" },
-};
 
 let cachedHardwareInfo: HardwareInfo | null = null;
 
@@ -54,31 +44,20 @@ interface BrandRowProps {
 }
 
 function BrandRow({ brand, fullName, type, expanded }: BrandRowProps) {
-  const logoInfo = BRAND_LOGOS[brand];
   const trimmedName =
     type === "cpu" ? trimCpuName(brand, fullName) : trimGpuName(brand, fullName);
-  const tooltipLabel = logoInfo
-    ? `${logoInfo.label} ${trimmedName}`
-    : fullName || (type === "cpu" ? "Unknown CPU" : "Unknown GPU");
+  const tooltipLabel =
+    trimmedName || fullName || (type === "cpu" ? "Unknown CPU" : "Unknown GPU");
 
-  const icon = logoInfo ? (
-    <img
-      src={logoInfo.src}
-      alt={tooltipLabel}
-      className="opacity-60 transition-opacity duration-200 group-hover/hw:opacity-100"
-      style={{ height: expanded ? 20 : 16, width: "auto" }}
-    />
-  ) : type === "cpu" ? (
-    <Cpu
-      className="text-muted-foreground/60 transition-opacity duration-200 group-hover/hw:text-muted-foreground"
-      style={{ height: expanded ? 20 : 16, width: expanded ? 20 : 16 }}
-      aria-label={tooltipLabel}
-    />
-  ) : (
-    <Monitor
-      className="text-muted-foreground/60 transition-opacity duration-200 group-hover/hw:text-muted-foreground"
-      style={{ height: expanded ? 20 : 16, width: expanded ? 20 : 16 }}
-      aria-label={tooltipLabel}
+  const Icon = type === "cpu" ? Cpu : Gpu;
+  const icon = (
+    <Icon
+      className={cn(
+        "shrink-0 text-muted-foreground transition-colors duration-200",
+        "group-hover/hw:text-foreground",
+        expanded ? "size-5" : "size-4",
+      )}
+      aria-hidden
     />
   );
 
@@ -103,7 +82,7 @@ function BrandRow({ brand, fullName, type, expanded }: BrandRowProps) {
     <div className="group/hw flex items-center gap-2 overflow-hidden">
       <span className="shrink-0">{icon}</span>
       <span
-        className="truncate font-[family-name:var(--font-geist-sans)] text-[10px] leading-tight text-muted-foreground/60"
+        className="truncate text-[10px] leading-tight text-muted-foreground transition-colors group-hover/hw:text-foreground/90"
         title={tooltipLabel}
       >
         {trimmedName}

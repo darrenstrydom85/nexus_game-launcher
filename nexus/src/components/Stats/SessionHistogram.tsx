@@ -13,6 +13,7 @@ import type { SessionDistribution, SessionScope } from "@/lib/tauri";
 import type { GameSource } from "@/stores/gameStore";
 import { formatPlayTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { rechartsBarCursorFill } from "@/lib/recharts-theme";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -77,13 +78,9 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-white/10 px-3 py-2 text-xs",
-        "backdrop-blur-md",
+        "rounded-lg border border-border bg-popover/95 px-3 py-2 text-xs text-popover-foreground shadow-md backdrop-blur-sm",
       )}
-      style={{
-        background: "hsla(240, 10%, 7%, 0.85)",
-        minWidth: 180,
-      }}
+      style={{ minWidth: 180 }}
       data-testid="histogram-tooltip"
     >
       <p className="mb-1 font-semibold text-foreground">{d.label} sessions</p>
@@ -291,18 +288,18 @@ export function SessionHistogram({
             >
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
                 width={30}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: rechartsBarCursorFill }} />
               {/* Mean reference line — visual hint at the mean bucket */}
               {meanS > 0 && meanBucketLabel && (
                 <ReferenceLine

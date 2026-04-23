@@ -1,9 +1,19 @@
+import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
+import type { ThemeMode } from "@/lib/theme";
 
 const ACCENT_COLORS = ["#7600da", "#22c55e", "#eab308", "#ef4444", "#a855f7", "#ec4899", "#06b6d4", "#f97316"];
 
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
+  { mode: "light", label: "Light", icon: Sun },
+  { mode: "dark", label: "Dark", icon: Moon },
+  { mode: "system", label: "System", icon: Monitor },
+];
+
 export function AppearanceSettings() {
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
   const accentColor = useSettingsStore((s) => s.accentColor);
   const setAccentColor = useSettingsStore((s) => s.setAccentColor);
   const transparency = useSettingsStore((s) => s.windowTransparency);
@@ -17,6 +27,34 @@ export function AppearanceSettings() {
     <section data-testid="appearance-settings">
       <h3 className="mb-3 text-sm font-semibold text-foreground">Appearance</h3>
       <div className="flex flex-col gap-3">
+        <div>
+          <span className="mb-1 block text-sm text-foreground">Theme</span>
+          <div
+            data-testid="theme-switcher"
+            className="flex rounded-lg border border-border bg-muted/30 p-0.5"
+            role="group"
+            aria-label="Appearance theme"
+          >
+            {THEME_OPTIONS.map(({ mode, label, icon: Icon }) => (
+              <button
+                key={mode}
+                type="button"
+                data-testid={`theme-${mode}`}
+                onClick={() => setTheme(mode)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                  theme === mode
+                    ? "bg-secondary text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                <Icon className="size-3.5 shrink-0" aria-hidden />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Accent color */}
         <div>
           <span className="mb-1 block text-sm text-foreground">Accent Color</span>
@@ -48,7 +86,7 @@ export function AppearanceSettings() {
           />
         </label>
         <p id="ask-before-close-desc" className="text-xs text-muted-foreground">
-          When on, closing the window (X or Alt+F4) shows a dialog to close the app or minimize to the system tray.
+          When on, closing the window (X or Alt+F4) shows a dialog to close the app, minimize to the system tray, or cancel and stay open.
         </p>
 
         <label className="flex items-center justify-between">

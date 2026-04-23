@@ -8,6 +8,7 @@ import {
   Cell,
 } from "recharts";
 import type { WrappedReport } from "@/types/wrapped";
+import { rechartsBarCursorFill } from "@/lib/recharts-theme";
 
 interface PlayPatternsCardProps {
   report: WrappedReport;
@@ -18,13 +19,14 @@ const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const tooltipStyle = {
   contentStyle: {
-    background: "var(--card)",
+    backgroundColor: "var(--popover)",
     border: "1px solid var(--border)",
     borderRadius: "6px",
     fontSize: "11px",
+    color: "var(--popover-foreground)",
   },
-  itemStyle: { color: "var(--foreground)" },
-  labelStyle: { color: "var(--foreground)" },
+  itemStyle: { color: "var(--popover-foreground)" },
+  labelStyle: { color: "var(--muted-foreground)" },
 };
 
 function toHours(s: number) {
@@ -97,6 +99,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
+                  cursor={{ fill: rechartsBarCursorFill }}
                   formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                 />
                 <Bar dataKey="hours" radius={[2, 2, 0, 0]}>
@@ -130,6 +133,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
+                  cursor={{ fill: rechartsBarCursorFill }}
                   formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                 />
                 <Bar dataKey="hours" radius={[2, 2, 0, 0]}>
@@ -164,6 +168,7 @@ export function PlayPatternsCard({ report }: PlayPatternsCardProps) {
                 />
                 <Tooltip
                   {...tooltipStyle}
+                  cursor={{ fill: rechartsBarCursorFill }}
                   formatter={(v: number | undefined) => [`${v ?? 0}h`, "Hours"]}
                   labelFormatter={(l) => `${l}:00`}
                 />

@@ -40,6 +40,20 @@ function TierCard({
   onClick: () => void;
 }) {
   const color = TIER_COLORS[tier];
+  const hasGames = count > 0;
+
+  const iconWellStyle = React.useMemo(
+    () =>
+      ({
+        width: 40,
+        height: 40,
+        border: `1px solid ${hasGames ? color : "var(--border)"}`,
+        backgroundColor: hasGames
+          ? `color-mix(in srgb, ${color} 24%, var(--muted))`
+          : `color-mix(in srgb, ${color} 12%, var(--muted))`,
+      }) as React.CSSProperties,
+    [color, hasGames],
+  );
 
   return (
     <button
@@ -47,31 +61,34 @@ function TierCard({
       className={cn(
         "group flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4",
         "transition-all duration-200 ease-out",
-        "hover:border-transparent hover:shadow-[0_0_16px_var(--glow)]",
+        hasGames && "hover:border-transparent hover:shadow-[0_0_16px_var(--glow)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        count === 0 && "pointer-events-none opacity-40",
+        !hasGames && "pointer-events-none cursor-default bg-muted/20",
       )}
       style={
-        count > 0
-          ? { "--glow": color + "30" } as React.CSSProperties
+        hasGames
+          ? ({ "--glow": color + "30" } as React.CSSProperties)
           : undefined
       }
       onClick={onClick}
-      disabled={count === 0}
+      disabled={!hasGames}
     >
       <div
         className={cn(
-          "relative flex items-center justify-center overflow-hidden rounded-md",
-          "bg-black/40 backdrop-blur-[4px]",
+          "relative flex items-center justify-center overflow-hidden rounded-md backdrop-blur-[2px]",
         )}
-        style={{ width: 40, height: 40, border: `1px solid ${color}` }}
+        style={iconWellStyle}
       >
         <Shield
-          style={{ width: 24, height: 24, color }}
-          fill={color}
-          fillOpacity={0.3}
+          style={{
+            width: 24,
+            height: 24,
+            color: hasGames ? color : "var(--muted-foreground)",
+          }}
+          fill={hasGames ? color : "var(--muted-foreground)"}
+          fillOpacity={hasGames ? 0.35 : 0.2}
         />
-        {tier === "diamond" && count > 0 && (
+        {tier === "diamond" && hasGames && (
           <div
             className="animate-diamond-shimmer pointer-events-none absolute inset-0"
             style={{
@@ -80,7 +97,13 @@ function TierCard({
           />
         )}
       </div>
-      <span className="text-sm font-semibold" style={{ color }}>
+      <span
+        className={cn(
+          "text-sm font-semibold",
+          hasGames ? "" : "text-muted-foreground",
+        )}
+        style={hasGames ? { color } : undefined}
+      >
         {TIER_LABELS[tier]}
       </span>
       <span className="text-[10px] text-muted-foreground">

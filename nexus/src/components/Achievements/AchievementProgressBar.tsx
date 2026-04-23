@@ -53,7 +53,7 @@ export function AchievementProgressBar({ statuses }: AchievementProgressBarProps
         </div>
       </div>
 
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-[hsla(0,0%,100%,0.05)]">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
         {segments.map((seg) =>
           seg.unlocked > 0 ? (
             <div

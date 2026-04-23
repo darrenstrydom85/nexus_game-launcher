@@ -54,9 +54,31 @@ describe("Story 5.1: Obsidian Theme Color Tokens", () => {
     expect(globalsCSS).toMatch(/code.*\{[\s\S]*?font-family:\s*var\(--font-mono\)/);
   });
 
-  it("is dark-only with no light mode toggle", () => {
-    expect(globalsCSS).not.toMatch(/\.light\s*\{/);
-    expect(globalsCSS).not.toMatch(/@media\s*\(prefers-color-scheme:\s*light\)/);
+  it("defines light theme tokens on :root and dark tokens on .dark", () => {
+    expect(globalsCSS).toMatch(/:root\s*\{[\s\S]*?--background\s*:/);
+    expect(globalsCSS).toMatch(/:root\s*\{[\s\S]*?--foreground\s*:/);
+    expect(globalsCSS).toMatch(/\.dark\s*\{[\s\S]*?--background\s*:/);
+    expect(globalsCSS).toMatch(/\.dark\s*\{[\s\S]*?--foreground\s*:/);
+  });
+
+  it("defines --glass-* variables on :root and .dark for theme-scoped glassmorphism", () => {
+    const rootBlock = globalsCSS.match(/:root\s*\{([\s\S]*?)\n\}/);
+    const darkBlock = globalsCSS.match(/\.dark\s*\{([\s\S]*?)\n\}/);
+    expect(rootBlock).not.toBeNull();
+    expect(darkBlock).not.toBeNull();
+    const rootBody = rootBlock![1];
+    const darkBody = darkBlock![1];
+    for (const key of [
+      "--glass-sidebar",
+      "--glass-overlay",
+      "--glass-settings",
+      "--glass-toast",
+      "--glass-filter",
+      "--glass-border",
+    ]) {
+      expect(rootBody).toContain(`${key}:`);
+      expect(darkBody).toContain(`${key}:`);
+    }
   });
 
   it("defines glassmorphism color tokens", () => {

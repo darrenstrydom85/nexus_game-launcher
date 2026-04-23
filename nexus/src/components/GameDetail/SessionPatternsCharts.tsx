@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import type { MonthBucket, DayBucket } from "@/types/wrapped";
 import { formatPlayTime } from "@/lib/utils";
+import { rechartsBarCursorFill } from "@/lib/recharts-theme";
 
 const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -27,8 +28,8 @@ function PatternsTooltip({ active, payload }: PatternsTooltipProps) {
   const d = payload[0].payload;
   return (
     <div
-      className="rounded-lg border border-white/10 px-3 py-2 text-xs backdrop-blur-md"
-      style={{ background: "hsla(240, 10%, 7%, 0.85)", minWidth: 120 }}
+      className="rounded-lg border border-border bg-popover/95 px-3 py-2 text-xs text-popover-foreground shadow-md backdrop-blur-sm"
+      style={{ minWidth: 120 }}
       data-testid="patterns-tooltip"
     >
       <p className="mb-0.5 font-semibold text-foreground">{d.label}</p>
@@ -83,19 +84,19 @@ export function SessionPatternsCharts({
             <BarChart data={monthData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 9, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 9, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
                 width={30}
                 tickFormatter={(v: number) => formatPlayTime(v)}
               />
-              <Tooltip content={<PatternsTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+              <Tooltip content={<PatternsTooltip />} cursor={{ fill: rechartsBarCursorFill }} />
               <Bar dataKey="playTimeS" fill={accentColor} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
@@ -110,19 +111,19 @@ export function SessionPatternsCharts({
             <BarChart data={dayData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 9, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 9, fill: "hsl(240, 5%, 55%)" }}
+                tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
                 width={30}
                 tickFormatter={(v: number) => formatPlayTime(v)}
               />
-              <Tooltip content={<PatternsTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+              <Tooltip content={<PatternsTooltip />} cursor={{ fill: rechartsBarCursorFill }} />
               <Bar dataKey="playTimeS" fill={accentColor} fillOpacity={0.7} radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>

@@ -71,11 +71,10 @@ export function AchievementCard({ achievement, highlighted }: AchievementCardPro
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-3 rounded-lg p-4",
-        "border border-[hsla(0,0%,100%,0.05)]",
-        "bg-[hsla(240,10%,10%,0.6)] backdrop-blur-sm",
-        "transition-all duration-200",
-        !isUnlocked && "opacity-40 grayscale",
+        "group relative flex flex-col gap-3 overflow-hidden rounded-lg border px-4 py-4 backdrop-blur-sm transition-all duration-200",
+        isUnlocked
+          ? "border-border bg-card text-card-foreground shadow-sm ring-1 ring-border/60 dark:ring-white/10"
+          : "border-dashed border-muted-foreground/30 bg-muted/40 text-muted-foreground",
         isUnlocked && "hover:animate-achievement-glow",
         highlighted && "animate-achievement-highlight",
       )}
@@ -84,24 +83,58 @@ export function AchievementCard({ achievement, highlighted }: AchievementCardPro
           "--glow-color": isUnlocked ? rarityColor : undefined,
         } as React.CSSProperties
       }
+      data-unlocked={isUnlocked ? "true" : "false"}
       data-testid={`achievement-card-${achievement.id}`}
+      aria-label={isUnlocked ? `${achievement.name}, unlocked` : `${achievement.name}, locked`}
     >
+      {isUnlocked && (
+        <div
+          className="pointer-events-none absolute bottom-3 left-0 top-3 w-1 rounded-full"
+          style={{ backgroundColor: rarityColor }}
+          aria-hidden
+        />
+      )}
+
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg",
-            isUnlocked ? "bg-[hsla(0,0%,100%,0.08)]" : "bg-[hsla(0,0%,100%,0.03)]",
+            "relative flex size-10 shrink-0 items-center justify-center rounded-lg",
+            isUnlocked ? "bg-primary/10" : "bg-muted/80",
           )}
-          style={isUnlocked ? { color: rarityColor } : undefined}
+          style={isUnlocked ? { color: rarityColor } : { color: "var(--muted-foreground)" }}
         >
           <Icon className="size-5" />
+          {!isUnlocked && (
+            <LucideIcons.Lock
+              className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-muted p-0.5 text-muted-foreground ring-1 ring-border"
+              aria-hidden
+            />
+          )}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-sm font-semibold leading-tight text-foreground">
-            {achievement.name}
+          <span className="flex min-w-0 items-center gap-1.5">
+            {isUnlocked && (
+              <LucideIcons.Check
+                className="size-4 shrink-0 text-primary"
+                aria-hidden
+              />
+            )}
+            <span
+              className={cn(
+                "min-w-0 truncate leading-tight",
+                isUnlocked ? "text-sm font-semibold text-foreground" : "text-sm font-medium text-muted-foreground",
+              )}
+            >
+              {achievement.name}
+            </span>
           </span>
-          <span className="text-xs leading-relaxed text-muted-foreground">
+          <span
+            className={cn(
+              "text-xs leading-relaxed",
+              isUnlocked ? "text-muted-foreground" : "text-muted-foreground/90",
+            )}
+          >
             {achievement.description}
           </span>
         </div>
@@ -110,11 +143,18 @@ export function AchievementCard({ achievement, highlighted }: AchievementCardPro
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={{
-              color: rarityColor,
-              backgroundColor: `color-mix(in srgb, ${rarityColor} 12%, transparent)`,
-            }}
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+              !isUnlocked && "bg-muted text-muted-foreground",
+            )}
+            style={
+              isUnlocked
+                ? {
+                    color: rarityColor,
+                    backgroundColor: `color-mix(in srgb, ${rarityColor} 12%, transparent)`,
+                  }
+                : undefined
+            }
           >
             {RARITY_LABELS[achievement.rarity]}
           </span>

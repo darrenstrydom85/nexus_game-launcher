@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUiStore, type ViewMode, type SortField } from "@/stores/uiStore";
+import { applyThemeClassToDocument, resolveEffectiveTheme } from "@/lib/theme";
 
 function hexToHsl(hex: string): string | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -30,12 +31,26 @@ function hexToHsl(hex: string): string | null {
  * and syncs defaults into uiStore. Runs reactively on every change.
  */
 export function useSettingsApplier() {
+  const theme = useSettingsStore((s) => s.theme);
   const accentColor = useSettingsStore((s) => s.accentColor);
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const windowTransparency = useSettingsStore((s) => s.windowTransparency);
   const defaultView = useSettingsStore((s) => s.defaultView);
   const defaultSort = useSettingsStore((s) => s.defaultSort);
   const _hydrated = useSettingsStore((s) => s._hydrated);
+
+  // Light / Dark / System → html.light or html.dark
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      const effective = resolveEffectiveTheme(theme, media.matches);
+      applyThemeClassToDocument(effective);
+    };
+    apply();
+    if (theme !== "system") return;
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [theme]);
 
   // Apply accent color as CSS custom property
   useEffect(() => {

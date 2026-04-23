@@ -7,7 +7,10 @@ import "@fontsource/geist-sans/600.css";
 import "@fontsource/geist-sans/700.css";
 import "@fontsource/geist-mono/400.css";
 import "./globals.css";
+import { applyPersistedThemeClassSync } from "./lib/theme";
 import App from "./App";
+
+applyPersistedThemeClassSync();
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
