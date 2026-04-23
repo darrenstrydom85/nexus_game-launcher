@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.0 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.1 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.3.0" class="changelog-latest-pill">
+          <a href="#v0.3.1" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.3.0</span>
+            <span>Latest · v0.3.1</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.3.0_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.3.1_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.3.0
+            Download v0.3.1
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.3.0">
+          <a class="changelog-rail-link is-latest" href="#v0.3.1">
+            <span class="changelog-rail-version">v0.3.1</span>
+            <span class="changelog-rail-date">Apr 23</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.3.0">
             <span class="changelog-rail-version">v0.3.0</span>
             <span class="changelog-rail-date">Apr 16</span>
           </a>
@@ -184,7 +188,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.3.0">v0.3.0 — Apr 16, 2026 (Latest)</option>
+              <option value="v0.3.1">v0.3.1 — Apr 23, 2026 (Latest)</option>
+              <option value="v0.3.0">v0.3.0 — Apr 16, 2026</option>
               <option value="v0.2.1">v0.2.1 — Apr 15, 2026</option>
               <option value="v0.2.0">v0.2.0 — Apr 13, 2026</option>
               <option value="v0.1.21">v0.1.21 — Apr 6, 2026</option>
@@ -229,11 +234,48 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.3.0 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.3.0">
+            <!-- ── v0.3.1 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.1">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.1</h2>
+                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A polish release focused on personalisation and reliability. Nexus now ships with a full Light / Dark / System theme, the close confirmation dialog gives you a way out, and the Stats screen finally refreshes in real time after a gaming session ends.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="sun" class="icon-sm"></i>Light, Dark &amp; System themes</li>
+                  <li><i data-lucide="x-circle" class="icon-sm"></i>Cancel option on close</li>
+                  <li><i data-lucide="refresh-cw" class="icon-sm"></i>Live Stats refresh after sessions</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Light, Dark &amp; System themes</strong> — A new appearance setting lets you switch between a clean light palette, the original Obsidian dark theme, or follow your operating system. The choice persists across restarts and updates live when your OS toggles between light and dark.</li>
+                    <li><strong>Cancel from the close dialog</strong> — When you press the close button, the confirmation dialog now offers a third option — Cancel — that keeps Nexus open without closing or minimising to tray.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Stats screen refreshes after each session</strong> — Level, XP, total play time, top games, activity charts, and the session histogram now update as soon as a gaming session ends, instead of waiting for the next app launch. The launcher-wide level-up toast also fires when you stop a game manually.</li>
+                    <li><strong>Light-mode contrast across charts &amp; achievements</strong> — Recharts tooltips, hover cursors, and grid lines now adapt to the active theme. Achievement cards, mastery tier legends, and the CPU / GPU hardware branding chips stay readable in both modes.</li>
+                    <li><strong>Close-confirm dialog button wrap</strong> — The Cancel / Close / Minimise actions no longer wrap onto two rows at typical window widths.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.3.0 ── -->
+            <article class="changelog-entry" id="v0.3.0">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.3.0</h2>
-                <time class="changelog-entry-date" datetime="2026-04-16">April 16, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-04-16">April 16, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
