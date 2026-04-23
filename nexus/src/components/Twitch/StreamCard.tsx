@@ -25,6 +25,9 @@ export interface StreamCardProps {
   /** When adding would exceed this many favorites, tooltip is shown and toggle is no-op (Story 19.7). */
   favoritesCount?: number;
   maxFavorites?: number;
+  /** Override the default openUrl behavior — receives the clicked stream so the
+   *  parent can mount an inline `StreamEmbed` (Story A1). */
+  onSelect?: (stream: LiveStreamItem) => void;
 }
 
 export function StreamCard({
@@ -34,6 +37,7 @@ export function StreamCard({
   onToggleFavorite,
   favoritesCount = 0,
   maxFavorites = MAX_FAVORITES,
+  onSelect,
 }: StreamCardProps) {
   const atFavoritesLimit =
     !isFavorite && favoritesCount >= maxFavorites;
@@ -49,6 +53,10 @@ export function StreamCard({
 
   const handleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("[data-twitch-star]")) return;
+    if (onSelect) {
+      onSelect(stream);
+      return;
+    }
     openUrl(url).catch(() => {});
   };
 
@@ -56,6 +64,10 @@ export function StreamCard({
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
     if ((e.target as HTMLElement).closest("[data-twitch-star]")) return;
+    if (onSelect) {
+      onSelect(stream);
+      return;
+    }
     openUrl(url).catch(() => {});
   };
 

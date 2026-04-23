@@ -364,6 +364,10 @@ export interface TwitchAuthStatus {
   authenticated: boolean;
   displayName: string | null;
   expiresAt: number | null;
+  /** Logged-in user's Twitch avatar URL (Helix users.profile_image_url).
+   *  Backfilled by validate_twitch_token for users authenticated before
+   *  this field was added. */
+  profileImageUrl: string | null;
 }
 
 export function twitchAuthStart(): Promise<void> {
@@ -450,6 +454,167 @@ export function getTwitchTrendingLibraryGames(): Promise<
   return invoke<TwitchResponse<TrendingLibraryGame[]>>(
     "get_twitch_trending_library_games",
   );
+}
+
+// ── Twitch Diagnostics (Story D1) ─────────────────────────────────────────
+
+export interface TwitchRateLimitSnapshot {
+  tokensUsed: number;
+  tokensRemaining: number;
+  windowResetAt: number;
+  windowSecs: number;
+  cap: number;
+}
+
+export interface TwitchDiagnostics {
+  tokenAuthenticated: boolean;
+  tokenExpiresAt: number | null;
+  tokenExpiresInSecs: number | null;
+  lastRefreshAt: number | null;
+  lastRefreshError: string | null;
+  displayName: string | null;
+  userId: string | null;
+  rateLimit: TwitchRateLimitSnapshot;
+  eventsubConnected: boolean;
+  eventsubSessionId: string | null;
+  eventsubSubscriptionCount: number;
+  lastEventAt: number | null;
+  nowSecs: number;
+}
+
+export interface TwitchTestConnectionResult {
+  ok: boolean;
+  latencyMs: number;
+  error: string | null;
+}
+
+export function getTwitchDiagnostics(): Promise<TwitchDiagnostics> {
+  return invoke<TwitchDiagnostics>("get_twitch_diagnostics");
+}
+
+export function twitchTestConnection(): Promise<TwitchTestConnectionResult> {
+  return invoke<TwitchTestConnectionResult>("twitch_test_connection");
+}
+
+// ── Twitch Top Clips per Library Game (Story A2) ─────────────────────────
+
+export interface TwitchClip {
+  id: string;
+  url: string;
+  embedUrl: string;
+  broadcasterId: string;
+  broadcasterName: string;
+  creatorName: string | null;
+  title: string;
+  viewCount: number;
+  durationSecs: number;
+  thumbnailUrl: string;
+  createdAt: string;
+}
+
+export interface GameClipsResponse {
+  clips: TwitchClip[];
+  twitchGameId: string;
+  twitchGameName: string;
+  stale: boolean;
+  cachedAt: number | null;
+}
+
+export function getTwitchClipsForGame(
+  gameName: string,
+): Promise<GameClipsResponse> {
+  return invoke<GameClipsResponse>("get_twitch_clips_for_game", { gameName });
+}
+
+// ── Twitch Watch History (Story E1) ─────────────────────────────────────────
+
+export interface TwitchWatchSessionStartArgs {
+  channelLogin: string;
+  channelDisplayName?: string | null;
+  twitchGameId?: string | null;
+  twitchGameName?: string | null;
+  nexusGameId?: string | null;
+}
+
+export interface WatchTotals {
+  totalSecs: number;
+  sessionCount: number;
+}
+export interface WatchByChannel {
+  channelLogin: string;
+  channelDisplayName: string | null;
+  totalSecs: number;
+  sessionCount: number;
+}
+export interface WatchByGame {
+  twitchGameId: string | null;
+  twitchGameName: string | null;
+  nexusGameId: string | null;
+  totalSecs: number;
+  sessionCount: number;
+}
+export interface WatchAggregate {
+  totals: WatchTotals;
+  topChannels: WatchByChannel[];
+  topGames: WatchByGame[];
+}
+
+/** Begin a watch session; returns the new session id (pass to end). */
+export function twitchWatchSessionStart(
+  args: TwitchWatchSessionStartArgs,
+): Promise<number> {
+  return invoke<number>("twitch_watch_session_start", {
+    channelLogin: args.channelLogin,
+    channelDisplayName: args.channelDisplayName ?? null,
+    twitchGameId: args.twitchGameId ?? null,
+    twitchGameName: args.twitchGameName ?? null,
+    nexusGameId: args.nexusGameId ?? null,
+  });
+}
+
+/** End a watch session. Duration is the visibility-aware effective watch time. */
+export function twitchWatchSessionEnd(
+  sessionId: number,
+  durationSecs: number,
+): Promise<void> {
+  return invoke<void>("twitch_watch_session_end", {
+    sessionId,
+    durationSecs: Math.max(0, Math.floor(durationSecs)),
+  });
+}
+
+export function getTwitchWatchStats(
+  periodDays: number,
+  topN = 3,
+): Promise<WatchAggregate> {
+  return invoke<WatchAggregate>("get_twitch_watch_stats", {
+    periodDays,
+    topN,
+  });
+}
+
+export function getTwitchWatchYear(
+  year: number,
+  topN = 3,
+): Promise<WatchAggregate> {
+  return invoke<WatchAggregate>("get_twitch_watch_year", { year, topN });
+}
+
+/**
+ * Aggregate Twitch watch history for an arbitrary inclusive date range
+ * (`YYYY-MM-DD` strings, UTC). Powers the date-range-aware Stats tile and
+ * Wrapped slide so they follow the same selector as the rest of the report.
+ */
+export function getTwitchWatchForRange(
+  startDate: string,
+  endDate: string,
+  topN = 3,
+): Promise<WatchAggregate> {
+  return invoke<WatchAggregate>("get_twitch_watch_for_range", {
+    startDate,
+    endDate,
+    topN,
+  });
 }
 
 // ── Version / Update Check (JSONBin) ─────────────────────────────────────

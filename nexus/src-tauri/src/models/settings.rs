@@ -68,12 +68,13 @@ pub mod keys {
     pub const LIBRARY_SORT_BY: &str = "library_sort_by";
     pub const LIBRARY_SORT_DIR: &str = "library_sort_dir";
 
-    // Twitch OAuth (Story 19.1)
+    // Twitch OAuth (Story 19.1, overhaul adds profile image url)
     pub const TWITCH_ACCESS_TOKEN: &str = "twitch_access_token";
     pub const TWITCH_REFRESH_TOKEN: &str = "twitch_refresh_token";
     pub const TWITCH_TOKEN_EXPIRES_AT: &str = "twitch_token_expires_at";
     pub const TWITCH_USER_ID: &str = "twitch_user_id";
     pub const TWITCH_DISPLAY_NAME: &str = "twitch_display_name";
+    pub const TWITCH_PROFILE_IMAGE_URL: &str = "twitch_profile_image_url";
 
     /// Story 20.1: When true, show close-vs-minimize dialog on window close. Default true.
     pub const ASK_BEFORE_CLOSE: &str = "ask_before_close";

@@ -12,6 +12,16 @@ import App from "./App";
 
 applyPersistedThemeClassSync();
 
+/**
+ * The Twitch pop-out / overlay windows load directly from the local embed
+ * server at `http://localhost:PORT/watch?...` (see
+ * `src-tauri/src/twitch/embed_server.rs`) — not from this bundle — so the
+ * React app only ever renders the main surface here.
+ */
+function Root() {
+  return <App />;
+}
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }
@@ -37,7 +47,7 @@ class ErrorBoundary extends React.Component<
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <Root />
     </ErrorBoundary>
   </React.StrictMode>,
 );

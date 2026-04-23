@@ -491,6 +491,242 @@ pub async fn fetch_streams_by_game(
     Ok((streams, twitch_game_name))
 }
 
+// ---------------------------------------------------------------------------
+// Story A2: Top clips per game.
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+struct HelixClip {
+    id: String,
+    url: String,
+    embed_url: String,
+    broadcaster_id: String,
+    broadcaster_name: String,
+    creator_name: Option<String>,
+    title: String,
+    view_count: i64,
+    duration: f64,
+    thumbnail_url: String,
+    created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct HelixClipsResponse {
+    data: Vec<HelixClip>,
+    #[allow(dead_code)]
+    pagination: Option<HelixPagination>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TwitchClip {
+    pub id: String,
+    pub url: String,
+    pub embed_url: String,
+    pub broadcaster_id: String,
+    pub broadcaster_name: String,
+    pub creator_name: Option<String>,
+    pub title: String,
+    pub view_count: i64,
+    pub duration_secs: f64,
+    pub thumbnail_url: String,
+    pub created_at: String,
+}
+
+/// Fetch top clips for a Twitch game id over the last `period_days` (Story A2).
+/// `count` is capped at 100 by Twitch (`first` query param). The Helix endpoint accepts
+/// RFC3339 timestamps in `started_at`; we always pass UTC.
+pub async fn get_top_clips(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    game_id: &str,
+    period_days: u32,
+    count: u32,
+) -> Result<Vec<TwitchClip>, CommandError> {
+    get_top_clips_with_base(HELIX_BASE, client, client_id, access_token, game_id, period_days, count).await
+}
+
+/// Same as [`get_top_clips`] but allows overriding the base URL — used in tests with
+/// `wiremock` and intentionally `pub(crate)` so production callers cannot accidentally
+/// point at a non-Twitch host.
+pub(crate) async fn get_top_clips_with_base(
+    base: &str,
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    game_id: &str,
+    period_days: u32,
+    count: u32,
+) -> Result<Vec<TwitchClip>, CommandError> {
+    let now_secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let started_at_secs = now_secs - (period_days as i64) * 24 * 60 * 60;
+
+    // Format as RFC3339 (UTC). We avoid pulling chrono just for this — clips' started_at
+    // only needs second precision.
+    let started_at = format_rfc3339_utc(started_at_secs);
+    let first = count.min(100).to_string();
+
+    let query = vec![
+        ("game_id", game_id.to_string()),
+        ("first", first),
+        ("started_at", started_at),
+    ];
+
+    let res = helix_get(base, client, "/clips", &query, client_id, access_token).await?;
+    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let json: HelixClipsResponse =
+        serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("clips: {e}")))?;
+
+    Ok(json
+        .data
+        .into_iter()
+        .map(|c| TwitchClip {
+            id: c.id,
+            url: c.url,
+            embed_url: c.embed_url,
+            broadcaster_id: c.broadcaster_id,
+            broadcaster_name: c.broadcaster_name,
+            creator_name: c.creator_name,
+            title: c.title,
+            view_count: c.view_count,
+            duration_secs: c.duration,
+            thumbnail_url: c.thumbnail_url,
+            created_at: c.created_at,
+        })
+        .collect())
+}
+
+/// Minimal RFC3339 UTC formatter ("YYYY-MM-DDThh:mm:ssZ"). Used by clip queries; correctness
+/// matters but we don't need timezone names or fractional seconds.
+fn format_rfc3339_utc(secs_since_epoch: i64) -> String {
+    let secs = secs_since_epoch.max(0) as u64;
+    let days_since_epoch = secs / 86_400;
+    let mut secs_of_day = secs % 86_400;
+    let hour = secs_of_day / 3600;
+    secs_of_day %= 3600;
+    let minute = secs_of_day / 60;
+    let second = secs_of_day % 60;
+
+    // Days -> Y/M/D using Howard Hinnant's algorithm (civil_from_days).
+    let z: i64 = days_since_epoch as i64 + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = if m <= 2 { y + 1 } else { y };
+
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, m, d, hour, minute, second)
+}
+
+/// Snapshot of rate-limit state for the diagnostics view (Story D1).
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RateLimitSnapshot {
+    pub tokens_used: u32,
+    pub tokens_remaining: u32,
+    pub window_reset_at: i64,
+    pub window_secs: i64,
+    pub cap: u32,
+}
+
+/// Read-only view of the global rate limiter.
+pub fn rate_limit_snapshot() -> RateLimitSnapshot {
+    let used = RATE_TOKENS_USED.load(Ordering::Relaxed);
+    let last = RATE_LAST_RESET.load(Ordering::Relaxed);
+    RateLimitSnapshot {
+        tokens_used: used,
+        tokens_remaining: RATE_LIMIT_CAP.saturating_sub(used),
+        window_reset_at: if last == 0 { 0 } else { last + RATE_LIMIT_WINDOW_SECS },
+        window_secs: RATE_LIMIT_WINDOW_SECS,
+        cap: RATE_LIMIT_CAP,
+    }
+}
+
+/// POST to a Helix endpoint with a JSON body. Used by the EventSub worker to create
+/// WebSocket subscriptions. Goes through the same rate limiter as GETs since EventSub
+/// subscription POSTs count against the user's Helix budget.
+async fn helix_post_json(
+    base: &str,
+    client: &reqwest::Client,
+    path: &str,
+    body: &serde_json::Value,
+    client_id: &str,
+    access_token: &str,
+) -> Result<reqwest::Response, CommandError> {
+    rate_limit_wait_if_needed();
+    let url = format!("{}{}", base.trim_end_matches('/'), path);
+    let res = client
+        .post(&url)
+        .header("Client-ID", client_id)
+        .header("Authorization", format!("Bearer {access_token}"))
+        .header("Content-Type", "application/json")
+        .json(body)
+        .send()
+        .await
+        .map_err(map_reqwest)?;
+
+    if res.status().as_u16() == 401 {
+        let body_txt = res.text().await.unwrap_or_default();
+        return Err(CommandError::Auth(
+            serde_json::from_str::<serde_json::Value>(&body_txt)
+                .ok()
+                .and_then(|j| j.get("message").and_then(|v| v.as_str()).map(String::from))
+                .unwrap_or_else(|| "Twitch token invalid or expired".to_string()),
+        ));
+    }
+    if !res.status().is_success() {
+        let status = res.status().as_u16();
+        let body_txt = res.text().await.unwrap_or_default();
+        return Err(CommandError::Api(format!(
+            "Twitch API error {}: {}",
+            status,
+            body_txt.chars().take(200).collect::<String>()
+        )));
+    }
+    Ok(res)
+}
+
+/// Create a single EventSub WebSocket subscription. Returns `Ok(())` on success
+/// (HTTP 202). Conflicts (409) are tolerated and reported as `Ok(())` because they
+/// just mean "already subscribed to this event for this session".
+pub async fn create_eventsub_subscription(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    session_id: &str,
+    sub_type: &str,
+    broadcaster_id: &str,
+) -> Result<(), CommandError> {
+    let body = serde_json::json!({
+        "type": sub_type,
+        "version": "1",
+        "condition": { "broadcaster_user_id": broadcaster_id },
+        "transport": { "method": "websocket", "session_id": session_id },
+    });
+    match helix_post_json(
+        HELIX_BASE,
+        client,
+        "/eventsub/subscriptions",
+        &body,
+        client_id,
+        access_token,
+    )
+    .await
+    {
+        Ok(_) => Ok(()),
+        Err(CommandError::Api(msg)) if msg.contains("409") => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -502,9 +738,128 @@ mod tests {
     }
 
     #[test]
+    fn rfc3339_format_known_dates() {
+        assert_eq!(format_rfc3339_utc(0), "1970-01-01T00:00:00Z");
+        assert_eq!(format_rfc3339_utc(1_700_000_000), "2023-11-14T22:13:20Z");
+    }
+
+    #[test]
     fn rate_limit_state_starts_zero() {
         reset_rate_limit_state();
         assert_eq!(RATE_TOKENS_USED.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn rate_limit_snapshot_reports_used_and_remaining() {
+        reset_rate_limit_state();
+        // Manually bump the counter without going through the wait path to keep this
+        // test quick and deterministic.
+        RATE_TOKENS_USED.store(7, Ordering::Relaxed);
+        RATE_LAST_RESET.store(1_700_000_000, Ordering::Relaxed);
+        let snap = rate_limit_snapshot();
+        assert_eq!(snap.cap, RATE_LIMIT_CAP);
+        assert_eq!(snap.tokens_used, 7);
+        assert_eq!(snap.tokens_remaining, RATE_LIMIT_CAP - 7);
+        assert_eq!(snap.window_secs, RATE_LIMIT_WINDOW_SECS);
+        assert_eq!(snap.window_reset_at, 1_700_000_000 + RATE_LIMIT_WINDOW_SECS);
+    }
+
+    #[tokio::test]
+    async fn get_top_clips_parses_helix_payload() {
+        use wiremock::matchers::{method, path, query_param};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        reset_rate_limit_state();
+        let server = MockServer::start().await;
+
+        let body = serde_json::json!({
+            "data": [
+                {
+                    "id": "AbcClip",
+                    "url": "https://clips.twitch.tv/AbcClip",
+                    "embed_url": "https://clips.twitch.tv/embed?clip=AbcClip",
+                    "broadcaster_id": "111",
+                    "broadcaster_name": "Shroud",
+                    "creator_name": "Editor",
+                    "title": "Insane play",
+                    "view_count": 4242,
+                    "duration": 24.5,
+                    "thumbnail_url": "https://clips-media-assets2.twitch.tv/abc.jpg",
+                    "created_at": "2024-01-01T00:00:00Z"
+                }
+            ],
+            "pagination": {}
+        });
+
+        Mock::given(method("GET"))
+            .and(path("/clips"))
+            .and(query_param("game_id", "32982"))
+            .and(query_param("first", "6"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body))
+            .mount(&server)
+            .await;
+
+        let client = reqwest::Client::new();
+        let clips = get_top_clips_with_base(
+            &server.uri(),
+            &client,
+            "client_id",
+            "token",
+            "32982",
+            7,
+            6,
+        )
+        .await
+        .expect("should parse");
+
+        assert_eq!(clips.len(), 1);
+        let c = &clips[0];
+        assert_eq!(c.id, "AbcClip");
+        assert_eq!(c.broadcaster_name, "Shroud");
+        assert_eq!(c.view_count, 4242);
+        assert_eq!(c.duration_secs, 24.5);
+        assert_eq!(c.embed_url, "https://clips.twitch.tv/embed?clip=AbcClip");
+    }
+
+    #[tokio::test]
+    async fn create_eventsub_subscription_posts_correct_payload() {
+        use wiremock::matchers::{body_partial_json, header, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        reset_rate_limit_state();
+        let server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/eventsub/subscriptions"))
+            .and(header("Client-ID", "cid"))
+            .and(header("Authorization", "Bearer token"))
+            .and(body_partial_json(serde_json::json!({
+                "type": "stream.online",
+                "version": "1",
+                "condition": {"broadcaster_user_id": "111"},
+                "transport": {"method": "websocket", "session_id": "SESS"},
+            })))
+            .respond_with(ResponseTemplate::new(202).set_body_json(serde_json::json!({"data": []})))
+            .mount(&server)
+            .await;
+
+        let client = reqwest::Client::new();
+        let res = helix_post_json(
+            &server.uri(),
+            &client,
+            "/eventsub/subscriptions",
+            &serde_json::json!({
+                "type": "stream.online",
+                "version": "1",
+                "condition": { "broadcaster_user_id": "111" },
+                "transport": { "method": "websocket", "session_id": "SESS" },
+            }),
+            "cid",
+            "token",
+        )
+        .await;
+
+        assert!(res.is_ok(), "subscribe POST should succeed: {res:?}");
     }
 
     #[tokio::test]

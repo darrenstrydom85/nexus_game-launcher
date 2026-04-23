@@ -4,7 +4,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::time::Duration;
 
 use crate::commands::error::CommandError;
@@ -60,13 +60,12 @@ fn receive_callback(listener: TcpListener) -> Result<Option<String>, CommandErro
         ("400 Bad Request", callback_html("Authorization Failed", "Something went wrong during authorization. Please close this tab and try again from Nexus settings.", false))
     };
     let response = format!(
-        "HTTP/1.1 {}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        "HTTP/1.1 {}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{}",
         status,
         body.len(),
         body
     );
-    let _ = stream.write_all(response.as_bytes());
-    let _ = stream.flush();
+    write_response_and_close(&mut stream, response.as_bytes());
 
     if let Some(e) = error {
         if e == "access_denied" {
@@ -75,6 +74,17 @@ fn receive_callback(listener: TcpListener) -> Result<Option<String>, CommandErro
         return Err(CommandError::Auth(format!("Google returned error: {e}")));
     }
     Ok(code)
+}
+
+/// See `twitch::auth::write_response_and_close` for the rationale -- this exists in both
+/// modules so each OAuth callback can be tested/maintained independently.
+fn write_response_and_close(stream: &mut TcpStream, response: &[u8]) {
+    let _ = stream.write_all(response);
+    let _ = stream.flush();
+    let _ = stream.shutdown(Shutdown::Write);
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+    let mut sink = [0u8; 256];
+    while matches!(stream.read(&mut sink), Ok(n) if n > 0) {}
 }
 
 fn callback_html(title: &str, message: &str, success: bool) -> String {

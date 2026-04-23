@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import { type ThemeMode, isThemeMode } from "@/lib/theme";
 
 export interface ApiKeys {
@@ -401,6 +402,9 @@ export const useSettingsStore = create<SettingsStore>()(
         setTwitchEnabled: (value) => {
           persistSetting("twitch_enabled", String(value));
           set({ twitchEnabled: value }, false, "setTwitchEnabled");
+          // Notify the Rust side so the tray right-click menu can show/hide its Twitch
+          // entry in real time, mirroring the sidebar's conditional Twitch nav item.
+          emit("nexus://twitch-nav-changed", value).catch(() => {});
         },
         setTwitchRefreshInterval: (value) => {
           persistSetting("twitch_refresh_interval", String(value));

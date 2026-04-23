@@ -107,6 +107,16 @@ const MIGRATIONS: &[Migration] = &[
         name: "xp_events",
         sql: include_str!("migrations/020_xp_events.sql"),
     },
+    Migration {
+        version: 21,
+        name: "twitch_watch_sessions",
+        sql: include_str!("migrations/021_twitch_watch_sessions.sql"),
+    },
+    Migration {
+        version: 22,
+        name: "twitch_clips_cache",
+        sql: include_str!("migrations/022_twitch_clips_cache.sql"),
+    },
 ];
 
 pub fn ensure_schema_version_table(conn: &Connection) -> rusqlite::Result<()> {

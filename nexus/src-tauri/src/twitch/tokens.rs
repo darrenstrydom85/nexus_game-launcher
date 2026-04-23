@@ -94,6 +94,7 @@ pub fn twitch_setting_keys() -> &'static [&'static str] {
         keys::TWITCH_TOKEN_EXPIRES_AT,
         keys::TWITCH_USER_ID,
         keys::TWITCH_DISPLAY_NAME,
+        keys::TWITCH_PROFILE_IMAGE_URL,
     ]
 }
 
@@ -137,7 +138,7 @@ pub fn delete_setting(conn: &rusqlite::Connection, key: &str) -> Result<(), Comm
     Ok(())
 }
 
-/// Store encrypted access and refresh tokens, and plain expiry and user info.
+/// Store encrypted access and refresh tokens, plain expiry, user info, and avatar.
 pub fn store_tokens(
     conn: &rusqlite::Connection,
     access_token: &str,
@@ -145,6 +146,7 @@ pub fn store_tokens(
     expires_at_secs: i64,
     user_id: &str,
     display_name: &str,
+    profile_image_url: Option<&str>,
 ) -> Result<(), CommandError> {
     let enc_access = encrypt(access_token)?;
     let enc_refresh = encrypt(refresh_token)?;
@@ -153,6 +155,9 @@ pub fn store_tokens(
     set_setting_raw(conn, keys::TWITCH_TOKEN_EXPIRES_AT, &expires_at_secs.to_string())?;
     set_setting_raw(conn, keys::TWITCH_USER_ID, user_id)?;
     set_setting_raw(conn, keys::TWITCH_DISPLAY_NAME, display_name)?;
+    if let Some(url) = profile_image_url {
+        set_setting_raw(conn, keys::TWITCH_PROFILE_IMAGE_URL, url)?;
+    }
     Ok(())
 }
 
@@ -190,6 +195,12 @@ pub fn load_display_name(conn: &rusqlite::Connection) -> Result<Option<String>, 
 /// Load Twitch user ID (plain). Used for Helix API calls (e.g. followed channels).
 pub fn load_user_id(conn: &rusqlite::Connection) -> Result<Option<String>, CommandError> {
     get_setting_raw(conn, keys::TWITCH_USER_ID)
+}
+
+/// Load logged-in user's profile image URL (plain). May be None for users authenticated
+/// before this field was added; the manager backfills it on next validate/refresh.
+pub fn load_profile_image_url(conn: &rusqlite::Connection) -> Result<Option<String>, CommandError> {
+    get_setting_raw(conn, keys::TWITCH_PROFILE_IMAGE_URL)
 }
 
 /// Clear all Twitch-related keys from settings.

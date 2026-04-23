@@ -7,6 +7,7 @@ import { GameScreenshots } from "./GameScreenshots";
 import { GameNotes } from "./GameNotes";
 import { HltbSection } from "./HltbSection";
 import { LiveOnTwitch } from "./LiveOnTwitch";
+import { TwitchClipsRow } from "./TwitchClipsRow";
 import { GameProgress } from "./GameProgress";
 import { GameTagsSection } from "@/components/Tags/GameTagsSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
@@ -166,6 +167,8 @@ export function DetailContent({
           )}
 
           <LiveOnTwitch gameName={game.name} />
+
+          <TwitchClipsRow gameName={game.name} />
 
           <GameMetadata game={game} />
 

@@ -261,7 +261,13 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
   });
 
-  it("clicking stream card calls openUrl with correct Twitch URL", async () => {
+  it("clicking a stream card invokes popout_stream with full channel context", async () => {
+    // Twitch's frame-ancestors CSP rejects the `tauri.localhost` top-level
+    // origin, so we can no longer embed the player inline in this webview.
+    // Clicking a stream card now delegates to the Rust `popout_stream`
+    // command, which spawns a dedicated Tauri window (draggable, native
+    // decorations, not always-on-top) loading the player from
+    // `http://localhost:PORT/watch?...` (see `twitch/embed_server.rs`).
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "validate_twitch_token") {
         return Promise.resolve({ authenticated: true });
@@ -276,15 +282,32 @@ describe("Story 19.4: Followed Streams Panel", () => {
           cachedAt: null,
         });
       }
+      if (cmd === "popout_stream") {
+        return Promise.resolve();
+      }
       return Promise.resolve({});
     });
     render(<TwitchPanel />);
-    await waitFor(() => {
-      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument();
-    });
-    const card = screen.getByLabelText(/Streamer1 streaming/);
-    fireEvent.click(card);
-    expect(openUrl).toHaveBeenCalledWith("https://twitch.tv/streamer1");
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByLabelText(/Streamer1 streaming/));
+
+    expect(invoke).toHaveBeenCalledWith(
+      "popout_stream",
+      expect.objectContaining({
+        channelLogin: "streamer1",
+        channelDisplayName: "Streamer1",
+        twitchGameId: "123",
+        twitchGameName: "Test Game",
+      }),
+    );
+    // The inline <StreamEmbed> is no longer rendered; the pop-out window owns
+    // the player and chat UI now.
+    expect(screen.queryByTestId("stream-embed")).not.toBeInTheDocument();
+    // The panel should not fall back to opening twitch.tv in the browser.
+    expect(openUrl).not.toHaveBeenCalledWith("https://twitch.tv/streamer1");
   });
 
   it("shows empty state when following 0 channels", async () => {
