@@ -91,13 +91,14 @@ export function GenreCard({ report }: GenreCardProps) {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: "var(--card)",
+                backgroundColor: "var(--popover)",
                 border: "1px solid var(--border)",
                 borderRadius: "6px",
                 fontSize: "12px",
+                color: "var(--popover-foreground)",
               }}
-              itemStyle={{ color: "var(--foreground)" }}
-              labelStyle={{ color: "var(--foreground)" }}
+              itemStyle={{ color: "var(--popover-foreground)" }}
+              labelStyle={{ color: "var(--muted-foreground)" }}
               formatter={(value: number | undefined, name: string | undefined) => [
                 `${Math.round((value ?? 0) / 3600)}h`,
                 name ?? "",

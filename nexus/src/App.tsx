@@ -634,6 +634,21 @@ function MainApp() {
             });
           }
           await refreshGames();
+
+          // Refresh derived stores so the Stats screen / XP / streak / mastery
+          // reflect the just-ended session without requiring an app restart.
+          if (session.hasDbSession) {
+            useGameStore.getState().bumpSessionEnded();
+            useStreakStore.getState().refreshAfterSession();
+            useMasteryStore.getState().refreshGame(session.gameId);
+            useAchievementStore.getState().evaluate();
+            useXpStore.getState().refreshXp().then(() => {
+              const summary = useXpStore.getState().summary;
+              if (summary?.leveledUp && summary.newLevel) {
+                useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+              }
+            });
+          }
         }
       }}
       onGameDetails={(gameId) => {

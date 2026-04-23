@@ -147,6 +147,10 @@ export function useLaunchLifecycle() {
       await refreshGames();
 
       if (session.hasDbSession) {
+        // Notify aggregated-stats subscribers (e.g. Stats screen) that
+        // backend session data has been updated.
+        useGameStore.getState().bumpSessionEnded();
+
         const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
         const snapshot = await useStreakStore.getState().refreshAfterSession();
         const newStreak = snapshot?.currentStreak ?? 0;
@@ -241,6 +245,8 @@ export function useLaunchLifecycle() {
       await refreshGames();
 
       if (session?.hasDbSession) {
+        useGameStore.getState().bumpSessionEnded();
+
         const prevStreak = useStreakStore.getState().streak?.currentStreak ?? 0;
         const snapshot = await useStreakStore.getState().refreshAfterSession();
         const newStreak = snapshot?.currentStreak ?? 0;
@@ -459,6 +465,7 @@ export function useLaunchLifecycle() {
               sessionId: session.sessionId,
               endedAt: new Date().toISOString(),
             });
+            useGameStore.getState().bumpSessionEnded();
           } catch {
             // best-effort
           }

@@ -20,8 +20,17 @@ describe("CloseConfirmDialog (Story 20.1)", () => {
     render(<CloseConfirmDialog open={true} onClose={onClose} />);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Close Nexus?")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cancel and keep Nexus open")).toBeInTheDocument();
     expect(screen.getByLabelText("Close application")).toBeInTheDocument();
     expect(screen.getByLabelText("Minimize to system tray")).toBeInTheDocument();
+  });
+
+  it("calls onClose when Cancel is clicked without invoking Tauri", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    render(<CloseConfirmDialog open={true} onClose={onClose} />);
+    fireEvent.click(screen.getByLabelText("Cancel and keep Nexus open"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("calls onClose when Escape is pressed", async () => {

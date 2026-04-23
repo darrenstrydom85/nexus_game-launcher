@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
+import { type ThemeMode, isThemeMode } from "@/lib/theme";
 
 export interface ApiKeys {
   steamGridDbKey: string;
@@ -9,6 +10,8 @@ export interface ApiKeys {
 }
 
 export type FontSize = "small" | "medium" | "large";
+
+export type { ThemeMode };
 
 export interface WatchedFolder {
   id: string;
@@ -28,6 +31,8 @@ export interface SettingsState {
   enableNotifications: boolean;
   autoStatusTransitions: boolean;
   accentColor: string;
+  /** Light / Dark / System appearance; persisted as `theme_mode`. Default `dark` for existing installs. */
+  theme: ThemeMode;
   windowTransparency: boolean;
   enableAnimations: boolean;
   fontSize: FontSize;
@@ -76,6 +81,7 @@ export interface SettingsActions {
   setEnableNotifications: (value: boolean) => void;
   setAutoStatusTransitions: (value: boolean) => void;
   setAccentColor: (color: string) => void;
+  setTheme: (mode: ThemeMode) => void;
   setWindowTransparency: (value: boolean) => void;
   setEnableAnimations: (value: boolean) => void;
   setFontSize: (size: FontSize) => void;
@@ -134,6 +140,7 @@ const initialState: SettingsState = {
   enableNotifications: true,
   autoStatusTransitions: true,
   accentColor: "#7600da",
+  theme: "dark",
   windowTransparency: true,
   enableAnimations: true,
   fontSize: "medium",
@@ -199,6 +206,9 @@ export const useSettingsStore = create<SettingsStore>()(
             patch.sourcesEnabled = sources;
 
             if (settings.theme_accent_color) patch.accentColor = settings.theme_accent_color;
+            if (settings.theme_mode != null && isThemeMode(settings.theme_mode)) {
+              patch.theme = settings.theme_mode;
+            }
             if (settings.library_view_mode) patch.defaultView = settings.library_view_mode as "grid" | "list";
             if (settings.library_sort_by) patch.defaultSort = settings.library_sort_by;
             if (settings.ask_before_close !== undefined) {
@@ -305,6 +315,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setAccentColor: (color) => {
           persistSetting("theme_accent_color", color);
           set({ accentColor: color }, false, "setAccentColor");
+        },
+        setTheme: (mode) => {
+          persistSetting("theme_mode", mode);
+          set({ theme: mode }, false, "setTheme");
         },
         setWindowTransparency: (value) => {
           persistSetting("window_transparency", String(value));

@@ -118,7 +118,7 @@ export function AchievementsView() {
       <AchievementProgressBar statuses={statuses} />
 
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex gap-1 rounded-lg bg-[hsla(0,0%,100%,0.03)] p-1" role="tablist">
+        <div className="flex gap-1 rounded-lg bg-muted/60 p-1" role="tablist">
           {CATEGORIES.map((cat) => {
             const count = cat.value === "all"
               ? undefined
@@ -148,7 +148,7 @@ export function AchievementsView() {
           })}
         </div>
 
-        <div className="flex gap-1 rounded-lg bg-[hsla(0,0%,100%,0.03)] p-1" role="radiogroup" aria-label="Filter by rarity">
+        <div className="flex gap-1 rounded-lg bg-muted/60 p-1" role="radiogroup" aria-label="Filter by rarity">
           {RARITY_FILTERS.map((r) => (
             <button
               key={r.value}

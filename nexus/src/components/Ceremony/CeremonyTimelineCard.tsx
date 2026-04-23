@@ -9,6 +9,11 @@ import {
 } from "recharts";
 import { LineChart } from "lucide-react";
 import type { GameCeremonyData } from "@/lib/tauri";
+import {
+  rechartsTooltipContentStyle,
+  rechartsTooltipItemStyle,
+  rechartsTooltipLabelStyle,
+} from "@/lib/recharts-theme";
 
 interface CeremonyTimelineCardProps {
   data: GameCeremonyData;
@@ -113,12 +118,12 @@ export function CeremonyTimelineCard({ data }: CeremonyTimelineCardProps) {
             <XAxis
               dataKey="month"
               tickFormatter={(v: string) => toAxisLabel(v)}
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               tickLine={false}
               axisLine={false}
               width={40}
@@ -126,12 +131,9 @@ export function CeremonyTimelineCard({ data }: CeremonyTimelineCardProps) {
             />
             <Tooltip
               cursor={{ stroke: "var(--primary)", strokeOpacity: 0.3 }}
-              contentStyle={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
+              contentStyle={rechartsTooltipContentStyle}
+              labelStyle={rechartsTooltipLabelStyle}
+              itemStyle={rechartsTooltipItemStyle}
               labelFormatter={(v) => toFullLabel(String(v ?? ""))}
               formatter={(v) => [`${v} h`, "Play time"]}
             />
@@ -150,7 +152,7 @@ export function CeremonyTimelineCard({ data }: CeremonyTimelineCardProps) {
                 y={peak.hours}
                 r={5}
                 fill="var(--primary)"
-                stroke="hsl(var(--background))"
+                stroke="var(--background)"
                 strokeWidth={2}
                 ifOverflow="extendDomain"
               />

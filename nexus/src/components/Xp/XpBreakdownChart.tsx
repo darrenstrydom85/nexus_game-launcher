@@ -9,6 +9,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import {
+  rechartsBarCursorFill,
+  rechartsTooltipContentStyle,
+  rechartsTooltipItemStyle,
+  rechartsTooltipLabelStyle,
+} from "@/lib/recharts-theme";
 
 const DEFAULT_ACCENT = "#7600da";
 
@@ -58,18 +64,15 @@ export function XpBreakdownChart() {
               type="category"
               dataKey="name"
               width={90}
-              tick={{ fontSize: 11, fill: "hsl(240, 5%, 55%)" }}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
-              cursor={{ fill: "hsl(240, 5%, 18% / 0.4)", radius: 4 }}
-              contentStyle={{
-                background: "hsl(240, 10%, 7%)",
-                border: "1px solid hsl(240, 5%, 12%)",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
+              cursor={{ fill: rechartsBarCursorFill, radius: 4 }}
+              contentStyle={rechartsTooltipContentStyle}
+              labelStyle={rechartsTooltipLabelStyle}
+              itemStyle={rechartsTooltipItemStyle}
               formatter={(value: number | undefined) => [
                 `${(value ?? 0).toLocaleString()} XP`,
                 "XP Earned",

@@ -8,6 +8,12 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { ActivityDataPoint } from "../LibraryStats";
+import {
+  rechartsCartesianGridStroke,
+  rechartsTooltipContentStyle,
+  rechartsTooltipItemStyle,
+  rechartsTooltipLabelStyle,
+} from "@/lib/recharts-theme";
 
 const DEFAULT_ACCENT = "#7600da";
 
@@ -30,28 +36,25 @@ export function ActivityChart({ data, accentColor = DEFAULT_ACCENT }: ActivityCh
           <LineChart data={data}>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="hsl(240, 5%, 18%)"
+              stroke={rechartsCartesianGridStroke}
               vertical={false}
             />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: "hsl(240, 5%, 55%)" }}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "hsl(240, 5%, 55%)" }}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
               axisLine={false}
               tickLine={false}
               width={30}
             />
             <Tooltip
-              contentStyle={{
-                background: "hsl(240, 10%, 7%)",
-                border: "1px solid hsl(240, 5%, 12%)",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
+              contentStyle={rechartsTooltipContentStyle}
+              labelStyle={rechartsTooltipLabelStyle}
+              itemStyle={rechartsTooltipItemStyle}
             />
             <Line
               type="monotone"
@@ -59,7 +62,7 @@ export function ActivityChart({ data, accentColor = DEFAULT_ACCENT }: ActivityCh
               stroke={stroke}
               strokeWidth={2}
               dot={{ fill: stroke, strokeWidth: 0, r: 3 }}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: "hsl(240, 10%, 7%)" }}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--background)" }}
             />
           </LineChart>
         </ResponsiveContainer>

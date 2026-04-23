@@ -288,6 +288,7 @@ export function LibraryStats({
   );
   const accentColor = useSettingsStore((s) => s.accentColor);
   const storeGames = useGameStore((s) => s.games);
+  const lastSessionEndedAt = useGameStore((s) => s.lastSessionEndedAt);
 
   // Session distribution histogram (Story 17.2)
   const {
@@ -401,7 +402,19 @@ export function LibraryStats({
 
     fetchAll();
     return () => { cancelled = true; };
-  }, [statsProp]);
+    // Re-fetch aggregated stats whenever a gaming session ends so the Stats
+    // screen reflects the latest XP/level/playtime without an app restart.
+  }, [statsProp, lastSessionEndedAt]);
+
+  // Also refresh the session histogram so its bucket counts include the
+  // session that just ended. Re-fetch with the library-wide scope; the
+  // active scope is owned by SessionHistogram and will refresh itself
+  // when its own controls change.
+  React.useEffect(() => {
+    if (distributionProp !== undefined) return;
+    if (lastSessionEndedAt === 0) return;
+    refetchDistribution({ type: "library" });
+  }, [lastSessionEndedAt, distributionProp, refetchDistribution]);
 
   const isCustomRange = dateRange !== "all";
   const todayStr = React.useMemo(() => toDateStr(new Date()), []);

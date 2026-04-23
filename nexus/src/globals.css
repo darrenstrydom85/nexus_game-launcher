@@ -53,19 +53,94 @@
     --font-sans: "Geist Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
     --font-mono: "Geist Mono", "Cascadia Code", "Consolas", monospace;
 
-    /* Glassmorphism utilities */
-    --color-glass-sidebar: hsla(240, 10%, 7%, 0.8);
-    --color-glass-overlay: hsla(240, 10%, 4%, 0.9);
-    --color-glass-settings: hsl(240, 10%, 7%);
-    --color-glass-toast: hsla(240, 10%, 10%, 0.9);
-    --color-glass-filter: hsla(240, 10%, 7%, 0.6);
-    --color-glass-border: hsla(0, 0%, 100%, 0.05);
+    /* Glassmorphism utilities (resolved from theme-scoped --glass-* on :root / .dark) */
+    --color-glass-sidebar: var(--glass-sidebar);
+    --color-glass-overlay: var(--glass-overlay);
+    --color-glass-settings: var(--glass-settings);
+    --color-glass-toast: var(--glass-toast);
+    --color-glass-filter: var(--glass-filter);
+    --color-glass-border: var(--glass-border);
 }
 
-/* Obsidian Theme — Dark-only (spec Section 8.2) */
+/* Light theme (default when html has .light) */
 :root {
     --radius: 0.625rem;
 
+    --background: hsl(0, 0%, 100%);
+    --foreground: hsl(240, 10%, 8%);
+
+    --card: hsl(0, 0%, 100%);
+    --card-foreground: hsl(240, 10%, 8%);
+
+    --popover: hsl(0, 0%, 100%);
+    --popover-foreground: hsl(240, 10%, 8%);
+
+    --primary: hsl(272, 100%, 43%);
+    --primary-foreground: hsl(0, 0%, 100%);
+
+    --secondary: hsl(240, 5%, 96%);
+    --secondary-foreground: hsl(240, 10%, 8%);
+
+    --muted: hsl(240, 5%, 96%);
+    --muted-foreground: hsl(240, 4%, 45%);
+
+    --accent: hsl(240, 5%, 96%);
+    --accent-foreground: hsl(240, 10%, 8%);
+
+    --destructive: hsl(0, 84%, 50%);
+
+    --border: hsl(240, 6%, 90%);
+    --input: hsl(240, 6%, 90%);
+    --ring: hsl(272, 100%, 43%);
+
+    --glow: hsla(272, 100%, 43%, 0.12);
+
+    --chart-1: hsl(272, 100%, 43%);
+    --chart-2: hsl(142, 71%, 38%);
+    --chart-3: hsl(38, 92%, 45%);
+    --chart-4: hsl(0, 84%, 50%);
+    --chart-5: hsl(220, 9%, 46%);
+
+    --sidebar: hsl(240, 10%, 98%);
+    --sidebar-foreground: hsl(240, 10%, 8%);
+    --sidebar-primary: hsl(272, 100%, 43%);
+    --sidebar-primary-foreground: hsl(0, 0%, 100%);
+    --sidebar-accent: hsl(240, 5%, 96%);
+    --sidebar-accent-foreground: hsl(240, 10%, 8%);
+    --sidebar-border: hsl(240, 6%, 90%);
+    --sidebar-ring: hsl(272, 100%, 43%);
+
+    --success: hsl(142, 70%, 38%);
+    --success-foreground: hsl(0, 0%, 100%);
+    --warning: hsl(38, 92%, 45%);
+    --warning-foreground: hsl(0, 0%, 0%);
+    --info: hsl(272, 100%, 43%);
+    --info-foreground: hsl(0, 0%, 100%);
+
+    --glass-sidebar: hsla(0, 0%, 100%, 0.75);
+    --glass-overlay: hsla(0, 0%, 100%, 0.9);
+    --glass-settings: hsl(0, 0%, 100%);
+    --glass-toast: hsla(0, 0%, 100%, 0.9);
+    --glass-filter: hsla(0, 0%, 100%, 0.6);
+    --glass-border: hsla(240, 10%, 8%, 0.08);
+
+    /* Mastery tier colors (Epic 38) */
+    --tier-bronze: #CD7F32;
+    --tier-silver: #C0C0C0;
+    --tier-gold: #FFD700;
+    --tier-platinum: #E5E4E2;
+    --tier-diamond: #B9F2FF;
+
+    /* Achievement rarity colors (Epic 39) */
+    --rarity-common: #9CA3AF;
+    --rarity-uncommon: #22C55E;
+    --rarity-rare: #3B82F6;
+    --rarity-epic: #A855F7;
+    --rarity-legendary: #EAB308;
+}
+
+/* Obsidian Theme — dark (spec Section 8.2); applied when html has .dark */
+.dark {
     --background: hsl(240, 10%, 4%);
     --foreground: hsl(0, 0%, 95%);
 
@@ -117,19 +192,12 @@
     --info: hsl(272, 100%, 43%);
     --info-foreground: hsl(0, 0%, 100%);
 
-    /* Mastery tier colors (Epic 38) */
-    --tier-bronze: #CD7F32;
-    --tier-silver: #C0C0C0;
-    --tier-gold: #FFD700;
-    --tier-platinum: #E5E4E2;
-    --tier-diamond: #B9F2FF;
-
-    /* Achievement rarity colors (Epic 39) */
-    --rarity-common: #9CA3AF;
-    --rarity-uncommon: #22C55E;
-    --rarity-rare: #3B82F6;
-    --rarity-epic: #A855F7;
-    --rarity-legendary: #EAB308;
+    --glass-sidebar: hsla(240, 10%, 7%, 0.8);
+    --glass-overlay: hsla(240, 10%, 4%, 0.9);
+    --glass-settings: hsl(240, 10%, 7%);
+    --glass-toast: hsla(240, 10%, 10%, 0.9);
+    --glass-filter: hsla(240, 10%, 7%, 0.6);
+    --glass-border: hsla(0, 0%, 100%, 0.05);
 }
 
 @layer base {
@@ -175,32 +243,32 @@
 
 /* Glassmorphism variant classes — spec Section 8.4 */
 .glass-sidebar {
-    background: hsla(240, 10%, 7%, 0.8);
+    background: var(--glass-sidebar);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
 }
 .glass-overlay {
-    background: hsla(240, 10%, 4%, 0.9);
+    background: var(--glass-overlay);
     backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
-    border: 1px solid hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
 }
 .glass-settings {
-    background: hsl(240, 10%, 7%);
-    border: 1px solid hsla(0, 0%, 100%, 0.05);
+    background: var(--glass-settings);
+    border: 1px solid var(--glass-border);
 }
 .glass-toast {
-    background: hsla(240, 10%, 10%, 0.9);
+    background: var(--glass-toast);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
 }
 .glass-filter {
-    background: hsla(240, 10%, 7%, 0.6);
+    background: var(--glass-filter);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
 }
 
 /* Disable animations when preference is off */
@@ -307,13 +375,13 @@
 /* Play-pulse animation — design system (sync activity dot, play button glow) */
 @keyframes play-pulse {
   0% {
-    box-shadow: 0 0 0 0 hsla(272, 100%, 43%, 0.4);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 12px hsla(272, 100%, 43%, 0);
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--primary) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 hsla(272, 100%, 43%, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent);
   }
 }
 .animate-play-pulse {

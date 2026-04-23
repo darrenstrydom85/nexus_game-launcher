@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { Sparkles } from "lucide-react";
 import type { WrappedReport } from "@/types/wrapped";
+import { rechartsBarCursorFill } from "@/lib/recharts-theme";
 
 interface DiversityCardProps {
   report: WrappedReport;
@@ -91,14 +92,16 @@ export function DiversityCard({ report }: DiversityCardProps) {
                   width={72}
                 />
                 <Tooltip
+                  cursor={{ fill: rechartsBarCursorFill }}
                   contentStyle={{
-                    background: "var(--card)",
+                    backgroundColor: "var(--popover)",
                     border: "1px solid var(--border)",
                     borderRadius: "6px",
                     fontSize: "12px",
+                    color: "var(--popover-foreground)",
                   }}
-                  itemStyle={{ color: "var(--foreground)" }}
-                  labelStyle={{ color: "var(--foreground)" }}
+                  itemStyle={{ color: "var(--popover-foreground)" }}
+                  labelStyle={{ color: "var(--muted-foreground)" }}
                   formatter={(v: number | undefined) => [`${v ?? 0}%`, "Share"]}
                 />
                 <Bar dataKey="percent" radius={[0, 4, 4, 0]}>

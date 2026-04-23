@@ -129,6 +129,13 @@ export interface GameState {
   showProcessPicker: boolean;
   isLoading: boolean;
   error: string | null;
+  /**
+   * Monotonic counter bumped each time a gaming session is ended on the
+   * backend. Components that derive aggregated session data (Stats screen,
+   * activity charts, etc.) can subscribe to this value to re-fetch their
+   * data without needing direct coupling to the launch lifecycle.
+   */
+  lastSessionEndedAt: number;
 }
 
 export interface GameActions {
@@ -137,6 +144,7 @@ export interface GameActions {
   setShowProcessPicker: (show: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  bumpSessionEnded: () => void;
 }
 
 export type GameStore = GameState & GameActions;
@@ -147,6 +155,7 @@ const initialState: GameState = {
   showProcessPicker: false,
   isLoading: false,
   error: null,
+  lastSessionEndedAt: 0,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -199,6 +208,8 @@ export const useGameStore = create<GameStore>()(
         set({ showProcessPicker: show }, false, "setShowProcessPicker"),
       setLoading: (loading) => set({ isLoading: loading }, false, "setLoading"),
       setError: (error) => set({ error }, false, "setError"),
+      bumpSessionEnded: () =>
+        set({ lastSessionEndedAt: Date.now() }, false, "bumpSessionEnded"),
     }),
     { name: "GameStore", enabled: import.meta.env.DEV },
   ),
