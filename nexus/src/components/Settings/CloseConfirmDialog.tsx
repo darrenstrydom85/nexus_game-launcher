@@ -82,7 +82,7 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
     >
       <div
         ref={containerRef}
-        className="w-full max-w-[400px] rounded-xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur-sm"
+        className="w-full max-w-[460px] rounded-xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur-sm"
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();
@@ -102,13 +102,14 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
         >
           You can close the app, minimize to the system tray to keep it running in the background, or cancel to stay open.
         </p>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-2">
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end sm:gap-2">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
             disabled={isClosing}
             aria-label="Cancel and keep Nexus open"
+            className="whitespace-nowrap"
           >
             <X className="mr-2 size-4" aria-hidden />
             Cancel
@@ -116,7 +117,7 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
           <Button
             type="button"
             variant="outline"
-            className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="whitespace-nowrap border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={handleCloseApp}
             disabled={isClosing}
             aria-label="Close application"
@@ -129,9 +130,10 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
             onClick={handleMinimizeToTray}
             disabled={isClosing}
             aria-label="Minimize to system tray"
+            className="whitespace-nowrap"
           >
             <Minus className="mr-2 size-4" aria-hidden />
-            Minimize to system tray
+            Minimize to tray
           </Button>
         </div>
       </div>
