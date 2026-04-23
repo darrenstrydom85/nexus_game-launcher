@@ -248,11 +248,11 @@
 
               <div class="changelog-entry-body">
                 <p>
-                  A complete Twitch overhaul. The integration was rebuilt from the ground up to fix recurring token-expiry issues and to unlock a stack of features people have been asking for: an embedded player you can pop out, push-based go-live alerts, top clips for every game in your library, watch-time stats, and a brand-new diagnostics panel.
+                  A complete Twitch overhaul. The integration was rebuilt from the ground up to fix recurring token-expiry issues and to unlock a stack of features people have been asking for: a pop-out stream viewer, push-based go-live alerts, top clips for every game in your library, watch-time stats that follow your date range, a Twitch diagnostics panel, and a one-time in-app sign-in that makes every embed logged-in.
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="play-circle" class="icon-sm"></i>Inline &amp; pop-out Twitch player</li>
+                  <li><i data-lucide="play-circle" class="icon-sm"></i>In-app Twitch stream viewer</li>
                   <li><i data-lucide="bell" class="icon-sm"></i>Push go-live alerts (EventSub)</li>
                   <li><i data-lucide="film" class="icon-sm"></i>Top clips per library game</li>
                   <li><i data-lucide="clock" class="icon-sm"></i>Twitch watch time in Stats &amp; Wrapped</li>
@@ -261,11 +261,11 @@
                 <div class="changelog-category" data-type="added">
                   <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
                   <ul class="changelog-list">
-                    <li><strong>Embedded Twitch player</strong> — Click a live stream in the Twitch panel and it opens inline with chat alongside it. Hit the pop-out button and it moves into a small, frameless, always-on-top window you can drag anywhere on your desktop while you keep playing. One pop-out per channel; clicking the same stream again just focuses the existing window.</li>
-                    <li><strong>Sign in to Twitch from inside the launcher</strong> — A new "Sign in on Twitch" button on the embed opens a small twitch.tv login window. Once you sign in there, every embed in the launcher is automatically logged in — chat works, the follow button works, and mature-content gates auto-confirm. The session persists across restarts.</li>
+                    <li><strong>Watch streams without leaving Nexus</strong> — Click a live streamer anywhere — from the Twitch panel or the "Live on Twitch" section of a game's detail page — and the stream opens in its own Nexus-owned window with chat alongside it. It's a regular Windows window: drag it, resize it, minimise it, throw it on a second monitor, no always-on-top. One window per channel, and clicking the same streamer again just focuses the one that's already open. A built-in "Open on Twitch" button hands off to your default browser if you'd rather watch there.</li>
+                    <li><strong>Sign in to Twitch from inside the launcher</strong> — A "Sign in" button in the player chrome opens a small twitch.tv login window. Once you sign in there, every embed in Nexus is automatically logged in — chat works, the follow button works, mature-content gates auto-confirm. The session persists across restarts.</li>
                     <li><strong>Push-based go-live alerts</strong> — A new EventSub WebSocket connection means you get notified the moment a streamer you follow goes live, instead of waiting for the next polling tick. Polling stays on as a 10-minute safety net.</li>
                     <li><strong>Top clips on every game page</strong> — Each game in your library now shows a row of the top Twitch clips for it (last 7 days). Click a thumbnail to watch the clip in place — no second app, no browser tab.</li>
-                    <li><strong>Twitch watch time in Stats &amp; Wrapped</strong> — Every embedded stream you watch is logged. The Stats page surfaces your last 30 days of Twitch viewing (total time, sessions, top channels and games), and Wrapped folds your annual Twitch hours into your year-in-review.</li>
+                    <li><strong>Twitch watch time in Stats &amp; Wrapped</strong> — Every stream you watch through Nexus is logged. Stats and Wrapped both follow the global date-range selector, so you can see your last 7 days, last month, last year, or any window you choose — total time, sessions, top channels, and top games.</li>
                     <li><strong>Twitch diagnostics panel</strong> — A new collapsible section in Settings → Twitch shows your current token state, refresh history, EventSub connection state, rate-limit usage, and last error. There is a one-click "Test connection" button and a copy-to-clipboard button if you ever need to share diagnostics.</li>
                     <li><strong>Branded HTML callback page</strong> — The Twitch sign-in flow now returns to a styled, auto-closing success page (matching the Google Drive flow) instead of a blank tab.</li>
                   </ul>
@@ -276,6 +276,16 @@
                   <ul class="changelog-list">
                     <li><strong>Self-healing Twitch tokens</strong> — Token management was rebuilt around a centralised, refresh-aware manager. A background worker proactively renews access tokens before they expire, so the integration stops silently breaking after a few hours. Your avatar is also fetched and cached at sign-in time.</li>
                     <li><strong>Hardened OAuth callback</strong> — Both Twitch and Google Drive sign-in flows now correctly send the full HTML response on Windows before closing the local socket, fixing the blank-page issue some users hit on first connect. The Twitch flow also now validates a CSRF state parameter end-to-end.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch embeds render in packaged builds</strong> — Installed builds previously showed a "refused to connect" placeholder instead of the actual stream because Twitch's security policy blocks the Tauri webview origin. Nexus now hosts the embed pages from a local origin that Twitch accepts, so streams, chat, and clips all render correctly from the MSI installer.</li>
+                    <li><strong>Settings and onboarding work again after sign-in</strong> — An earlier embed workaround stripped a required header from internal app calls, which could leave existing users stuck on the onboarding screen or seeing "500 Internal Server Error" toasts. That workaround is gone; existing preferences and API keys are detected correctly on launch.</li>
+                    <li><strong>Close button works during onboarding</strong> — The close-to-tray / minimise / cancel dialog is now mounted at the top level of the app, so the title-bar close button behaves the same whether you are in onboarding or the main launcher.</li>
+                    <li><strong>Quieter logs</strong> — Benign "connection error (os error 10060)" entries from the browser's preconnect pool no longer spam the embed server log.</li>
                   </ul>
                 </div>
               </div>
