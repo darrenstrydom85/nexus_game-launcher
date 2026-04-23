@@ -50,11 +50,21 @@ describe("TwitchClipsRow (Story A2)", () => {
     expect(screen.getAllByText(/4\D?242 views/)).toHaveLength(2);
   });
 
-  it("clicking a clip opens an embed modal with the correct parent params", async () => {
-    vi.mocked(invoke).mockResolvedValue({
-      twitchGameId: "32982",
-      twitchGameName: "GTA V",
-      clips: [sampleClip],
+  it("clicking a clip spawns a popout window via the popout_clip command", async () => {
+    // First fetch is `get_twitch_clips_for_game`, subsequent calls are the
+    // `popout_clip` invocation we're actually asserting against.
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_twitch_clips_for_game") {
+        return Promise.resolve({
+          twitchGameId: "32982",
+          twitchGameName: "GTA V",
+          clips: [sampleClip],
+        });
+      }
+      if (cmd === "popout_clip") {
+        return Promise.resolve();
+      }
+      return Promise.resolve(undefined);
     });
     render(<TwitchClipsRow gameName="GTA V" />);
     await waitFor(
@@ -63,17 +73,17 @@ describe("TwitchClipsRow (Story A2)", () => {
     );
 
     fireEvent.click(screen.getByLabelText(/Play clip: Insane play/));
-    const embed = await screen.findByTestId("twitch-clip-embed");
-    expect(embed).toHaveAttribute(
-      "src",
-      expect.stringContaining("https://clips.twitch.tv/embed?clip=AbcClip"),
-    );
-    expect(embed.getAttribute("src")).toContain("parent=tauri.localhost");
 
-    fireEvent.click(screen.getByTestId("twitch-clip-close"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("twitch-clip-embed")).not.toBeInTheDocument(),
+    expect(invoke).toHaveBeenCalledWith(
+      "popout_clip",
+      expect.objectContaining({
+        clipId: "AbcClip",
+        clipTitle: "Insane play",
+        broadcasterName: "Shroud",
+      }),
     );
+    // No inline iframe — the clip plays in its own Tauri window.
+    expect(screen.queryByTestId("twitch-clip-embed")).not.toBeInTheDocument();
   });
 
   it("self-hides when not authenticated", () => {

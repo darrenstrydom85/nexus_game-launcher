@@ -1,6 +1,6 @@
 import * as React from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { Clapperboard, X } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { Clapperboard } from "lucide-react";
 import {
   getTwitchClipsForGame,
   type TwitchClip,
@@ -9,8 +9,6 @@ import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 
 const DEBOUNCE_MS = 300;
-/** `parent=` parameters required by Twitch's clip embed iframe. Same set as StreamEmbed. */
-const EMBED_PARENTS = ["tauri.localhost", "localhost"];
 
 export interface TwitchClipsRowProps {
   gameName: string;
@@ -18,13 +16,6 @@ export interface TwitchClipsRowProps {
 
 function clipThumb(template: string): string {
   return template.replace("{width}", "320").replace("{height}", "180");
-}
-
-function buildClipEmbedUrl(clipId: string): string {
-  const parents = EMBED_PARENTS.map(
-    (p) => `parent=${encodeURIComponent(p)}`,
-  ).join("&");
-  return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(clipId)}&${parents}&autoplay=true`;
 }
 
 function ClipsRowSkeleton() {
@@ -43,13 +34,29 @@ function ClipsRowSkeleton() {
   );
 }
 
+/**
+ * Clips must be embedded from the same `localhost` origin as streams —
+ * `clips.twitch.tv` chain-checks `frame-ancestors`, which rejects
+ * `tauri.localhost` in packaged builds. So, just like the live stream
+ * player, clicking a clip spawns a dedicated Tauri window that loads the
+ * clip page from the local embed server.
+ */
+function openClip(clip: TwitchClip): void {
+  void invoke("popout_clip", {
+    clipId: clip.id,
+    clipTitle: clip.title,
+    broadcasterName: clip.broadcasterName,
+  }).catch((e) => {
+    console.error("[twitch] popout_clip failed:", e);
+  });
+}
+
 export function TwitchClipsRow({ gameName }: TwitchClipsRowProps) {
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const [clips, setClips] = React.useState<TwitchClip[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [activeClip, setActiveClip] = React.useState<TwitchClip | null>(null);
   const [resolvedGameName, setResolvedGameName] = React.useState<string>("");
 
   React.useEffect(() => {
@@ -123,7 +130,7 @@ export function TwitchClipsRow({ gameName }: TwitchClipsRowProps) {
             <button
               key={clip.id}
               type="button"
-              onClick={() => setActiveClip(clip)}
+              onClick={() => openClip(clip)}
               className="group flex flex-col gap-1 overflow-hidden rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label={`Play clip: ${clip.title} by ${clip.broadcasterName}`}
             >
@@ -151,53 +158,6 @@ export function TwitchClipsRow({ gameName }: TwitchClipsRowProps) {
               </p>
             </button>
           ))}
-        </div>
-      )}
-
-      {activeClip && (
-        <div
-          role="dialog"
-          aria-label={`Clip: ${activeClip.title}`}
-          aria-modal="true"
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setActiveClip(null)}
-        >
-          <div
-            className="relative w-full max-w-3xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setActiveClip(null)}
-              className="absolute -top-10 right-0 rounded p-1.5 text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Close clip"
-              data-testid="twitch-clip-close"
-            >
-              <X className="size-5" />
-            </button>
-            <div className="aspect-video w-full overflow-hidden rounded-md bg-black">
-              <iframe
-                data-testid="twitch-clip-embed"
-                title={activeClip.title}
-                src={buildClipEmbedUrl(activeClip.id)}
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                className="size-full"
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <p className="truncate text-white">{activeClip.title}</p>
-              <button
-                type="button"
-                className="rounded px-2 py-1 text-xs text-white hover:bg-white/10"
-                onClick={() => {
-                  void openUrl(activeClip.url).catch(() => {});
-                }}
-              >
-                Open on Twitch
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

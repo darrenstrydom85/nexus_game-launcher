@@ -1091,6 +1091,100 @@ fn build_watch_url(
         .map_err(|e| CommandError::Unknown(format!("bad watch url: {e}")))
 }
 
+/// Spawn (or focus) a Twitch clip player window.
+///
+/// Clips need the exact same `frame-ancestors=localhost` work-around as
+/// streams — the inline modal-iframe approach shows "clips.twitch.tv
+/// refused to connect" in packaged builds. Each clip gets its own window
+/// keyed by clip id, so re-clicking the same clip re-focuses instead of
+/// spawning duplicates.
+#[tauri::command]
+pub async fn popout_clip(
+    app: AppHandle,
+    clip_id: String,
+    clip_title: Option<String>,
+    broadcaster_name: Option<String>,
+) -> Result<(), CommandError> {
+    let safe = sanitize_clip_id_for_label(&clip_id);
+    if safe.is_empty() {
+        return Err(CommandError::Unknown("invalid clip id".to_string()));
+    }
+    let label = format!("clip-{}", safe);
+
+    if let Some(existing) = app.get_webview_window(&label) {
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let clip_url = build_clip_url(&app, &clip_id)?;
+
+    // Title preference: "<Clip title> · <Broadcaster>" → falls back through
+    // the title alone, then the broadcaster, then a generic label.
+    let title = match (clip_title.as_deref(), broadcaster_name.as_deref()) {
+        (Some(t), Some(b)) if !t.is_empty() && !b.is_empty() => {
+            format!("{} · {}", t, b)
+        }
+        (Some(t), _) if !t.is_empty() => t.to_string(),
+        (_, Some(b)) if !b.is_empty() => format!("{} · Clip", b),
+        _ => "Twitch clip".to_string(),
+    };
+
+    WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(clip_url))
+        .title(title)
+        .inner_size(960.0, 560.0)
+        .min_inner_size(480.0, 320.0)
+        .decorations(true)
+        .resizable(true)
+        .skip_taskbar(false)
+        // Must match the main window so the WebView2 data directory (and
+        // therefore the Twitch cookie jar) is shared across windows.
+        .additional_browser_args(NEXUS_WEBVIEW_ARGS)
+        .build()
+        .map_err(|e| CommandError::Unknown(format!("failed to create clip pop-out: {e}")))?;
+
+    Ok(())
+}
+
+/// Sanitiser for Twitch clip ids, mirrored from
+/// `crate::twitch::embed_server::sanitize_clip_id` but re-implemented here
+/// to keep the two modules decoupled (the embed server is otherwise a
+/// self-contained module with no `commands::twitch` imports). Clip slugs
+/// are ASCII alphanumeric + `-` + `_`; we cap length to keep window labels
+/// well under Tauri/OS limits.
+fn sanitize_clip_id_for_label(raw: &str) -> String {
+    raw.chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(64)
+        .collect()
+}
+
+/// Build the `http://localhost:PORT/clip?id=...&token=...` URL for the
+/// clip-player page.
+fn build_clip_url(app: &AppHandle, clip_id: &str) -> Result<tauri::Url, CommandError> {
+    let base = app
+        .try_state::<TwitchEmbedBaseUrl>()
+        .map(|s| s.0.clone())
+        .unwrap_or_default();
+    if base.is_empty() {
+        return Err(CommandError::Unknown(
+            "Twitch embed server is not running".to_string(),
+        ));
+    }
+    let token = app
+        .try_state::<TwitchEmbedToken>()
+        .map(|s| s.0.clone())
+        .unwrap_or_default();
+
+    let url = format!(
+        "{base}/clip?id={}&token={}",
+        urlencoding::encode(clip_id),
+        urlencoding::encode(&token),
+    );
+    url.parse::<tauri::Url>()
+        .map_err(|e| CommandError::Unknown(format!("bad clip url: {e}")))
+}
+
 /// Tauri-managed wrapper around the local Twitch embed server's base URL
 /// (e.g. `http://localhost:53127`). Populated by `lib.rs` during setup; the
 /// frontend reads it via [`get_twitch_embed_base_url`] and uses it to build

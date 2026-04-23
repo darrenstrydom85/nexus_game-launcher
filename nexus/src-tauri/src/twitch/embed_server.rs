@@ -20,11 +20,15 @@
 //! ## What this server serves
 //!
 //! - `GET /watch` — The pop-out player page. Full HTML + vanilla JS with
-//!   header chrome (mute, chat toggle, sign-in, open-on-twitch, close) and
-//!   two iframes (player + chat). The chrome talks back to Tauri via the
+//!   header chrome (mute, chat toggle, sign-in, open-on-twitch) and two
+//!   iframes (player + chat). The chrome talks back to Tauri via the
 //!   `/__api/*` endpoints on this same server (the browser can't call Tauri
 //!   commands from a remote origin without explicit capabilities, so we
 //!   route through HTTP instead of plumbing a capability file).
+//! - `GET /clip` — Minimal full-window clip player page. Same CSP rationale
+//!   as `/watch`: clips.twitch.tv chain-checks `frame-ancestors`, so a
+//!   dedicated `localhost:PORT` window is the only way to embed them from
+//!   a packaged build.
 //! - `GET /player`, `GET /chat` — Legacy single-iframe wrapper pages. Kept
 //!   for backward compatibility with any code path that still iframes them
 //!   directly; new code should use `/watch`.
@@ -182,6 +186,14 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
                 return Ok(());
             }
             let html = render_watch(&params, &ctx.token);
+            write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
+        }
+        ("GET", "/clip") => {
+            if !check_token_query(&params, ctx) {
+                write_response(&mut stream, 401, "text/plain", b"unauthorized");
+                return Ok(());
+            }
+            let html = render_clip(&params);
             write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
         }
         ("GET", "/player") => {
@@ -350,6 +362,17 @@ fn sanitize_channel(raw: &str) -> String {
         .take(25)
         .collect::<String>()
         .to_ascii_lowercase()
+}
+
+/// Strict allow-list sanitiser for Twitch clip IDs. Clip IDs (aka "slugs")
+/// from Helix are ASCII alphanumeric plus `-`, and rarely longer than ~100
+/// chars in practice. We keep the case (unlike channels — Twitch treats the
+/// slug as case-sensitive) and cap at a generous 120 chars.
+fn sanitize_clip_id(raw: &str) -> String {
+    raw.chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(120)
+        .collect()
 }
 
 /// HTML-escape text for safe interpolation into element bodies / attributes.
@@ -633,6 +656,23 @@ fn render_chat(params: &HashMap<String, String>) -> String {
     wrapper_html(&iframe)
 }
 
+/// Render the dedicated clip-player page. The window loaded by
+/// `popout_clip` navigates here; `clips.twitch.tv` is iframed with
+/// `parent=localhost` so the CSP accepts the embed.
+fn render_clip(params: &HashMap<String, String>) -> String {
+    let clip_id = sanitize_clip_id(params.get("id").map(String::as_str).unwrap_or(""));
+    if clip_id.is_empty() {
+        return error_page("Missing clip — nothing to play.");
+    }
+    let iframe_src = format!(
+        "https://clips.twitch.tv/embed?clip={clip_id}&parent=localhost&autoplay=true"
+    );
+    let iframe = format!(
+        "<iframe src=\"{iframe_src}\" allow=\"autoplay; fullscreen\" allowfullscreen frameborder=\"0\"></iframe>"
+    );
+    wrapper_html(&iframe)
+}
+
 fn wrapper_html(body: &str) -> String {
     format!(
         r#"<!DOCTYPE html>
@@ -752,6 +792,39 @@ mod tests {
         let html = render_chat(&params);
         assert!(html.contains("parent=localhost"));
         assert!(html.contains("/embed/ninja/chat"));
+    }
+
+    #[test]
+    fn sanitize_clip_id_allows_valid_slug() {
+        let cleaned = sanitize_clip_id("AwkwardPoisedTomatoCurseLit-abc_12");
+        assert_eq!(cleaned, "AwkwardPoisedTomatoCurseLit-abc_12");
+    }
+
+    #[test]
+    fn sanitize_clip_id_strips_html_injection() {
+        let cleaned = sanitize_clip_id("<script>x</script>");
+        assert!(!cleaned.contains('<'));
+        assert!(!cleaned.contains('>'));
+    }
+
+    #[test]
+    fn render_clip_uses_parent_localhost() {
+        let mut params = HashMap::new();
+        params.insert(
+            "id".to_string(),
+            "AwkwardPoisedTomatoCurseLit".to_string(),
+        );
+        let html = render_clip(&params);
+        assert!(html.contains("clips.twitch.tv/embed"));
+        assert!(html.contains("clip=AwkwardPoisedTomatoCurseLit"));
+        assert!(html.contains("parent=localhost"));
+    }
+
+    #[test]
+    fn render_clip_missing_id_renders_error() {
+        let html = render_clip(&HashMap::new());
+        assert!(html.contains("Missing clip"));
+        assert!(!html.contains("clips.twitch.tv"));
     }
 
     #[test]
