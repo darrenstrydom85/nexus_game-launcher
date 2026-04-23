@@ -40,18 +40,8 @@
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Nexus",
-        "item": "https://www.nexusgamelauncher.com/"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Changelog",
-        "item": "https://www.nexusgamelauncher.com/changelog.html"
-      }
+      { "@type": "ListItem", "position": 1, "name": "Nexus", "item": "https://www.nexusgamelauncher.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Changelog", "item": "https://www.nexusgamelauncher.com/changelog.html" }
     ]
   }
   </script>
@@ -73,13 +63,16 @@
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
 
-  <!-- Nexus Obsidian theme -->
-  <link href="assets/css/style.css?v=20260312" rel="stylesheet">
+  <!-- Nexus Obsidian theme v2 -->
+  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 </head>
 <body>
+
+  <!-- Scroll progress bar -->
+  <div class="scroll-progress" aria-hidden="true"></div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- NAVBAR                                          -->
@@ -91,6 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.0 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,8 +93,9 @@
       <div class="collapse navbar-collapse" id="navMain">
         <ul class="navbar-nav ms-auto align-items-center gap-1">
           <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#screenshots">Screenshots</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#download">Download</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#showcase">Showcase</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#tech">Tech</a></li>
+          <li class="nav-item"><a class="nav-link" href="changelog.html" aria-current="page">Changelog</a></li>
           <li class="nav-item">
             <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
           </li>
@@ -116,807 +111,707 @@
   </nav>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- PAGE HEADER                                     -->
+  <!-- CINEMATIC HEADER                                -->
   <!-- ════════════════════════════════════════════════ -->
-  <header class="changelog-header">
-    <div class="changelog-header-bg" aria-hidden="true">
-      <img src="assets/img/hero.jpg" alt="" width="1920" height="1080" loading="eager" class="changelog-header-bg-img">
+  <header class="changelog-hero">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-mesh"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-fade"></div>
     </div>
+
     <div class="container">
-      <p class="section-label">Release History</p>
-      <h1 class="type-display">Changelog</h1>
-      <p class="type-body text-muted-foreground changelog-header-subtitle">
-        What's new, improved, and fixed in each release of Nexus.
-      </p>
+      <div class="changelog-hero-content">
+        <p class="type-eyebrow">Release history</p>
+        <h1 class="type-display">Every patch, in plain English.</h1>
+        <p class="type-body-lg text-muted-foreground">
+          Twenty releases and counting — what's new, what's improved, and what got
+          fixed in each version of Nexus.
+        </p>
+        <div class="changelog-hero-meta">
+          <a href="#v0.3.0" class="changelog-latest-pill">
+            <span class="dot" aria-hidden="true"></span>
+            <span>Latest · v0.3.0</span>
+            <i data-lucide="arrow-down" class="icon-sm"></i>
+          </a>
+          <a href="releases/Nexus_0.3.0_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+            <i data-lucide="download" class="icon-sm"></i>
+            Download v0.3.0
+          </a>
+        </div>
+      </div>
     </div>
   </header>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- CHANGELOG ENTRIES                               -->
+  <!-- TWO-COLUMN LAYOUT — RAIL + STREAM               -->
   <!-- ════════════════════════════════════════════════ -->
-  <main class="changelog-main">
+  <main>
     <div class="container">
-      <div class="changelog-timeline">
+      <div class="changelog-layout">
 
-        <!-- ── v0.3.0 (latest) ── -->
-        <article class="changelog-entry changelog-entry--latest" id="v0.3.0">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.3.0</h2>
-              <span class="version-badge type-caption text-primary-accent">
-                <i data-lucide="sparkles" class="icon-xs"></i>
-                Latest
-              </span>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-04-16">April 16, 2026</time>
+        <!-- Sticky version rail (desktop) -->
+        <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
+          <div class="changelog-rail-label">Versions</div>
+          <a class="changelog-rail-link is-latest" href="#v0.3.0">
+            <span class="changelog-rail-version">v0.3.0</span>
+            <span class="changelog-rail-date">Apr 16</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.2.1"><span class="changelog-rail-version">v0.2.1</span><span class="changelog-rail-date">Apr 15</span></a>
+          <a class="changelog-rail-link" href="#v0.2.0"><span class="changelog-rail-version">v0.2.0</span><span class="changelog-rail-date">Apr 13</span></a>
+          <a class="changelog-rail-link" href="#v0.1.21"><span class="changelog-rail-version">v0.1.21</span><span class="changelog-rail-date">Apr 06</span></a>
+          <a class="changelog-rail-link" href="#v0.1.20"><span class="changelog-rail-version">v0.1.20</span><span class="changelog-rail-date">Mar 25</span></a>
+          <a class="changelog-rail-link" href="#v0.1.19"><span class="changelog-rail-version">v0.1.19</span><span class="changelog-rail-date">Mar 19</span></a>
+          <a class="changelog-rail-link" href="#v0.1.18"><span class="changelog-rail-version">v0.1.18</span><span class="changelog-rail-date">Mar 16</span></a>
+          <a class="changelog-rail-link" href="#v0.1.17"><span class="changelog-rail-version">v0.1.17</span><span class="changelog-rail-date">Mar 13</span></a>
+          <a class="changelog-rail-link" href="#v0.1.16"><span class="changelog-rail-version">v0.1.16</span><span class="changelog-rail-date">Mar 11</span></a>
+          <a class="changelog-rail-link" href="#v0.1.15"><span class="changelog-rail-version">v0.1.15</span><span class="changelog-rail-date">Mar 11</span></a>
+          <a class="changelog-rail-link" href="#v0.1.14"><span class="changelog-rail-version">v0.1.14</span><span class="changelog-rail-date">Mar 10</span></a>
+          <a class="changelog-rail-link" href="#v0.1.13"><span class="changelog-rail-version">v0.1.13</span><span class="changelog-rail-date">Mar 09</span></a>
+          <a class="changelog-rail-link" href="#v0.1.12"><span class="changelog-rail-version">v0.1.12</span><span class="changelog-rail-date">Mar 09</span></a>
+          <a class="changelog-rail-link" href="#v0.1.11"><span class="changelog-rail-version">v0.1.11</span><span class="changelog-rail-date">Mar 09</span></a>
+          <a class="changelog-rail-link" href="#v0.1.10"><span class="changelog-rail-version">v0.1.10</span><span class="changelog-rail-date">Mar 08</span></a>
+          <a class="changelog-rail-link" href="#v0.1.9"><span class="changelog-rail-version">v0.1.9</span><span class="changelog-rail-date">Mar 07</span></a>
+          <a class="changelog-rail-link" href="#v0.1.8"><span class="changelog-rail-version">v0.1.8</span><span class="changelog-rail-date">Mar 06</span></a>
+          <a class="changelog-rail-link" href="#v0.1.7"><span class="changelog-rail-version">v0.1.7</span><span class="changelog-rail-date">Mar 05</span></a>
+          <a class="changelog-rail-link" href="#v0.1.6"><span class="changelog-rail-version">v0.1.6</span><span class="changelog-rail-date">Mar 05</span></a>
+          <a class="changelog-rail-link" href="#v0.1.5"><span class="changelog-rail-version">v0.1.5</span><span class="changelog-rail-date">Mar 04</span></a>
+        </aside>
+
+        <!-- Stream -->
+        <div>
+          <!-- Mobile version dropdown -->
+          <div class="changelog-rail-mobile">
+            <select data-changelog-mobile-select aria-label="Jump to version">
+              <option value="">Jump to version…</option>
+              <option value="v0.3.0">v0.3.0 — Apr 16, 2026 (Latest)</option>
+              <option value="v0.2.1">v0.2.1 — Apr 15, 2026</option>
+              <option value="v0.2.0">v0.2.0 — Apr 13, 2026</option>
+              <option value="v0.1.21">v0.1.21 — Apr 6, 2026</option>
+              <option value="v0.1.20">v0.1.20 — Mar 25, 2026</option>
+              <option value="v0.1.19">v0.1.19 — Mar 19, 2026</option>
+              <option value="v0.1.18">v0.1.18 — Mar 16, 2026</option>
+              <option value="v0.1.17">v0.1.17 — Mar 13, 2026</option>
+              <option value="v0.1.16">v0.1.16 — Mar 11, 2026</option>
+              <option value="v0.1.15">v0.1.15 — Mar 11, 2026</option>
+              <option value="v0.1.14">v0.1.14 — Mar 10, 2026</option>
+              <option value="v0.1.13">v0.1.13 — Mar 9, 2026</option>
+              <option value="v0.1.12">v0.1.12 — Mar 9, 2026</option>
+              <option value="v0.1.11">v0.1.11 — Mar 9, 2026</option>
+              <option value="v0.1.10">v0.1.10 — Mar 8, 2026</option>
+              <option value="v0.1.9">v0.1.9 — Mar 7, 2026</option>
+              <option value="v0.1.8">v0.1.8 — Mar 6, 2026</option>
+              <option value="v0.1.7">v0.1.7 — Mar 5, 2026</option>
+              <option value="v0.1.6">v0.1.6 — Mar 5, 2026</option>
+              <option value="v0.1.5">v0.1.5 — Mar 4, 2026</option>
+            </select>
           </div>
 
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              A major release focused on progression and motivation. Nexus now tracks your play streak, rewards milestones mid-session, gives every game a mastery tier, unlocks achievements as you play, levels up your profile with XP, and celebrates the games you retire with a full ceremony and shareable certificate.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Game retirement ceremony</strong> — When you mark a game as completed or dropped, Nexus plays a cinematic retirement ceremony with a hero card, play stats, and a final send-off. Generate a shareable certificate image for any retired game from its detail view.</li>
-                <li><strong>XP and level system</strong> — Every play session, completion, and achievement earns XP. Watch your launcher-wide level climb with a progress bar in the sidebar and a dedicated profile view showing your tier, total XP, and recent level-ups.</li>
-                <li><strong>Achievement system</strong> — Dozens of Nexus-native achievements unlock as you play, spanning play time, streaks, library curation, backlog conquests, and ceremony milestones. Track progress and unlock history from the new Achievements page.</li>
-                <li><strong>Game mastery tiers</strong> — Each game now has a mastery tier (Novice → Adept → Veteran → Master → Legend) driven by your play time, completions, and ratings. Tiers show up on game cards and the detail overlay with a custom visual treatment.</li>
-                <li><strong>Session milestones</strong> — Mid-session toasts celebrate in-the-moment achievements — first hour, longest session, streak extended, new personal best — without pulling you out of the game.</li>
-                <li><strong>Play streak tracker</strong> — A current-streak counter in the sidebar tracks consecutive days played, with freeze protection, streak history, and a milestone celebration when you extend a long streak.</li>
-              </ul>
+          <!-- Sticky filter toolbar -->
+          <div class="changelog-toolbar" role="search" aria-label="Filter changelog">
+            <div class="changelog-search">
+              <i data-lucide="search" class="icon-sm changelog-search-icon"></i>
+              <input type="search" data-changelog-search placeholder="Search every release…" aria-label="Search the changelog">
+            </div>
+            <div class="filter-pills" role="tablist" aria-label="Filter by change type">
+              <button type="button" class="filter-pill" data-changelog-type="all" aria-pressed="true">All</button>
+              <button type="button" class="filter-pill" data-changelog-type="added" aria-pressed="false">New</button>
+              <button type="button" class="filter-pill" data-changelog-type="changed" aria-pressed="false">Improved</button>
+              <button type="button" class="filter-pill" data-changelog-type="fixed" aria-pressed="false">Fixed</button>
             </div>
           </div>
-        </article>
 
-        <!-- ── v0.2.1 ── -->
-        <article class="changelog-entry" id="v0.2.1">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.2.1</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-04-15">April 15, 2026</time>
-          </div>
+          <!-- Stream of entries -->
+          <div class="changelog-stream mt-4" data-changelog-stream>
 
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Archive and Completed views — track game completions across your entire library, even after uninstalling. The Completed page gets a full Trophy Room redesign with stats, a spotlight hero, and entrance animations.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Archive view</strong> — Browse games that were uninstalled and removed by library sync. Right-click to mark as completed or view details.</li>
-                <li><strong>Completed view (Trophy Room)</strong> — Dedicated page for all completed games with a stats banner (count, total play time, average rating, top genre), a spotlight hero for your most-played completion, and staggered card entrance animations.</li>
-                <li><strong>Completed flag</strong> — New persistent <code>completed</code> field that survives uninstallation. Mark any game as completed and it stays tracked even after removal.</li>
-                <li><strong>Stats click-through</strong> — Games in Library Stats and Wrapped views are now clickable, opening the detail overlay. Uninstalled games show a visual indicator.</li>
-              </ul>
+            <div class="changelog-empty">
+              <i data-lucide="search-x" class="icon-lg" style="color: var(--muted-foreground); margin-bottom: var(--space-3);"></i>
+              <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Archived game detail</strong> — Play button disabled for uninstalled games; status toggle simplified to Completed / Not Completed.</li>
-                <li><strong>Sidebar badges</strong> — Archive and Completed counts shown as badges in the sidebar navigation.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.2.0 ── -->
-        <article class="changelog-entry" id="v0.2.0">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.2.0</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-04-13">April 13, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Google Drive cloud backup — back up your entire Nexus library to Google Drive and restore it on any machine. Automatic scheduled backups with configurable frequency and retention.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Google Drive cloud backup</strong> — Link your Google account from Settings to back up your library database to Google Drive. Supports manual and automatic backups (daily or weekly) with configurable retention (how many backups to keep).</li>
-                <li><strong>Restore from backup</strong> — Browse your cloud backups and restore any previous snapshot. Schema version checks prevent restoring a backup from a newer version of Nexus.</li>
-                <li><strong>OAuth callback page</strong> — After authorizing with Google, the browser now shows a styled confirmation page matching the Nexus dark theme instead of a plain text response.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Settings sidebar</strong> — All accordion sections now start collapsed when opening Settings, giving a cleaner overview.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.21 ── -->
-        <article class="changelog-entry" id="v0.1.21">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.21</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-04-06">April 6, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              HowLongToBeat integration fix and progress tracking improvements — HLTB data fetching works again after their API endpoint changed, and milestone drag-and-drop reordering is now reliable.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>HowLongToBeat integration restored</strong> — Updated the HLTB client to use the current <code>/api/find</code> endpoint with the new three-part authentication scheme (token + fingerprint pair). Auto-fetch, manual search, and refetch all work again.</li>
-                <li><strong>Milestone drag-and-drop</strong> — Replaced the broken native HTML5 drag-and-drop in the progress milestones list with the same @dnd-kit library used by Play Queue and Collections. Reordering now works reliably in WebView2.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>HLTB error messages</strong> — Manual search now shows a clear error message when HLTB is temporarily unavailable instead of silently returning empty results.</li>
-                <li><strong>Milestone drag handle</strong> — Drag-and-drop is now initiated only from the grip handle, so clicking checkboxes and delete buttons no longer accidentally starts a drag.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.20 ── -->
-        <article class="changelog-entry" id="v0.1.20">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.20</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-25">March 25, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Edit game usability and session housekeeping — browse for files directly from the Edit Game modal, and bulk-delete short play sessions that clutter your stats.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>File picker in Edit Game</strong> — Browse buttons next to Executable Path, Custom Cover Art, and Custom Hero Art fields open a native file dialog so you no longer need to paste paths manually.</li>
-                <li><strong>Bulk delete short sessions</strong> — A new tool in Settings lets you find and remove play sessions shorter than a threshold you choose (seconds or minutes). Game stats are automatically recalculated after cleanup.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Empty library "Open Settings" button</strong> — The Settings shortcut on the empty library screen now works correctly instead of doing nothing.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.19 ── -->
-        <article class="changelog-entry" id="v0.1.19">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.19</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-19">March 19, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Smart collection reliability and collection management improvements — smart collections now reactively refresh when game data changes, and you can remove games from collections via the context menu.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Reactive smart collection refresh</strong> — Smart collections now re-fetch from the backend whenever game data changes (status, rating, metadata, etc.), ensuring membership is always up to date instead of relying on frontend-only filtering.</li>
-                <li><strong>Unified collection refresh</strong> — Replaced the separate smart collection refresh with a single <code>refreshCollections</code> function that re-fetches all collections, simplifying the data flow.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Remove from Collection</strong> — Right-click any game in a manual collection to remove it directly from the context menu.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Smart collections in context menu</strong> — Smart collections are now filtered out of the "Add to Collection" context menu picker, since their membership is rule-based and can't be manually edited.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.18 ── -->
-        <article class="changelog-entry" id="v0.1.18">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.18</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-16">March 16, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Hardware branding and UI polish — your CPU and GPU brand logos now appear in the sidebar, GPU detection works on modern Windows without wmic, and the donate link moves to Settings.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">New</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Hardware detection backend</strong> — New <code>get_system_hardware</code> Tauri command detects CPU brand via sysinfo and GPU brand via WMI/PowerShell, with discrete-GPU preference for multi-GPU systems.</li>
-                <li><strong>Hardware branding sidebar</strong> — CPU and GPU brand logos (Intel, AMD, NVIDIA) now display in the sidebar footer. Expanded mode shows logo + model name; collapsed mode shows icon-only with tooltips.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>GPU detection fallback</strong> — When <code>wmic</code> is unavailable (removed in newer Windows builds), GPU detection falls back to PowerShell <code>Get-CimInstance</code> automatically.</li>
-                <li><strong>Support link relocated</strong> — "Support this project" moved from the sidebar to the Settings &gt; About section for a cleaner navigation experience.</li>
-                <li><strong>Game card progress bar</strong> — Completion progress bar is now thicker and more visible with a dark background track.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.17 ── -->
-        <article class="changelog-entry" id="v0.1.17">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.17</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-13">March 13, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Twitch token resilience and website improvements — Twitch API calls now automatically recover from expired tokens with force-refresh and retry, and the website features section has been redesigned with categorised lists.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Twitch 401 auto-recovery</strong> — When a Twitch API call returns 401 (invalid token), Nexus now force-refreshes the access token and retries the request automatically. This covers followed channels, live streams, streams-by-game, and trending games — no more silent failures or stale data after token expiry.</li>
-                <li><strong>Website feature section</strong> — The features section on the landing page has been redesigned with categorised feature lists grouped by Library Management, Tracking &amp; Stats, Organisation, Integrations, and Experience.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Trending games cache fallback</strong> — Deduplicated the trending-games cache fallback logic into a shared helper, fixing inconsistent stale-data handling across error paths.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.16 ── -->
-        <article class="changelog-entry" id="v0.1.16">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.16</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-11">March 11, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Smart Collections and Progress Tracking — build dynamic, auto-updating collections with a visual rules engine, and track your completion progress with milestones and HLTB integration.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Smart Collections</strong> — Create dynamic collections that auto-populate based on rules. Build complex filters with a visual rules builder using AND/OR logic across status, source, genre, rating, play time, tags, and more.</li>
-                <li><strong>Smart Collection Presets</strong> — Quick-start with built-in presets like "Quick Plays", "Forgotten Gems", "Recently Added", "Highly Rated Unplayed", and "Weekend Warriors". Customize them after creation.</li>
-                <li><strong>Game Progress Tracking</strong> — Track completion percentage for any game with a visual progress bar on game cards and the detail overlay. Set progress manually or let it auto-calculate from milestones.</li>
-                <li><strong>Milestones</strong> — Define custom milestones for each game (e.g. "Beat Act 1", "All side quests") and check them off as you go. Progress auto-updates based on milestone completion.</li>
-                <li><strong>HLTB Time Remaining</strong> — See how much time you have left based on your actual play time vs HowLongToBeat estimates, right in the detail overlay.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Smart collection refresh</strong> — Smart collections update automatically whenever your library changes (resync, status update, rating change).</li>
-                <li><strong>Progress bar on cards</strong> — A subtle progress bar appears at the bottom of game cards, colored by status. Toggle it in Library Preferences.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.15 ── -->
-        <article class="changelog-entry" id="v0.1.15">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.15</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-11">March 11, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Game Tags — organize your library with freeform, color-coded tags. Create, assign, filter, and manage tags across your entire collection.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Game Tags</strong> — Create freeform tags (e.g. "couch co-op", "podcast game", "comfort game") and assign them to any game. Tags support custom colors from a 10-color palette.</li>
-                <li><strong>Tag Management</strong> — Full tag CRUD in Settings: create, rename, recolor, and delete tags with game-count awareness.</li>
-                <li><strong>Tag Display</strong> — Colored tag chips in the game detail overlay, color dots on game cards, and a Tags submenu in the right-click context menu for quick tagging.</li>
-                <li><strong>Tag Filtering</strong> — Filter your library by tags from the sidebar with AND/OR logic. Active tag filters appear as removable chips in the filter bar.</li>
-                <li><strong>Tag Search</strong> — Type <code>tag:</code> in the command palette to search and filter by tags instantly.</li>
-                <li><strong>Play Queue</strong> — A new Play Next queue in the sidebar lets you line up games to play. Add from context menu or detail overlay, drag to reorder.</li>
-                <li><strong>Session Notes</strong> — After ending a play session, a prompt lets you jot down notes about your session. Notes are searchable and visible in stats.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.14 ── -->
-        <article class="changelog-entry" id="v0.1.14">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.14</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-10">March 10, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Continue Playing row, personal game notes, and build fixes — pick up where you left off with a new "Continue Playing" section at the top of your library.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Continue Playing</strong> — A new row at the top of your library shows recently played and in-progress games so you can jump back in instantly. Configurable max cards and can be toggled off in Settings.</li>
-                <li><strong>Personal Game Notes</strong> — Add free-form notes to any game from the detail page. Notes are stored locally and searchable.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Manual process match lost on resync</strong> — If you manually identified a game's process via the picker, resyncing your library would overwrite that match. Manually selected executables and process names now persist across library resyncs.</li>
-                <li><strong>TypeScript build errors</strong> — Resolved unused import warnings in test files and a type mismatch in the library source filter.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.13 ── -->
-        <article class="changelog-entry" id="v0.1.13">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.13</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-09">March 9, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Twitch integration reliability — the connection now survives sleep, overnight idle, and network interruptions without requiring manual re-authentication.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Twitch stays connected after sleep</strong> — The app now re-validates your Twitch token and refreshes data immediately when you return from sleep or minimize, instead of waiting for the next polling interval.</li>
-                <li><strong>No more false disconnects</strong> — Expired tokens during network hiccups no longer cascade into clearing your auth, which previously showed the "Connect your Twitch account" prompt even though you were still linked.</li>
-                <li><strong>Faster token refresh</strong> — Token validation now runs every 15 minutes (previously hourly), ensuring tokens are refreshed well before they expire.</li>
-                <li><strong>Smoother Twitch panel loading</strong> — The panel now shows a loading skeleton while checking auth on mount, instead of briefly flashing the connect prompt.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.12 ── -->
-        <article class="changelog-entry" id="v0.1.12">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.12</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-09">March 9, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              HowLongToBeat integration — see how long games take to beat right from the detail page, with auto-fetch, caching, and manual search when the match isn't right.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>HowLongToBeat times</strong> — Games now display HLTB completion estimates (Main Story, Main + Extra, Completionist) on the detail page, fetched automatically and cached locally.</li>
-                <li><strong>Manual HLTB search</strong> — If the auto-match is wrong or missing, use the inline search to find the correct game on HowLongToBeat.</li>
-                <li><strong>"Wrong game?" override</strong> — A button on matched results lets you re-search and pick a different HLTB entry at any time.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.11 ── -->
-        <article class="changelog-entry" id="v0.1.11">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.11</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-09">March 9, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Bug fixes for Wrapped stats, genre charts, and collection loading — making your library data more accurate and reliable.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Wrapped genre chart</strong> — Genre pie chart percentages now display correctly, chart tooltips are visible, and the "unplayed" count in stats is accurate.</li>
-                <li><strong>Collections on startup</strong> — Collections are now loaded from the database on app startup, and hidden games are excluded from sidebar counts.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.10 ── -->
-        <article class="changelog-entry" id="v0.1.10">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.10</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-08">March 8, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Smarter game process detection — when Nexus can't automatically identify a running game,
-              a process picker now lets you select the right executable. Plus a new Wrapped podium visual.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Process Picker</strong> — When Nexus can't detect which process belongs to a launched game, a modal now lists running processes so you can pick the right one. Your choice is remembered for future launches.</li>
-                <li><strong>Auto-Prompt on Grace Period</strong> — If the game process isn't found within the grace period, the process picker opens automatically instead of silently failing.</li>
-                <li><strong>Force Identify Button</strong> — While a game shows "Launching…", a new button lets you manually trigger the process picker without waiting.</li>
-                <li><strong>List Running Processes</strong> — New backend command that enumerates running processes for the picker UI.</li>
-                <li><strong>Wrapped Podium</strong> — The Library Wrapped hero card now shows a top-3 podium visual for your most-played games.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Process picker performance</strong> — Resolved a freeze and slow loading issue when opening the process picker on systems with many running processes.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.9 ── -->
-        <article class="changelog-entry" id="v0.1.9">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.9</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-07">March 7, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Close-to-tray support, system tray integration, a live known-issues viewer,
-              and a fix for the close-confirmation loop.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Close to Tray</strong> — When you close Nexus, a dialog lets you choose between quitting or minimizing to the system tray. Toggle it off in Appearance settings.</li>
-                <li><strong>System Tray</strong> — Nexus now lives in your system tray with Open and Exit options. Double-click the icon to restore the window.</li>
-                <li><strong>Known Issues Dialog</strong> — Check current known issues from the About section in Settings, fetched live so you always see the latest.</li>
-                <li><strong>Discord Link</strong> — Quick link to the Nexus Discord community added to the About section, replacing the old email bug-report link.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Close confirmation loop</strong> — Fixed a bug where the close dialog could reappear endlessly, preventing the app from exiting.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.8 ── -->
-        <article class="changelog-entry" id="v0.1.8">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.8</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-06">March 6, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Session analytics arrive — drill into per-game sessions with pattern charts and histograms,
-              explore your library-wide session distribution, and enjoy a more reliable Twitch connection.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Per-Game Session Analytics</strong> — Expandable session details on the game detail page with three tabs: Sessions list, Patterns (play time by month and day of week, return rate), and Distribution (session length histogram).</li>
-                <li><strong>Library Session Histogram</strong> — See how your sessions break down by length across your whole library, with scope toggle, source filter pills, and summary stats (mean, median, p75, longest).</li>
-                <li><strong>Session Analytics Backend</strong> — New commands powering distribution buckets, per-game breakdowns, monthly/day-of-week aggregations, and gap analysis.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Twitch double-refresh</strong> — Fixed a race condition where rapid token refreshes after 8+ hours offline would clear your Twitch login. A cooldown guard now prevents duplicate refreshes.</li>
-                <li><strong>Session date format</strong> — Session list now shows dates in a cleaner dd MMM yyyy format.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Website launched</strong> — Nexus now has a landing page with hero section, feature grid, screenshot gallery, and video showcases.</li>
-                <li><strong>SEO &amp; metadata</strong> — Full Open Graph, Twitter Cards, and JSON-LD structured data on the website.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.7 ── -->
-        <article class="changelog-entry" id="v0.1.7">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.7</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-05">March 5, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Library Wrapped arrives — a Spotify Wrapped-style experience for your game library
-              with shareable poster cards, fun extras, and smarter session linking under the hood.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Library Wrapped</strong> — A full Spotify Wrapped-style experience for your game library. See your top games, genres, play patterns, milestones, and fun stats across any time period.</li>
-                <li><strong>Wrapped Share Card</strong> — Generate a shareable 1080×1080 poster of your Wrapped stats. Download it or copy it straight to your clipboard.</li>
-                <li><strong>Fun Extras</strong> — Wrapped now includes a mood tagline, hidden gem pick, and trivia about your play year.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Wrapped session linking</strong> — Orphaned sessions are now correctly linked to games using a smarter three-step fallback strategy, so your stats are more accurate.</li>
-                <li><strong>Game detection</strong> — Fixed a missing field in game detection that could cause issues with hidden games.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Genre parsing</strong> — Wrapped handles both JSON array and comma-separated genre formats reliably.</li>
-                <li><strong>Share card images</strong> — Replaced external cover art with letter avatars to prevent image export failures.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.6 ── -->
-        <article class="changelog-entry" id="v0.1.6">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.6</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-05">March 5, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Branding, smarter onboarding, collections from the context menu, persistent play stats,
-              automatic update checks, and a batch of reliability fixes.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Branding</strong> — We have a logo and primary color!</li>
-                <li><strong>Onboarding</strong> — Choose which games to import with a checkbox list; deselected games are hidden and won't reappear on resync.</li>
-                <li><strong>Collections</strong> — Right-click any game to add it to a collection or create a new one directly from the context menu.</li>
-                <li><strong>Stats persistence</strong> — Play sessions now survive a full library reset and relink automatically after rescans.</li>
-                <li><strong>Version check</strong> — Nexus checks for updates on launch and once per hour, showing a toast when a new version is available.</li>
-                <li><strong>Twitch</strong> — OAuth tokens are validated hourly per Twitch policy, keeping your session alive automatically.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Collections</strong> — Game-to-collection assignments now save correctly to the backend.</li>
-                <li><strong>Context menu</strong> — Menu stays within window bounds and flips submenus when near the screen edge.</li>
-                <li><strong>Stats</strong> — Cover art and click-through navigation resolve correctly after a library re-import.</li>
-                <li><strong>Twitch</strong> — Network timeouts and server errors no longer force a full re-auth; only invalid tokens are cleared.</li>
-                <li><strong>Metadata</strong> — Game titles with ™, ®, or © symbols now match correctly in IGDB and SteamGridDB lookups.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-
-        <!-- ── v0.1.5 ── -->
-        <article class="changelog-entry" id="v0.1.5">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.1.5</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-03-04">March 4, 2026</time>
-          </div>
-
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">
-              Twitch integration lands in Nexus — live streams, followed channels, trending games, and go-live
-              notifications woven throughout the app. Plus a settings redesign and key bug fixes.
-            </p>
-
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li>
-                  <strong>Twitch Integration</strong> — Nexus now connects to Twitch. Link your account and get live stream info woven throughout the app:
-                  <ul class="changelog-sublist">
-                    <li><strong>Sidebar nav</strong> — Twitch has its own spot in the sidebar with a live count badge that pulses when streams are active.</li>
-                    <li><strong>Followed streams panel</strong> — Full live and offline view of everyone you follow, with stream uptime and a connect prompt if you haven't linked yet.</li>
-                    <li><strong>Live badge on game cards</strong> — Games with active streams show a pulsing badge. Click to jump to the streamer or Twitch panel.</li>
-                    <li><strong>Live on Twitch in game detail</strong> — See who's streaming a game right from its detail page, with followed streamers sorted to the top.</li>
-                    <li><strong>Trending in Your Library</strong> — See which games you own are trending on Twitch right now, with a dedicated section and horizontal scroll.</li>
-                    <li><strong>Go-live toast notifications</strong> — Get notified when followed streamers go live. Favourites-only mode available in Settings.</li>
-                    <li><strong>Streamer favourites &amp; pinning</strong> — Star your favourite streamers to pin them to the top of the Live Now list. Up to 20 favourites.</li>
-                    <li><strong>Offline resilience</strong> — Twitch panel and badges fall back to cached data when you're offline so you still see recent state.</li>
+            <!-- ── v0.3.0 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.0">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.0</h2>
+                <time class="changelog-entry-date" datetime="2026-04-16">April 16, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A major release focused on progression and motivation. Nexus now tracks your play streak, rewards milestones mid-session, gives every game a mastery tier, unlocks achievements as you play, levels up your profile with XP, and celebrates the games you retire with a full ceremony and shareable certificate.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="party-popper" class="icon-sm"></i>Retirement ceremony</li>
+                  <li><i data-lucide="zap" class="icon-sm"></i>XP &amp; level system</li>
+                  <li><i data-lucide="trophy" class="icon-sm"></i>Native achievements</li>
+                  <li><i data-lucide="medal" class="icon-sm"></i>Game mastery tiers</li>
+                  <li><i data-lucide="bell" class="icon-sm"></i>Session milestones</li>
+                  <li><i data-lucide="flame" class="icon-sm"></i>Daily play streak</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Game retirement ceremony</strong> — When you mark a game as completed or dropped, Nexus plays a cinematic retirement ceremony with a hero card, play stats, and a final send-off. Generate a shareable certificate image for any retired game from its detail view.</li>
+                    <li><strong>XP and level system</strong> — Every play session, completion, and achievement earns XP. Watch your launcher-wide level climb with a progress bar in the sidebar and a dedicated profile view showing your tier, total XP, and recent level-ups.</li>
+                    <li><strong>Achievement system</strong> — Dozens of Nexus-native achievements unlock as you play, spanning play time, streaks, library curation, backlog conquests, and ceremony milestones. Track progress and unlock history from the new Achievements page.</li>
+                    <li><strong>Game mastery tiers</strong> — Each game now has a mastery tier (Novice → Adept → Veteran → Master → Legend) driven by your play time, completions, and ratings. Tiers show up on game cards and the detail overlay with a custom visual treatment.</li>
+                    <li><strong>Session milestones</strong> — Mid-session toasts celebrate in-the-moment achievements — first hour, longest session, streak extended, new personal best — without pulling you out of the game.</li>
+                    <li><strong>Play streak tracker</strong> — A current-streak counter in the sidebar tracks consecutive days played, with freeze protection, streak history, and a milestone celebration when you extend a long streak.</li>
                   </ul>
-                </li>
-                <li><strong>Update Artwork button</strong> — Dedicated button on game detail to search and update artwork, with auto-search on first open.</li>
-              </ul>
-            </div>
+                </div>
+              </div>
+            </article>
 
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--fixed">Fixed</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Session not ending on new launch</strong> — Play time is now properly saved when you launch a new game while another is running.</li>
-                <li><strong>Onboarding links</strong> — API key setup steps now have clickable links to SteamGridDB and IGDB so you can grab keys without leaving the app.</li>
-              </ul>
-            </div>
+            <!-- ── v0.2.1 ── -->
+            <article class="changelog-entry" id="v0.2.1">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.2.1</h2>
+                <time class="changelog-entry-date" datetime="2026-04-15">April 15, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Archive and Completed views — track game completions across your entire library, even after uninstalling. The Completed page gets a full Trophy Room redesign with stats, a spotlight hero, and entrance animations.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Archive view</strong> — Browse games that were uninstalled and removed by library sync. Right-click to mark as completed or view details.</li>
+                    <li><strong>Completed view (Trophy Room)</strong> — Dedicated page for all completed games with a stats banner (count, total play time, average rating, top genre), a spotlight hero for your most-played completion, and staggered card entrance animations.</li>
+                    <li><strong>Completed flag</strong> — New persistent <code>completed</code> field that survives uninstallation. Mark any game as completed and it stays tracked even after removal.</li>
+                    <li><strong>Stats click-through</strong> — Games in Library Stats and Wrapped views are now clickable, opening the detail overlay. Uninstalled games show a visual indicator.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Archived game detail</strong> — Play button disabled for uninstalled games; status toggle simplified to Completed / Not Completed.</li>
+                    <li><strong>Sidebar badges</strong> — Archive and Completed counts shown as badges in the sidebar navigation.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
 
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--changed">Improved</span>
-              </h3>
-              <ul class="changelog-list">
-                <li><strong>Settings redesigned</strong> — Settings are now grouped into an accordion (Library, Appearance, Integrations, Data &amp; Health) for easier navigation.</li>
-              </ul>
-            </div>
-          </div>
-        </article>
+            <!-- ── v0.2.0 ── -->
+            <article class="changelog-entry" id="v0.2.0">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.2.0</h2>
+                <time class="changelog-entry-date" datetime="2026-04-13">April 13, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Google Drive cloud backup — back up your entire Nexus library to Google Drive and restore it on any machine. Automatic scheduled backups with configurable frequency and retention.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Google Drive cloud backup</strong> — Link your Google account from Settings to back up your library database to Google Drive. Supports manual and automatic backups (daily or weekly) with configurable retention (how many backups to keep).</li>
+                    <li><strong>Restore from backup</strong> — Browse your cloud backups and restore any previous snapshot. Schema version checks prevent restoring a backup from a newer version of Nexus.</li>
+                    <li><strong>OAuth callback page</strong> — After authorizing with Google, the browser now shows a styled confirmation page matching the Nexus dark theme instead of a plain text response.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Settings sidebar</strong> — All accordion sections now start collapsed when opening Settings, giving a cleaner overview.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
 
-        <!-- ── Template for older versions (copy this block) ── -->
-        <!--
-        <article class="changelog-entry" id="v0.0.1">
-          <div class="changelog-entry-header">
-            <div class="d-flex flex-wrap align-items-center gap-3">
-              <h2 class="type-title1 mb-0">v0.0.1</h2>
-            </div>
-            <time class="type-footnote text-muted-foreground" datetime="2026-01-01">January 1, 2026</time>
+            <!-- ── v0.1.21 ── -->
+            <article class="changelog-entry" id="v0.1.21">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.21</h2>
+                <time class="changelog-entry-date" datetime="2026-04-06">April 6, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  HowLongToBeat integration fix and progress tracking improvements — HLTB data fetching works again after their API endpoint changed, and milestone drag-and-drop reordering is now reliable.
+                </p>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HowLongToBeat integration restored</strong> — Updated the HLTB client to use the current <code>/api/find</code> endpoint with the new three-part authentication scheme (token + fingerprint pair). Auto-fetch, manual search, and refetch all work again.</li>
+                    <li><strong>Milestone drag-and-drop</strong> — Replaced the broken native HTML5 drag-and-drop in the progress milestones list with the same @dnd-kit library used by Play Queue and Collections. Reordering now works reliably in WebView2.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HLTB error messages</strong> — Manual search now shows a clear error message when HLTB is temporarily unavailable instead of silently returning empty results.</li>
+                    <li><strong>Milestone drag handle</strong> — Drag-and-drop is now initiated only from the grip handle, so clicking checkboxes and delete buttons no longer accidentally starts a drag.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.20 ── -->
+            <article class="changelog-entry" id="v0.1.20">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.20</h2>
+                <time class="changelog-entry-date" datetime="2026-03-25">March 25, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Edit game usability and session housekeeping — browse for files directly from the Edit Game modal, and bulk-delete short play sessions that clutter your stats.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>File picker in Edit Game</strong> — Browse buttons next to Executable Path, Custom Cover Art, and Custom Hero Art fields open a native file dialog so you no longer need to paste paths manually.</li>
+                    <li><strong>Bulk delete short sessions</strong> — A new tool in Settings lets you find and remove play sessions shorter than a threshold you choose (seconds or minutes). Game stats are automatically recalculated after cleanup.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Empty library "Open Settings" button</strong> — The Settings shortcut on the empty library screen now works correctly instead of doing nothing.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.19 ── -->
+            <article class="changelog-entry" id="v0.1.19">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.19</h2>
+                <time class="changelog-entry-date" datetime="2026-03-19">March 19, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Smart collection reliability and collection management improvements — smart collections now reactively refresh when game data changes, and you can remove games from collections via the context menu.
+                </p>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Reactive smart collection refresh</strong> — Smart collections now re-fetch from the backend whenever game data changes (status, rating, metadata, etc.), ensuring membership is always up to date instead of relying on frontend-only filtering.</li>
+                    <li><strong>Unified collection refresh</strong> — Replaced the separate smart collection refresh with a single <code>refreshCollections</code> function that re-fetches all collections, simplifying the data flow.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Remove from Collection</strong> — Right-click any game in a manual collection to remove it directly from the context menu.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Smart collections in context menu</strong> — Smart collections are now filtered out of the "Add to Collection" context menu picker, since their membership is rule-based and can't be manually edited.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.18 ── -->
+            <article class="changelog-entry" id="v0.1.18">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.18</h2>
+                <time class="changelog-entry-date" datetime="2026-03-16">March 16, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Hardware branding and UI polish — your CPU and GPU brand logos now appear in the sidebar, GPU detection works on modern Windows without wmic, and the donate link moves to Settings.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Hardware detection backend</strong> — New <code>get_system_hardware</code> Tauri command detects CPU brand via sysinfo and GPU brand via WMI/PowerShell, with discrete-GPU preference for multi-GPU systems.</li>
+                    <li><strong>Hardware branding sidebar</strong> — CPU and GPU brand logos (Intel, AMD, NVIDIA) now display in the sidebar footer. Expanded mode shows logo + model name; collapsed mode shows icon-only with tooltips.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>GPU detection fallback</strong> — When <code>wmic</code> is unavailable (removed in newer Windows builds), GPU detection falls back to PowerShell <code>Get-CimInstance</code> automatically.</li>
+                    <li><strong>Support link relocated</strong> — "Support this project" moved from the sidebar to the Settings &gt; About section for a cleaner navigation experience.</li>
+                    <li><strong>Game card progress bar</strong> — Completion progress bar is now thicker and more visible with a dark background track.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.17 ── -->
+            <article class="changelog-entry" id="v0.1.17">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.17</h2>
+                <time class="changelog-entry-date" datetime="2026-03-13">March 13, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Twitch token resilience and website improvements — Twitch API calls now automatically recover from expired tokens with force-refresh and retry, and the website features section has been redesigned with categorised lists.
+                </p>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch 401 auto-recovery</strong> — When a Twitch API call returns 401 (invalid token), Nexus now force-refreshes the access token and retries the request automatically. This covers followed channels, live streams, streams-by-game, and trending games — no more silent failures or stale data after token expiry.</li>
+                    <li><strong>Website feature section</strong> — The features section on the landing page has been redesigned with categorised feature lists grouped by Library Management, Tracking &amp; Stats, Organisation, Integrations, and Experience.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Trending games cache fallback</strong> — Deduplicated the trending-games cache fallback logic into a shared helper, fixing inconsistent stale-data handling across error paths.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.16 ── -->
+            <article class="changelog-entry" id="v0.1.16">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.16</h2>
+                <time class="changelog-entry-date" datetime="2026-03-11">March 11, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Smart Collections and Progress Tracking — build dynamic, auto-updating collections with a visual rules engine, and track your completion progress with milestones and HLTB integration.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Smart Collections</strong> — Create dynamic collections that auto-populate based on rules. Build complex filters with a visual rules builder using AND/OR logic across status, source, genre, rating, play time, tags, and more.</li>
+                    <li><strong>Smart Collection Presets</strong> — Quick-start with built-in presets like "Quick Plays", "Forgotten Gems", "Recently Added", "Highly Rated Unplayed", and "Weekend Warriors". Customize them after creation.</li>
+                    <li><strong>Game Progress Tracking</strong> — Track completion percentage for any game with a visual progress bar on game cards and the detail overlay. Set progress manually or let it auto-calculate from milestones.</li>
+                    <li><strong>Milestones</strong> — Define custom milestones for each game (e.g. "Beat Act 1", "All side quests") and check them off as you go. Progress auto-updates based on milestone completion.</li>
+                    <li><strong>HLTB Time Remaining</strong> — See how much time you have left based on your actual play time vs HowLongToBeat estimates, right in the detail overlay.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Smart collection refresh</strong> — Smart collections update automatically whenever your library changes (resync, status update, rating change).</li>
+                    <li><strong>Progress bar on cards</strong> — A subtle progress bar appears at the bottom of game cards, colored by status. Toggle it in Library Preferences.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.15 ── -->
+            <article class="changelog-entry" id="v0.1.15">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.15</h2>
+                <time class="changelog-entry-date" datetime="2026-03-11">March 11, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Game Tags — organize your library with freeform, color-coded tags. Create, assign, filter, and manage tags across your entire collection.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Game Tags</strong> — Create freeform tags (e.g. "couch co-op", "podcast game", "comfort game") and assign them to any game. Tags support custom colors from a 10-color palette.</li>
+                    <li><strong>Tag Management</strong> — Full tag CRUD in Settings: create, rename, recolor, and delete tags with game-count awareness.</li>
+                    <li><strong>Tag Display</strong> — Colored tag chips in the game detail overlay, color dots on game cards, and a Tags submenu in the right-click context menu for quick tagging.</li>
+                    <li><strong>Tag Filtering</strong> — Filter your library by tags from the sidebar with AND/OR logic. Active tag filters appear as removable chips in the filter bar.</li>
+                    <li><strong>Tag Search</strong> — Type <code>tag:</code> in the command palette to search and filter by tags instantly.</li>
+                    <li><strong>Play Queue</strong> — A new Play Next queue in the sidebar lets you line up games to play. Add from context menu or detail overlay, drag to reorder.</li>
+                    <li><strong>Session Notes</strong> — After ending a play session, a prompt lets you jot down notes about your session. Notes are searchable and visible in stats.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.14 ── -->
+            <article class="changelog-entry" id="v0.1.14">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.14</h2>
+                <time class="changelog-entry-date" datetime="2026-03-10">March 10, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Continue Playing row, personal game notes, and build fixes — pick up where you left off with a new "Continue Playing" section at the top of your library.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Continue Playing</strong> — A new row at the top of your library shows recently played and in-progress games so you can jump back in instantly. Configurable max cards and can be toggled off in Settings.</li>
+                    <li><strong>Personal Game Notes</strong> — Add free-form notes to any game from the detail page. Notes are stored locally and searchable.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Manual process match lost on resync</strong> — If you manually identified a game's process via the picker, resyncing your library would overwrite that match. Manually selected executables and process names now persist across library resyncs.</li>
+                    <li><strong>TypeScript build errors</strong> — Resolved unused import warnings in test files and a type mismatch in the library source filter.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.13 ── -->
+            <article class="changelog-entry" id="v0.1.13">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.13</h2>
+                <time class="changelog-entry-date" datetime="2026-03-09">March 9, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Twitch integration reliability — the connection now survives sleep, overnight idle, and network interruptions without requiring manual re-authentication.
+                </p>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch stays connected after sleep</strong> — The app now re-validates your Twitch token and refreshes data immediately when you return from sleep or minimize, instead of waiting for the next polling interval.</li>
+                    <li><strong>No more false disconnects</strong> — Expired tokens during network hiccups no longer cascade into clearing your auth, which previously showed the "Connect your Twitch account" prompt even though you were still linked.</li>
+                    <li><strong>Faster token refresh</strong> — Token validation now runs every 15 minutes (previously hourly), ensuring tokens are refreshed well before they expire.</li>
+                    <li><strong>Smoother Twitch panel loading</strong> — The panel now shows a loading skeleton while checking auth on mount, instead of briefly flashing the connect prompt.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.12 ── -->
+            <article class="changelog-entry" id="v0.1.12">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.12</h2>
+                <time class="changelog-entry-date" datetime="2026-03-09">March 9, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  HowLongToBeat integration — see how long games take to beat right from the detail page, with auto-fetch, caching, and manual search when the match isn't right.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HowLongToBeat times</strong> — Games now display HLTB completion estimates (Main Story, Main + Extra, Completionist) on the detail page, fetched automatically and cached locally.</li>
+                    <li><strong>Manual HLTB search</strong> — If the auto-match is wrong or missing, use the inline search to find the correct game on HowLongToBeat.</li>
+                    <li><strong>"Wrong game?" override</strong> — A button on matched results lets you re-search and pick a different HLTB entry at any time.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.11 ── -->
+            <article class="changelog-entry" id="v0.1.11">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.11</h2>
+                <time class="changelog-entry-date" datetime="2026-03-09">March 9, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Bug fixes for Wrapped stats, genre charts, and collection loading — making your library data more accurate and reliable.
+                </p>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Wrapped genre chart</strong> — Genre pie chart percentages now display correctly, chart tooltips are visible, and the "unplayed" count in stats is accurate.</li>
+                    <li><strong>Collections on startup</strong> — Collections are now loaded from the database on app startup, and hidden games are excluded from sidebar counts.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.10 ── -->
+            <article class="changelog-entry" id="v0.1.10">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.10</h2>
+                <time class="changelog-entry-date" datetime="2026-03-08">March 8, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Smarter game process detection — when Nexus can't automatically identify a running game, a process picker now lets you select the right executable. Plus a new Wrapped podium visual.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Process Picker</strong> — When Nexus can't detect which process belongs to a launched game, a modal now lists running processes so you can pick the right one. Your choice is remembered for future launches.</li>
+                    <li><strong>Auto-Prompt on Grace Period</strong> — If the game process isn't found within the grace period, the process picker opens automatically instead of silently failing.</li>
+                    <li><strong>Force Identify Button</strong> — While a game shows "Launching…", a new button lets you manually trigger the process picker without waiting.</li>
+                    <li><strong>List Running Processes</strong> — New backend command that enumerates running processes for the picker UI.</li>
+                    <li><strong>Wrapped Podium</strong> — The Library Wrapped hero card now shows a top-3 podium visual for your most-played games.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Process picker performance</strong> — Resolved a freeze and slow loading issue when opening the process picker on systems with many running processes.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.9 ── -->
+            <article class="changelog-entry" id="v0.1.9">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.9</h2>
+                <time class="changelog-entry-date" datetime="2026-03-07">March 7, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Close-to-tray support, system tray integration, a live known-issues viewer, and a fix for the close-confirmation loop.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Close to Tray</strong> — When you close Nexus, a dialog lets you choose between quitting or minimizing to the system tray. Toggle it off in Appearance settings.</li>
+                    <li><strong>System Tray</strong> — Nexus now lives in your system tray with Open and Exit options. Double-click the icon to restore the window.</li>
+                    <li><strong>Known Issues Dialog</strong> — Check current known issues from the About section in Settings, fetched live so you always see the latest.</li>
+                    <li><strong>Discord Link</strong> — Quick link to the Nexus Discord community added to the About section, replacing the old email bug-report link.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Close confirmation loop</strong> — Fixed a bug where the close dialog could reappear endlessly, preventing the app from exiting.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.8 ── -->
+            <article class="changelog-entry" id="v0.1.8">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.8</h2>
+                <time class="changelog-entry-date" datetime="2026-03-06">March 6, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Session analytics arrive — drill into per-game sessions with pattern charts and histograms, explore your library-wide session distribution, and enjoy a more reliable Twitch connection.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Per-Game Session Analytics</strong> — Expandable session details on the game detail page with three tabs: Sessions list, Patterns (play time by month and day of week, return rate), and Distribution (session length histogram).</li>
+                    <li><strong>Library Session Histogram</strong> — See how your sessions break down by length across your whole library, with scope toggle, source filter pills, and summary stats (mean, median, p75, longest).</li>
+                    <li><strong>Session Analytics Backend</strong> — New commands powering distribution buckets, per-game breakdowns, monthly/day-of-week aggregations, and gap analysis.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch double-refresh</strong> — Fixed a race condition where rapid token refreshes after 8+ hours offline would clear your Twitch login. A cooldown guard now prevents duplicate refreshes.</li>
+                    <li><strong>Session date format</strong> — Session list now shows dates in a cleaner dd MMM yyyy format.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Website launched</strong> — Nexus now has a landing page with hero section, feature grid, screenshot gallery, and video showcases.</li>
+                    <li><strong>SEO &amp; metadata</strong> — Full Open Graph, Twitter Cards, and JSON-LD structured data on the website.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.7 ── -->
+            <article class="changelog-entry" id="v0.1.7">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.7</h2>
+                <time class="changelog-entry-date" datetime="2026-03-05">March 5, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Library Wrapped arrives — a Spotify Wrapped-style experience for your game library with shareable poster cards, fun extras, and smarter session linking under the hood.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Library Wrapped</strong> — A full Spotify Wrapped-style experience for your game library. See your top games, genres, play patterns, milestones, and fun stats across any time period.</li>
+                    <li><strong>Wrapped Share Card</strong> — Generate a shareable 1080×1080 poster of your Wrapped stats. Download it or copy it straight to your clipboard.</li>
+                    <li><strong>Fun Extras</strong> — Wrapped now includes a mood tagline, hidden gem pick, and trivia about your play year.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Wrapped session linking</strong> — Orphaned sessions are now correctly linked to games using a smarter three-step fallback strategy, so your stats are more accurate.</li>
+                    <li><strong>Game detection</strong> — Fixed a missing field in game detection that could cause issues with hidden games.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Genre parsing</strong> — Wrapped handles both JSON array and comma-separated genre formats reliably.</li>
+                    <li><strong>Share card images</strong> — Replaced external cover art with letter avatars to prevent image export failures.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.6 ── -->
+            <article class="changelog-entry" id="v0.1.6">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.6</h2>
+                <time class="changelog-entry-date" datetime="2026-03-05">March 5, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Branding, smarter onboarding, collections from the context menu, persistent play stats, automatic update checks, and a batch of reliability fixes.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Branding</strong> — We have a logo and primary color!</li>
+                    <li><strong>Onboarding</strong> — Choose which games to import with a checkbox list; deselected games are hidden and won't reappear on resync.</li>
+                    <li><strong>Collections</strong> — Right-click any game to add it to a collection or create a new one directly from the context menu.</li>
+                    <li><strong>Stats persistence</strong> — Play sessions now survive a full library reset and relink automatically after rescans.</li>
+                    <li><strong>Version check</strong> — Nexus checks for updates on launch and once per hour, showing a toast when a new version is available.</li>
+                    <li><strong>Twitch</strong> — OAuth tokens are validated hourly per Twitch policy, keeping your session alive automatically.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Collections</strong> — Game-to-collection assignments now save correctly to the backend.</li>
+                    <li><strong>Context menu</strong> — Menu stays within window bounds and flips submenus when near the screen edge.</li>
+                    <li><strong>Stats</strong> — Cover art and click-through navigation resolve correctly after a library re-import.</li>
+                    <li><strong>Twitch</strong> — Network timeouts and server errors no longer force a full re-auth; only invalid tokens are cleared.</li>
+                    <li><strong>Metadata</strong> — Game titles with ™, ®, or © symbols now match correctly in IGDB and SteamGridDB lookups.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.1.5 ── -->
+            <article class="changelog-entry" id="v0.1.5">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.1.5</h2>
+                <time class="changelog-entry-date" datetime="2026-03-04">March 4, 2026</time>
+              </div>
+              <div class="changelog-entry-body">
+                <p>
+                  Twitch integration lands in Nexus — live streams, followed channels, trending games, and go-live notifications woven throughout the app. Plus a settings redesign and key bug fixes.
+                </p>
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li>
+                      <strong>Twitch Integration</strong> — Nexus now connects to Twitch. Link your account and get live stream info woven throughout the app:
+                      <ul class="changelog-sublist">
+                        <li><strong>Sidebar nav</strong> — Twitch has its own spot in the sidebar with a live count badge that pulses when streams are active.</li>
+                        <li><strong>Followed streams panel</strong> — Full live and offline view of everyone you follow, with stream uptime and a connect prompt if you haven't linked yet.</li>
+                        <li><strong>Live badge on game cards</strong> — Games with active streams show a pulsing badge. Click to jump to the streamer or Twitch panel.</li>
+                        <li><strong>Live on Twitch in game detail</strong> — See who's streaming a game right from its detail page, with followed streamers sorted to the top.</li>
+                        <li><strong>Trending in Your Library</strong> — See which games you own are trending on Twitch right now, with a dedicated section and horizontal scroll.</li>
+                        <li><strong>Go-live toast notifications</strong> — Get notified when followed streamers go live. Favourites-only mode available in Settings.</li>
+                        <li><strong>Streamer favourites &amp; pinning</strong> — Star your favourite streamers to pin them to the top of the Live Now list. Up to 20 favourites.</li>
+                        <li><strong>Offline resilience</strong> — Twitch panel and badges fall back to cached data when you're offline so you still see recent state.</li>
+                      </ul>
+                    </li>
+                    <li><strong>Update Artwork button</strong> — Dedicated button on game detail to search and update artwork, with auto-search on first open.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Session not ending on new launch</strong> — Play time is now properly saved when you launch a new game while another is running.</li>
+                    <li><strong>Onboarding links</strong> — API key setup steps now have clickable links to SteamGridDB and IGDB so you can grab keys without leaving the app.</li>
+                  </ul>
+                </div>
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Settings redesigned</strong> — Settings are now grouped into an accordion (Library, Appearance, Integrations, Data &amp; Health) for easier navigation.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
           </div>
-          <div class="changelog-entry-body">
-            <p class="type-body text-muted-foreground">Release summary here.</p>
-            <div class="changelog-category">
-              <h3 class="changelog-category-title">
-                <span class="changelog-badge changelog-badge--added">Added</span>
-              </h3>
-              <ul class="changelog-list">
-                <li>Item</li>
-              </ul>
-            </div>
-          </div>
-        </article>
-        -->
+        </div>
 
       </div>
     </div>
@@ -927,20 +822,24 @@
   <!-- ════════════════════════════════════════════════ -->
   <footer class="footer-nexus">
     <div class="container">
-      <div class="row align-items-center gy-3">
+      <div class="row align-items-center gy-4">
         <div class="col-md-6">
-          <span class="type-footnote text-muted-foreground">
-            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          <div class="d-flex align-items-center flex-wrap gap-3">
+            <span class="type-footnote text-muted-foreground">
+              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
+            </span>
+          </div>
+          <span class="footer-built mt-3 d-inline-flex">
+            <span class="dot" aria-hidden="true"></span>
+            Made with Rust + Tauri
           </span>
         </div>
         <div class="col-md-6 text-md-end">
-          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Support this project">
+          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Support this project">
             <i data-lucide="heart" class="icon-md icon-footer"></i>
             Support
           </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Join the community on Discord">
+          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Join the community on Discord">
             <i data-lucide="message-circle" class="icon-md icon-footer"></i>
             Discord
           </a>
@@ -965,10 +864,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      lucide.createIcons();
-    });
-  </script>
+  <!-- Nexus interactions -->
+  <script src="assets/js/app.js?v=20260423" defer></script>
 </body>
 </html>

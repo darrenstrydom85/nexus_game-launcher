@@ -9,8 +9,8 @@
   <title>Terms of Service — Nexus | Unified PC Game Launcher</title>
   <link rel="icon" type="image/png" href="assets/img/nexus-logo-32.png" sizes="32x32">
   <link rel="canonical" href="https://www.nexusgamelauncher.com/terms.html">
-  <meta name="description" content="Terms of Service for Nexus, the unified PC game launcher. Understand the terms under which Nexus is provided as free software.">
-  <meta name="keywords" content="Nexus terms of service, game launcher terms, software license, free software terms">
+  <meta name="description" content="Terms of Service for Nexus, the unified PC game launcher. Free for personal, non-commercial use.">
+  <meta name="keywords" content="Nexus terms of service, game launcher terms, software license, free software">
   <meta name="author" content="Darren Strydom">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#7600da">
@@ -19,7 +19,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nexus">
   <meta property="og:title" content="Terms of Service — Nexus">
-  <meta property="og:description" content="Terms of Service for Nexus. Understand the terms under which Nexus is provided as free software.">
+  <meta property="og:description" content="Terms of Service for Nexus. Free for personal, non-commercial use.">
   <meta property="og:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
   <meta property="og:image:width" content="1920">
   <meta property="og:image:height" content="1080">
@@ -30,7 +30,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Terms of Service — Nexus">
-  <meta name="twitter:description" content="Terms of Service for Nexus. Understand the terms under which Nexus is provided as free software.">
+  <meta name="twitter:description" content="Terms of Service for Nexus. Free for personal, non-commercial use.">
   <meta name="twitter:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
   <meta name="twitter:image:alt" content="Nexus game launcher showing a unified library with titles from Steam, Epic, and local sources">
 
@@ -40,18 +40,8 @@
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Nexus",
-        "item": "https://www.nexusgamelauncher.com/"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Terms of Service",
-        "item": "https://www.nexusgamelauncher.com/terms.html"
-      }
+      { "@type": "ListItem", "position": 1, "name": "Nexus", "item": "https://www.nexusgamelauncher.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Terms of Service", "item": "https://www.nexusgamelauncher.com/terms.html" }
     ]
   }
   </script>
@@ -73,13 +63,16 @@
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
 
-  <!-- Nexus Obsidian theme -->
-  <link href="assets/css/style.css?v=20260312" rel="stylesheet">
+  <!-- Nexus Obsidian theme v2 -->
+  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 </head>
 <body>
+
+  <!-- Scroll progress bar -->
+  <div class="scroll-progress" aria-hidden="true"></div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- NAVBAR                                          -->
@@ -91,6 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.0 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,8 +93,9 @@
       <div class="collapse navbar-collapse" id="navMain">
         <ul class="navbar-nav ms-auto align-items-center gap-1">
           <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#screenshots">Screenshots</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#download">Download</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#showcase">Showcase</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#tech">Tech</a></li>
+          <li class="nav-item"><a class="nav-link" href="changelog.html">Changelog</a></li>
           <li class="nav-item">
             <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
           </li>
@@ -116,42 +111,127 @@
   </nav>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- PAGE HEADER                                     -->
+  <!-- CINEMATIC HEADER + PRINCIPLE CARDS              -->
   <!-- ════════════════════════════════════════════════ -->
-  <header class="legal-header">
+  <header class="legal-hero">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-mesh"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-fade"></div>
+    </div>
+
     <div class="container">
-      <p class="section-label">Legal</p>
-      <h1 class="type-display">Terms of Service</h1>
-      <p class="type-body text-muted-foreground legal-header-subtitle">
-        Last updated: April 13, 2026
+      <p class="type-eyebrow">Legal</p>
+      <h1 class="type-display">Terms in plain English.</h1>
+      <p class="type-body-lg text-muted-foreground" style="max-width: 620px; margin-top: var(--space-4);">
+        Nexus is free software for personal use. Use it as much as you like —
+        these are the ground rules.
       </p>
+
+      <div class="legal-hero-meta">
+        <span class="legal-meta-pill">
+          <i data-lucide="calendar" class="icon-xs"></i>
+          Last updated · April 13, 2026
+        </span>
+        <span class="legal-meta-pill">
+          <i data-lucide="book-open" class="icon-xs"></i>
+          Read time · 5 min
+        </span>
+        <span class="legal-meta-pill">
+          <i data-lucide="map-pin" class="icon-xs"></i>
+          Governing law · South Africa
+        </span>
+      </div>
+
+      <div class="principles">
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="gift" class="icon-md"></i></span>
+          <p class="principle-title">Free, forever</p>
+          <p class="principle-desc">No license fees, subscriptions, or pay-walled features.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="user-check" class="icon-md"></i></span>
+          <p class="principle-title">Personal use</p>
+          <p class="principle-desc">For individuals — not for resale or commercial redistribution.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="alert-triangle" class="icon-md"></i></span>
+          <p class="principle-title">As-is software</p>
+          <p class="principle-desc">No warranties. We do our best, but use at your own risk.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="link-2" class="icon-md"></i></span>
+          <p class="principle-title">Third parties apply</p>
+          <p class="principle-desc">Steam, Epic, Twitch, Google — their terms still apply through Nexus.</p>
+        </div>
+      </div>
     </div>
   </header>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- CONTENT                                         -->
+  <!-- TOC + CONTENT                                   -->
   <!-- ════════════════════════════════════════════════ -->
-  <main class="legal-main">
-    <div class="container">
+  <div class="container">
+    <div class="legal-layout">
+
+      <!-- Sticky table of contents -->
+      <aside class="legal-toc" data-scrollspy=".legal-section" aria-label="On this page">
+        <div class="legal-toc-label">On this page</div>
+        <ol>
+          <li><a href="#acceptance"><span class="legal-toc-num">01</span><span>Acceptance of terms</span></a></li>
+          <li><a href="#service"><span class="legal-toc-num">02</span><span>Description of service</span></a></li>
+          <li><a href="#license"><span class="legal-toc-num">03</span><span>License</span></a></li>
+          <li><a href="#third-parties"><span class="legal-toc-num">04</span><span>Third-party services</span></a></li>
+          <li><a href="#api-keys"><span class="legal-toc-num">05</span><span>API keys</span></a></li>
+          <li><a href="#user-data"><span class="legal-toc-num">06</span><span>User data</span></a></li>
+          <li><a href="#warranty"><span class="legal-toc-num">07</span><span>Disclaimer of warranties</span></a></li>
+          <li><a href="#liability"><span class="legal-toc-num">08</span><span>Limitation of liability</span></a></li>
+          <li><a href="#ownership"><span class="legal-toc-num">09</span><span>Game ownership</span></a></li>
+          <li><a href="#updates"><span class="legal-toc-num">10</span><span>Updates</span></a></li>
+          <li><a href="#termination"><span class="legal-toc-num">11</span><span>Termination</span></a></li>
+          <li><a href="#changes"><span class="legal-toc-num">12</span><span>Changes to terms</span></a></li>
+          <li><a href="#law"><span class="legal-toc-num">13</span><span>Governing law</span></a></li>
+          <li><a href="#contact"><span class="legal-toc-num">14</span><span>Contact</span></a></li>
+        </ol>
+      </aside>
+
+      <!-- Content -->
       <article class="legal-content">
 
-        <section class="legal-section">
-          <h2 class="type-title1">1. Acceptance of Terms</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="acceptance">
+          <span class="legal-section-num">01 / Acceptance</span>
+          <h2 class="type-title1">Acceptance of Terms</h2>
+          <div class="legal-tldr">
+            <i data-lucide="check-circle" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">By installing or using Nexus, you agree to these terms. If you don't, please don't use the software.</p>
+            </div>
+          </div>
+          <p>
             By downloading, installing, or using Nexus ("the Software"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Software.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">2. Description of Service</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="service">
+          <span class="legal-section-num">02 / Service</span>
+          <h2 class="type-title1">Description of Service</h2>
+          <p>
             Nexus is a free desktop application for Windows that unifies your PC game libraries from multiple launchers (Steam, Epic Games, GOG, Battle.net, Amazon Games) into a single interface. It provides play time tracking, library organisation, collections, and integrations with third-party services.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">3. License</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="license">
+          <span class="legal-section-num">03 / License</span>
+          <h2 class="type-title1">License</h2>
+          <div class="legal-tldr">
+            <i data-lucide="key" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Free for personal use on your own computer. Don't resell, redistribute, reverse-engineer, or use it for anything illegal.</p>
+            </div>
+          </div>
+          <p>
             Nexus is provided as free software for personal, non-commercial use. You are granted a limited, non-exclusive, non-transferable, revocable licence to download and use the Software on your personal computer. You may not:
           </p>
           <ul class="legal-list">
@@ -162,106 +242,159 @@
           </ul>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">4. Third-Party Services</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="third-parties">
+          <span class="legal-section-num">04 / Third parties</span>
+          <h2 class="type-title1">Third-Party Services</h2>
+          <p>
             Nexus integrates with third-party services including but not limited to Steam, Epic Games Store, GOG Galaxy, Battle.net, Amazon Games, IGDB, SteamGridDB, HowLongToBeat, Twitch, and Google Drive. Your use of these services through Nexus is subject to their respective terms of service and privacy policies. Nexus is not affiliated with, endorsed by, or sponsored by any of these services.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">5. API Keys</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="api-keys">
+          <span class="legal-section-num">05 / API keys</span>
+          <h2 class="type-title1">API Keys</h2>
+          <p>
             Certain features of Nexus require API keys that you obtain directly from third-party services (e.g., IGDB, SteamGridDB). You are responsible for complying with the terms of service of those providers when using your API keys with Nexus. Nexus stores these keys locally on your device and does not transmit them to any Nexus-operated server.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">6. User Data</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="user-data">
+          <span class="legal-section-num">06 / User data</span>
+          <h2 class="type-title1">User Data</h2>
+          <div class="legal-tldr">
+            <i data-lucide="hard-drive" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Your library data is yours and lives on your computer. Backups go to your own Google Drive — managing them is on you.</p>
+            </div>
+          </div>
+          <p>
             All data generated by Nexus (game library, play sessions, collections, notes, settings) is stored locally on your computer by default. Nexus offers an optional Google Drive backup feature that uploads a copy of your local database to your own Google Drive account. You are solely responsible for managing your backups, whether local or cloud-based. Nexus does not guarantee the availability, integrity, or recoverability of cloud backups — Google Drive's own terms and service availability apply. For more details, see our <a href="privacy.html" class="legal-link">Privacy Policy</a>.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">7. Disclaimer of Warranties</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="warranty">
+          <span class="legal-section-num">07 / Warranty</span>
+          <h2 class="type-title1">Disclaimer of Warranties</h2>
+          <div class="legal-tldr">
+            <i data-lucide="alert-triangle" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Software is free and provided as-is. We make no promises about uptime, fitness for any purpose, or zero bugs.</p>
+            </div>
+          </div>
+          <p>
             The Software is provided <strong>"as is"</strong> and <strong>"as available"</strong> without warranties of any kind, whether express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that the Software will be uninterrupted, error-free, or free of harmful components.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">8. Limitation of Liability</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="liability">
+          <span class="legal-section-num">08 / Liability</span>
+          <h2 class="type-title1">Limitation of Liability</h2>
+          <p>
             To the maximum extent permitted by applicable law, in no event shall the author or contributors of Nexus be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of data, loss of profits, or business interruption, arising out of or in connection with your use of the Software, even if advised of the possibility of such damages.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">9. Game Ownership</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="ownership">
+          <span class="legal-section-num">09 / Game ownership</span>
+          <h2 class="type-title1">Game Ownership</h2>
+          <div class="legal-tldr">
+            <i data-lucide="shield" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Nexus only manages games you already own through other platforms. It doesn't sell, distribute, or crack anything.</p>
+            </div>
+          </div>
+          <p>
             Nexus is a library management tool. It does not sell, distribute, or provide access to games. All games displayed within Nexus are owned by you through their respective platforms. Nexus does not circumvent any digital rights management (DRM) or copy protection mechanisms.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">10. Updates</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="updates">
+          <span class="legal-section-num">10 / Updates</span>
+          <h2 class="type-title1">Updates</h2>
+          <p>
             Nexus may check for and notify you of available updates. Installing updates is optional but recommended. We reserve the right to modify, suspend, or discontinue the Software at any time without notice.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">11. Termination</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="termination">
+          <span class="legal-section-num">11 / Termination</span>
+          <h2 class="type-title1">Termination</h2>
+          <p>
             You may stop using Nexus at any time by uninstalling the Software. We reserve the right to terminate or restrict your access to the Software if you violate these Terms. Upon termination, all licences granted to you under these Terms will immediately cease.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">12. Changes to These Terms</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="changes">
+          <span class="legal-section-num">12 / Changes</span>
+          <h2 class="type-title1">Changes to These Terms</h2>
+          <p>
             We may update these Terms of Service from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of Nexus after changes constitutes acceptance of the revised terms.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">13. Governing Law</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="law">
+          <span class="legal-section-num">13 / Law</span>
+          <h2 class="type-title1">Governing Law</h2>
+          <p>
             These Terms shall be governed by and construed in accordance with the laws of South Africa, without regard to its conflict of law provisions.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2 class="type-title1">14. Contact</h2>
-          <p class="type-body text-muted-foreground">
+        <section class="legal-section" id="contact">
+          <span class="legal-section-num">14 / Contact</span>
+          <h2 class="type-title1">Contact</h2>
+          <p>
             If you have questions about these Terms of Service, you can reach us on the <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="legal-link">Nexus Discord community</a>.
           </p>
         </section>
 
+        <div class="legal-questions">
+          <div class="legal-questions-text">
+            <strong>Got a legal question?</strong>
+            <span>The fastest way to reach us is on Discord.</span>
+          </div>
+          <div class="legal-questions-actions">
+            <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="btn-nexus btn-nexus-sm">
+              <i data-lucide="message-circle" class="icon-sm"></i>
+              Ask on Discord
+            </a>
+            <a href="privacy.html" class="btn-ghost btn-ghost-sm">
+              <i data-lucide="shield" class="icon-sm"></i>
+              Read Privacy Policy
+            </a>
+          </div>
+        </div>
+
       </article>
     </div>
-  </main>
+  </div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- FOOTER                                          -->
   <!-- ════════════════════════════════════════════════ -->
   <footer class="footer-nexus">
     <div class="container">
-      <div class="row align-items-center gy-3">
+      <div class="row align-items-center gy-4">
         <div class="col-md-6">
-          <span class="type-footnote text-muted-foreground">
-            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          <div class="d-flex align-items-center flex-wrap gap-3">
+            <span class="type-footnote text-muted-foreground">
+              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
+            </span>
+          </div>
+          <span class="footer-built mt-3 d-inline-flex">
+            <span class="dot" aria-hidden="true"></span>
+            Made with Rust + Tauri
           </span>
         </div>
         <div class="col-md-6 text-md-end">
-          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Support this project">
+          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Support this project">
             <i data-lucide="heart" class="icon-md icon-footer"></i>
             Support
           </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Join the community on Discord">
+          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Join the community on Discord">
             <i data-lucide="message-circle" class="icon-md icon-footer"></i>
             Discord
           </a>
@@ -286,10 +419,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      lucide.createIcons();
-    });
-  </script>
+  <!-- Nexus interactions -->
+  <script src="assets/js/app.js?v=20260423" defer></script>
 </body>
 </html>

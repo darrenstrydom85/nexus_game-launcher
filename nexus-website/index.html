@@ -77,13 +77,16 @@
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
 
-  <!-- Nexus Obsidian theme -->
-  <link href="assets/css/style.css?v=20260312" rel="stylesheet">
+  <!-- Nexus Obsidian theme v2 -->
+  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 </head>
 <body>
+
+  <!-- Scroll progress bar -->
+  <div class="scroll-progress" aria-hidden="true"></div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- NAVBAR                                          -->
@@ -95,6 +98,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.0 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,8 +107,9 @@
       <div class="collapse navbar-collapse" id="navMain">
         <ul class="navbar-nav ms-auto align-items-center gap-1">
           <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="#screenshots">Screenshots</a></li>
-          <li class="nav-item"><a class="nav-link" href="#download">Download</a></li>
+          <li class="nav-item"><a class="nav-link" href="#showcase">Showcase</a></li>
+          <li class="nav-item"><a class="nav-link" href="#tech">Tech</a></li>
+          <li class="nav-item"><a class="nav-link" href="changelog.html">Changelog</a></li>
           <li class="nav-item">
             <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
           </li>
@@ -122,477 +127,768 @@
   <!-- ════════════════════════════════════════════════ -->
   <!-- HERO                                            -->
   <!-- ════════════════════════════════════════════════ -->
-  <section class="hero-section" id="hero">
-    <div class="hero-bg" aria-hidden="true">
-      <img src="assets/img/hero.jpg" alt="" width="1920" height="1080" loading="eager" class="hero-bg-img">
+  <section class="hero" id="hero" data-spotlight>
+    <div class="hero-bg">
+      <div class="hero-mesh"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-scanlines"></div>
+      <div class="hero-spotlight"></div>
+      <div class="hero-fade"></div>
     </div>
+
     <div class="container">
       <div class="hero-content">
-        <p class="hero-tagline">Game Library Manager for Windows</p>
-        <h1 class="type-display hero-title">All your games.<br>One place.</h1>
-        <p class="type-body text-muted-foreground hero-subtitle">
-          Nexus unifies your Steam, Epic, GOG, and Battle.net libraries — plus repacks
-          and standalone games — into a single, beautifully designed launcher.
-          Track play time, organise collections, and launch any game — instantly.
+        <a class="hero-pill" href="changelog.html#v0.3.0">
+          <span class="hero-pill-tag">New</span>
+          <span>v0.3.0 — Achievements, XP &amp; Mastery Tiers</span>
+          <i data-lucide="arrow-right" class="icon-sm"></i>
+        </a>
+
+        <h1 class="type-hero hero-title">
+          All your games.<br>
+          <span class="accent">One place.</span>
+        </h1>
+
+        <p class="type-body-lg hero-subtitle">
+          Nexus unifies your Steam, Epic, GOG, Battle.net, and Amazon libraries —
+          plus repacks and standalone titles — into a single, beautifully designed launcher
+          built for people who actually play games.
         </p>
+
         <div class="hero-actions">
           <a href="#download" class="btn-nexus btn-nexus-lg">
             <i data-lucide="download" class="icon-base"></i>
             Download for Windows
           </a>
-          <a href="#features" class="btn-ghost">
-            <i data-lucide="arrow-down" class="icon-md"></i>
-            See features
+          <a href="#showcase" class="btn-ghost">
+            <i data-lucide="play" class="icon-md"></i>
+            See it in action
           </a>
         </div>
-        <div class="hero-meta type-footnote text-muted-foreground">
-          <span class="hero-meta-item">
-            <i data-lucide="monitor" class="icon-sm"></i>
-            Windows 10 / 11
+
+        <div class="hero-meta">
+          <span class="hero-meta-item"><i data-lucide="monitor" class="icon-sm"></i>Windows 10 / 11</span>
+          <span class="hero-meta-item"><i data-lucide="hard-drive" class="icon-sm"></i>~10 MB install</span>
+          <span class="hero-meta-item"><i data-lucide="user-x" class="icon-sm"></i>No account required</span>
+          <span class="hero-meta-item"><i data-lucide="shield-check" class="icon-sm"></i>Local-first</span>
+        </div>
+      </div>
+
+      <!-- Hero stage with screenshot + floating fragments -->
+      <div class="hero-stage">
+        <div class="hero-screenshot">
+          <img src="assets/img/screenshots/unified-library.png"
+               alt="Nexus application — unified game library showing Continue Playing row and All Games grid with covers from Steam, Epic, and local sources"
+               width="1024" height="580"
+               loading="eager"
+               fetchpriority="high">
+        </div>
+
+        <div class="hero-fragment hero-fragment--play" aria-hidden="true">
+          <span class="hero-fragment-icon is-purple">
+            <i data-lucide="timer" class="icon-md"></i>
           </span>
-          <span class="hero-meta-item">
-            <i data-lucide="hard-drive" class="icon-sm"></i>
-            ~10 MB install
+          <span>
+            <span class="hero-fragment-label">Play time today</span>
+            <span class="hero-fragment-value">3h 24m</span>
+          </span>
+        </div>
+
+        <div class="hero-fragment hero-fragment--session" aria-hidden="true">
+          <span class="hero-fragment-icon">
+            <i data-lucide="trending-up" class="icon-md"></i>
+          </span>
+          <span>
+            <span class="hero-fragment-label">Streak</span>
+            <span class="hero-fragment-value">14 days</span>
+          </span>
+        </div>
+
+        <div class="hero-fragment hero-fragment--ach" aria-hidden="true">
+          <span class="hero-fragment-icon is-success">
+            <i data-lucide="trophy" class="icon-md"></i>
+          </span>
+          <span>
+            <span class="hero-fragment-label">Achievement</span>
+            <span class="hero-fragment-value">Backlog Slayer</span>
           </span>
         </div>
       </div>
 
-      <!-- Hero screenshot -->
-      <div class="hero-screenshot">
-        <img src="assets/img/screenshots/app-screenshot.png"
-             alt="Nexus application — unified game library showing titles from Steam, Epic, and local sources"
-             width="1920" height="1080"
-             loading="eager">
+      <!-- Animated stat strip -->
+      <div class="hero-stat-strip">
+        <div class="hero-stat">
+          <span class="hero-stat-value"><span data-count-to="6">0</span></span>
+          <span class="hero-stat-label">Storefronts unified</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value"><span data-count-to="40">0</span>+</span>
+          <span class="hero-stat-label">Native features</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value"><span data-count-to="10">0</span> MB</span>
+          <span class="hero-stat-label">Install footprint</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value"><span data-count-to="0">0</span></span>
+          <span class="hero-stat-label">Accounts required</span>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- SOURCE STRIP                                    -->
-  <!-- ════════════════════════════════════════════════ -->
-  <div class="glass-divider" aria-hidden="true"></div>
-  <section class="section-block" aria-label="Supported platforms">
-    <div class="container text-center">
-      <p class="type-footnote text-muted-foreground source-strip-label mb-4">
-        Connects to your favourite storefronts
-      </p>
-      <div class="source-strip">
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="flame" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">Steam</span>
-        </div>
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="sword" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">Epic Games</span>
-        </div>
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="disc-3" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">GOG</span>
-        </div>
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="swords" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">Battle.net</span>
-        </div>
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="box" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">Amazon</span>
-        </div>
-        <div class="source-logo">
-          <div class="logo-box"><i data-lucide="plus" class="icon-lg"></i></div>
-          <span class="type-caption text-muted-foreground">More</span>
-        </div>
-      </div>
-    </div>
-  </section>
-  <div class="glass-divider" aria-hidden="true"></div>
-
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- FEATURES                                        -->
+  <!-- FEATURES — spotlight + bento + explorer         -->
   <!-- ════════════════════════════════════════════════ -->
   <section class="section-block" id="features">
     <div class="container">
-      <p class="section-label">Features</p>
-      <h2 class="type-headline section-title">Everything you need to manage your library</h2>
-      <p class="type-body text-muted-foreground section-subtitle">
-        Built for gamers who own titles across multiple stores and want a single,
-        fast, beautiful hub.
+      <p class="type-eyebrow">Built for gamers</p>
+      <h2 class="type-headline section-title mt-3">Everything you need to run your library like a pro.</h2>
+      <p class="type-body-lg section-subtitle">
+        Forty-plus features designed around how people actually play —
+        not how launchers want you to.
       </p>
 
-      <div class="feature-categories">
+      <!-- ── 3 hero spotlight cards ── -->
+      <div class="spotlight-grid">
+        <article class="spotlight-card">
+          <span class="spotlight-icon"><i data-lucide="library" class="icon-base"></i></span>
+          <h3 class="spotlight-title">Unified Library</h3>
+          <p class="spotlight-desc">
+            Steam, Epic, GOG, Battle.net, Amazon — auto-imported. Repacks and
+            standalone titles too. One library, every game you own.
+          </p>
+          <div class="spotlight-art">
+            <img src="assets/img/screenshots/unified-library.png"
+                 alt="Nexus unified library — Continue Playing row, All Games grid with covers from Steam, Epic, and local sources, sidebar with Level 7 profile"
+                 width="1024" height="580" loading="lazy">
+            <span class="spotlight-art-badge">Library</span>
+          </div>
+        </article>
 
-        <!-- ── Library Management ── -->
-        <div class="feature-category">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="library" class="icon-base"></i>
-            Library Management
-          </h3>
-          <div class="feature-list">
-            <div class="feature-item">
-              <i data-lucide="scan" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Unified Library</span>
-                <span class="feature-item-desc">Import from Steam, Epic, GOG, Battle.net, and Amazon Games automatically — plus repacks and standalone titles.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="palette" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Rich Metadata</span>
-                <span class="feature-item-desc">Cover art, descriptions, genres, and ratings pulled from IGDB. Your library looks stunning by default.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="rocket" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Instant Launch</span>
-                <span class="feature-item-desc">Click a game, it launches. Nexus handles the right storefront silently in the background.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="star" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Ratings &amp; Reviews</span>
-                <span class="feature-item-desc">Rate your games, see critic scores, and track your personal opinions across the library.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="sticky-note" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Personal Game Notes</span>
-                <span class="feature-item-desc">Jot down tips, strategies, or thoughts on any game. Fully searchable across your library.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="tag" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Custom Tags</span>
-                <span class="feature-item-desc">Create your own tags and label games however you like — co-op, short, relaxing, anything.</span>
-              </div>
-            </div>
+        <article class="spotlight-card">
+          <span class="spotlight-icon"><i data-lucide="bar-chart-3" class="icon-base"></i></span>
+          <h3 class="spotlight-title">Play Time Tracking</h3>
+          <p class="spotlight-desc">
+            Accurate sessions across every source. Heatmaps, histograms, streaks,
+            and per-game patterns — your habits, made visible.
+          </p>
+          <div class="spotlight-art">
+            <img src="assets/img/screenshots/play-time-stats.png"
+                 alt="Library Stats dashboard — 45h 28m total hours, 9 games played, play activity line chart, 39-day streak, 90-day heatmap, mastery tiers from Bronze to Diamond"
+                 width="1024" height="580" loading="lazy">
+            <span class="spotlight-art-badge">Stats</span>
+          </div>
+        </article>
+
+        <article class="spotlight-card">
+          <span class="spotlight-icon"><i data-lucide="gift" class="icon-base"></i></span>
+          <h3 class="spotlight-title">Library Wrapped</h3>
+          <p class="spotlight-desc">
+            A cinematic year-in-review of your gaming life. Top games, genres, streaks,
+            mood — packaged as a shareable poster card.
+          </p>
+          <div class="spotlight-art">
+            <video muted loop playsinline preload="metadata" autoplay aria-label="Library Wrapped year-in-review animation">
+              <source src="assets/video/wrapped.webm" type="video/webm">
+            </video>
+            <span class="spotlight-art-badge">Wrapped</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- ── Bento grid ── -->
+      <div class="bento" aria-label="Highlighted features">
+        <article class="bento-tile bento-tile--w2 bento-tile--feature">
+          <span class="bento-icon"><i data-lucide="trophy" class="icon-base"></i></span>
+          <h3 class="bento-title">Achievements, XP &amp; Mastery Tiers</h3>
+          <p class="bento-desc">
+            Earn XP from every session. Climb mastery tiers per game.
+            Unlock dozens of native achievements as you play.
+          </p>
+          <div class="bento-mock-pills">
+            <span class="bento-mock-pill is-primary">+250 XP</span>
+            <span class="bento-mock-pill is-accent">Veteran</span>
+            <span class="bento-mock-pill">Backlog Slayer</span>
+            <span class="bento-mock-pill">First Hour</span>
+            <span class="bento-mock-pill is-accent">Streak +1</span>
+          </div>
+        </article>
+
+        <article class="bento-tile bento-tile--accent">
+          <span class="bento-icon"><i data-lucide="flame" class="icon-base"></i></span>
+          <h3 class="bento-title">Play Streak</h3>
+          <p class="bento-desc">Daily streak counter with freeze protection.</p>
+          <div class="bento-mock-bars" aria-hidden="true">
+            <span style="height: 30%"></span>
+            <span style="height: 55%"></span>
+            <span style="height: 45%"></span>
+            <span style="height: 70%"></span>
+            <span style="height: 85%"></span>
+            <span style="height: 60%"></span>
+            <span style="height: 95%"></span>
+          </div>
+        </article>
+
+        <article class="bento-tile">
+          <span class="bento-icon"><i data-lucide="dice-5" class="icon-base"></i></span>
+          <h3 class="bento-title">Random Game Picker</h3>
+          <p class="bento-desc">Can't decide? Spin the wheel — with optional filters.</p>
+        </article>
+
+        <article class="bento-tile bento-tile--h2 bento-tile--feature">
+          <span class="bento-icon"><i data-lucide="activity" class="icon-base"></i></span>
+          <h3 class="bento-title">Session Analytics</h3>
+          <p class="bento-desc">
+            Heatmaps, histograms, return-rate charts, and patterns by month or day of week.
+          </p>
+          <div class="bento-mock-heatmap" aria-hidden="true">
+            <span></span><span class="l1"></span><span class="l2"></span><span></span><span class="l1"></span><span class="l3"></span><span class="l2"></span>
+            <span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span><span class="l2"></span><span class="l1"></span><span></span>
+            <span></span><span class="l1"></span><span class="l3"></span><span class="l4"></span><span class="l3"></span><span class="l2"></span><span class="l1"></span>
+            <span class="l2"></span><span class="l3"></span><span class="l2"></span><span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span>
+            <span class="l1"></span><span></span><span class="l2"></span><span class="l3"></span><span class="l4"></span><span class="l3"></span><span class="l2"></span>
+            <span class="l1"></span><span class="l2"></span><span class="l1"></span><span></span><span class="l1"></span><span class="l2"></span><span class="l3"></span>
+            <span></span><span class="l1"></span><span class="l3"></span><span class="l2"></span><span class="l1"></span><span></span><span class="l2"></span>
+          </div>
+        </article>
+
+        <article class="bento-tile bento-tile--accent">
+          <span class="bento-icon"><i data-lucide="sparkles" class="icon-base"></i></span>
+          <h3 class="bento-title">Smart Collections</h3>
+          <p class="bento-desc">
+            Auto-updating collections from rules — status, genre, play time, tags, ratings.
+          </p>
+          <div class="bento-mock-pills">
+            <span class="bento-mock-pill is-accent">Quick Plays</span>
+            <span class="bento-mock-pill is-accent">Forgotten Gems</span>
+            <span class="bento-mock-pill">Highly Rated · Unplayed</span>
+          </div>
+        </article>
+
+        <article class="bento-tile bento-tile--w2">
+          <span class="bento-icon">
+            <svg class="icon-base" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 3 L4 17 L8 17 L8 21 L12 17 L16 17 L20 13 L20 3 Z"/>
+              <line x1="9" y1="7" x2="9" y2="13"/>
+              <line x1="14" y1="7" x2="14" y2="13"/>
+            </svg>
+          </span>
+          <h3 class="bento-title">Twitch Integration</h3>
+          <p class="bento-desc">
+            Live streams, followed channels, trending games, drops, and pulse badges on
+            cards — woven through the library.
+          </p>
+          <div class="bento-mock-pills">
+            <span class="bento-mock-pill is-accent">LIVE · 14k</span>
+            <span class="bento-mock-pill">Followed</span>
+            <span class="bento-mock-pill">Trending</span>
+            <span class="bento-mock-pill">Drops</span>
+          </div>
+        </article>
+
+        <article class="bento-tile">
+          <span class="bento-icon"><i data-lucide="cloud-upload" class="icon-base"></i></span>
+          <h3 class="bento-title">Google Drive Backup</h3>
+          <p class="bento-desc">Optional encrypted backups on your own schedule.</p>
+        </article>
+
+        <article class="bento-tile">
+          <span class="bento-icon"><i data-lucide="image" class="icon-base"></i></span>
+          <h3 class="bento-title">SteamGridDB Art</h3>
+          <p class="bento-desc">Swap covers, icons, and hero art from the community.</p>
+        </article>
+
+        <article class="bento-tile bento-tile--feature">
+          <span class="bento-icon"><i data-lucide="clock" class="icon-base"></i></span>
+          <h3 class="bento-title">HowLongToBeat</h3>
+          <p class="bento-desc">
+            Estimated completion times and time-remaining based on your actual play.
+          </p>
+          <div class="bento-mock-pills">
+            <span class="bento-mock-pill">Main · 24h</span>
+            <span class="bento-mock-pill">+ Extras · 41h</span>
+            <span class="bento-mock-pill is-primary">Left · 11h</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- ── Filterable feature explorer ── -->
+      <div class="feature-explorer" data-feature-explorer>
+        <div class="feature-explorer-header">
+          <div>
+            <p class="type-eyebrow">Full feature set</p>
+            <h3 class="type-title1 mt-2">Browse by category</h3>
+          </div>
+          <div class="filter-pills" role="tablist" aria-label="Feature categories">
+            <button type="button" class="filter-pill" data-filter="all" aria-pressed="true">
+              All <span class="filter-pill-count"></span>
+            </button>
+            <button type="button" class="filter-pill" data-filter="library" aria-pressed="false">
+              Library <span class="filter-pill-count"></span>
+            </button>
+            <button type="button" class="filter-pill" data-filter="tracking" aria-pressed="false">
+              Tracking <span class="filter-pill-count"></span>
+            </button>
+            <button type="button" class="filter-pill" data-filter="organisation" aria-pressed="false">
+              Organisation <span class="filter-pill-count"></span>
+            </button>
+            <button type="button" class="filter-pill" data-filter="integrations" aria-pressed="false">
+              Integrations <span class="filter-pill-count"></span>
+            </button>
+            <button type="button" class="filter-pill" data-filter="experience" aria-pressed="false">
+              Experience <span class="filter-pill-count"></span>
+            </button>
           </div>
         </div>
 
-        <!-- ── Tracking & Stats ── -->
-        <div class="feature-category">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="bar-chart-3" class="icon-base"></i>
-            Tracking &amp; Stats
-          </h3>
-          <div class="feature-list">
-            <div class="feature-item">
-              <i data-lucide="timer" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Play Time Tracking</span>
-                <span class="feature-item-desc">Accurate session tracking across every source with daily, weekly, and all-time stats.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="activity" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Session Analytics</span>
-                <span class="feature-item-desc">Charts, heatmaps, and breakdowns of your play habits over any time range.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="trophy" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Progress Tracking</span>
-                <span class="feature-item-desc">Set completion percentage and milestones for each game. See progress bars right on your game cards.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="notebook-pen" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Session Play Log</span>
-                <span class="feature-item-desc">Add notes to individual play sessions — track what you did, where you left off, or what to do next.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="gift" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Library Wrapped</span>
-                <span class="feature-item-desc">A personalised year-in-review of your gaming habits — top games, total hours, streaks, and more.</span>
-              </div>
+        <div class="feature-grid">
+          <!-- LIBRARY -->
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="scan" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Auto-import library</span>
+              <span class="feature-chip-desc">Steam, Epic, GOG, Battle.net, Amazon — detected automatically.</span>
             </div>
           </div>
-        </div>
-
-        <!-- ── Organisation ── -->
-        <div class="feature-category">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="layout-grid" class="icon-base"></i>
-            Organisation
-          </h3>
-          <div class="feature-list">
-            <div class="feature-item">
-              <i data-lucide="folder" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Collections</span>
-                <span class="feature-item-desc">Organise games into custom collections. Drag to reorder, pick an emoji icon, and keep things tidy.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="sparkles" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Smart Collections</span>
-                <span class="feature-item-desc">Auto-updating collections powered by rules — filter by status, genre, play time, tags, and more.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="filter" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Search, Filters &amp; Sort</span>
-                <span class="feature-item-desc">Find any game instantly. Filter by status, genre, source, or play time. Sort by name, hours, or date added.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="list-ordered" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Play Next Queue</span>
-                <span class="feature-item-desc">Build an ordered queue of what to play next. Never stare at your library wondering what to launch.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="history" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Recently Played</span>
-                <span class="feature-item-desc">Jump back into your latest sessions with a dedicated recently played section.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="dice-5" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Random Game Picker</span>
-                <span class="feature-item-desc">Can't decide? Let Nexus pick a random game from your library — with optional filters.</span>
-              </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="palette" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Rich metadata</span>
+              <span class="feature-chip-desc">Cover art, descriptions, genres, ratings — pulled from IGDB.</span>
             </div>
           </div>
-        </div>
-
-        <!-- ── Integrations ── -->
-        <div class="feature-category">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="plug" class="icon-base"></i>
-            Integrations
-          </h3>
-          <div class="feature-list">
-            <div class="feature-item">
-              <i data-lucide="twitch" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Twitch Integration</span>
-                <span class="feature-item-desc">See live streams, trending games, active drops, and followed channels — right inside Nexus.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="image" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">SteamGridDB</span>
-                <span class="feature-item-desc">Swap cover art, icons, and hero images from the SteamGridDB community library.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="database" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">IGDB Metadata</span>
-                <span class="feature-item-desc">Genres, descriptions, release dates, and critic ratings sourced from IGDB automatically.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="clock" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">HowLongToBeat</span>
-                <span class="feature-item-desc">See how long a game takes to beat and track estimated time remaining based on your progress.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="cloud-upload" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Google Drive Backup</span>
-                <span class="feature-item-desc">Back up your entire library to Google Drive — manually or on a daily/weekly schedule. Restore from any backup with one click.</span>
-              </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="rocket" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Instant launch</span>
+              <span class="feature-chip-desc">Click. The right storefront launches silently in the background.</span>
             </div>
           </div>
-        </div>
-
-        <!-- ── Experience ── -->
-        <div class="feature-category">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="monitor" class="icon-base"></i>
-            Experience
-          </h3>
-          <div class="feature-list">
-            <div class="feature-item">
-              <i data-lucide="zap" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Lightweight &amp; Fast</span>
-                <span class="feature-item-desc">Built with Tauri and Rust. Under 10 MB installed, minimal RAM usage, native Windows performance.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="hard-drive" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Local-First, Cloud Optional</span>
-                <span class="feature-item-desc">No account required. All data stays on your machine by default. Optionally back up to Google Drive for peace of mind.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="app-window" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">System Tray</span>
-                <span class="feature-item-desc">Minimise to tray and keep Nexus running quietly in the background. Launch games from the tray icon.</span>
-              </div>
-            </div>
-            <div class="feature-item">
-              <i data-lucide="settings" class="icon-sm feature-item-icon"></i>
-              <div>
-                <span class="feature-item-name">Customisable</span>
-                <span class="feature-item-desc">Accent colours, grid density, card styles, and display preferences — make Nexus yours.</span>
-              </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="star" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Ratings &amp; reviews</span>
+              <span class="feature-chip-desc">Personal scores plus critic ratings, all in one place.</span>
             </div>
           </div>
-        </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="sticky-note" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Personal game notes</span>
+              <span class="feature-chip-desc">Tips, strategies, thoughts. Searchable across your library.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="tag" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Custom tags</span>
+              <span class="feature-chip-desc">Colour-coded labels. Co-op, short, comfort, anything.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="library">
+            <span class="feature-chip-icon"><i data-lucide="archive" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Archive view</span>
+              <span class="feature-chip-desc">Track games even after they're uninstalled.</span>
+            </div>
+          </div>
 
-        <!-- ── Get Started ── -->
-        <div class="feature-category feature-category--cta">
-          <h3 class="feature-category-title type-title2">
-            <i data-lucide="download" class="icon-base"></i>
-            Get Started
-          </h3>
-          <div class="feature-cta-body">
-            <p class="type-body text-muted-foreground">
-              Nexus is free, open, and actively developed. Download the latest version or check the changelog to see what's new.
-            </p>
-            <span class="feature-cta-version type-caption">
-              <i data-lucide="tag" class="icon-xs"></i>
-              v0.3.0 — Beta
+          <!-- TRACKING -->
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="timer" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Play time tracking</span>
+              <span class="feature-chip-desc">Accurate session capture across every source.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="activity" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Session analytics</span>
+              <span class="feature-chip-desc">Heatmaps, histograms, and per-game pattern breakdowns.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="trending-up" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Progress &amp; milestones</span>
+              <span class="feature-chip-desc">Custom milestones, completion percentages, progress bars on cards.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="notebook-pen" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Session play log</span>
+              <span class="feature-chip-desc">Per-session notes — where you left off, what to do next.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="gift" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Library Wrapped</span>
+              <span class="feature-chip-desc">Personalised year-in-review with shareable poster.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="medal" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Mastery tiers</span>
+              <span class="feature-chip-desc">Novice → Adept → Veteran → Master → Legend per game.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="trophy" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Achievements &amp; XP</span>
+              <span class="feature-chip-desc">Native achievements and a launcher-wide XP/level system.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="flame" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Daily play streak</span>
+              <span class="feature-chip-desc">Streak counter with freeze protection and milestone toasts.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="tracking">
+            <span class="feature-chip-icon"><i data-lucide="party-popper" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Retirement ceremony</span>
+              <span class="feature-chip-desc">Cinematic send-off when you complete or drop a game.</span>
+            </div>
+          </div>
+
+          <!-- ORGANISATION -->
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="folder" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Collections</span>
+              <span class="feature-chip-desc">Hand-curated. Drag to reorder. Pick an emoji icon.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="sparkles" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Smart collections</span>
+              <span class="feature-chip-desc">Rule-driven, auto-updating with AND/OR filter logic.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="filter" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Search, filters &amp; sort</span>
+              <span class="feature-chip-desc">Find any game instantly. Filter by anything.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="list-ordered" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Play Next queue</span>
+              <span class="feature-chip-desc">Ordered queue of what to launch next. Drag to reorder.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="history" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Continue Playing</span>
+              <span class="feature-chip-desc">Recently played row at the top of your library.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="dice-5" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Random game picker</span>
+              <span class="feature-chip-desc">Spin the wheel with optional category filters.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="organisation">
+            <span class="feature-chip-icon"><i data-lucide="check-square" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Trophy room</span>
+              <span class="feature-chip-desc">Dedicated view for completed games with spotlight stats.</span>
+            </div>
+          </div>
+
+          <!-- INTEGRATIONS -->
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon">
+              <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 3 L4 17 L8 17 L8 21 L12 17 L16 17 L20 13 L20 3 Z"/>
+                <line x1="9" y1="7" x2="9" y2="13"/>
+                <line x1="14" y1="7" x2="14" y2="13"/>
+              </svg>
             </span>
-            <div class="feature-cta-perks">
-              <div class="feature-cta-perk">
-                <i data-lucide="user-x" class="icon-sm"></i>
-                <span class="type-footnote text-muted-foreground">No account or sign-up required</span>
-              </div>
-              <div class="feature-cta-perk">
-                <i data-lucide="shield-check" class="icon-sm"></i>
-                <span class="type-footnote text-muted-foreground">Local-first — optional Google Drive backup</span>
-              </div>
-              <div class="feature-cta-perk">
-                <i data-lucide="gauge" class="icon-sm"></i>
-                <span class="type-footnote text-muted-foreground">Under 10 MB — installs in seconds</span>
-              </div>
-              <div class="feature-cta-perk">
-                <i data-lucide="wifi-off" class="icon-sm"></i>
-                <span class="type-footnote text-muted-foreground">Works offline, no internet needed</span>
-              </div>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Twitch</span>
+              <span class="feature-chip-desc">Live streams, followed, trending, drops, and pulse badges.</span>
             </div>
-            <div class="feature-cta-actions">
-              <a href="#download" class="btn-nexus btn-nexus-sm">
-                <i data-lucide="download" class="icon-sm"></i>
-                Download for Windows
-              </a>
-              <a href="changelog.html" class="btn-ghost btn-ghost-sm">
-                <i data-lucide="file-text" class="icon-sm"></i>
-                Changelog
-              </a>
+          </div>
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon"><i data-lucide="image" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">SteamGridDB</span>
+              <span class="feature-chip-desc">Custom covers, icons, and hero artwork.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon"><i data-lucide="database" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">IGDB metadata</span>
+              <span class="feature-chip-desc">Genres, descriptions, release dates, critic ratings.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon"><i data-lucide="clock" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">HowLongToBeat</span>
+              <span class="feature-chip-desc">Completion estimates and time-remaining tracking.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon"><i data-lucide="cloud-upload" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Google Drive backup</span>
+              <span class="feature-chip-desc">Optional encrypted backups on your schedule.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="integrations">
+            <span class="feature-chip-icon"><i data-lucide="cpu" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Hardware detection</span>
+              <span class="feature-chip-desc">CPU + GPU brand identification right in the sidebar.</span>
+            </div>
+          </div>
+
+          <!-- EXPERIENCE -->
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="zap" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Lightweight &amp; fast</span>
+              <span class="feature-chip-desc">Built with Tauri + Rust. Native Windows performance.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="hard-drive" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Local-first</span>
+              <span class="feature-chip-desc">No account. All data stays on your machine by default.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="app-window" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">System tray</span>
+              <span class="feature-chip-desc">Minimise to tray. Launch games from the tray icon.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="settings" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Customisable</span>
+              <span class="feature-chip-desc">Accent colours, grid density, card styles — make it yours.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="command" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Command palette</span>
+              <span class="feature-chip-desc">Jump anywhere instantly with keyboard shortcuts.</span>
+            </div>
+          </div>
+          <div class="feature-chip" data-cat="experience">
+            <span class="feature-chip-icon"><i data-lucide="wifi-off" class="icon-md"></i></span>
+            <div class="feature-chip-body">
+              <span class="feature-chip-name">Works offline</span>
+              <span class="feature-chip-desc">No internet required. Cached fallbacks when you're disconnected.</span>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </section>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- SCREENSHOTS                                     -->
+  <!-- STICKY-SCROLL SHOWCASES                         -->
   <!-- ════════════════════════════════════════════════ -->
-  <section class="section-block section-block--surface" id="screenshots">
+  <section class="showcase section-block--surface" id="showcase">
     <div class="container">
-      <p class="section-label">Screenshots</p>
-      <h2 class="type-headline section-title">See Nexus in action</h2>
-      <p class="type-body text-muted-foreground section-subtitle">
-        The Obsidian theme puts your game artwork front and centre.
-      </p>
+      <div class="section-header-center">
+        <p class="type-eyebrow">In motion</p>
+        <h2 class="type-headline section-title mt-3">See Nexus in action.</h2>
+        <p class="type-body-lg section-subtitle">
+          Three signature moments from the launcher.
+        </p>
+      </div>
 
-      <div class="row g-4 mt-4">
-        <!-- Nexus Wrapped — full-width video -->
-        <div class="col-12">
-          <div class="screenshot-card screenshot-card--featured">
-            <video controls muted loop playsinline preload="metadata">
-              <source src="assets/video/wrapped.mp4" type="video/mp4">
-            </video>
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Nexus Wrapped — Year in Review</span>
-            </div>
-          </div>
+      <div class="showcase-row" style="margin-top: var(--space-16)">
+        <div class="showcase-copy">
+          <p class="type-eyebrow">Stat 01</p>
+          <h3 class="type-headline showcase-title">Track every minute. Spot every pattern.</h3>
+          <p class="type-body-lg showcase-desc">
+            Your sessions flow into a dashboard built for inspection — heatmaps,
+            histograms, return rate, and per-game breakdowns by month or weekday.
+          </p>
+          <ul class="showcase-features">
+            <li>Daily, weekly, and all-time totals across every storefront</li>
+            <li>Activity heatmap and play-time-by-day-of-week charts</li>
+            <li>Session length distribution with mean, median, and p75</li>
+            <li>Per-game pattern view with return-rate and gap analysis</li>
+          </ul>
         </div>
-
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <img src="assets/img/screenshots/app-screenshot.png"
-                 alt="Nexus library grid view showing game covers from multiple sources"
-                 width="1920" height="1080"
-                 loading="lazy">
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Library — Grid View</span>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <img src="assets/img/screenshots/game-detail-overlay.png"
-                 alt="Nexus game detail overlay showing Eriksholm with play stats, description, and trailer"
-                 width="1280" height="800"
-                 loading="lazy">
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Game Detail Overlay</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Twitch Integration -->
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <img src="assets/img/screenshots/twitch-interface.png"
-                 alt="Nexus Twitch integration showing trending games, live streams, and viewer counts"
-                 width="1280" height="800"
-                 loading="lazy">
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Twitch — Live Streams &amp; Drops</span>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <img src="assets/img/screenshots/playtime-dashboard.png"
-                 alt="Nexus play time dashboard showing total hours, activity chart, heatmap, and top games"
-                 width="1280" height="800"
-                 loading="lazy">
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Play Time Dashboard</span>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <video autoplay muted loop playsinline preload="metadata">
-              <source src="assets/video/random.mp4" type="video/mp4">
-            </video>
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Random Game Selector</span>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="screenshot-card">
-            <img src="assets/img/screenshots/settings.png"
-                 alt="Nexus settings panel showing appearance, accent colors, API keys, and Twitch integration"
-                 width="1280" height="800"
-                 loading="lazy">
-            <div class="screenshot-label">
-              <span class="type-footnote text-muted-foreground">Comprehensive Settings</span>
-            </div>
-          </div>
+        <div class="showcase-media">
+          <img src="assets/img/screenshots/play-time-stats.png"
+               alt="Library Stats dashboard — 45h 28m total hours, 9 games played, play activity line chart, 39-day streak, 90-day heatmap, mastery tiers from Bronze to Diamond"
+               width="1024" height="580" loading="lazy">
         </div>
       </div>
+
+      <div class="showcase-row showcase-row--reverse">
+        <div class="showcase-media">
+          <video muted loop playsinline preload="metadata" autoplay aria-label="Library Wrapped year-in-review video">
+            <source src="assets/video/wrapped.webm" type="video/webm">
+          </video>
+        </div>
+        <div class="showcase-copy">
+          <p class="type-eyebrow">Stat 02</p>
+          <h3 class="type-headline showcase-title">Your year, wrapped — and shareable.</h3>
+          <p class="type-body-lg showcase-desc">
+            A cinematic year-in-review built right into your library. Top games,
+            genres, mood, hidden gems, and a 1080×1080 poster to drop in any feed.
+          </p>
+          <ul class="showcase-features">
+            <li>Top-3 podium for your most-played games</li>
+            <li>Genre breakdown, mood tagline, and hidden-gem spotlight</li>
+            <li>Custom date ranges — month, year, or anything between</li>
+            <li>Export shareable poster card straight to clipboard</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="showcase-row">
+        <div class="showcase-copy">
+          <p class="type-eyebrow">Stat 03</p>
+          <h3 class="type-headline showcase-title">See what's trending. Catch streamers live.</h3>
+          <p class="type-body-lg showcase-desc">
+            Twitch is woven through the launcher — pulse badges on game cards, live
+            streams in the sidebar, trending titles you already own, and go-live toasts.
+          </p>
+          <ul class="showcase-features">
+            <li>Live and offline view of every channel you follow</li>
+            <li>Trending in your library — your games, ranked by viewers</li>
+            <li>Pulse badges on game cards, click to jump straight to a stream</li>
+            <li>Favourites pinning + go-live toast notifications</li>
+          </ul>
+        </div>
+        <div class="showcase-media">
+          <img src="assets/img/screenshots/twitch-trending.png"
+               alt="Twitch integration in Nexus — Trending in Your Library row with viewer counts, Live Now grid of streamers, follow status, and 67 offline channels collapsed"
+               width="1024" height="580" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- UNDER THE HOOD                                  -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="tech-section" id="tech">
+    <div class="container">
+      <p class="type-eyebrow">Under the hood</p>
+      <h2 class="type-headline section-title mt-3">Built for people who care how things work.</h2>
+      <p class="type-body-lg section-subtitle">
+        A native Rust core wrapped in a React UI. Tiny install,
+        instant launch, and your data on your disk — exactly where it belongs.
+      </p>
+
+      <div class="tech-stack">
+        <span class="tech-tag"><span class="tech-tag-dot"></span>Tauri 2</span>
+        <span class="tech-tag"><span class="tech-tag-dot is-warning"></span>Rust</span>
+        <span class="tech-tag"><span class="tech-tag-dot is-purple"></span>React 18</span>
+        <span class="tech-tag"><span class="tech-tag-dot"></span>TypeScript</span>
+        <span class="tech-tag"><span class="tech-tag-dot is-success"></span>SQLite</span>
+        <span class="tech-tag"><span class="tech-tag-dot is-purple"></span>WebView2</span>
+        <span class="tech-tag"><span class="tech-tag-dot"></span>Local-first</span>
+        <span class="tech-tag"><span class="tech-tag-dot is-warning"></span>Open changelog</span>
+      </div>
+
+      <div class="tech-counters">
+        <div class="tech-counter">
+          <div>
+            <span class="tech-counter-value"><span data-count-to="10">0</span></span>
+            <span class="tech-counter-unit">MB</span>
+          </div>
+          <div class="tech-counter-label">Install footprint</div>
+        </div>
+        <div class="tech-counter">
+          <div>
+            <span class="tech-counter-value">&lt;<span data-count-to="1.5" data-count-decimals="1">0</span></span>
+            <span class="tech-counter-unit">s</span>
+          </div>
+          <div class="tech-counter-label">Cold start</div>
+        </div>
+        <div class="tech-counter">
+          <div>
+            <span class="tech-counter-value">~<span data-count-to="120">0</span></span>
+            <span class="tech-counter-unit">MB</span>
+          </div>
+          <div class="tech-counter-label">Idle memory</div>
+        </div>
+        <div class="tech-counter">
+          <div>
+            <span class="tech-counter-value"><span data-count-to="0">0</span></span>
+            <span class="tech-counter-unit">trackers</span>
+          </div>
+          <div class="tech-counter-label">Telemetry</div>
+        </div>
+      </div>
+
+      <div class="tech-callout">
+        <span class="prompt">&gt; </span><strong>Why it's fast:</strong> the core runs as a native Rust binary, not Electron.<br>
+        <span class="prompt">&gt; </span><strong>Why it's small:</strong> Windows ships WebView2 — Nexus reuses it instead of bundling Chromium.<br>
+        <span class="prompt">&gt; </span><strong>Why it's private:</strong> no servers, no accounts, no analytics in the desktop app. Your library lives in a single SQLite file you control.<br>
+        <span class="prompt">&gt; </span><strong>Why it's open:</strong> every release is documented in a public changelog with versioned MSI downloads.
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- WHAT'S NEW                                      -->
+  <!-- ════════════════════════════════════════════════ -->
+  <section class="whats-new-section">
+    <div class="container">
+      <article class="whats-new">
+        <div class="whats-new-meta">
+          <p class="type-eyebrow" style="margin-bottom: 0">Latest release</p>
+          <h2 class="whats-new-version">v0.3.0</h2>
+          <span class="whats-new-date">Apr 16, 2026</span>
+          <span class="whats-new-tag">Live now</span>
+        </div>
+
+        <div class="whats-new-body">
+          <p>
+            A major release focused on progression and motivation. Nexus now tracks
+            your play streak, rewards milestones mid-session, gives every game a
+            mastery tier, unlocks achievements as you play, levels up your profile
+            with XP, and celebrates the games you retire.
+          </p>
+          <ul class="whats-new-highlights">
+            <li><i data-lucide="party-popper" class="icon-sm"></i><span>Game retirement ceremony</span></li>
+            <li><i data-lucide="zap" class="icon-sm"></i><span>XP &amp; level system</span></li>
+            <li><i data-lucide="trophy" class="icon-sm"></i><span>Native achievements</span></li>
+            <li><i data-lucide="medal" class="icon-sm"></i><span>Game mastery tiers</span></li>
+            <li><i data-lucide="bell" class="icon-sm"></i><span>Session milestones</span></li>
+            <li><i data-lucide="flame" class="icon-sm"></i><span>Daily play streak</span></li>
+          </ul>
+          <div class="whats-new-cta">
+            <a href="changelog.html" class="btn-ghost btn-ghost-sm">
+              <i data-lucide="file-text" class="icon-sm"></i>
+              Read full changelog
+              <i data-lucide="arrow-right" class="icon-sm"></i>
+            </a>
+          </div>
+        </div>
+      </article>
     </div>
   </section>
 
@@ -600,34 +896,41 @@
   <!-- DOWNLOAD CTA                                    -->
   <!-- ════════════════════════════════════════════════ -->
   <section class="cta-section" id="download">
-    <div class="cta-content container">
-      <div class="cta-card">
-        <span class="version-badge type-caption text-primary-accent mb-4 d-inline-flex">
-          <i data-lucide="tag" class="icon-xs"></i>
-          v0.3.0 — Beta Access
-        </span>
-        <h2 class="type-headline mt-3">Ready to unify your library?</h2>
-        <p class="type-body text-muted-foreground mt-3 mx-auto cta-description">
-          Download Nexus for free. No account required. Local-first with optional cloud backup.
-        </p>
-        <div class="mt-5 d-flex flex-wrap justify-content-center gap-3">
-          <a href="releases/Nexus_0.3.0_x64_en-US.msi" class="btn-nexus btn-nexus-lg">
-            <i data-lucide="download" class="icon-base"></i>
-            Download for Windows
-          </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="btn-ghost" target="_blank" rel="noopener noreferrer">
-            <i data-lucide="message-circle" class="icon-md"></i>
-            Join the Community
-          </a>
-          <a href="https://paypal.me/darrenstrydom85" class="btn-ghost" target="_blank" rel="noopener noreferrer">
-            <i data-lucide="heart" class="icon-md"></i>
-            Support this project
-          </a>
-        </div>
-        <p class="type-caption text-muted-foreground mt-4">
-          Windows 10 / 11 &nbsp;·&nbsp; x64 &nbsp;·&nbsp; ~10 MB
-        </p>
+    <div class="cta-bg" aria-hidden="true"></div>
+    <div class="cta-grid" aria-hidden="true"></div>
+    <div class="container cta-content">
+      <span class="version-badge text-cyan-accent">
+        <i data-lucide="tag" class="icon-xs"></i>
+        v0.3.0 — Beta access
+      </span>
+      <h2 class="type-display cta-title">Ready to unify your library?</h2>
+      <p class="type-body-lg cta-description">
+        Free. No account. Local-first with optional cloud backup.
+        Installs in seconds and gets out of your way.
+      </p>
+      <div class="cta-actions">
+        <a href="releases/Nexus_0.3.0_x64_en-US.msi" class="btn-nexus btn-nexus-lg">
+          <i data-lucide="download" class="icon-base"></i>
+          Download for Windows
+        </a>
+        <a href="https://discord.gg/dh2tDGJNYD" class="btn-ghost" target="_blank" rel="noopener noreferrer">
+          <i data-lucide="message-circle" class="icon-md"></i>
+          Join the community
+        </a>
+        <a href="https://paypal.me/darrenstrydom85" class="btn-ghost" target="_blank" rel="noopener noreferrer">
+          <i data-lucide="heart" class="icon-md"></i>
+          Support the project
+        </a>
       </div>
+      <p class="cta-tech">
+        <span>Windows 10 / 11</span>
+        <span class="cta-tech-dot"></span>
+        <span>x64 MSI</span>
+        <span class="cta-tech-dot"></span>
+        <span>~10 MB</span>
+        <span class="cta-tech-dot"></span>
+        <span>Code-signed</span>
+      </p>
     </div>
   </section>
 
@@ -636,10 +939,16 @@
   <!-- ════════════════════════════════════════════════ -->
   <footer class="footer-nexus">
     <div class="container">
-      <div class="row align-items-center gy-3">
+      <div class="row align-items-center gy-4">
         <div class="col-md-6">
-          <span class="type-footnote text-muted-foreground">
-            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          <div class="d-flex align-items-center flex-wrap gap-3">
+            <span class="type-footnote text-muted-foreground">
+              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
+            </span>
+          </div>
+          <span class="footer-built mt-3 d-inline-flex">
+            <span class="dot" aria-hidden="true"></span>
+            Made with Rust + Tauri
           </span>
         </div>
         <div class="col-md-6 text-md-end">
@@ -674,10 +983,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      lucide.createIcons();
-    });
-  </script>
+  <!-- Nexus interactions -->
+  <script src="assets/js/app.js?v=20260423" defer></script>
 </body>
 </html>
