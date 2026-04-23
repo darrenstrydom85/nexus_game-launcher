@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.1 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.2 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.3.1" class="changelog-latest-pill">
+          <a href="#v0.3.2" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.3.1</span>
+            <span>Latest · v0.3.2</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.3.1_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.3.2_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.3.1
+            Download v0.3.2
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.3.1">
+          <a class="changelog-rail-link is-latest" href="#v0.3.2">
+            <span class="changelog-rail-version">v0.3.2</span>
+            <span class="changelog-rail-date">Apr 23</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.3.1">
             <span class="changelog-rail-version">v0.3.1</span>
             <span class="changelog-rail-date">Apr 23</span>
           </a>
@@ -188,7 +192,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.3.1">v0.3.1 — Apr 23, 2026 (Latest)</option>
+              <option value="v0.3.2">v0.3.2 — Apr 23, 2026 (Latest)</option>
+              <option value="v0.3.1">v0.3.1 — Apr 23, 2026</option>
               <option value="v0.3.0">v0.3.0 — Apr 16, 2026</option>
               <option value="v0.2.1">v0.2.1 — Apr 15, 2026</option>
               <option value="v0.2.0">v0.2.0 — Apr 13, 2026</option>
@@ -234,11 +239,53 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.3.1 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.3.1">
+            <!-- ── v0.3.2 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.2">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.2</h2>
+                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A complete Twitch overhaul. The integration was rebuilt from the ground up to fix recurring token-expiry issues and to unlock a stack of features people have been asking for: an embedded player you can pop out, push-based go-live alerts, top clips for every game in your library, watch-time stats, and a brand-new diagnostics panel.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="play-circle" class="icon-sm"></i>Inline &amp; pop-out Twitch player</li>
+                  <li><i data-lucide="bell" class="icon-sm"></i>Push go-live alerts (EventSub)</li>
+                  <li><i data-lucide="film" class="icon-sm"></i>Top clips per library game</li>
+                  <li><i data-lucide="clock" class="icon-sm"></i>Twitch watch time in Stats &amp; Wrapped</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Embedded Twitch player</strong> — Click a live stream in the Twitch panel and it opens inline with chat alongside it. Hit the pop-out button and it moves into a small, frameless, always-on-top window you can drag anywhere on your desktop while you keep playing. One pop-out per channel; clicking the same stream again just focuses the existing window.</li>
+                    <li><strong>Sign in to Twitch from inside the launcher</strong> — A new "Sign in on Twitch" button on the embed opens a small twitch.tv login window. Once you sign in there, every embed in the launcher is automatically logged in — chat works, the follow button works, and mature-content gates auto-confirm. The session persists across restarts.</li>
+                    <li><strong>Push-based go-live alerts</strong> — A new EventSub WebSocket connection means you get notified the moment a streamer you follow goes live, instead of waiting for the next polling tick. Polling stays on as a 10-minute safety net.</li>
+                    <li><strong>Top clips on every game page</strong> — Each game in your library now shows a row of the top Twitch clips for it (last 7 days). Click a thumbnail to watch the clip in place — no second app, no browser tab.</li>
+                    <li><strong>Twitch watch time in Stats &amp; Wrapped</strong> — Every embedded stream you watch is logged. The Stats page surfaces your last 30 days of Twitch viewing (total time, sessions, top channels and games), and Wrapped folds your annual Twitch hours into your year-in-review.</li>
+                    <li><strong>Twitch diagnostics panel</strong> — A new collapsible section in Settings → Twitch shows your current token state, refresh history, EventSub connection state, rate-limit usage, and last error. There is a one-click "Test connection" button and a copy-to-clipboard button if you ever need to share diagnostics.</li>
+                    <li><strong>Branded HTML callback page</strong> — The Twitch sign-in flow now returns to a styled, auto-closing success page (matching the Google Drive flow) instead of a blank tab.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Self-healing Twitch tokens</strong> — Token management was rebuilt around a centralised, refresh-aware manager. A background worker proactively renews access tokens before they expire, so the integration stops silently breaking after a few hours. Your avatar is also fetched and cached at sign-in time.</li>
+                    <li><strong>Hardened OAuth callback</strong> — Both Twitch and Google Drive sign-in flows now correctly send the full HTML response on Windows before closing the local socket, fixing the blank-page issue some users hit on first connect. The Twitch flow also now validates a CSRF state parameter end-to-end.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.3.1 ── -->
+            <article class="changelog-entry" id="v0.3.1">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.3.1</h2>
-                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026</time>
               </div>
 
               <div class="changelog-entry-body">

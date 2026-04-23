@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import { LiveOnTwitch } from "@/components/GameDetail/LiveOnTwitch";
 import { TwitchStreamRow } from "@/components/GameDetail/TwitchStreamRow";
 import { useTwitchStore } from "@/stores/twitchStore";
@@ -164,7 +165,13 @@ describe("Story 19.5: Live on Twitch section", () => {
     expect(screen.getByText(/No one is streaming Test Game right now/)).toBeInTheDocument();
   });
 
-  it("clicking row calls openUrl with correct URL", async () => {
+  it("clicking row invokes popout_stream instead of opening the browser", async () => {
+    // The game detail screen now launches the same in-app Twitch pop-out
+    // window the main Twitch panel uses. We should invoke `popout_stream`
+    // with the stream's full channel + game context, and *not* fall back to
+    // opening twitch.tv in the OS browser.
+    vi.mocked(invoke).mockClear();
+    vi.mocked(openUrl).mockClear();
     const stream = mockStream("u1", "streamer1", "Streamer1", 100);
     render(
       <TwitchStreamRow
@@ -175,7 +182,16 @@ describe("Story 19.5: Live on Twitch section", () => {
     );
     const row = screen.getByRole("link", { name: /Streamer1 streaming to 100 viewers/ });
     fireEvent.click(row);
-    expect(openUrl).toHaveBeenCalledWith("https://twitch.tv/streamer1");
+    expect(invoke).toHaveBeenCalledWith(
+      "popout_stream",
+      expect.objectContaining({
+        channelLogin: "streamer1",
+        channelDisplayName: "Streamer1",
+        twitchGameId: "123",
+        twitchGameName: "Test Game",
+      }),
+    );
+    expect(openUrl).not.toHaveBeenCalled();
   });
 
   it("section shows when loading (skeleton when expanded)", () => {

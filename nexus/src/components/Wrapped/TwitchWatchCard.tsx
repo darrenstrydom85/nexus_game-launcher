@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Tv } from "lucide-react";
-import { getTwitchWatchYear, type WatchAggregate } from "@/lib/tauri";
-import type { PeriodSelection } from "@/hooks/useWrapped";
+import { getTwitchWatchForRange, type WatchAggregate } from "@/lib/tauri";
+import { selectionToDateRange, type PeriodSelection } from "@/hooks/useWrapped";
 
 interface TwitchWatchCardProps {
   selection: PeriodSelection;
@@ -15,40 +15,32 @@ function fmtHours(secs: number): string {
   return String(Math.round(hours));
 }
 
-function selectionYear(sel: PeriodSelection): number {
-  const now = new Date();
-  if (sel.kind === "year") return sel.year;
-  if (sel.kind === "preset") {
-    if (sel.preset === "last_year") return now.getFullYear() - 1;
-    return now.getFullYear();
-  }
-  // custom: take the year from the start date
-  const parts = sel.startDate.split("-");
-  if (parts[0]) {
-    const y = Number.parseInt(parts[0], 10);
-    if (Number.isFinite(y)) return y;
-  }
-  return now.getFullYear();
-}
-
 /**
- * Year-scoped Twitch watch slide for Wrapped (Story E1).
+ * Period-scoped Twitch watch slide for Wrapped (Story E1).
  *
- * Fetches its own data via `get_twitch_watch_year` rather than threading watch
- * stats through the existing `WrappedReport` pipeline — those reports are built
- * from playtime sessions, while watch sessions live in their own table. The slide
- * silently renders an empty state when there is no data so it is harmless to
- * always include.
+ * Fetches its own data via `get_twitch_watch_for_range` rather than threading
+ * watch stats through the existing `WrappedReport` pipeline -- those reports
+ * are built from playtime sessions, while watch sessions live in their own
+ * table. The slide silently renders an empty state when there is no data so
+ * it is harmless to always include.
  */
 export function TwitchWatchCard({ selection }: TwitchWatchCardProps) {
-  const year = selectionYear(selection);
+  const { startDate, endDate, label } = React.useMemo(
+    () => selectionToDateRange(selection),
+    [selection],
+  );
+
+  // The label flows into both the headline and the empty-state copy. "during"
+  // reads naturally for every preset (`during this month`, `during 2025`,
+  // `during last 30 days`) without needing per-preset prepositions.
+  const phrasedLabel = label;
   const [agg, setAgg] = React.useState<WatchAggregate | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getTwitchWatchYear(year, 5)
+    getTwitchWatchForRange(startDate, endDate, 5)
       .then((data) => {
         if (!cancelled) {
           setAgg(data);
@@ -64,7 +56,7 @@ export function TwitchWatchCard({ selection }: TwitchWatchCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [year]);
+  }, [startDate, endDate]);
 
   if (loading) {
     return (
@@ -91,7 +83,7 @@ export function TwitchWatchCard({ selection }: TwitchWatchCardProps) {
       >
         <Tv className="size-10 text-purple-400" aria-hidden="true" />
         <h2 className="text-xl font-semibold text-foreground">
-          You didn&apos;t catch a Twitch stream in {year}
+          You didn&apos;t catch a Twitch stream during {phrasedLabel.toLowerCase()}
         </h2>
         <p className="max-w-sm text-sm text-muted-foreground">
           Open a stream from the Twitch panel to start tracking your watch time.
@@ -111,8 +103,11 @@ export function TwitchWatchCard({ selection }: TwitchWatchCardProps) {
     >
       <div className="flex items-center gap-2">
         <Tv className="size-5 text-purple-400" aria-hidden="true" />
-        <span className="text-sm uppercase tracking-wider text-muted-foreground">
-          Twitch in {year}
+        <span
+          className="text-sm uppercase tracking-wider text-muted-foreground"
+          data-testid="twitch-watch-card-label"
+        >
+          Twitch · {phrasedLabel}
         </span>
       </div>
 

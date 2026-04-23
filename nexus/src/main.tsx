@@ -9,20 +9,16 @@ import "@fontsource/geist-mono/400.css";
 import "./globals.css";
 import { applyPersistedThemeClassSync } from "./lib/theme";
 import App from "./App";
-import { PopoutPlayer } from "./components/Twitch/PopoutPlayer";
 
 applyPersistedThemeClassSync();
 
 /**
- * Lightweight pathname-based router. We don't need react-router for a single
- * extra surface; the pop-out window is loaded with `WebviewUrl::App("/popout-player?...")`
- * by the Rust `popout_stream` command, so we just inspect `location.pathname`
- * here and mount the appropriate root.
+ * The Twitch pop-out / overlay windows load directly from the local embed
+ * server at `http://localhost:PORT/watch?...` (see
+ * `src-tauri/src/twitch/embed_server.rs`) — not from this bundle — so the
+ * React app only ever renders the main surface here.
  */
 function Root() {
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/popout-player")) {
-    return <PopoutPlayer />;
-  }
   return <App />;
 }
 

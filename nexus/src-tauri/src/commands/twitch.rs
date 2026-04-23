@@ -939,6 +939,27 @@ pub fn get_twitch_watch_year(
     watch_history::aggregate_for_year(&conn, year, top_n.unwrap_or(3))
 }
 
+/// Aggregate Twitch watch history for an arbitrary inclusive date range
+/// (`YYYY-MM-DD` strings, UTC).
+///
+/// Used by both the Stats `Twitch watch time` tile (driven by the date-range
+/// picker) and the Wrapped Twitch slide (driven by the period selector). Pass
+/// the date range that has already been resolved on the frontend so this command
+/// stays free of preset-resolution logic.
+#[tauri::command]
+pub fn get_twitch_watch_for_range(
+    db: State<'_, DbState>,
+    start_date: String,
+    end_date: String,
+    top_n: Option<usize>,
+) -> Result<watch_history::WatchAggregate, CommandError> {
+    let conn = db
+        .conn
+        .lock()
+        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    watch_history::aggregate_for_iso_dates(&conn, &start_date, &end_date, top_n.unwrap_or(3))
+}
+
 // ---------------------------------------------------------------------------
 // Story A1: Twitch stream pop-out window.
 // ---------------------------------------------------------------------------
@@ -955,12 +976,21 @@ fn sanitize_login_for_label(login: &str) -> String {
         .to_ascii_lowercase()
 }
 
-/// Spawn (or focus) an always-on-top Twitch player window for `channel_login`.
+/// Spawn (or focus) a Twitch player window for `channel_login`.
 ///
-/// Dedup logic: each pop-out is identified by `popout-{login}`. If a window with that
-/// label already exists we just `set_focus` it instead of building a duplicate. This
-/// matches the spec ("Single pop-out window per channel; calling popout_stream for the
-/// same channel focuses the existing one").
+/// Each stream is its own regular, freely-draggable Tauri window — no
+/// always-on-top, native decorations, minimise/close like any other window.
+/// Dedup: the label is `popout-{login}`, so calling this twice for the same
+/// channel just focuses the existing window.
+///
+/// ## URL origin
+///
+/// The window loads `http://localhost:PORT/watch?...` from the local embed
+/// server — NOT the packaged React app at `https://tauri.localhost`. That's
+/// the only way to satisfy Twitch's `frame-ancestors` CSP (which requires the
+/// entire ancestor chain to be `localhost`). Native window decorations are
+/// enabled so we don't have to ferry Tauri's drag/close permissions to the
+/// remote origin via capabilities.
 #[tauri::command]
 pub async fn popout_stream(
     app: AppHandle,
@@ -981,38 +1011,220 @@ pub async fn popout_stream(
         return Ok(());
     }
 
-    // Build the in-app URL with all the metadata the React route needs to mount the
-    // embed and start a watch session. We URL-encode every component because Tauri's
-    // `WebviewUrl::App` expects an `&str` that is later parsed as a URL.
-    let mut query = format!("channel={}", urlencoding::encode(&channel_login));
-    if let Some(dn) = channel_display_name.as_deref() {
-        query.push_str(&format!("&display={}", urlencoding::encode(dn)));
-    }
-    if let Some(gid) = twitch_game_id.as_deref() {
-        query.push_str(&format!("&gameId={}", urlencoding::encode(gid)));
-    }
-    if let Some(gn) = twitch_game_name.as_deref() {
-        query.push_str(&format!("&gameName={}", urlencoding::encode(gn)));
-    }
-    let url_path = format!("/popout-player?{}", query);
+    let watch_url = build_watch_url(
+        &app,
+        &channel_login,
+        channel_display_name.as_deref(),
+        twitch_game_id.as_deref(),
+        twitch_game_name.as_deref(),
+    )?;
 
     let title = match channel_display_name.as_deref() {
         Some(dn) => format!("{} · Twitch", dn),
         None => format!("{} · Twitch", channel_login),
     };
 
-    WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(url_path.into()))
+    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(watch_url))
         .title(title)
-        .inner_size(560.0, 360.0)
-        .min_inner_size(320.0, 180.0)
-        .always_on_top(true)
-        .decorations(false)
+        .inner_size(1024.0, 640.0)
+        .min_inner_size(480.0, 320.0)
+        .decorations(true)
         .resizable(true)
         .skip_taskbar(false)
+        // Must match the main window so the WebView2 data directory (and
+        // therefore the Twitch cookie jar) is shared across windows.
+        .additional_browser_args(NEXUS_WEBVIEW_ARGS)
         .build()
         .map_err(|e| CommandError::Unknown(format!("failed to create pop-out: {e}")))?;
 
+    register_watch_session_for_window(
+        &app,
+        &window,
+        &channel_login,
+        channel_display_name.as_deref(),
+        twitch_game_id.as_deref(),
+        twitch_game_name.as_deref(),
+    );
+
     Ok(())
+}
+
+/// Build the `http://localhost:PORT/watch?...` URL the pop-out windows load.
+/// Pulls the embed-server base URL and random API token from Tauri state.
+fn build_watch_url(
+    app: &AppHandle,
+    channel_login: &str,
+    channel_display_name: Option<&str>,
+    twitch_game_id: Option<&str>,
+    twitch_game_name: Option<&str>,
+) -> Result<tauri::Url, CommandError> {
+    let base = app
+        .try_state::<TwitchEmbedBaseUrl>()
+        .map(|s| s.0.clone())
+        .unwrap_or_default();
+    if base.is_empty() {
+        return Err(CommandError::Unknown(
+            "Twitch embed server is not running".to_string(),
+        ));
+    }
+    let token = app
+        .try_state::<TwitchEmbedToken>()
+        .map(|s| s.0.clone())
+        .unwrap_or_default();
+
+    let mut query = format!(
+        "channel={}&token={}",
+        urlencoding::encode(channel_login),
+        urlencoding::encode(&token),
+    );
+    if let Some(dn) = channel_display_name {
+        query.push_str(&format!("&display={}", urlencoding::encode(dn)));
+    }
+    if let Some(gid) = twitch_game_id {
+        query.push_str(&format!("&gameId={}", urlencoding::encode(gid)));
+    }
+    if let Some(gn) = twitch_game_name {
+        query.push_str(&format!("&gameName={}", urlencoding::encode(gn)));
+    }
+    let url = format!("{base}/watch?{query}");
+    url.parse::<tauri::Url>()
+        .map_err(|e| CommandError::Unknown(format!("bad watch url: {e}")))
+}
+
+/// Tauri-managed wrapper around the local Twitch embed server's base URL
+/// (e.g. `http://localhost:53127`). Populated by `lib.rs` during setup; the
+/// frontend reads it via [`get_twitch_embed_base_url`] and uses it to build
+/// `<iframe src="...">` URLs that satisfy Twitch's `parent=` validation.
+///
+/// See `crate::twitch::embed_server` for the rationale.
+pub struct TwitchEmbedBaseUrl(pub String);
+
+/// Random per-session token required to call the embed server's `/__api/*`
+/// endpoints (and to load `/watch`). Generated at startup by
+/// `embed_server::start` and stashed in Tauri state so Rust-side code that
+/// builds watch URLs can include `?token=...` in them.
+pub struct TwitchEmbedToken(pub String);
+
+/// Tracks active Twitch watch sessions by the window label that owns them.
+/// Populated by [`popout_stream`] when it builds a window, and drained on the
+/// window's `Destroyed` event to compute duration and call
+/// [`crate::twitch::watch_history::end_session`].
+///
+/// Moving this bookkeeping from the frontend `useWatchSession` hook to Rust
+/// was necessary because the popout / overlay windows now load directly from
+/// the local HTTP embed server (`http://localhost:PORT/watch?...`) — a page
+/// whose React bundle and `invoke` runtime have been stripped out. Tracking
+/// via the window lifecycle is also more reliable (a crashed process can't
+/// skip the unload handler).
+pub struct WatchSessionRegistry(pub std::sync::Mutex<std::collections::HashMap<String, (i64, std::time::Instant)>>);
+
+impl Default for WatchSessionRegistry {
+    fn default() -> Self {
+        Self(std::sync::Mutex::new(std::collections::HashMap::new()))
+    }
+}
+
+/// Record a started Twitch watch session for the given Tauri window, and wire
+/// the window's `Destroyed` event to close the session with the elapsed time.
+fn register_watch_session_for_window<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    window: &tauri::WebviewWindow<R>,
+    channel_login: &str,
+    channel_display_name: Option<&str>,
+    twitch_game_id: Option<&str>,
+    twitch_game_name: Option<&str>,
+) {
+    let db = match app.try_state::<DbState>() {
+        Some(d) => d,
+        None => return,
+    };
+    let session_id = {
+        let conn = match db.conn.lock() {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+        match crate::twitch::watch_history::start_session(
+            &conn,
+            channel_login,
+            channel_display_name,
+            twitch_game_id,
+            twitch_game_name,
+            None,
+        ) {
+            Ok(id) => id,
+            Err(e) => {
+                eprintln!("[twitch-watch] start_session failed: {e:?}");
+                return;
+            }
+        }
+    };
+
+    let label = window.label().to_string();
+    if let Some(reg) = app.try_state::<WatchSessionRegistry>() {
+        if let Ok(mut map) = reg.0.lock() {
+            map.insert(label.clone(), (session_id, std::time::Instant::now()));
+        }
+    }
+
+    let app_for_event = app.clone();
+    window.on_window_event(move |e| {
+        if matches!(e, tauri::WindowEvent::Destroyed) {
+            end_watch_session_for_label(&app_for_event, &label);
+        }
+    });
+}
+
+fn end_watch_session_for_label<R: tauri::Runtime>(app: &tauri::AppHandle<R>, label: &str) {
+    let removed = match app.try_state::<WatchSessionRegistry>() {
+        Some(reg) => match reg.0.lock() {
+            Ok(mut map) => map.remove(label),
+            Err(_) => return,
+        },
+        None => return,
+    };
+    let (session_id, started) = match removed {
+        Some(v) => v,
+        None => return,
+    };
+    let dur = started.elapsed().as_secs() as i64;
+    if let Some(db) = app.try_state::<DbState>() {
+        if let Ok(conn) = db.conn.lock() {
+            let _ = crate::twitch::watch_history::end_session(&conn, session_id, dur);
+        }
+    }
+}
+
+/// WebView2 command-line arguments applied to every window the launcher creates.
+///
+/// **IMPORTANT: do NOT add `--disable-web-security` here.** It strips the
+/// `Origin` header from every `fetch`, including the internal `ipc.localhost`
+/// requests Tauri uses for `invoke(...)`. Tauri rejects Origin-less IPC with
+/// HTTP 500 (`missing Origin header`), which breaks *every* settings read,
+/// onboarding check, DB query, etc. Twitch CSP is worked around by hosting
+/// the embed pages on `http://localhost:PORT` (see `twitch::embed_server` and
+/// [`build_watch_url`]) instead.
+///
+/// **Why this is shared**: Tauri requires every window in the app to use the
+/// same `additionalBrowserArgs` value, otherwise each window gets its own
+/// WebView2 data directory and they stop sharing the cookie jar — which would
+/// break the in-app Twitch login (it relies on the cookie jar being shared
+/// between the login window and the embed iframes).
+///
+/// The flags repeat the defaults Tauri normally injects
+/// (`msWebOOUI,msPdfOOUI,msSmartScreenProtection`) because setting this field
+/// replaces the default list — we have to opt back in to keep them.
+pub const NEXUS_WEBVIEW_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,BlockInsecurePrivateNetworkRequests --autoplay-policy=no-user-gesture-required";
+
+/// Return the base URL of the local Twitch embed server (e.g.
+/// `http://localhost:53127`). Frontend appends `/player?channel=...` or
+/// `/chat?channel=...` to construct iframe `src` URLs.
+///
+/// Returns an empty string if the server failed to start (the frontend then
+/// falls back to the direct twitch.tv embed URL — which works in `tauri dev`
+/// but not in packaged builds).
+#[tauri::command]
+pub fn get_twitch_embed_base_url(state: State<'_, TwitchEmbedBaseUrl>) -> String {
+    state.0.clone()
 }
 
 /// Stable label for the in-app Twitch login helper window.
@@ -1054,6 +1266,10 @@ pub async fn open_twitch_login(app: AppHandle) -> Result<(), CommandError> {
     .resizable(true)
     .decorations(true)
     .skip_taskbar(false)
+    // Must match every other window so the WebView2 data directory (cookie
+    // jar) is shared. Without this the user's twitch.tv login wouldn't
+    // propagate to the embed iframes in the main and pop-out windows.
+    .additional_browser_args(NEXUS_WEBVIEW_ARGS)
     .build()
     .map_err(|e| CommandError::Unknown(format!("failed to open login window: {e}")))?;
 

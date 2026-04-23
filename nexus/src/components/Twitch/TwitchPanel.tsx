@@ -9,7 +9,6 @@ import { formatRelativeTime } from "@/lib/time";
 import { TwitchConnectPrompt } from "./TwitchConnectPrompt";
 import { TwitchEmptyState } from "./TwitchEmptyState";
 import { StreamCard } from "./StreamCard";
-import { StreamEmbed } from "./StreamEmbed";
 import { OfflineChannelRow } from "./OfflineChannelRow";
 import { TrendingInLibrary } from "./TrendingInLibrary";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
@@ -55,26 +54,23 @@ export function TwitchPanel() {
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const [offlineOpen, setOfflineOpen] = React.useState(false);
   const [gameFilter, setGameFilter] = React.useState<string>("");
-  // One inline embed at a time; clicking another stream replaces the current one
-  // (no carousel of running iframes — Twitch caps concurrent embeds and the user
-  // typically only watches one stream at a time).
-  const [embedStream, setEmbedStream] = React.useState<LiveStreamItem | null>(
-    null,
-  );
 
-  // Pop the current embed into a separate always-on-top window (Story A1).
-  // The Tauri command dedupes per channel internally, so calling it twice for
-  // the same stream just focuses the existing window.
-  const handlePopOut = React.useCallback((stream: LiveStreamItem) => {
+  // Clicking a stream opens an in-app overlay window (Rust command spawns a
+  // native Tauri window at `http://localhost:PORT/watch?...` — the only way
+  // to satisfy Twitch's `frame-ancestors` CSP in packaged builds, since that
+  // rejects `tauri.localhost` and chain-evaluates the whole ancestor list).
+  // Each stream gets its own regular Tauri window — draggable, minimisable,
+  // not always-on-top — keyed by `popout-{login}` so re-selecting the same
+  // channel just focuses the existing window.
+  const handleSelectStream = React.useCallback((stream: LiveStreamItem) => {
     void invoke("popout_stream", {
       channelLogin: stream.login,
       channelDisplayName: stream.displayName,
       twitchGameId: stream.gameId || null,
       twitchGameName: stream.gameName || null,
-    }).catch(() => {});
-    // Close the inline embed: the watch session it owns ends, the pop-out window
-    // starts its own session. We avoid double-counting watch time this way.
-    setEmbedStream(null);
+    }).catch((e) => {
+      console.error("[twitch] popout_stream failed:", e);
+    });
   }, []);
   const activeNav = useUiStore((s) => s.activeNav);
   const twitchPanelScrollToGameName = useUiStore(
@@ -374,26 +370,11 @@ export function TwitchPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Inline stream player (Story A1) — replaces the clicked StreamCard's preview
-            with a live Twitch embed in-place. We render it above Trending so the user
-            sees it without scrolling. */}
-        {embedStream && (
-          <section
-            className="mb-6"
-            aria-label={`Embedded stream: ${embedStream.displayName}`}
-          >
-            <div className="aspect-video w-full overflow-hidden rounded-md md:aspect-auto md:h-[min(78vh,820px)] md:min-h-[520px]">
-              <StreamEmbed
-                channelLogin={embedStream.login}
-                channelDisplayName={embedStream.displayName}
-                twitchGameId={embedStream.gameId || null}
-                twitchGameName={embedStream.gameName || null}
-                onClose={() => setEmbedStream(null)}
-                onPopOut={() => handlePopOut(embedStream)}
-              />
-            </div>
-          </section>
-        )}
+        {/* Clicking a live stream opens an in-app overlay window served from
+            `http://localhost:PORT/watch?...` (see
+            `src-tauri/src/twitch/embed_server.rs`). We no longer render an
+            inline iframe here — Twitch's `frame-ancestors` CSP rejects the
+            `tauri.localhost` top-level origin in packaged builds. */}
 
         {/* Trending in Your Library (Story 19.9) */}
         <TrendingInLibrary />
@@ -466,7 +447,7 @@ export function TwitchPanel() {
                       }
                       favoritesCount={favoritesCount}
                       maxFavorites={MAX_FAVORITES}
-                      onSelect={(s) => setEmbedStream(s)}
+                      onSelect={handleSelectStream}
                     />
                   </div>
                 );

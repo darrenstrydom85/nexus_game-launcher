@@ -1,6 +1,6 @@
 [package]
 name = "Nexus"
-version = "0.3.1"
+version = "0.3.2"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 dotenvy = "0.15"
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset", "image-ico", "tray-icon"] }
+tauri = { version = "2", features = ["protocol-asset", "image-ico", "tray-icon", "devtools"] }
 tauri-plugin-opener = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-shell = "2"

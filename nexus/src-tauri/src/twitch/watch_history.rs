@@ -15,6 +15,7 @@ use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::commands::error::CommandError;
+use crate::commands::utils::{date_only_to_end_epoch_secs, date_only_to_start_epoch_secs};
 
 fn now_secs() -> i64 {
     SystemTime::now()
@@ -199,6 +200,32 @@ pub fn aggregate_for_recent_days(
     aggregate_for_period(conn, from, now + 1, top_n)
 }
 
+/// Aggregate watch sessions inside an inclusive ISO-date window
+/// (`start_date` and `end_date` both `YYYY-MM-DD`, **inclusive**).
+///
+/// This is the primitive used by the date-range-aware Stats and Wrapped commands:
+/// callers compute the range from any preset/custom selection and we just convert
+/// to unix seconds here so the underlying [`aggregate_for_period`] query is reused.
+///
+/// `start_date` is converted to 00:00:00 UTC and `end_date` to 23:59:59 UTC, then
+/// `+ 1` second so the half-open `[from, to)` query in [`aggregate_for_period`]
+/// still includes the last second of the end date.
+pub fn aggregate_for_iso_dates(
+    conn: &Connection,
+    start_date: &str,
+    end_date: &str,
+    top_n: usize,
+) -> Result<WatchAggregate, CommandError> {
+    let from = date_only_to_start_epoch_secs(start_date).map_err(CommandError::Parse)?;
+    let to_inclusive = date_only_to_end_epoch_secs(end_date).map_err(CommandError::Parse)?;
+    if from > to_inclusive {
+        return Err(CommandError::Parse(
+            "start_date must be <= end_date".to_string(),
+        ));
+    }
+    aggregate_for_period(conn, from, to_inclusive + 1, top_n)
+}
+
 /// Aggregate the entire calendar year (UTC) — used by the Wrapped slide.
 pub fn aggregate_for_year(
     conn: &Connection,
@@ -318,5 +345,64 @@ mod tests {
         let agg = aggregate_for_recent_days(&conn, 30, 5).unwrap();
         assert_eq!(agg.totals.total_secs, 0);
         assert_eq!(agg.totals.session_count, 0);
+    }
+
+    /// Helper: insert a session with a synthetic `started_at` so we can test
+    /// date-range filtering deterministically (without waiting for real time).
+    fn insert_session_at(conn: &Connection, login: &str, started_at: i64, duration: i64) {
+        conn.execute(
+            "INSERT INTO twitch_watch_sessions
+                (channel_login, started_at, ended_at, duration_secs)
+             VALUES (?1, ?2, ?2 + ?3, ?3)",
+            params![login, started_at, duration],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn aggregate_for_iso_dates_includes_inclusive_end_day() {
+        let conn = fresh_conn();
+        // 2025-04-15 12:00 UTC
+        insert_session_at(&conn, "shroud", 1_744_718_400, 60);
+        // 2025-04-23 23:59:30 UTC -- still inside Apr 23
+        insert_session_at(&conn, "ninja", 1_745_452_770, 30);
+
+        let agg = aggregate_for_iso_dates(&conn, "2025-04-15", "2025-04-23", 5).unwrap();
+        assert_eq!(agg.totals.session_count, 2);
+        assert_eq!(agg.totals.total_secs, 90);
+    }
+
+    #[test]
+    fn aggregate_for_iso_dates_excludes_outside_range() {
+        let conn = fresh_conn();
+        // 2025-04-14 23:59 UTC -- before the window
+        insert_session_at(&conn, "before", 1_744_675_140, 100);
+        // 2025-04-15 00:00:01 UTC -- inside
+        insert_session_at(&conn, "inside", 1_744_675_201, 50);
+        // 2025-04-24 00:00:01 UTC -- after the window
+        insert_session_at(&conn, "after", 1_745_452_801, 200);
+
+        let agg = aggregate_for_iso_dates(&conn, "2025-04-15", "2025-04-23", 5).unwrap();
+        assert_eq!(agg.totals.session_count, 1);
+        assert_eq!(agg.top_channels[0].channel_login, "inside");
+    }
+
+    #[test]
+    fn aggregate_for_iso_dates_rejects_inverted_range() {
+        let conn = fresh_conn();
+        let err = aggregate_for_iso_dates(&conn, "2025-04-23", "2025-04-15", 5).unwrap_err();
+        match err {
+            CommandError::Parse(msg) => assert!(msg.contains("<=")),
+            other => panic!("expected Parse error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aggregate_for_iso_dates_single_day_works() {
+        let conn = fresh_conn();
+        insert_session_at(&conn, "x", 1_744_718_400, 42); // 2025-04-15 12:00 UTC
+        let agg = aggregate_for_iso_dates(&conn, "2025-04-15", "2025-04-15", 5).unwrap();
+        assert_eq!(agg.totals.session_count, 1);
+        assert_eq!(agg.totals.total_secs, 42);
     }
 }

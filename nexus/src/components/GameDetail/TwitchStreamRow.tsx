@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import { Eye } from "lucide-react";
 import type { TwitchStreamByGame } from "@/lib/tauri";
 import { formatDuration, uptimeSeconds } from "@/lib/time";
@@ -20,15 +20,30 @@ export function TwitchStreamRow({
   const uptime = formatDuration(uptimeSeconds(stream.startedAt));
   const ariaLabel = `${stream.displayName} streaming to ${viewerCount} viewers`;
 
+  // Launch the same in-app pop-out window the Twitch panel uses so clicking a
+  // stream from the game detail screen plays it directly inside Nexus rather
+  // than kicking out to the browser. Dedup is handled Rust-side by the
+  // `popout-{login}` window label.
+  const openStream = () => {
+    void invoke("popout_stream", {
+      channelLogin: stream.login,
+      channelDisplayName: stream.displayName,
+      twitchGameId: stream.gameId || null,
+      twitchGameName: stream.gameName || null,
+    }).catch((e) => {
+      console.error("[twitch] popout_stream failed:", e);
+    });
+  };
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    openUrl(url).catch(() => {});
+    openStream();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
-    openUrl(url).catch(() => {});
+    openStream();
   };
 
   return (

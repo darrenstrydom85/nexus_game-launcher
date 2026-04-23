@@ -600,6 +600,23 @@ export function getTwitchWatchYear(
   return invoke<WatchAggregate>("get_twitch_watch_year", { year, topN });
 }
 
+/**
+ * Aggregate Twitch watch history for an arbitrary inclusive date range
+ * (`YYYY-MM-DD` strings, UTC). Powers the date-range-aware Stats tile and
+ * Wrapped slide so they follow the same selector as the rest of the report.
+ */
+export function getTwitchWatchForRange(
+  startDate: string,
+  endDate: string,
+  topN = 3,
+): Promise<WatchAggregate> {
+  return invoke<WatchAggregate>("get_twitch_watch_for_range", {
+    startDate,
+    endDate,
+    topN,
+  });
+}
+
 // ── Version / Update Check (JSONBin) ─────────────────────────────────────
 export interface UpdateCheckResult {
   updateAvailable: boolean;

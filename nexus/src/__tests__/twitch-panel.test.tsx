@@ -261,48 +261,13 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
   });
 
-  it("clicking pop-out invokes popout_stream once with channel context (Story A1)", async () => {
-    vi.mocked(invoke).mockImplementation((cmd: string) => {
-      if (cmd === "validate_twitch_token") return Promise.resolve({ authenticated: true });
-      if (cmd === "twitch_auth_status") return Promise.resolve({ authenticated: true });
-      if (cmd === "get_twitch_followed_channels") {
-        return Promise.resolve({
-          data: [mockChannelLive],
-          stale: false,
-          cachedAt: null,
-        });
-      }
-      if (cmd === "twitch_watch_session_start") return Promise.resolve(1);
-      if (cmd === "twitch_watch_session_end") return Promise.resolve();
-      if (cmd === "popout_stream") return Promise.resolve();
-      return Promise.resolve({});
-    });
-    render(<TwitchPanel />);
-    await waitFor(() =>
-      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByLabelText(/Streamer1 streaming/));
-    await waitFor(() =>
-      expect(screen.getByTestId("stream-embed")).toBeInTheDocument(),
-    );
-
-    fireEvent.click(screen.getByTestId("stream-embed-popout"));
-    expect(invoke).toHaveBeenCalledWith(
-      "popout_stream",
-      expect.objectContaining({
-        channelLogin: "streamer1",
-        channelDisplayName: "Streamer1",
-        twitchGameId: "123",
-        twitchGameName: "Test Game",
-      }),
-    );
-    // Inline embed unmounts (the pop-out owns the session now).
-    await waitFor(() =>
-      expect(screen.queryByTestId("stream-embed")).not.toBeInTheDocument(),
-    );
-  });
-
-  it("clicking stream card opens inline StreamEmbed (Story A1)", async () => {
+  it("clicking a stream card invokes popout_stream with full channel context", async () => {
+    // Twitch's frame-ancestors CSP rejects the `tauri.localhost` top-level
+    // origin, so we can no longer embed the player inline in this webview.
+    // Clicking a stream card now delegates to the Rust `popout_stream`
+    // command, which spawns a dedicated Tauri window (draggable, native
+    // decorations, not always-on-top) loading the player from
+    // `http://localhost:PORT/watch?...` (see `twitch/embed_server.rs`).
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "validate_twitch_token") {
         return Promise.resolve({ authenticated: true });
@@ -317,24 +282,31 @@ describe("Story 19.4: Followed Streams Panel", () => {
           cachedAt: null,
         });
       }
-      if (cmd === "twitch_watch_session_start") {
-        return Promise.resolve(42);
-      }
-      if (cmd === "twitch_watch_session_end") {
+      if (cmd === "popout_stream") {
         return Promise.resolve();
       }
       return Promise.resolve({});
     });
     render(<TwitchPanel />);
-    await waitFor(() => {
-      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument();
-    });
-    const card = screen.getByLabelText(/Streamer1 streaming/);
-    fireEvent.click(card);
-    // Inline embed should mount; openUrl is no longer the default click handler.
-    await waitFor(() => {
-      expect(screen.getByTestId("stream-embed")).toBeInTheDocument();
-    });
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByLabelText(/Streamer1 streaming/));
+
+    expect(invoke).toHaveBeenCalledWith(
+      "popout_stream",
+      expect.objectContaining({
+        channelLogin: "streamer1",
+        channelDisplayName: "Streamer1",
+        twitchGameId: "123",
+        twitchGameName: "Test Game",
+      }),
+    );
+    // The inline <StreamEmbed> is no longer rendered; the pop-out window owns
+    // the player and chat UI now.
+    expect(screen.queryByTestId("stream-embed")).not.toBeInTheDocument();
+    // The panel should not fall back to opening twitch.tv in the browser.
     expect(openUrl).not.toHaveBeenCalledWith("https://twitch.tv/streamer1");
   });
 

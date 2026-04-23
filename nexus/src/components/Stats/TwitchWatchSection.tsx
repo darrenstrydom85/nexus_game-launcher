@@ -1,9 +1,17 @@
 import * as React from "react";
 import { Tv } from "lucide-react";
-import { getTwitchWatchStats, type WatchAggregate } from "@/lib/tauri";
+import { getTwitchWatchForRange, type WatchAggregate } from "@/lib/tauri";
 import { useTwitchStore } from "@/stores/twitchStore";
+import type { StatsDateRange } from "@/components/Library/LibraryStats";
 
-const PERIOD_DAYS = 30;
+interface TwitchWatchSectionProps {
+  /**
+   * The active stats date range. The Twitch tile mirrors the rest of the Stats
+   * page so users see the same window everywhere. `"all"` falls back to a
+   * 1970→today range so the underlying aggregate query covers everything.
+   */
+  dateRange: StatsDateRange;
+}
 
 function fmtHours(secs: number): string {
   if (secs <= 0) return "0h";
@@ -16,23 +24,87 @@ function fmtHours(secs: number): string {
   return `${Math.round(hours)}h`;
 }
 
+function todayIsoDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Resolves a {@link StatsDateRange} into the `(startDate, endDate, label)` triple
+ * the backend expects. `"all"` collapses to a 1970→today range so the same
+ * inclusive-date primitive can serve every preset.
+ */
+function resolveRange(range: StatsDateRange): {
+  startDate: string;
+  endDate: string;
+  label: string;
+} {
+  if (range === "all") {
+    return {
+      startDate: "1970-01-01",
+      endDate: todayIsoDate(),
+      label: "all time",
+    };
+  }
+  return {
+    startDate: range.start,
+    endDate: range.end,
+    label: rangeLabel(range.start, range.end),
+  };
+}
+
+/**
+ * Human label for a date range. Mirrors the format used elsewhere in stats so
+ * the Twitch tile feels native (e.g. "Apr 1 - Apr 23, 2026").
+ */
+function rangeLabel(startIso: string, endIso: string): string {
+  const start = new Date(`${startIso}T00:00:00Z`);
+  const end = new Date(`${endIso}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return `${startIso} - ${endIso}`;
+  }
+  const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+  const fmtMonthDay = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  const fmtFull = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  if (startIso === endIso) return fmtFull.format(start);
+  if (sameYear) {
+    return `${fmtMonthDay.format(start)} - ${fmtFull.format(end)}`;
+  }
+  return `${fmtFull.format(start)} - ${fmtFull.format(end)}`;
+}
+
 /**
  * "Twitch watch time" section for the Stats view (Story E1).
  *
- * Shows the user's Twitch viewing in the last 30 days: total watched, top 3
- * channels, top 3 games. Self-hides when there is nothing to show (no auth, no
- * sessions yet) so it does not clutter the stats page for users who have not
- * used the embedded player.
+ * Shows the user's Twitch viewing inside the Stats date range: total watched,
+ * top 3 channels, top 3 games. Self-hides when there is nothing to show
+ * (no auth, no sessions yet) so it does not clutter the stats page for users
+ * who have not used the embedded player.
  */
-export function TwitchWatchSection() {
+export function TwitchWatchSection({ dateRange }: TwitchWatchSectionProps) {
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
   const [agg, setAgg] = React.useState<WatchAggregate | null>(null);
   const [loading, setLoading] = React.useState(true);
 
+  // Resolve once per render; stable string keys keep the effect deps quiet.
+  const { startDate, endDate, label } = React.useMemo(
+    () => resolveRange(dateRange),
+    [dateRange],
+  );
+
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getTwitchWatchStats(PERIOD_DAYS)
+    getTwitchWatchForRange(startDate, endDate, 3)
       .then((data) => {
         if (!cancelled) {
           setAgg(data);
@@ -48,7 +120,7 @@ export function TwitchWatchSection() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, startDate, endDate]);
 
   if (loading) return null;
   // Defensive null/undefined guards: in tests (and during initial bootstrap)
@@ -69,8 +141,11 @@ export function TwitchWatchSection() {
         <h3 className="text-sm font-semibold text-foreground">
           Twitch watch time
         </h3>
-        <span className="ml-auto text-xs text-muted-foreground">
-          last {PERIOD_DAYS} days
+        <span
+          className="ml-auto text-xs text-muted-foreground"
+          data-testid="twitch-watch-range-label"
+        >
+          {label}
         </span>
       </div>
 

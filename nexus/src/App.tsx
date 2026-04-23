@@ -56,7 +56,7 @@ import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
 import { twitchAuthStatus } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
-import { CloseConfirmDialog } from "@/components/Settings/CloseConfirmDialog";
+import { CloseDialogHost } from "@/components/Settings/CloseDialogHost";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
 import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
@@ -116,7 +116,6 @@ function MainApp() {
   const [healthModalOpen, setHealthModalOpen] = React.useState(false);
   const [healthDeadGames, setHealthDeadGames] = React.useState<DeadGame[]>([]);
   const [updateDialogOpen, setUpdateDialogOpen] = React.useState(false);
-  const [closeConfirmDialogOpen, setCloseConfirmDialogOpen] = React.useState(false);
   const updateCheckTriggered = React.useRef(false);
   const runUpdateCheck = useUpdateStore((s) => s.runCheck);
 
@@ -192,10 +191,6 @@ function MainApp() {
 
 
   useSettingsApplier();
-
-  useTauriEvent<unknown>("nexus://show-close-dialog", () => {
-    setCloseConfirmDialogOpen(true);
-  });
 
   // Tray right-click menu navigation: the Rust side emits the bare nav id (e.g. "library",
   // "twitch") when the user clicks a nav entry in the tray context menu. Validate against
@@ -846,10 +841,6 @@ function MainApp() {
         open={updateDialogOpen}
         onClose={() => setUpdateDialogOpen(false)}
       />
-      <CloseConfirmDialog
-        open={closeConfirmDialogOpen}
-        onClose={() => setCloseConfirmDialogOpen(false)}
-      />
       <ProcessPickerModal
         open={showProcessPicker}
         gameName={activeSession?.gameName ?? ""}
@@ -984,21 +975,28 @@ function App() {
     );
   }
 
-  if (!isOnboardingCompleted) {
-    return (
-      <OnboardingWizard>
-        {{
-          welcome: <WelcomeStep />,
-          steamgriddb: <SteamGridDBStep />,
-          igdb: <IGDBStep />,
-          sources: <SourcesStep />,
-          confirm: <ConfirmLibraryStep />,
-        }}
-      </OnboardingWizard>
-    );
-  }
-
-  return <MainApp />;
+  // `CloseDialogHost` must live OUTSIDE the onboarding/main switch so the
+  // `nexus://show-close-dialog` listener and dialog render are mounted in every
+  // state -- otherwise the titlebar close button does nothing during onboarding
+  // (Rust prevents the close and emits the event, but no one is listening).
+  return (
+    <>
+      <CloseDialogHost />
+      {!isOnboardingCompleted ? (
+        <OnboardingWizard>
+          {{
+            welcome: <WelcomeStep />,
+            steamgriddb: <SteamGridDBStep />,
+            igdb: <IGDBStep />,
+            sources: <SourcesStep />,
+            confirm: <ConfirmLibraryStep />,
+          }}
+        </OnboardingWizard>
+      ) : (
+        <MainApp />
+      )}
+    </>
+  );
 }
 
 export default App;

@@ -83,9 +83,11 @@ use commands::{
         build_token_manager, check_connectivity, clear_twitch_cache, get_twitch_clips_for_game,
         get_twitch_diagnostics, get_twitch_followed_channels, get_twitch_live_streams,
         get_twitch_streams_by_game, get_twitch_trending_library_games, get_twitch_watch_stats,
-        get_twitch_watch_year, open_twitch_login, popout_stream, set_twitch_favorite,
-        twitch_auth_logout, twitch_auth_start, twitch_auth_status, twitch_test_connection,
-        twitch_watch_session_end, twitch_watch_session_start, validate_twitch_token,
+        get_twitch_embed_base_url, get_twitch_watch_for_range, get_twitch_watch_year,
+        open_twitch_login, popout_stream,
+        set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
+        twitch_test_connection, twitch_watch_session_end, twitch_watch_session_start,
+        validate_twitch_token, TwitchEmbedBaseUrl,
     },
     backup::{
         gdrive_auth_start, gdrive_auth_status, gdrive_auth_logout,
@@ -295,6 +297,49 @@ pub fn run() {
             setup_tray(app)?;
             commands::backup::start_backup_scheduler(app.handle().clone());
 
+            // Twitch embed-iframe proxy. Twitch refuses to render player.twitch.tv
+            // and the chat embed when the parent's hostname is `tauri.localhost`
+            // (the WebView2 origin in packaged Tauri 2 builds on Windows). We bind
+            // a tiny HTTP server on `localhost:PORT` that serves wrapper pages
+            // for the embeds with `parent=localhost`, which Twitch accepts. The
+            // resolved base URL is stashed in app state so the React frontend
+            // can read it via `get_twitch_embed_base_url`.
+            let embed_info = match crate::twitch::embed_server::start(app.handle().clone()) {
+                Ok(info) => {
+                    eprintln!("[twitch-embed] proxy listening at {}", info.base);
+                    info
+                }
+                Err(e) => {
+                    eprintln!("[twitch-embed] failed to start: {e}");
+                    crate::twitch::embed_server::EmbedServerInfo {
+                        base: String::new(),
+                        token: String::new(),
+                    }
+                }
+            };
+            app.manage(TwitchEmbedBaseUrl(embed_info.base.clone()));
+            app.manage(crate::commands::twitch::TwitchEmbedToken(embed_info.token.clone()));
+            app.manage(crate::commands::twitch::WatchSessionRegistry::default());
+
+            // The embed server (see `twitch/embed_server.rs`) can't invoke Tauri
+            // commands directly, so it proxies the in-embed "Sign in" action
+            // through this event. We translate it into the real command here
+            // so the embed server stays decoupled from command internals.
+            {
+                let app_for_signin = app.handle().clone();
+                app.listen("nexus://embed-api/signin", move |_evt| {
+                    let app = app_for_signin.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = commands::twitch::open_twitch_login(app).await;
+                    });
+                });
+            }
+
+            // The `devtools` Cargo feature on `tauri` keeps DevTools available
+            // in release builds (right-click anywhere → Inspect, or F12) so we
+            // can diagnose webview issues from the packaged MSI. We do not
+            // auto-open it — that's diagnostic-build only.
+
             if let Some(db) = app.try_state::<DbState>() {
                 if let Ok(conn) = db.conn.lock() {
                     let _ = commands::streak::recalculate_streak_inner(&conn);
@@ -428,8 +473,10 @@ pub fn run() {
             twitch_watch_session_end,
             get_twitch_watch_stats,
             get_twitch_watch_year,
+            get_twitch_watch_for_range,
             popout_stream,
             open_twitch_login,
+            get_twitch_embed_base_url,
             get_twitch_clips_for_game,
             get_twitch_diagnostics,
             twitch_test_connection,

@@ -604,8 +604,10 @@ export function LibraryStats({
             />
           </div>
 
-          {/* 5.5. Twitch watch time — Story E1 (self-hides if no sessions) */}
-          <TwitchWatchSection />
+          {/* 5.5. Twitch watch time — Story E1 (self-hides if no sessions). */}
+          {/* Mirrors the active stats date range so the Twitch tile follows */}
+          {/* the same selector as the rest of the page. */}
+          <TwitchWatchSection dateRange={dateRange} />
 
           {/* 6. Milestone History — achievement log */}
           <MilestoneHistorySection sessionIds={milestoneSessionIds} />

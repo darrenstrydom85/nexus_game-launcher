@@ -7,6 +7,7 @@
 pub mod api;
 pub mod auth;
 pub mod cache;
+pub mod embed_server;
 pub mod eventsub_worker;
 pub mod refresh_worker;
 pub mod token_manager;
