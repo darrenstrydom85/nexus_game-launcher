@@ -40,18 +40,8 @@
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Nexus",
-        "item": "https://www.nexusgamelauncher.com/"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Privacy Policy",
-        "item": "https://www.nexusgamelauncher.com/privacy.html"
-      }
+      { "@type": "ListItem", "position": 1, "name": "Nexus", "item": "https://www.nexusgamelauncher.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": "https://www.nexusgamelauncher.com/privacy.html" }
     ]
   }
   </script>
@@ -73,13 +63,16 @@
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
 
-  <!-- Nexus Obsidian theme -->
-  <link href="assets/css/style.css?v=20260312" rel="stylesheet">
+  <!-- Nexus Obsidian theme v2 -->
+  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
 </head>
 <body>
+
+  <!-- Scroll progress bar -->
+  <div class="scroll-progress" aria-hidden="true"></div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- NAVBAR                                          -->
@@ -91,6 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.0 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,8 +93,9 @@
       <div class="collapse navbar-collapse" id="navMain">
         <ul class="navbar-nav ms-auto align-items-center gap-1">
           <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#screenshots">Screenshots</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#download">Download</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#showcase">Showcase</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#tech">Tech</a></li>
+          <li class="nav-item"><a class="nav-link" href="changelog.html">Changelog</a></li>
           <li class="nav-item">
             <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
           </li>
@@ -116,35 +111,114 @@
   </nav>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- PAGE HEADER                                     -->
+  <!-- CINEMATIC HEADER + PRINCIPLE CARDS              -->
   <!-- ════════════════════════════════════════════════ -->
-  <header class="legal-header">
+  <header class="legal-hero">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-mesh"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-fade"></div>
+    </div>
+
     <div class="container">
-      <p class="section-label">Legal</p>
-      <h1 class="type-display">Privacy Policy</h1>
-      <p class="type-body text-muted-foreground legal-header-subtitle">
-        Last updated: April 13, 2026
+      <p class="type-eyebrow">Privacy</p>
+      <h1 class="type-display">Privacy in plain English.</h1>
+      <p class="type-body-lg text-muted-foreground" style="max-width: 620px; margin-top: var(--space-4);">
+        Nexus is a local-first desktop app. There are no accounts, no servers,
+        and no telemetry. Here's exactly what that means.
       </p>
+
+      <div class="legal-hero-meta">
+        <span class="legal-meta-pill">
+          <i data-lucide="calendar" class="icon-xs"></i>
+          Last updated · April 13, 2026
+        </span>
+        <span class="legal-meta-pill">
+          <i data-lucide="book-open" class="icon-xs"></i>
+          Read time · 4 min
+        </span>
+        <span class="legal-meta-pill">
+          <i data-lucide="globe" class="icon-xs"></i>
+          Applies to · Desktop app + website
+        </span>
+      </div>
+
+      <div class="principles">
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="hard-drive" class="icon-md"></i></span>
+          <p class="principle-title">100% local-first</p>
+          <p class="principle-desc">All data lives on your machine in a SQLite file you control.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="eye-off" class="icon-md"></i></span>
+          <p class="principle-title">No telemetry, ever</p>
+          <p class="principle-desc">The desktop app sends zero analytics, ever, to anyone.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="user-x" class="icon-md"></i></span>
+          <p class="principle-title">No account required</p>
+          <p class="principle-desc">No sign-up, no email, no password. Install and go.</p>
+        </div>
+        <div class="principle">
+          <span class="principle-icon"><i data-lucide="cloud" class="icon-md"></i></span>
+          <p class="principle-title">Cloud is optional</p>
+          <p class="principle-desc">Backups upload to your own Google Drive — only if you ask.</p>
+        </div>
+      </div>
     </div>
   </header>
 
   <!-- ════════════════════════════════════════════════ -->
-  <!-- CONTENT                                         -->
+  <!-- TOC + CONTENT                                   -->
   <!-- ════════════════════════════════════════════════ -->
-  <main class="legal-main">
-    <div class="container">
+  <div class="container">
+    <div class="legal-layout">
+
+      <!-- Sticky table of contents -->
+      <aside class="legal-toc" data-scrollspy=".legal-section" aria-label="On this page">
+        <div class="legal-toc-label">On this page</div>
+        <ol>
+          <li><a href="#overview"><span class="legal-toc-num">01</span><span>Overview</span></a></li>
+          <li><a href="#not-collected"><span class="legal-toc-num">02</span><span>Data we don't collect</span></a></li>
+          <li><a href="#stored-locally"><span class="legal-toc-num">03</span><span>Data stored locally</span></a></li>
+          <li><a href="#third-parties"><span class="legal-toc-num">04</span><span>Third-party services</span></a></li>
+          <li><a href="#analytics"><span class="legal-toc-num">05</span><span>Website analytics</span></a></li>
+          <li><a href="#cookies"><span class="legal-toc-num">06</span><span>Cookies</span></a></li>
+          <li><a href="#children"><span class="legal-toc-num">07</span><span>Children's privacy</span></a></li>
+          <li><a href="#changes"><span class="legal-toc-num">08</span><span>Changes to this policy</span></a></li>
+          <li><a href="#contact"><span class="legal-toc-num">09</span><span>Contact</span></a></li>
+        </ol>
+      </aside>
+
+      <!-- Content -->
       <article class="legal-content">
 
-        <section class="legal-section">
+        <section class="legal-section" id="overview">
+          <span class="legal-section-num">01 / Overview</span>
           <h2 class="type-title1">Overview</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="zap" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Your library lives in a single SQLite file on your computer. Nexus runs no servers and stores nothing about you anywhere else.</p>
+            </div>
+          </div>
+          <p>
             Nexus is a local-first desktop application. Your game library, play sessions, collections, notes, tags, and all personal data are stored in a local SQLite database on your computer. We do not operate user accounts, cloud servers, or backend databases that store your information. An optional Google Drive backup feature lets you store encrypted copies of your database in your own Google account — this is entirely opt-in.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="not-collected">
+          <span class="legal-section-num">02 / What we don't collect</span>
           <h2 class="type-title1">Data We Do Not Collect</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="x-circle" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Names, emails, libraries, play history, hardware info — none of it leaves your machine.</p>
+            </div>
+          </div>
+          <p>
             Nexus does not collect, transmit, or store any of the following on Nexus-operated servers (the optional Google Drive backup uploads data to <em>your own</em> Google account — see below):
           </p>
           <ul class="legal-list">
@@ -157,9 +231,17 @@
           </ul>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="stored-locally">
+          <span class="legal-section-num">03 / Local data</span>
           <h2 class="type-title1">Data Stored Locally</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="hard-drive" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Everything Nexus knows about your library lives in one SQLite file in your AppData folder. Delete the file → it's all gone.</p>
+            </div>
+          </div>
+          <p>
             All application data is stored in a SQLite database on your machine, typically located in your system's app data directory. This includes:
           </p>
           <ul class="legal-list">
@@ -169,117 +251,165 @@
             <li>Application preferences and settings</li>
             <li>Cached artwork and cover images</li>
           </ul>
-          <p class="type-body text-muted-foreground">
+          <p>
             You own this data entirely. You can delete it at any time by uninstalling Nexus or removing the database file.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="third-parties">
+          <span class="legal-section-num">04 / Third parties</span>
           <h2 class="type-title1">Third-Party Services</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="link" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">When Nexus talks to IGDB, SteamGridDB, HowLongToBeat, Twitch, or Google Drive, your device talks to them directly — nothing routes through our servers.</p>
+            </div>
+          </div>
+          <p>
             Nexus communicates with the following external services to provide its features. These connections are initiated by the application on your device and do not pass through any Nexus-operated servers.
           </p>
 
           <div class="legal-subsection">
             <h3 class="type-title2">Game Metadata &amp; Artwork</h3>
-            <p class="type-body text-muted-foreground">
+            <p>
               Nexus fetches game metadata from <strong>IGDB</strong> (via the Twitch/IGDB API) and cover artwork from <strong>SteamGridDB</strong>. These requests include game titles for search purposes. You provide your own API keys for these services, and their respective privacy policies apply.
             </p>
           </div>
 
           <div class="legal-subsection">
             <h3 class="type-title2">HowLongToBeat</h3>
-            <p class="type-body text-muted-foreground">
+            <p>
               When enabled, Nexus queries <strong>HowLongToBeat</strong> to fetch estimated completion times. Requests include the game title being searched. Results are cached locally.
             </p>
           </div>
 
           <div class="legal-subsection">
             <h3 class="type-title2">Twitch Integration</h3>
-            <p class="type-body text-muted-foreground">
+            <p>
               If you connect your Twitch account, Nexus uses the Twitch API to display live streams, followed channels, and trending games. Nexus stores your OAuth token locally and uses it to make API requests directly to Twitch. We never see or store your Twitch credentials on any server.
             </p>
           </div>
 
           <div class="legal-subsection">
             <h3 class="type-title2">Google Drive Backup</h3>
-            <p class="type-body text-muted-foreground">
+            <p>
               If you enable cloud backup, Nexus connects to <strong>Google Drive</strong> using OAuth 2.0 with PKCE. When you authorise the connection, Nexus receives an access token and refresh token that are stored locally on your device (encrypted at rest). Nexus requests only the <code>drive.file</code> scope, which limits access to files created by Nexus — it cannot read or modify any other files in your Google Drive.
             </p>
-            <p class="type-body text-muted-foreground">
+            <p>
               Backups consist of a copy of your local SQLite database (containing your game library, play sessions, collections, tags, notes, milestones, and settings) uploaded to a dedicated "Nexus Backups" folder in your Google Drive. Your Google email address is stored locally so Nexus can display which account is connected. No backup data passes through any Nexus-operated server — uploads go directly from your device to Google's servers.
             </p>
-            <p class="type-body text-muted-foreground">
+            <p>
               You can disconnect Google Drive at any time from Settings, which deletes all locally stored tokens. Existing backups on your Google Drive are not deleted and can be managed from <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="legal-link">drive.google.com</a>.
             </p>
           </div>
 
           <div class="legal-subsection">
             <h3 class="type-title2">Update Checks</h3>
-            <p class="type-body text-muted-foreground">
+            <p>
               Nexus periodically checks GitHub for new releases. These requests include standard HTTP headers (user agent, IP address) as part of normal web traffic. No personal data is sent.
             </p>
           </div>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="analytics">
+          <span class="legal-section-num">05 / Analytics</span>
           <h2 class="type-title1">Website Analytics</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="bar-chart" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">This website uses Google Analytics. The desktop app does not.</p>
+            </div>
+          </div>
+          <p>
             The Nexus website (<a href="https://www.nexusgamelauncher.com" class="legal-link">nexusgamelauncher.com</a>) uses <strong>Google Analytics</strong> to understand how visitors find and use the site. Google Analytics collects anonymised usage data such as page views, referral sources, and general geographic region. This data is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="legal-link">Google's Privacy Policy</a>. The Nexus desktop application does not include any analytics or telemetry.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="cookies">
+          <span class="legal-section-num">06 / Cookies</span>
           <h2 class="type-title1">Cookies</h2>
-          <p class="type-body text-muted-foreground">
+          <div class="legal-tldr">
+            <i data-lucide="cookie" class="icon-md legal-tldr-icon"></i>
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Only Google Analytics cookies on the website. None in the app, none for ads.</p>
+            </div>
+          </div>
+          <p>
             The Nexus website uses cookies set by Google Analytics to distinguish unique visitors and track sessions. No cookies are used for advertising or personalisation. The Nexus desktop application does not use cookies.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="children">
+          <span class="legal-section-num">07 / Children's privacy</span>
           <h2 class="type-title1">Children's Privacy</h2>
-          <p class="type-body text-muted-foreground">
+          <p>
             Nexus is not directed at children under the age of 13. We do not knowingly collect personal information from children. Since Nexus does not collect personal information from any user, this concern does not apply in practice.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="changes">
+          <span class="legal-section-num">08 / Changes</span>
           <h2 class="type-title1">Changes to This Policy</h2>
-          <p class="type-body text-muted-foreground">
+          <p>
             We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of Nexus after changes constitutes acceptance of the revised policy.
           </p>
         </section>
 
-        <section class="legal-section">
+        <section class="legal-section" id="contact">
+          <span class="legal-section-num">09 / Contact</span>
           <h2 class="type-title1">Contact</h2>
-          <p class="type-body text-muted-foreground">
+          <p>
             If you have questions about this Privacy Policy, you can reach us on the <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="legal-link">Nexus Discord community</a>.
           </p>
         </section>
 
+        <div class="legal-questions">
+          <div class="legal-questions-text">
+            <strong>Still have questions?</strong>
+            <span>The fastest way to reach us is on Discord.</span>
+          </div>
+          <div class="legal-questions-actions">
+            <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="btn-nexus btn-nexus-sm">
+              <i data-lucide="message-circle" class="icon-sm"></i>
+              Ask on Discord
+            </a>
+            <a href="terms.html" class="btn-ghost btn-ghost-sm">
+              <i data-lucide="scale" class="icon-sm"></i>
+              Read Terms
+            </a>
+          </div>
+        </div>
+
       </article>
     </div>
-  </main>
+  </div>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- FOOTER                                          -->
   <!-- ════════════════════════════════════════════════ -->
   <footer class="footer-nexus">
     <div class="container">
-      <div class="row align-items-center gy-3">
+      <div class="row align-items-center gy-4">
         <div class="col-md-6">
-          <span class="type-footnote text-muted-foreground">
-            &copy; 2026 Nexus. Built with love by Darren Strydom in sunny South Africa.
+          <div class="d-flex align-items-center flex-wrap gap-3">
+            <span class="type-footnote text-muted-foreground">
+              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
+            </span>
+          </div>
+          <span class="footer-built mt-3 d-inline-flex">
+            <span class="dot" aria-hidden="true"></span>
+            Made with Rust + Tauri
           </span>
         </div>
         <div class="col-md-6 text-md-end">
-          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Support this project">
+          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Support this project">
             <i data-lucide="heart" class="icon-md icon-footer"></i>
             Support
           </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer"
-             aria-label="Join the community on Discord">
+          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Join the community on Discord">
             <i data-lucide="message-circle" class="icon-md icon-footer"></i>
             Discord
           </a>
@@ -304,10 +434,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      lucide.createIcons();
-    });
-  </script>
+  <!-- Nexus interactions -->
+  <script src="assets/js/app.js?v=20260423" defer></script>
 </body>
 </html>
