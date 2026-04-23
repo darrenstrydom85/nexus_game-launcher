@@ -315,7 +315,64 @@ pub fn clear_twitch_cache(conn: &rusqlite::Connection) -> Result<(), CommandErro
         "DELETE FROM twitch_followed_channels;
          DELETE FROM twitch_stream_cache;
          DELETE FROM twitch_game_cache;
-         DELETE FROM twitch_trending_library_cache;",
+         DELETE FROM twitch_trending_library_cache;
+         DELETE FROM twitch_clips_cache;",
+    )
+    .map_err(|e| CommandError::Database(e.to_string()))?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Story A2: clips cache helpers.
+// ---------------------------------------------------------------------------
+
+const CLIPS_TTL_SECS: i64 = 6 * 60 * 60; // 6 hours
+
+fn now_secs() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64
+}
+
+/// Try to read a non-stale clips payload (returns `None` when the row is missing or older
+/// than `CLIPS_TTL_SECS`). The payload is the raw JSON returned by `serde_json::to_string`
+/// over `Vec<TwitchClip>`; the caller decodes it.
+pub fn get_cached_clips_payload(
+    conn: &rusqlite::Connection,
+    twitch_game_id: &str,
+    period_days: u32,
+) -> Result<Option<(String, i64)>, CommandError> {
+    let row: Option<(String, i64)> = conn
+        .query_row(
+            "SELECT payload, fetched_at FROM twitch_clips_cache
+             WHERE twitch_game_id = ?1 AND period_days = ?2",
+            params![twitch_game_id, period_days as i64],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
+    Ok(row)
+}
+
+/// Returns true when `(payload, fetched_at)` is fresh enough to serve.
+pub fn is_clips_payload_fresh(fetched_at: i64) -> bool {
+    now_secs() - fetched_at < CLIPS_TTL_SECS
+}
+
+pub fn store_clips_payload(
+    conn: &rusqlite::Connection,
+    twitch_game_id: &str,
+    period_days: u32,
+    payload: &str,
+) -> Result<(), CommandError> {
+    conn.execute(
+        "INSERT INTO twitch_clips_cache (twitch_game_id, period_days, fetched_at, payload)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(twitch_game_id, period_days) DO UPDATE SET
+           fetched_at = excluded.fetched_at,
+           payload    = excluded.payload",
+        params![twitch_game_id, period_days as i64, now_secs(), payload],
     )
     .map_err(|e| CommandError::Database(e.to_string()))?;
     Ok(())
@@ -330,6 +387,8 @@ mod tests {
         conn.execute_batch(include_str!("../db/migrations/007_twitch_cache_tables.sql"))
             .unwrap();
         conn.execute_batch(include_str!("../db/migrations/008_twitch_trending_cache.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../db/migrations/022_twitch_clips_cache.sql"))
             .unwrap();
         conn
     }

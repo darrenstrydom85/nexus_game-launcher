@@ -9,8 +9,22 @@ import "@fontsource/geist-mono/400.css";
 import "./globals.css";
 import { applyPersistedThemeClassSync } from "./lib/theme";
 import App from "./App";
+import { PopoutPlayer } from "./components/Twitch/PopoutPlayer";
 
 applyPersistedThemeClassSync();
+
+/**
+ * Lightweight pathname-based router. We don't need react-router for a single
+ * extra surface; the pop-out window is loaded with `WebviewUrl::App("/popout-player?...")`
+ * by the Rust `popout_stream` command, so we just inspect `location.pathname`
+ * here and mount the appropriate root.
+ */
+function Root() {
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/popout-player")) {
+    return <PopoutPlayer />;
+  }
+  return <App />;
+}
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -37,7 +51,7 @@ class ErrorBoundary extends React.Component<
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <Root />
     </ErrorBoundary>
   </React.StrictMode>,
 );

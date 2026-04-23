@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com https://static-cdn.jtvnw.net data:; frame-src https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost https://api.jsonbin.io",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com https://static-cdn.jtvnw.net https://clips-media-assets2.twitch.tv data:; frame-src https://www.youtube-nocookie.com https://player.twitch.tv https://embed.twitch.tv https://clips.twitch.tv; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost https://api.jsonbin.io",
       "assetProtocol": {
         "enable": true,
         "scope": ["**/*"]

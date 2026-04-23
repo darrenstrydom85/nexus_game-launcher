@@ -261,7 +261,48 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
   });
 
-  it("clicking stream card calls openUrl with correct Twitch URL", async () => {
+  it("clicking pop-out invokes popout_stream once with channel context (Story A1)", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token") return Promise.resolve({ authenticated: true });
+      if (cmd === "twitch_auth_status") return Promise.resolve({ authenticated: true });
+      if (cmd === "get_twitch_followed_channels") {
+        return Promise.resolve({
+          data: [mockChannelLive],
+          stale: false,
+          cachedAt: null,
+        });
+      }
+      if (cmd === "twitch_watch_session_start") return Promise.resolve(1);
+      if (cmd === "twitch_watch_session_end") return Promise.resolve();
+      if (cmd === "popout_stream") return Promise.resolve();
+      return Promise.resolve({});
+    });
+    render(<TwitchPanel />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Streamer1 streaming/)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByLabelText(/Streamer1 streaming/));
+    await waitFor(() =>
+      expect(screen.getByTestId("stream-embed")).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByTestId("stream-embed-popout"));
+    expect(invoke).toHaveBeenCalledWith(
+      "popout_stream",
+      expect.objectContaining({
+        channelLogin: "streamer1",
+        channelDisplayName: "Streamer1",
+        twitchGameId: "123",
+        twitchGameName: "Test Game",
+      }),
+    );
+    // Inline embed unmounts (the pop-out owns the session now).
+    await waitFor(() =>
+      expect(screen.queryByTestId("stream-embed")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("clicking stream card opens inline StreamEmbed (Story A1)", async () => {
     vi.mocked(invoke).mockImplementation((cmd: string) => {
       if (cmd === "validate_twitch_token") {
         return Promise.resolve({ authenticated: true });
@@ -276,6 +317,12 @@ describe("Story 19.4: Followed Streams Panel", () => {
           cachedAt: null,
         });
       }
+      if (cmd === "twitch_watch_session_start") {
+        return Promise.resolve(42);
+      }
+      if (cmd === "twitch_watch_session_end") {
+        return Promise.resolve();
+      }
       return Promise.resolve({});
     });
     render(<TwitchPanel />);
@@ -284,7 +331,11 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
     const card = screen.getByLabelText(/Streamer1 streaming/);
     fireEvent.click(card);
-    expect(openUrl).toHaveBeenCalledWith("https://twitch.tv/streamer1");
+    // Inline embed should mount; openUrl is no longer the default click handler.
+    await waitFor(() => {
+      expect(screen.getByTestId("stream-embed")).toBeInTheDocument();
+    });
+    expect(openUrl).not.toHaveBeenCalledWith("https://twitch.tv/streamer1");
   });
 
   it("shows empty state when following 0 channels", async () => {

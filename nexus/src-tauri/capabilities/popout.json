@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "popout",
+  "description": "Capability for Twitch pop-out player windows. Minimal: lets the window close itself, be dragged via the custom title bar, listen to Tauri events, and open Twitch URLs in the OS browser.",
+  "windows": ["popout-*"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
+    "core:event:default",
+    "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://www.twitch.tv/**" }
+      ]
+    }
+  ]
+}

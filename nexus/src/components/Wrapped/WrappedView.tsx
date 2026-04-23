@@ -15,6 +15,7 @@ import { MilestonesCard } from "./MilestonesCard";
 import { DiversityCard } from "./DiversityCard";
 import { LibraryGrowthCard } from "./LibraryGrowthCard";
 import { FunExtrasCard } from "./FunExtrasCard";
+import { TwitchWatchCard } from "./TwitchWatchCard";
 import { WrappedShareModal } from "./WrappedShareModal";
 import type { WrappedReport } from "@/types/wrapped";
 
@@ -93,6 +94,9 @@ const CARD_DEFS: CardDef[] = [
   { id: "diversity", alwaysShow: false, hasData: (r) => r.platformBreakdown.length > 0 || r.newTitlesInPeriod > 0 },
   { id: "library-growth", alwaysShow: true },
   { id: "fun-extras", alwaysShow: false, hasData: (r) => Boolean(r.moodTagline) || Boolean(r.hiddenGem) || r.trivia.length > 0 },
+  // Story E1: always include a Twitch slide; the card itself self-empties when
+  // there is no watch history for the period.
+  { id: "twitch-watch", alwaysShow: true },
 ];
 
 function getVisibleCards(report: WrappedReport): string[] {
@@ -294,6 +298,9 @@ export function WrappedView({ onClose }: WrappedViewProps) {
                   <LibraryGrowthCard report={report} />
                 )}
                 {cardId === "fun-extras" && <FunExtrasCard report={report} />}
+                {cardId === "twitch-watch" && (
+                  <TwitchWatchCard selection={selection} />
+                )}
               </motion.div>
             ))}
           </AnimatePresence>

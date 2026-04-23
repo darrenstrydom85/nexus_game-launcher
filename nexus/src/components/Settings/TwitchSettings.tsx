@@ -10,6 +10,7 @@ import {
   clearTwitchCache,
   twitchAuthStatus,
 } from "@/lib/tauri";
+import { TwitchDiagnosticsPanel } from "./TwitchDiagnosticsPanel";
 
 const REFRESH_OPTIONS = [
   { value: 30, label: "30 seconds" },
@@ -24,12 +25,12 @@ export function TwitchSettings() {
   const [disconnectDialogOpen, setDisconnectDialogOpen] = React.useState(false);
   const [disableTwitchDialogOpen, setDisableTwitchDialogOpen] = React.useState(false);
   const [displayName, setDisplayName] = React.useState<string | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = React.useState<string | null>(null);
   const [connecting, setConnecting] = React.useState(false);
   const [disconnecting, setDisconnecting] = React.useState(false);
   const [clearingCache, setClearingCache] = React.useState(false);
 
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
-  const channels = useTwitchStore((s) => s.channels);
   const setIsAuthenticated = useTwitchStore((s) => s.setIsAuthenticated);
   const fetchFollowedStreams = useTwitchStore((s) => s.fetchFollowedStreams);
   const fetchTrending = useTwitchStore((s) => s.fetchTrending);
@@ -49,22 +50,27 @@ export function TwitchSettings() {
 
   const addToast = useToastStore((s) => s.addToast);
 
-  // Logged-in user's display name from auth (not from followed channels — those are other people)
+  // Logged-in user's display name and avatar from auth status. The backend
+  // TwitchTokenManager exposes both via twitch_auth_status as soon as auth
+  // completes; legacy users get the avatar backfilled by validate_twitch_token.
   React.useEffect(() => {
     if (!isAuthenticated) {
       setDisplayName(null);
+      setProfileImageUrl(null);
       return;
     }
     twitchAuthStatus()
-      .then((s) => setDisplayName(s.displayName ?? null))
-      .catch(() => setDisplayName(null));
+      .then((s) => {
+        setDisplayName(s.displayName ?? null);
+        setProfileImageUrl(s.profileImageUrl ?? null);
+      })
+      .catch(() => {
+        setDisplayName(null);
+        setProfileImageUrl(null);
+      });
   }, [isAuthenticated]);
 
-  // Avatar: backend doesn't return logged-in user's avatar; use first followed channel only for avatar image if we have no other source
-  const avatarUrl =
-    channels.length > 0 && channels[0].profileImageUrl
-      ? channels[0].profileImageUrl
-      : null;
+  const avatarUrl = profileImageUrl;
   const nameLabel = displayName ?? "Connected";
 
   const handleConnect = React.useCallback(async () => {
@@ -285,6 +291,9 @@ export function TwitchSettings() {
             Remove cached streamer data. Fresh data will be fetched on next refresh.
           </p>
         </div>
+
+        {/* Diagnostics (Story D1) */}
+        <TwitchDiagnosticsPanel />
       </div>
 
       {/* Disconnect confirmation */}

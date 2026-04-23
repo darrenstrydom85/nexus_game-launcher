@@ -31,7 +31,7 @@ import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection, refreshCollections } from "@/stores/collectionStore";
 import { useCollections } from "@/hooks/useCollections";
-import { useUiStore } from "@/stores/uiStore";
+import { useUiStore, type NavItem } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSettingsApplier } from "@/hooks/useSettingsApplier";
 
@@ -54,7 +54,7 @@ import { AchievementNotificationQueue } from "@/components/Achievements/Achievem
 import { useAchievementStore } from "@/stores/achievementStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useConnectivityStore } from "@/stores/connectivityStore";
-import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
+import { twitchAuthStatus } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
 import { CloseConfirmDialog } from "@/components/Settings/CloseConfirmDialog";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
@@ -197,6 +197,23 @@ function MainApp() {
     setCloseConfirmDialogOpen(true);
   });
 
+  // Tray right-click menu navigation: the Rust side emits the bare nav id (e.g. "library",
+  // "twitch") when the user clicks a nav entry in the tray context menu. Validate against
+  // the known NavItem set so a stale payload can't push the UI into an unknown state.
+  useTauriEvent<string>("nexus://navigate-to", (nav) => {
+    const allowed: NavItem[] = [
+      "library",
+      "stats",
+      "completed",
+      "archive",
+      "achievements",
+      "twitch",
+    ];
+    if (typeof nav === "string" && (allowed as string[]).includes(nav)) {
+      useUiStore.getState().setActiveNav(nav as NavItem);
+    }
+  });
+
   useTauriEvent<unknown>("backup-restored", () => {
     refreshGames().catch(() => {});
     refreshCollections().catch(() => {});
@@ -319,12 +336,12 @@ function MainApp() {
     return () => clearInterval(id);
   }, [runUpdateCheck, addToast]);
 
-  // Validate token with Twitch on startup (per Twitch requirement) and fetch data if authenticated.
-  // If validateTwitchToken fails (e.g. no client ID, network down at launch), fall back to a
-  // local-only status check. The backend cooldown guard prevents double-refresh races when
-  // fetchFollowedStreams triggers ensure_valid_twitch_token shortly after.
+  // Read Twitch auth state on startup and fetch data if authenticated. The backend
+  // TwitchTokenManager owns all token state and refresh; the frontend only ever
+  // reads a snapshot. The background refresh worker handles proactive refreshes,
+  // so we no longer poll validateTwitchToken on a timer or on resume/online events.
   React.useEffect(() => {
-    validateTwitchToken()
+    twitchAuthStatus()
       .then((status) => {
         useTwitchStore.getState().setIsAuthenticated(status.authenticated);
         if (status.authenticated) {
@@ -332,36 +349,11 @@ function MainApp() {
           useTwitchStore.getState().fetchTrending();
         }
       })
-      .catch(() => {
-        twitchAuthStatus()
-          .then((status) => {
-            useTwitchStore.getState().setIsAuthenticated(status.authenticated);
-            if (status.authenticated) {
-              useTwitchStore.getState().fetchFollowedStreams();
-              useTwitchStore.getState().fetchTrending();
-            }
-          })
-          .catch(() => {});
-      });
+      .catch(() => {});
   }, []);
 
-  // Validate token every 15 minutes. Twitch requires hourly validation, but
-  // more frequent checks ensure the backend's 5-min-before-expiry refresh
-  // window is actually hit even if intervals drift after sleep/resume.
-  React.useEffect(() => {
-    const INTERVAL_MS = 15 * 60 * 1000;
-    const id = setInterval(() => {
-      if (!useTwitchStore.getState().isAuthenticated) return;
-      validateTwitchToken()
-        .then((status) => {
-          useTwitchStore.getState().setIsAuthenticated(status.authenticated);
-        })
-        .catch(() => {});
-    }, INTERVAL_MS);
-    return () => clearInterval(id);
-  }, []);
-
-  // Story 19.11: when connectivity restored (offline -> online), trigger refresh and suppress toasts
+  // Story 19.11: when connectivity is restored (offline -> online), refresh the visible
+  // Twitch data. We do NOT touch the token here -- the background worker handles that.
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const prevOnlineRef = React.useRef(isOnline);
   React.useEffect(() => {
@@ -376,9 +368,9 @@ function MainApp() {
     }
   }, [isOnline]);
 
-  // Re-validate Twitch token when app resumes from background/sleep.
-  // setInterval timers freeze during OS sleep; this ensures we immediately
-  // check connectivity, refresh the token if expired, and fetch fresh data.
+  // On resume from background/sleep, just re-check connectivity and re-read the
+  // current auth snapshot from the backend (no refresh side-effects -- the worker
+  // already covered any expiry that elapsed during sleep).
   const lastVisibilityCheck = React.useRef(0);
   React.useEffect(() => {
     const RESUME_DEBOUNCE_MS = 5_000;
@@ -391,33 +383,33 @@ function MainApp() {
       useConnectivityStore.getState().checkConnectivity();
 
       if (!useTwitchStore.getState().isAuthenticated) return;
-      useTwitchStore.getState().setRecoveryRefresh(true);
-      validateTwitchToken()
+      twitchAuthStatus()
         .then((status) => {
           useTwitchStore.getState().setIsAuthenticated(status.authenticated);
-          if (status.authenticated) {
-            useTwitchStore.getState().fetchFollowedStreams().finally(() => {
-              useTwitchStore.getState().setRecoveryRefresh(false);
-            });
-            useTwitchStore.getState().fetchTrending();
-          } else {
-            useTwitchStore.getState().setRecoveryRefresh(false);
-          }
         })
-        .catch(() => {
-          useTwitchStore.getState().setRecoveryRefresh(false);
-        });
+        .catch(() => {});
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Story 19.10: Twitch polling from settings (interval 0 = manual only; twitchEnabled off = no polling)
+  // Story 19.10: Twitch polling from settings (interval 0 = manual only; twitchEnabled off = no polling).
+  //
+  // Story C3 polling fallback: when EventSub is connected (push-based live alerts),
+  // we keep the poll loop alive but stretch the cadence to every 10 minutes. The
+  // poll then only catches the edge cases EventSub cannot — power-followers past
+  // the 145-broadcaster cap and any events dropped during a brief reconnect.
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
   const twitchRefreshInterval = useSettingsStore((s) => s.twitchRefreshInterval);
+  const [eventsubConnected, setEventsubConnected] = React.useState(false);
+  useTauriEvent<{ connected: boolean }>("twitch-eventsub-status", (payload) => {
+    setEventsubConnected(Boolean(payload?.connected));
+  });
   React.useEffect(() => {
     if (!twitchEnabled || twitchRefreshInterval <= 0) return;
-    const intervalMs = twitchRefreshInterval * 1000;
+    const baseMs = twitchRefreshInterval * 1000;
+    const fallbackMs = 10 * 60 * 1000;
+    const intervalMs = eventsubConnected ? Math.max(baseMs, fallbackMs) : baseMs;
     const id = setInterval(() => {
       if (!useTwitchStore.getState().isAuthenticated) return;
       useConnectivityStore.getState().checkConnectivity();
@@ -425,7 +417,7 @@ function MainApp() {
       useTwitchStore.getState().fetchTrending();
     }, intervalMs);
     return () => clearInterval(id);
-  }, [twitchEnabled, twitchRefreshInterval]);
+  }, [twitchEnabled, twitchRefreshInterval, eventsubConnected]);
 
   const handleScoreBackfillProgress = React.useCallback(
     (event: ScoreBackfillProgressEvent) => {

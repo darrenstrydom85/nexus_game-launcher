@@ -10,6 +10,7 @@ import { ActivityHeatmap } from "./stats/ActivityHeatmap";
 import { TopGamesChart } from "./stats/TopGamesChart";
 import { SessionHistory } from "./stats/SessionHistory";
 import { SessionHistogram } from "@/components/Stats/SessionHistogram";
+import { TwitchWatchSection } from "@/components/Stats/TwitchWatchSection";
 import { useSessionDistribution } from "@/hooks/useSessionDistribution";
 import { StreakSection } from "@/components/Streak/StreakSection";
 import { MilestoneHistorySection } from "@/components/Milestones/MilestoneHistorySection";
@@ -602,6 +603,9 @@ export function LibraryStats({
               accentColor={accentColor}
             />
           </div>
+
+          {/* 5.5. Twitch watch time — Story E1 (self-hides if no sessions) */}
+          <TwitchWatchSection />
 
           {/* 6. Milestone History — achievement log */}
           <MilestoneHistorySection sessionIds={milestoneSessionIds} />
