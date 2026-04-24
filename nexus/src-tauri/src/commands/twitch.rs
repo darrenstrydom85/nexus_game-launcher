@@ -861,7 +861,15 @@ pub struct CheckConnectivityResult {
 /// Convenience used by `lib.rs` startup wiring.
 pub fn build_token_manager(app: AppHandle) -> Option<Arc<TwitchTokenManager>> {
     let client_id = option_env!("NEXUS_TWITCH_CLIENT_ID")?;
-    Some(Arc::new(TwitchTokenManager::new(app, client_id)))
+    // `client_secret` is baked in at compile time via option_env! and forwarded
+    // to the refresh flow. Without it, Twitch rejects refresh with
+    // `400 invalid_client: missing client secret`.
+    let client_secret = twitch_client_secret();
+    Some(Arc::new(TwitchTokenManager::new(
+        app,
+        client_id,
+        client_secret,
+    )))
 }
 
 // ---------------------------------------------------------------------------

@@ -295,23 +295,49 @@ pub async fn exchange_code(
     Ok((access_token, refresh_token, expires_in))
 }
 
+/// Build the x-www-form-urlencoded parameter list for a `refresh_token`
+/// grant. Extracted so we can unit-test the presence of `client_secret`
+/// without needing a live Twitch server.
+fn build_refresh_params<'a>(
+    client_id: &'a str,
+    client_secret: Option<&'a str>,
+    refresh_token: &'a str,
+) -> Vec<(&'static str, &'a str)> {
+    let mut params: Vec<(&'static str, &'a str)> = vec![
+        ("client_id", client_id),
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token),
+    ];
+    if let Some(secret) = client_secret {
+        params.push(("client_secret", secret));
+    }
+    params
+}
+
 /// Refresh access token. Returns (access_token, refresh_token, expires_in_secs).
 /// Twitch rotates the refresh token on each successful use.
+///
+/// ## Why `client_secret` is required even with PKCE
+///
+/// Twitch's token endpoint requires `client_secret` on the `refresh_token`
+/// grant regardless of how the original authorization code was exchanged
+/// (PKCE or confidential). Omitting it yields `400 invalid_client` with
+/// `"missing client secret"` — which is what bricked overnight refreshes
+/// before this parameter existed. See:
+/// https://dev.twitch.tv/docs/authentication/refresh-tokens/
 pub async fn refresh_access_token(
     client_id: &str,
+    client_secret: Option<&str>,
     refresh_token: &str,
 ) -> Result<(String, String, i64), CommandError> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(15))
         .build()
         .map_err(|e| CommandError::Unknown(format!("http client build: {e}")))?;
+    let params = build_refresh_params(client_id, client_secret, refresh_token);
     let res = client
         .post(TWITCH_TOKEN)
-        .form(&[
-            ("client_id", client_id),
-            ("grant_type", "refresh_token"),
-            ("refresh_token", refresh_token),
-        ])
+        .form(&params)
         .send()
         .await
         .map_err(map_reqwest_error)?;
@@ -547,6 +573,26 @@ mod tests {
         // distinct between calls (probabilistically)
         let s2 = random_state();
         assert_ne!(s, s2);
+    }
+
+    #[test]
+    fn build_refresh_params_includes_client_secret_when_provided() {
+        let params = build_refresh_params("cid_123", Some("sec_abc"), "r0t");
+        assert!(params.contains(&("client_id", "cid_123")));
+        assert!(params.contains(&("grant_type", "refresh_token")));
+        assert!(params.contains(&("refresh_token", "r0t")));
+        assert!(
+            params.contains(&("client_secret", "sec_abc")),
+            "Twitch requires client_secret on the refresh grant — omitting it \
+             causes `400 invalid_client: missing client secret` overnight"
+        );
+    }
+
+    #[test]
+    fn build_refresh_params_omits_client_secret_when_none() {
+        let params = build_refresh_params("cid_123", None, "r0t");
+        assert!(params.contains(&("client_id", "cid_123")));
+        assert!(params.iter().all(|(k, _)| *k != "client_secret"));
     }
 
     #[test]
