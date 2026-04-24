@@ -67,6 +67,11 @@ struct ManagerInner {
     worker: Mutex<WorkerSlot>,
     /// The Tauri client id (compile-time embedded).
     client_id: &'static str,
+    /// Optional confidential-app client secret (compile-time embedded).
+    /// Required by Twitch's `/oauth2/token` refresh grant even when the
+    /// initial exchange used PKCE — omitting it causes overnight refreshes
+    /// to fail with `400 invalid_client: missing client secret`.
+    client_secret: Option<&'static str>,
     /// AppHandle so we can resolve `DbState` and emit events from any context.
     app: AppHandle,
     /// Notified whenever tokens change so the worker can re-evaluate its sleep window.
@@ -98,13 +103,18 @@ pub struct TwitchTokenManager {
 
 impl TwitchTokenManager {
     /// Construct a manager. Does not perform IO; call [`hydrate_from_db`] afterwards.
-    pub fn new(app: AppHandle, client_id: &'static str) -> Self {
+    pub fn new(
+        app: AppHandle,
+        client_id: &'static str,
+        client_secret: Option<&'static str>,
+    ) -> Self {
         Self {
             inner: Arc::new(ManagerInner {
                 state: Mutex::new(TokenState::default()),
                 refresh_lock: Mutex::new(()),
                 worker: Mutex::new(WorkerSlot::default()),
                 client_id,
+                client_secret,
                 app,
                 wake: Arc::new(Notify::new()),
                 last_refresh_at: AtomicI64::new(0),
@@ -313,7 +323,13 @@ impl TwitchTokenManager {
             .clone()
             .ok_or_else(|| CommandError::Auth("Not logged in to Twitch".to_string()))?;
 
-        match auth::refresh_access_token(self.inner.client_id, &refresh_token).await {
+        match auth::refresh_access_token(
+            self.inner.client_id,
+            self.inner.client_secret,
+            &refresh_token,
+        )
+        .await
+        {
             Ok((new_access, new_refresh, expires_in)) => {
                 let new_expires_at = now_secs() + expires_in;
                 self.persist_refresh(&new_access, &new_refresh, new_expires_at)?;
