@@ -22,6 +22,12 @@ export function AppearanceSettings() {
   const setAskBeforeClose = useSettingsStore((s) => s.setAskBeforeClose);
   const animations = useSettingsStore((s) => s.enableAnimations);
   const setAnimations = useSettingsStore((s) => s.setEnableAnimations);
+  const notifications = useSettingsStore((s) => s.enableNotifications);
+  const setNotifications = useSettingsStore((s) => s.setEnableNotifications);
+  const xpNotifications = useSettingsStore((s) => s.xpNotificationsEnabled);
+  const setXpNotifications = useSettingsStore((s) => s.setXpNotificationsEnabled);
+  const milestoneNotifications = useSettingsStore((s) => s.milestoneNotificationsEnabled);
+  const setMilestoneNotifications = useSettingsStore((s) => s.setMilestoneNotificationsEnabled);
 
   return (
     <section data-testid="appearance-settings">
@@ -110,6 +116,46 @@ export function AppearanceSettings() {
             className="size-4 rounded border-border"
           />
         </label>
+
+        <div className="flex flex-col gap-2 rounded-lg border border-border/60 p-3">
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-foreground">Desktop notifications</span>
+            <input
+              data-testid="pref-enable-notifications"
+              type="checkbox"
+              checked={notifications}
+              onChange={() => setNotifications(!notifications)}
+              className="size-4 rounded border-border"
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Show native Windows notifications while Nexus is running or minimized to tray.
+          </p>
+          {notifications && (
+            <div className="flex flex-col gap-2 border-l border-border pl-3">
+              <label className="flex items-center justify-between">
+                <span className="text-sm text-foreground">XP level-ups</span>
+                <input
+                  data-testid="pref-xp-notifications"
+                  type="checkbox"
+                  checked={xpNotifications}
+                  onChange={() => setXpNotifications(!xpNotifications)}
+                  className="size-4 rounded border-border"
+                />
+              </label>
+              <label className="flex items-center justify-between">
+                <span className="text-sm text-foreground">Session milestones</span>
+                <input
+                  data-testid="pref-milestone-notifications"
+                  type="checkbox"
+                  checked={milestoneNotifications}
+                  onChange={() => setMilestoneNotifications(!milestoneNotifications)}
+                  className="size-4 rounded border-border"
+                />
+              </label>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

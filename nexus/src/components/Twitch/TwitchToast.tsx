@@ -1,4 +1,3 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { X } from "lucide-react";
 import type { PendingToastItem } from "@/stores/twitchStore";
 import { cn } from "@/lib/utils";
@@ -12,18 +11,20 @@ const TWITCH_ICON_SVG = (
 export interface TwitchToastProps {
   toast: PendingToastItem;
   onDismiss: (id: string) => void;
-  onOpenChannel: (login: string) => void;
+  onOpenChannel: (toast: PendingToastItem) => void;
 }
 
 export function TwitchToast({ toast, onDismiss, onOpenChannel }: TwitchToastProps) {
-  const url = `https://twitch.tv/${toast.login}`;
   const ariaLabel = `${toast.displayName} is now live, playing ${toast.gameName}`;
+
+  const openToastStream = () => {
+    onOpenChannel(toast);
+    onDismiss(toast.id);
+  };
 
   const handleBodyClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("[data-dismiss]")) return;
-    onOpenChannel(toast.login);
-    openUrl(url).catch(() => {});
-    onDismiss(toast.id);
+    openToastStream();
   };
 
   const handleBodyKeyDown = (e: React.KeyboardEvent) => {
@@ -37,9 +38,7 @@ export function TwitchToast({ toast, onDismiss, onOpenChannel }: TwitchToastProp
       if ((e.target as HTMLElement).closest("[data-dismiss]")) {
         onDismiss(toast.id);
       } else {
-        onOpenChannel(toast.login);
-        openUrl(url).catch(() => {});
-        onDismiss(toast.id);
+        openToastStream();
       }
     }
   };

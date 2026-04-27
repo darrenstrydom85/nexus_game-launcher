@@ -1,6 +1,6 @@
 [package]
 name = "Nexus"
-version = "0.3.3"
+version = "0.3.4"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -49,6 +49,7 @@ urlencoding = "2"
 arboard = "3"
 png = "0.18"
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+tauri-plugin-notification = "2.3.3"
 
 [dev-dependencies]
 tempfile = "3"

@@ -30,6 +30,8 @@ export interface SettingsState {
   askBeforeClose: boolean;
   launchAtStartup: boolean;
   enableNotifications: boolean;
+  xpNotificationsEnabled: boolean;
+  milestoneNotificationsEnabled: boolean;
   autoStatusTransitions: boolean;
   accentColor: string;
   /** Light / Dark / System appearance; persisted as `theme_mode`. Default `dark` for existing installs. */
@@ -80,6 +82,8 @@ export interface SettingsActions {
   setAskBeforeClose: (value: boolean) => void;
   setLaunchAtStartup: (value: boolean) => void;
   setEnableNotifications: (value: boolean) => void;
+  setXpNotificationsEnabled: (value: boolean) => void;
+  setMilestoneNotificationsEnabled: (value: boolean) => void;
   setAutoStatusTransitions: (value: boolean) => void;
   setAccentColor: (color: string) => void;
   setTheme: (mode: ThemeMode) => void;
@@ -139,6 +143,8 @@ const initialState: SettingsState = {
   askBeforeClose: true,
   launchAtStartup: false,
   enableNotifications: true,
+  xpNotificationsEnabled: true,
+  milestoneNotificationsEnabled: true,
   autoStatusTransitions: true,
   accentColor: "#7600da",
   theme: "dark",
@@ -214,6 +220,15 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.library_sort_by) patch.defaultSort = settings.library_sort_by;
             if (settings.ask_before_close !== undefined) {
               patch.askBeforeClose = settings.ask_before_close !== "false";
+            }
+            if (settings.enable_notifications !== undefined) {
+              patch.enableNotifications = settings.enable_notifications !== "false";
+            }
+            if (settings.xp_notifications_enabled !== undefined) {
+              patch.xpNotificationsEnabled = settings.xp_notifications_enabled !== "false";
+            }
+            if (settings.milestone_notifications_enabled !== undefined) {
+              patch.milestoneNotificationsEnabled = settings.milestone_notifications_enabled !== "false";
             }
             if (settings.auto_health_check !== undefined) {
               patch.autoHealthCheck = settings.auto_health_check !== "false";
@@ -307,8 +322,18 @@ export const useSettingsStore = create<SettingsStore>()(
         },
         setLaunchAtStartup: (value) =>
           set({ launchAtStartup: value }, false, "setLaunchAtStartup"),
-        setEnableNotifications: (value) =>
-          set({ enableNotifications: value }, false, "setEnableNotifications"),
+        setEnableNotifications: (value) => {
+          persistSetting("enable_notifications", String(value));
+          set({ enableNotifications: value }, false, "setEnableNotifications");
+        },
+        setXpNotificationsEnabled: (value) => {
+          persistSetting("xp_notifications_enabled", String(value));
+          set({ xpNotificationsEnabled: value }, false, "setXpNotificationsEnabled");
+        },
+        setMilestoneNotificationsEnabled: (value) => {
+          persistSetting("milestone_notifications_enabled", String(value));
+          set({ milestoneNotificationsEnabled: value }, false, "setMilestoneNotificationsEnabled");
+        },
         setAutoStatusTransitions: (value) => {
           persistSetting("auto_status_transitions", String(value));
           set({ autoStatusTransitions: value }, false, "setAutoStatusTransitions");

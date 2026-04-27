@@ -172,10 +172,16 @@ export function useLaunchLifecycle() {
 
         useAchievementStore.getState().evaluate();
 
+        const previousLevel = useXpStore.getState().summary?.currentLevel ?? null;
         useXpStore.getState().refreshXp().then(() => {
           const summary = useXpStore.getState().summary;
-          if (summary?.leveledUp && summary.newLevel) {
-            useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+          const leveledUp =
+            summary &&
+            (previousLevel != null
+              ? summary.currentLevel > previousLevel
+              : summary.leveledUp && summary.newLevel != null);
+          if (summary && leveledUp) {
+            useXpStore.getState().showLevelUp(summary.currentLevel, summary.totalXp);
           }
         });
       }
@@ -268,10 +274,16 @@ export function useLaunchLifecycle() {
 
         useAchievementStore.getState().evaluate();
 
+        const previousLevel = useXpStore.getState().summary?.currentLevel ?? null;
         useXpStore.getState().refreshXp().then(() => {
           const summary = useXpStore.getState().summary;
-          if (summary?.leveledUp && summary.newLevel) {
-            useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+          const leveledUp =
+            summary &&
+            (previousLevel != null
+              ? summary.currentLevel > previousLevel
+              : summary.leveledUp && summary.newLevel != null);
+          if (summary && leveledUp) {
+            useXpStore.getState().showLevelUp(summary.currentLevel, summary.totalXp);
           }
         });
       }

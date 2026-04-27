@@ -12,6 +12,7 @@ export type SortField =
   | "releaseDate";
 
 export type SortDirection = "asc" | "desc";
+export type StatsScrollTarget = "xp" | "milestones";
 
 export type NavItem = "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements";
 
@@ -30,6 +31,8 @@ export interface UiState {
   genreFilter: string | null;
   /** Story 19.8: When set, Twitch panel scrolls to this game name then clears. */
   twitchPanelScrollToGameName: string | null;
+  /** When set, Stats scrolls to the requested section then clears. */
+  statsScrollTarget: StatsScrollTarget | null;
 }
 
 export interface UiActions {
@@ -49,6 +52,7 @@ export interface UiActions {
   setGenreFilter: (genre: string | null) => void;
   toggleGenreFilter: (genre: string) => void;
   setTwitchPanelScrollToGameName: (gameName: string | null) => void;
+  setStatsScrollTarget: (target: StatsScrollTarget | null) => void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -67,6 +71,7 @@ const initialState: UiState = {
   sourceFilter: null,
   genreFilter: null,
   twitchPanelScrollToGameName: null,
+  statsScrollTarget: null,
 };
 
 export const useUiStore = create<UiStore>()(
@@ -124,6 +129,8 @@ export const useUiStore = create<UiStore>()(
           false,
           "setTwitchPanelScrollToGameName",
         ),
+      setStatsScrollTarget: (target) =>
+        set({ statsScrollTarget: target }, false, "setStatsScrollTarget"),
     }),
     { name: "UiStore", enabled: import.meta.env.DEV },
   ),

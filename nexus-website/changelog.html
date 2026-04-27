@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.3 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.4 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.3.3" class="changelog-latest-pill">
+          <a href="#v0.3.4" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.3.3</span>
+            <span>Latest · v0.3.4</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.3.3_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.3.4_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.3.3
+            Download v0.3.4
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.3.3">
+          <a class="changelog-rail-link is-latest" href="#v0.3.4">
+            <span class="changelog-rail-version">v0.3.4</span>
+            <span class="changelog-rail-date">Apr 27</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.3.3">
             <span class="changelog-rail-version">v0.3.3</span>
             <span class="changelog-rail-date">Apr 23</span>
           </a>
@@ -196,7 +200,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.3.3">v0.3.3 — Apr 23, 2026 (Latest)</option>
+              <option value="v0.3.4">v0.3.4 — Apr 27, 2026 (Latest)</option>
+              <option value="v0.3.3">v0.3.3 — Apr 23, 2026</option>
               <option value="v0.3.2">v0.3.2 — Apr 23, 2026</option>
               <option value="v0.3.1">v0.3.1 — Apr 23, 2026</option>
               <option value="v0.3.0">v0.3.0 — Apr 16, 2026</option>
@@ -244,11 +249,60 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.3.3 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.3.3">
+            <!-- ── v0.3.4 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.4">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.4</h2>
+                <time class="changelog-entry-date" datetime="2026-04-27">April 27, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  Nexus now uses native desktop notifications for the moments
+                  you care about while the app is running: XP level-ups,
+                  session milestones, and followed Twitch channels going live.
+                  This release also tightens Twitch go-live toast behaviour
+                  and keeps archived games out of Random Picker results.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="bell" class="icon-sm"></i>Native desktop alerts</li>
+                  <li><i data-lucide="mouse-pointer-click" class="icon-sm"></i>Click-through navigation</li>
+                  <li><i data-lucide="shuffle" class="icon-sm"></i>Cleaner random picks</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Native desktop notifications</strong> — XP level-ups, session milestones, and Twitch go-live events now raise OS-level notifications while Nexus is running or minimized to the system tray.</li>
+                    <li><strong>Notification click routing</strong> — Activating an XP notification opens Stats and scrolls to XP &amp; Level. Milestone notifications open Stats and scroll to Session Milestones. Twitch go-live notifications open Twitch and attempt to pop out the stream.</li>
+                    <li><strong>Developer notification tester</strong> — Non-production builds now include a Developer settings section with buttons for spawning XP, milestone, and Twitch test notifications.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Notification controls</strong> — Desktop notifications now have a global toggle plus separate XP and milestone category toggles. Twitch notifications continue to respect the existing Twitch and favorites-only settings.</li>
+                    <li><strong>Level-up detection after sessions</strong> — Session-end XP refresh now compares the previous and current levels so level-up notifications are not missed when XP was awarded by the backend session flow.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch go-live toasts stay inside Nexus</strong> — Clicking an in-app go-live toast now opens the stream in Nexus's pop-out player instead of handing off to <code>twitch.tv</code> in the system browser.</li>
+                    <li><strong>Random Picker skips archived games</strong> — Games that have been archived or uninstalled are no longer included in the random picker pool, so "what should I play?" only suggests installable library entries.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.3.3 ── -->
+            <article class="changelog-entry" id="v0.3.3">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.3.3</h2>
-                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-04-23">April 23, 2026</time>
               </div>
 
               <div class="changelog-entry-body">

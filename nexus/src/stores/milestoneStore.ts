@@ -5,6 +5,7 @@ import {
   evaluateMilestonesBatch,
   type SessionMilestone,
 } from "@/lib/tauri";
+import { notifySessionMilestones } from "@/lib/notifications";
 
 export interface MilestoneToastItem {
   id: string;
@@ -52,6 +53,7 @@ export const useMilestoneStore = create<MilestoneStore>()(
             false,
             "enqueueSessionMilestones",
           );
+          notifySessionMilestones(milestones);
         } catch {
           // best-effort
         }

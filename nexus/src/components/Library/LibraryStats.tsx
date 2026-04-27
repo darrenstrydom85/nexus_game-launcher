@@ -5,6 +5,7 @@ import { Clock, Gamepad2, GamepadIcon, Gift, Trophy, TrendingUp } from "lucide-r
 import { DatePicker } from "@/components/ui/date-picker";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
+import { useUiStore } from "@/stores/uiStore";
 import { ActivityChart } from "./stats/ActivityChart";
 import { ActivityHeatmap } from "./stats/ActivityHeatmap";
 import { TopGamesChart } from "./stats/TopGamesChart";
@@ -290,6 +291,10 @@ export function LibraryStats({
   const accentColor = useSettingsStore((s) => s.accentColor);
   const storeGames = useGameStore((s) => s.games);
   const lastSessionEndedAt = useGameStore((s) => s.lastSessionEndedAt);
+  const statsScrollTarget = useUiStore((s) => s.statsScrollTarget);
+  const setStatsScrollTarget = useUiStore((s) => s.setStatsScrollTarget);
+  const xpSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const milestonesSectionRef = React.useRef<HTMLDivElement | null>(null);
 
   // Session distribution histogram (Story 17.2)
   const {
@@ -416,6 +421,16 @@ export function LibraryStats({
     if (lastSessionEndedAt === 0) return;
     refetchDistribution({ type: "library" });
   }, [lastSessionEndedAt, distributionProp, refetchDistribution]);
+
+  React.useEffect(() => {
+    if (!statsScrollTarget || loading) return;
+    const section =
+      statsScrollTarget === "xp"
+        ? xpSectionRef.current
+        : milestonesSectionRef.current;
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setStatsScrollTarget(null);
+  }, [statsScrollTarget, loading, setStatsScrollTarget]);
 
   const isCustomRange = dateRange !== "all";
   const todayStr = React.useMemo(() => toDateStr(new Date()), []);
@@ -582,7 +597,9 @@ export function LibraryStats({
           </div>
 
           {/* 3.5. XP & Level section */}
-          <XpLevelSection />
+          <div ref={xpSectionRef} data-testid="stats-xp-section" className="scroll-mt-6">
+            <XpLevelSection />
+          </div>
 
           {/* 4. Heatmap + Top Games side by side */}
           <div className="grid gap-4 lg:grid-cols-2">
@@ -610,7 +627,9 @@ export function LibraryStats({
           <TwitchWatchSection dateRange={dateRange} />
 
           {/* 6. Milestone History — achievement log */}
-          <MilestoneHistorySection sessionIds={milestoneSessionIds} />
+          <div ref={milestonesSectionRef} data-testid="stats-milestones-section" className="scroll-mt-6">
+            <MilestoneHistorySection sessionIds={milestoneSessionIds} />
+          </div>
 
           {/* 7. Session History — detailed session log */}
           <div className="rounded-lg border border-border bg-card p-4">
