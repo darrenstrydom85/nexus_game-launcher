@@ -49,6 +49,7 @@ export function RandomPickerModal({
   const pool = React.useMemo(() => {
     return games.filter((g) => {
       if (hiddenGameIds.includes(g.id)) return false;
+      if (g.status === "removed") return false;
       if (g.status === "dropped") return false;
       if (excludedIds.has(g.id)) return false;
       if (filters.genres.length > 0 && !g.genres.some((genre) => filters.genres.includes(genre))) return false;

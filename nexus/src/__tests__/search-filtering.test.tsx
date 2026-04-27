@@ -249,6 +249,14 @@ describe("Story 11.4: RandomPickerModal", () => {
     expect(screen.getByTestId("picker-filters")).toHaveTextContent("4 games in pool");
   });
 
+  it("excludes archived games from the pool", () => {
+    useGameStore.setState({
+      games: [...games, makeGame("g5", "Archived Game", { status: "removed" })],
+    });
+    render(<RandomPickerModal open onClose={() => {}} />);
+    expect(screen.getByTestId("picker-filters")).toHaveTextContent("4 games in pool");
+  });
+
   it("shows Spin button", () => {
     render(<RandomPickerModal open onClose={() => {}} />);
     expect(screen.getByTestId("picker-spin")).toBeInTheDocument();
