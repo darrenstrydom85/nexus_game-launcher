@@ -1,6 +1,7 @@
 import * as React from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { motion, AnimatePresence } from "motion/react";
-import { useTwitchStore } from "@/stores/twitchStore";
+import { useTwitchStore, type PendingToastItem } from "@/stores/twitchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { TwitchToast } from "./TwitchToast";
 
@@ -101,8 +102,15 @@ export function TwitchToastContainer() {
     };
   }, [filteredIds, startTimer]);
 
-  const handleOpenChannel = React.useCallback((_login: string) => {
-    // openUrl is called inside TwitchToast
+  const handleOpenChannel = React.useCallback((toast: PendingToastItem) => {
+    void invoke("popout_stream", {
+      channelLogin: toast.login,
+      channelDisplayName: toast.displayName,
+      twitchGameId: null,
+      twitchGameName: toast.gameName || null,
+    }).catch((e) => {
+      console.error("[twitch] popout_stream failed from toast:", e);
+    });
   }, []);
 
   const enterTransition = reducedMotion

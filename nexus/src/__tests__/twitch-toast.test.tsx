@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import { TwitchToast } from "@/components/Twitch/TwitchToast";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useSettingsStore } from "@/stores/settingsStore";
-
-vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(() => Promise.resolve()) }));
 
 const mockToast = (
   id: string,
@@ -37,7 +35,8 @@ describe("Story 19.6: Twitch Go-Live Toast", () => {
       twitchNotificationsEnabled: true,
       twitchNotificationsFavoritesOnly: false,
     });
-    vi.mocked(openUrl).mockClear();
+    vi.mocked(invoke).mockReset();
+    vi.mocked(invoke).mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -73,26 +72,28 @@ describe("Story 19.6: Twitch Go-Live Toast", () => {
       expect(screen.getByRole("button", { name: /dismiss notification/i })).toBeInTheDocument();
     });
 
-    it("clicking toast body calls openUrl with correct URL and dismisses", async () => {
+    it("clicking toast body opens the channel and dismisses", async () => {
       const toast = mockToast("1", "streamer1", "StreamerOne", "Game", "Title");
       const onDismiss = vi.fn();
+      const onOpenChannel = vi.fn();
       render(
-        <TwitchToast toast={toast} onDismiss={onDismiss} onOpenChannel={() => {}} />,
+        <TwitchToast toast={toast} onDismiss={onDismiss} onOpenChannel={onOpenChannel} />,
       );
       const status = screen.getByRole("status", { name: /StreamerOne is now live/i });
       await userEvent.click(status);
-      expect(openUrl).toHaveBeenCalledWith("https://twitch.tv/streamer1");
+      expect(onOpenChannel).toHaveBeenCalledWith(toast);
       expect(onDismiss).toHaveBeenCalledWith("1");
     });
 
-    it("clicking dismiss button dismisses without opening URL", async () => {
+    it("clicking dismiss button dismisses without opening the channel", async () => {
       const toast = mockToast("1", "s1", "S", "G", "T");
       const onDismiss = vi.fn();
+      const onOpenChannel = vi.fn();
       render(
-        <TwitchToast toast={toast} onDismiss={onDismiss} onOpenChannel={() => {}} />,
+        <TwitchToast toast={toast} onDismiss={onDismiss} onOpenChannel={onOpenChannel} />,
       );
       await userEvent.click(screen.getByRole("button", { name: /dismiss notification/i }));
-      expect(openUrl).not.toHaveBeenCalled();
+      expect(onOpenChannel).not.toHaveBeenCalled();
       expect(onDismiss).toHaveBeenCalledWith("1");
     });
 
@@ -167,6 +168,21 @@ describe("Story 19.6: Twitch Go-Live Toast", () => {
       render(<TwitchToastContainer />);
       expect(screen.queryByText("A is live")).not.toBeInTheDocument();
       expect(screen.getByText("B is live")).toBeInTheDocument();
+    });
+
+    it("clicking a toast invokes the in-app stream window", async () => {
+      useTwitchStore.setState({
+        pendingToasts: [mockToast("1", "streamer1", "StreamerOne", "Game", "Title")],
+      });
+      render(<TwitchToastContainer />);
+      await userEvent.click(screen.getByText("StreamerOne is live"));
+      expect(invoke).toHaveBeenCalledWith("popout_stream", {
+        channelLogin: "streamer1",
+        channelDisplayName: "StreamerOne",
+        twitchGameId: null,
+        twitchGameName: "Game",
+      });
+      expect(useTwitchStore.getState().pendingToasts).toHaveLength(0);
     });
 
     it("toast auto-dismisses after 5 seconds", async () => {
