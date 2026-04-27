@@ -17,6 +17,7 @@ import { LibraryHealth } from "./LibraryHealth";
 import { TwitchSettings } from "./TwitchSettings";
 import { CloudBackupSettings } from "./CloudBackupSettings";
 import { AboutSection } from "./AboutSection";
+import { DevSettings } from "./DevSettings";
 import { TagManager } from "@/components/Tags/TagManager";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -122,6 +123,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     <LibraryHealth />
                   </AccordionContent>
                 </AccordionItem>
+                {import.meta.env.DEV && (
+                  <AccordionItem value="developer" data-testid="settings-group-developer">
+                    <AccordionTrigger>Developer</AccordionTrigger>
+                    <AccordionContent>
+                      <DevSettings />
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
               </Accordion>
               <AboutSection />
             </div>

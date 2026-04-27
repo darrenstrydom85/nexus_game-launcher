@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
+import { sendNotification } from "@tauri-apps/plugin-notification";
 import { TwitchToast } from "@/components/Twitch/TwitchToast";
 import { TwitchToastContainer } from "@/components/Twitch/TwitchToastContainer";
 import { useTwitchStore } from "@/stores/twitchStore";
@@ -32,11 +33,13 @@ describe("Story 19.6: Twitch Go-Live Toast", () => {
       previousLiveIds: new Set(),
     });
     useSettingsStore.setState({
+      enableNotifications: true,
       twitchNotificationsEnabled: true,
       twitchNotificationsFavoritesOnly: false,
     });
     vi.mocked(invoke).mockReset();
     vi.mocked(invoke).mockResolvedValue({});
+    vi.mocked(sendNotification).mockReset();
   });
 
   afterEach(() => {
@@ -278,6 +281,20 @@ describe("Story 19.6: Twitch Go-Live Toast", () => {
       expect(useTwitchStore.getState().pendingToasts).toHaveLength(1);
       expect(useTwitchStore.getState().pendingToasts[0].login).toBe("streamer1");
       expect(useTwitchStore.getState().pendingToasts[0].displayName).toBe("Streamer1");
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(sendNotification).toHaveBeenCalledWith(expect.objectContaining({
+        title: "Streamer1 is live",
+        body: "Playing Just Chatting: Hello",
+        extra: {
+          kind: "twitch",
+          login: "streamer1",
+          displayName: "Streamer1",
+          gameName: "Just Chatting",
+        },
+        autoCancel: true,
+      }));
     });
 
     it("does not add toast for streamer already live in previous poll", async () => {

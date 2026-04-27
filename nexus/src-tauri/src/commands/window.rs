@@ -25,3 +25,15 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
         .ok_or_else(|| "main window not found".to_string())?;
     window.hide().map_err(|e| e.to_string())
 }
+
+/// Shows and focuses the main window. Used when native notification clicks
+/// should bring Nexus back from the tray or minimized state.
+#[tauri::command]
+pub fn show_main_window(app: AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window not found".to_string())?;
+    window.show().map_err(|e| e.to_string())?;
+    window.unminimize().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())
+}

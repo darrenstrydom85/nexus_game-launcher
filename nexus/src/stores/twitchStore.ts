@@ -8,6 +8,7 @@ import {
   type StreamsByGameData,
   type TrendingLibraryGame,
 } from "@/lib/tauri";
+import { notifyTwitchGoLive } from "@/lib/notifications";
 
 /** Live stream from API (camelCase from backend). */
 export interface TwitchStream {
@@ -217,6 +218,7 @@ export const useTwitchStore = create<TwitchStore>()(
               };
             })
             .filter((t): t is PendingToastItem => t != null);
+          pendingToastsToAdd.forEach(notifyTwitchGoLive);
           set(
             {
               channels: res.data,

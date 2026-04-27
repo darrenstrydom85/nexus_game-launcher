@@ -8,6 +8,7 @@ import {
   type XpEvent,
   type XpBreakdownRow,
 } from "@/lib/tauri";
+import { notifyLevelUp } from "@/lib/notifications";
 
 interface XpState {
   summary: XpSummary | null;
@@ -68,6 +69,7 @@ export const useXpStore = create<XpStore>()(
 
       showLevelUp: (level, totalXp) => {
         set({ pendingLevelUp: { level, totalXp } }, false, "showLevelUp");
+        notifyLevelUp(level, totalXp);
       },
 
       dismissLevelUp: () => {

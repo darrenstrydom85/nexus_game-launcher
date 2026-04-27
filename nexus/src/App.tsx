@@ -24,6 +24,7 @@ import { SettingsSheet } from "@/components/Settings/SettingsSheet";
 import { CollectionEditor } from "@/components/Collections/CollectionEditor";
 import { SearchCommand } from "@/components/Search/SearchCommand";
 import { useLaunchLifecycle } from "@/hooks/useLaunchLifecycle";
+import { useNativeNotificationActions } from "@/hooks/useNativeNotificationActions";
 import { setRunningGame } from "@/lib/launcher";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
@@ -31,7 +32,8 @@ import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection, refreshCollections } from "@/stores/collectionStore";
 import { useCollections } from "@/hooks/useCollections";
-import { useUiStore, type NavItem } from "@/stores/uiStore";
+import { useUiStore } from "@/stores/uiStore";
+import { navigateFromTrayTarget } from "@/lib/navigation";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSettingsApplier } from "@/hooks/useSettingsApplier";
 
@@ -87,6 +89,7 @@ function SessionNotePromptWrapper() {
 
 function MainApp() {
   const { launch: launchGame, onProcessSelected, onCancelProcessPicker, onForceIdentifyCancel, openForceIdentifyPicker } = useLaunchLifecycle();
+  useNativeNotificationActions();
   const forceIdentifyActiveRef = React.useRef(false);
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
@@ -193,20 +196,9 @@ function MainApp() {
   useSettingsApplier();
 
   // Tray right-click menu navigation: the Rust side emits the bare nav id (e.g. "library",
-  // "twitch") when the user clicks a nav entry in the tray context menu. Validate against
-  // the known NavItem set so a stale payload can't push the UI into an unknown state.
+  // "twitch") when the user clicks a nav entry in the tray context menu.
   useTauriEvent<string>("nexus://navigate-to", (nav) => {
-    const allowed: NavItem[] = [
-      "library",
-      "stats",
-      "completed",
-      "archive",
-      "achievements",
-      "twitch",
-    ];
-    if (typeof nav === "string" && (allowed as string[]).includes(nav)) {
-      useUiStore.getState().setActiveNav(nav as NavItem);
-    }
+    navigateFromTrayTarget(nav);
   });
 
   useTauriEvent<unknown>("backup-restored", () => {

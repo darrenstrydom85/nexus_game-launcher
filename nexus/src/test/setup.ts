@@ -17,6 +17,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
+  emit: vi.fn(() => Promise.resolve()),
   listen: vi.fn(() => Promise.resolve(() => {})),
 }));
 
@@ -33,6 +34,20 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: vi.fn(() => Promise.resolve()),
   openUrl: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("@tauri-apps/plugin-notification", () => ({
+  isPermissionGranted: vi.fn(() => Promise.resolve(true)),
+  onAction: vi.fn(() =>
+    Promise.resolve({
+      plugin: "notification",
+      event: "actionPerformed",
+      channelId: 1,
+      unregister: vi.fn(() => Promise.resolve()),
+    }),
+  ),
+  requestPermission: vi.fn(() => Promise.resolve("granted")),
+  sendNotification: vi.fn(),
 }));
 
 const __motionMock = vi.hoisted(() => {

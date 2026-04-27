@@ -96,7 +96,7 @@ use commands::{
     },
     known_issues::fetch_known_issues,
     version_check::check_update_available,
-    window::{confirm_app_close, hide_main_window},
+    window::{confirm_app_close, hide_main_window, show_main_window},
     queue::{
         get_play_queue, add_to_play_queue, remove_from_play_queue,
         reorder_play_queue, clear_play_queue,
@@ -148,7 +148,7 @@ fn read_twitch_enabled<R: Runtime>(app: &tauri::AppHandle<R>) -> bool {
     }
 }
 
-fn show_main_window(app: &tauri::AppHandle) {
+fn focus_main_window(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
         let _ = w.show();
@@ -211,7 +211,7 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             let id = event.id().as_ref();
             match id {
                 "open" => {
-                    show_main_window(app);
+                    focus_main_window(app);
                 }
                 "exit" => {
                     TRAY_EXIT_REQUESTED.store(true, Ordering::SeqCst);
@@ -220,7 +220,7 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 other if other.starts_with(TRAY_NAV_PREFIX) => {
                     // Show the window first so the user actually sees the navigation happen
                     // (otherwise the event would fire into a hidden window).
-                    show_main_window(app);
+                    focus_main_window(app);
                     let nav = &other[TRAY_NAV_PREFIX.len()..];
                     let _ = app.emit("nexus://navigate-to", nav);
                 }
@@ -232,7 +232,7 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 button: MouseButton::Left,
                 ..
             } => {
-                show_main_window(tray.app_handle());
+                focus_main_window(tray.app_handle());
             }
             _ => {}
         })
@@ -268,6 +268,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 // The close-to-tray confirmation dialog is owned by the main
@@ -488,6 +489,7 @@ pub fn run() {
             write_image_to_clipboard,
             confirm_app_close,
             hide_main_window,
+            show_main_window,
             get_play_queue,
             add_to_play_queue,
             remove_from_play_queue,
