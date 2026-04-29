@@ -70,6 +70,11 @@ export interface SettingsState {
   achievementSoundsEnabled: boolean;
   /** Epic 41: auto-trigger retirement ceremony when a game is marked Completed or Dropped. Default true. */
   retirementCeremonyEnabled: boolean;
+  /**
+   * Hours per day assumed when translating HowLongToBeat estimates into a
+   * calendar-style "~N days" figure on the game detail page. Default 1.5.
+   */
+  hltbHoursPerDay: number;
   _hydrated: boolean;
 }
 
@@ -117,6 +122,7 @@ export interface SettingsActions {
   setAchievementNotificationsEnabled: (value: boolean) => void;
   setAchievementSoundsEnabled: (value: boolean) => void;
   setRetirementCeremonyEnabled: (value: boolean) => void;
+  setHltbHoursPerDay: (value: number) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -176,8 +182,21 @@ const initialState: SettingsState = {
   achievementNotificationsEnabled: true,
   achievementSoundsEnabled: true,
   retirementCeremonyEnabled: true,
+  hltbHoursPerDay: 1.5,
   _hydrated: false,
 };
+
+/** Allowed range for the HLTB "hours per day" preference, in hours. */
+export const HLTB_HOURS_PER_DAY_MIN = 0.25;
+export const HLTB_HOURS_PER_DAY_MAX = 12;
+
+function clampHltbHoursPerDay(value: number): number {
+  if (!Number.isFinite(value)) return 1.5;
+  return Math.min(
+    HLTB_HOURS_PER_DAY_MAX,
+    Math.max(HLTB_HOURS_PER_DAY_MIN, value),
+  );
+}
 
 export const useSettingsStore = create<SettingsStore>()(
   devtools(
@@ -274,6 +293,12 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retirement_ceremony_enabled !== undefined) {
               patch.retirementCeremonyEnabled = settings.retirement_ceremony_enabled !== "false";
+            }
+            if (settings.hltb_hours_per_day !== undefined && settings.hltb_hours_per_day !== null) {
+              const n = parseFloat(settings.hltb_hours_per_day);
+              if (Number.isFinite(n) && n > 0) {
+                patch.hltbHoursPerDay = clampHltbHoursPerDay(n);
+              }
             }
 
             set(patch, false, "loadFromBackend");
@@ -480,6 +505,11 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetirementCeremonyEnabled: (value) => {
           persistSetting("retirement_ceremony_enabled", String(value));
           set({ retirementCeremonyEnabled: value }, false, "setRetirementCeremonyEnabled");
+        },
+        setHltbHoursPerDay: (value) => {
+          const clamped = clampHltbHoursPerDay(value);
+          persistSetting("hltb_hours_per_day", String(clamped));
+          set({ hltbHoursPerDay: clamped }, false, "setHltbHoursPerDay");
         },
       }),
       { name: "nexus-settings" },

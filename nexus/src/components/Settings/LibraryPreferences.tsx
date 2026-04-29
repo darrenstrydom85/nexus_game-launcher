@@ -1,6 +1,8 @@
 import { useSettingsStore } from "@/stores/settingsStore";
 import { HiddenGamesList } from "./HiddenGamesList";
 
+const HLTB_PACE_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 4, 6, 8] as const;
+
 export function LibraryPreferences() {
   const autoStatus = useSettingsStore((s) => s.autoStatusTransitions);
   const setAutoStatus = useSettingsStore((s) => s.setAutoStatusTransitions);
@@ -20,6 +22,8 @@ export function LibraryPreferences() {
   const setShowCardProgress = useSettingsStore((s) => s.setShowCardProgress);
   const ceremonyEnabled = useSettingsStore((s) => s.retirementCeremonyEnabled);
   const setCeremonyEnabled = useSettingsStore((s) => s.setRetirementCeremonyEnabled);
+  const hltbPace = useSettingsStore((s) => s.hltbHoursPerDay);
+  const setHltbPace = useSettingsStore((s) => s.setHltbHoursPerDay);
 
   return (
     <section data-testid="library-preferences">
@@ -125,6 +129,33 @@ export function LibraryPreferences() {
           </label>
           <p className="mt-1 text-xs text-muted-foreground">
             You can always replay the ceremony from a game's detail page.
+          </p>
+        </div>
+
+        {/* How Long to Beat preferences */}
+        <div className="mt-1 border-t border-border pt-3">
+          <span className="mb-2 block text-xs font-medium text-muted-foreground">
+            How Long to Beat
+          </span>
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-foreground">Daily play time</span>
+            <select
+              data-testid="pref-hltb-hours-per-day"
+              className="rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground"
+              value={hltbPace}
+              onChange={(e) => setHltbPace(Number(e.target.value))}
+              aria-label="Daily play time for How Long to Beat day estimates"
+            >
+              {HLTB_PACE_OPTIONS.map((h) => (
+                <option key={h} value={h}>
+                  {h} {h === 1 ? "hour" : "hours"}/day
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Used to estimate how many days it would take to finish a game on its
+            detail page (e.g. Main Story &rarr; ~N days).
           </p>
         </div>
 

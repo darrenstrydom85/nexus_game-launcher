@@ -192,6 +192,22 @@ describe("Story 12.2: LibraryPreferences", () => {
       expect(useSettingsStore.getState().hiddenGameIds).toHaveLength(0);
     });
   });
+
+  it("renders the HLTB hours/day dropdown with the store value selected", () => {
+    useSettingsStore.setState({ hltbHoursPerDay: 1.5 });
+    render(<LibraryPreferences />);
+    const select = screen.getByTestId("pref-hltb-hours-per-day") as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe("1.5");
+  });
+
+  it("persists the chosen HLTB pace to the store", () => {
+    useSettingsStore.setState({ hltbHoursPerDay: 1.5 });
+    render(<LibraryPreferences />);
+    const select = screen.getByTestId("pref-hltb-hours-per-day");
+    fireEvent.change(select, { target: { value: "2.5" } });
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(2.5);
+  });
 });
 
 describe("Story 12.3: AppearanceSettings", () => {

@@ -38,6 +38,21 @@ export function formatHltbTime(hours: number | null): string {
 }
 
 /**
+ * Converts HLTB hours into an "at pace" calendar estimate, rounded up so the
+ * number of days always represents enough time to actually finish at that rate.
+ * Returns null when there is nothing meaningful to display.
+ */
+export function formatHltbDays(
+  hours: number | null,
+  hoursPerDay: number,
+): string | null {
+  if (hours == null || hours <= 0) return null;
+  if (!Number.isFinite(hoursPerDay) || hoursPerDay <= 0) return null;
+  const days = Math.max(1, Math.ceil(hours / hoursPerDay));
+  return `~${days} ${days === 1 ? "day" : "days"}`;
+}
+
+/**
  * Compact viewer count for Twitch (Story 19.9): 1.2K, 45.3K, 1.2M.
  */
 export function formatViewerCount(n: number): string {
