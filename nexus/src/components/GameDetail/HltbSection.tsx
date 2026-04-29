@@ -2,10 +2,11 @@ import * as React from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { searchHltb, type HltbSearchResult } from "@/lib/hltb";
 import { RefreshCw, Search, ArrowRight, HelpCircle } from "lucide-react";
-import { cn, formatHltbTime } from "@/lib/utils";
+import { cn, formatHltbTime, formatHltbDays } from "@/lib/utils";
 import { saveHltbData, clearHltbData } from "@/lib/tauri";
 import { refreshGames } from "@/stores/gameStore";
 import type { Game } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 const STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -38,7 +39,20 @@ function formatAriaTime(hours: number | null): string {
   return `${h} hour${h !== 1 ? "s" : ""} ${m} minute${m !== 1 ? "s" : ""}`;
 }
 
+function formatAriaRow(
+  label: string,
+  hours: number | null,
+  hoursPerDay: number,
+): string {
+  const base = `${label}: ${formatAriaTime(hours)}`;
+  if (hours == null || hours <= 0) return base;
+  if (!Number.isFinite(hoursPerDay) || hoursPerDay <= 0) return base;
+  const days = Math.max(1, Math.ceil(hours / hoursPerDay));
+  return `${base}, approximately ${days} day${days !== 1 ? "s" : ""} at ${hoursPerDay} hours per day`;
+}
+
 export function HltbSection({ game }: HltbSectionProps) {
+  const hoursPerDay = useSettingsStore((s) => s.hltbHoursPerDay);
   const [fetchState, setFetchState] = React.useState<FetchState>("idle");
   const [searched, setSearched] = React.useState(false);
   const abortRef = React.useRef<AbortController | null>(null);
@@ -458,19 +472,40 @@ export function HltbSection({ game }: HltbSectionProps) {
       </div>
 
       <dl className="flex flex-col gap-2.5 text-sm">
-        {rows.map((row) => (
-          <div key={row.testId} className="flex justify-between">
-            <dt className="text-muted-foreground">{row.label}</dt>
-            <dd
-              data-testid={row.testId}
-              className="font-medium tabular-nums text-foreground"
-              aria-label={`${row.label}: ${formatAriaTime(row.value)}`}
-            >
-              {formatHltbTime(row.value)}
-            </dd>
-          </div>
-        ))}
+        {rows.map((row) => {
+          const daysStr = formatHltbDays(row.value, hoursPerDay);
+          return (
+            <div key={row.testId} className="flex items-start justify-between gap-3">
+              <dt className="text-muted-foreground">{row.label}</dt>
+              <dd
+                data-testid={row.testId}
+                className="text-right"
+                aria-label={formatAriaRow(row.label, row.value, hoursPerDay)}
+              >
+                <div className="font-medium tabular-nums text-foreground">
+                  {formatHltbTime(row.value)}
+                </div>
+                {daysStr && (
+                  <div
+                    data-testid={`${row.testId}-days`}
+                    className="text-xs font-normal tabular-nums text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    {daysStr}
+                  </div>
+                )}
+              </dd>
+            </div>
+          );
+        })}
       </dl>
+
+      <p
+        data-testid="hltb-pace-footnote"
+        className="mt-3 text-[11px] leading-tight text-muted-foreground"
+      >
+        Days assume {hoursPerDay} h/day of play
+      </p>
     </div>
   );
 }

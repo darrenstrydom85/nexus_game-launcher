@@ -79,6 +79,31 @@ describe("settingsStore", () => {
     expect(useSettingsStore.getState().enableNotifications).toBe(false);
   });
 
+  it("hltbHoursPerDay defaults to 1.5", () => {
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(1.5);
+  });
+
+  it("setHltbHoursPerDay updates the value", () => {
+    useSettingsStore.getState().setHltbHoursPerDay(2.5);
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(2.5);
+  });
+
+  it("setHltbHoursPerDay clamps to the allowed range", () => {
+    useSettingsStore.getState().setHltbHoursPerDay(100);
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(12);
+
+    useSettingsStore.getState().setHltbHoursPerDay(0);
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(0.25);
+
+    useSettingsStore.getState().setHltbHoursPerDay(-5);
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(0.25);
+  });
+
+  it("setHltbHoursPerDay falls back to 1.5 for non-finite input", () => {
+    useSettingsStore.getState().setHltbHoursPerDay(Number.NaN);
+    expect(useSettingsStore.getState().hltbHoursPerDay).toBe(1.5);
+  });
+
   it("persist middleware saves to localStorage", () => {
     useSettingsStore.getState().setApiKeys({ steamGridDbKey: "persisted" });
     const stored = localStorage.getItem("nexus-settings");

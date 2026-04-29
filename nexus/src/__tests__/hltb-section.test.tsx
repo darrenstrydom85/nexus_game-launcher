@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Game } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 const mockSearchHltb = vi.fn();
 
@@ -68,6 +69,7 @@ beforeEach(() => {
     if (cmd === "get_games") return Promise.resolve([]);
     return Promise.resolve({});
   });
+  useSettingsStore.setState({ hltbHoursPerDay: 1.5 });
 });
 
 describe("HltbSection — cached data display", () => {
@@ -123,6 +125,135 @@ describe("HltbSection — cached data display", () => {
         "How Long to Beat estimates",
       );
     });
+  });
+});
+
+describe("HltbSection — days-at-pace display", () => {
+  it("renders ~N days next to each metric at 1.5 h/day", async () => {
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbMainExtraH: 18.5,
+      hltbCompletionistH: 45,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-section")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("hltb-main-days")).toHaveTextContent("~8 days");
+    expect(screen.getByTestId("hltb-main-extra-days")).toHaveTextContent("~13 days");
+    expect(screen.getByTestId("hltb-completionist-days")).toHaveTextContent("~30 days");
+  });
+
+  it("uses singular 'day' for very short estimates", async () => {
+    const game = makeGame({
+      hltbMainH: 1,
+      hltbMainExtraH: null,
+      hltbCompletionistH: null,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-main-days")).toHaveTextContent("~1 day");
+    });
+  });
+
+  it("omits the days line when the metric has no time", async () => {
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbMainExtraH: null,
+      hltbCompletionistH: null,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-main-days")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("hltb-main-extra-days")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("hltb-completionist-days")).not.toBeInTheDocument();
+  });
+
+  it("includes the play-pace footnote", async () => {
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-pace-footnote")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("hltb-pace-footnote")).toHaveTextContent(
+      "Days assume 1.5 h/day of play",
+    );
+  });
+
+  it("announces the days pace in the row aria-label for screen readers", async () => {
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-main")).toHaveAttribute(
+        "aria-label",
+        "Main Story: 12 hours, approximately 8 days at 1.5 hours per day",
+      );
+    });
+  });
+
+  it("hides the days line from assistive tech to avoid duplicate announcements", async () => {
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-main-days")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+    });
+  });
+
+  it("reflects a custom pace from the settings store", async () => {
+    useSettingsStore.setState({ hltbHoursPerDay: 3 });
+    const game = makeGame({
+      hltbMainH: 12,
+      hltbMainExtraH: 18.5,
+      hltbCompletionistH: 45,
+      hltbId: "26286",
+      hltbFetchedAt: freshDate,
+    });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-main-days")).toHaveTextContent("~4 days");
+    });
+    expect(screen.getByTestId("hltb-main-extra-days")).toHaveTextContent("~7 days");
+    expect(screen.getByTestId("hltb-completionist-days")).toHaveTextContent("~15 days");
+    expect(screen.getByTestId("hltb-pace-footnote")).toHaveTextContent(
+      "Days assume 3 h/day of play",
+    );
   });
 });
 
