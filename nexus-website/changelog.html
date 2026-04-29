@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.4 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.5 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.3.4" class="changelog-latest-pill">
+          <a href="#v0.3.5" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.3.4</span>
+            <span>Latest · v0.3.5</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.3.4_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.3.5_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.3.4
+            Download v0.3.5
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.3.4">
+          <a class="changelog-rail-link is-latest" href="#v0.3.5">
+            <span class="changelog-rail-version">v0.3.5</span>
+            <span class="changelog-rail-date">Apr 29</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.3.4">
             <span class="changelog-rail-version">v0.3.4</span>
             <span class="changelog-rail-date">Apr 27</span>
           </a>
@@ -200,7 +204,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.3.4">v0.3.4 — Apr 27, 2026 (Latest)</option>
+              <option value="v0.3.5">v0.3.5 — Apr 29, 2026 (Latest)</option>
+              <option value="v0.3.4">v0.3.4 — Apr 27, 2026</option>
               <option value="v0.3.3">v0.3.3 — Apr 23, 2026</option>
               <option value="v0.3.2">v0.3.2 — Apr 23, 2026</option>
               <option value="v0.3.1">v0.3.1 — Apr 23, 2026</option>
@@ -249,11 +254,53 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.3.4 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.3.4">
+            <!-- ── v0.3.5 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.5">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.5</h2>
+                <time class="changelog-entry-date" datetime="2026-04-29">April 29, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  How Long to Beat estimates now translate raw hours into
+                  real calendar time. Each metric on a game's detail page
+                  shows a <em>~N days</em> figure based on a play pace you
+                  set in Settings &rarr; Library, so "45h for
+                  Completionist" becomes <em>~30 days at 1.5 h/day</em>.
+                  Links in the Twitch chat sidebar also finally open — in
+                  your default system browser — instead of doing nothing.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="calendar-clock" class="icon-sm"></i>HLTB "~N days" alongside each hour estimate</li>
+                  <li><i data-lucide="sliders-horizontal" class="icon-sm"></i>Configurable daily play pace (0.5 – 8 h/day)</li>
+                  <li><i data-lucide="external-link" class="icon-sm"></i>Twitch chat links open in your default browser</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Days-at-pace for HowLongToBeat</strong> — Under each HLTB metric (Main Story, Main + Extras, Completionist) the detail page now shows a muted <em>~N days</em> estimate in addition to the raw hour figure. Numbers are rounded up so the day count always represents enough time to actually finish at your chosen pace.</li>
+                    <li><strong>Configurable daily play pace</strong> — A new <em>Daily play time</em> dropdown in Settings &rarr; Library &rarr; How Long to Beat lets you pick anywhere from 0.5 to 8 hours/day. The choice persists across restarts and updates every HLTB card immediately. Default is 1.5 h/day.</li>
+                    <li><strong>Screen-reader-friendly HLTB rows</strong> — Each metric's row announces both the hours and the day estimate together (e.g. "Main Story: 12 hours, approximately 8 days at 1.5 hours per day"), with the visual days line marked <code>aria-hidden</code> so assistive tech doesn't hear it twice.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Twitch chat links open in your default browser</strong> — Clicking a link inside the Twitch chat sidebar of a pop-out stream (usernames, shared URLs, Twitch videos, <code>mailto:</code> addresses) used to do nothing — the <code>target="_blank"</code> request was swallowed by the embedded webview. New-window requests are now intercepted in Rust and handed off to your OS default browser via the opener plugin. Dangerous schemes (<code>javascript:</code>, <code>data:</code>, <code>file:</code>, and friends) are logged and dropped rather than launched.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.3.4 ── -->
+            <article class="changelog-entry" id="v0.3.4">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.3.4</h2>
-                <time class="changelog-entry-date" datetime="2026-04-27">April 27, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-04-27">April 27, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
