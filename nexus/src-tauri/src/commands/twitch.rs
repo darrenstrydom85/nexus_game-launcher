@@ -6,6 +6,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
+use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
 
@@ -984,6 +985,42 @@ fn sanitize_login_for_label(login: &str) -> String {
         .to_ascii_lowercase()
 }
 
+/// Whitelist of URL schemes we will hand off to the OS default browser when
+/// the pop-out webview asks to open a new window. Twitch chat links, profile
+/// links, and shared URLs all land as `http`/`https`; occasionally an
+/// `irc://` or `ftp://` slips through Twitch's URL parser and we explicitly
+/// do not want to launch whatever handler is registered for those. `mailto:`
+/// is included because legitimate chat links use it.
+fn is_safe_external_url(url_str: &str) -> bool {
+    let lower = url_str.to_ascii_lowercase();
+    lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("mailto:")
+}
+
+/// Route a new-window request from a pop-out Twitch window (stream or clip)
+/// to the user's OS default browser via the opener plugin.
+///
+/// Why this exists: links clicked inside the Twitch chat iframe are
+/// `target="_blank"`, which in WebView2 fires `NewWindowRequested` on the
+/// host webview. By default Tauri swallows the request silently, so clicking
+/// a username, a shared link, or any other chat link does nothing. Routing
+/// the URL out to the system browser restores the expected behaviour without
+/// reopening the window inside Nexus (which would load `twitch.tv` at
+/// `tauri.localhost` and trip Twitch's `frame-ancestors` CSP).
+fn route_new_window_to_browser(app: &AppHandle, url: &tauri::Url) {
+    let url_str = url.as_str();
+    if !is_safe_external_url(url_str) {
+        eprintln!(
+            "[twitch-popout] refusing to route non-http(s) new-window url: {url_str}"
+        );
+        return;
+    }
+    if let Err(e) = app.opener().open_url(url_str, None::<&str>) {
+        eprintln!("[twitch-popout] failed to open new-window url in browser: {e}");
+    }
+}
+
 /// Spawn (or focus) a Twitch player window for `channel_login`.
 ///
 /// Each stream is its own regular, freely-draggable Tauri window — no
@@ -1032,6 +1069,7 @@ pub async fn popout_stream(
         None => format!("{} · Twitch", channel_login),
     };
 
+    let app_for_new_window = app.clone();
     let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(watch_url))
         .title(title)
         .inner_size(1024.0, 640.0)
@@ -1042,6 +1080,16 @@ pub async fn popout_stream(
         // Must match the main window so the WebView2 data directory (and
         // therefore the Twitch cookie jar) is shared across windows.
         .additional_browser_args(NEXUS_WEBVIEW_ARGS)
+        // Every `target="_blank"` link clicked inside the Twitch chat iframe
+        // (usernames, shared links, Twitch videos, etc.) surfaces here. We
+        // hand them off to the OS default browser and deny the in-webview
+        // pop-up so Nexus never tries to open twitch.tv inside its own
+        // webview — that path fails Twitch's CSP and produces a blank
+        // window.
+        .on_new_window(move |url, _features| {
+            route_new_window_to_browser(&app_for_new_window, &url);
+            NewWindowResponse::Deny
+        })
         .build()
         .map_err(|e| CommandError::Unknown(format!("failed to create pop-out: {e}")))?;
 
@@ -1138,6 +1186,7 @@ pub async fn popout_clip(
         _ => "Twitch clip".to_string(),
     };
 
+    let app_for_new_window = app.clone();
     WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(clip_url))
         .title(title)
         .inner_size(960.0, 560.0)
@@ -1148,6 +1197,12 @@ pub async fn popout_clip(
         // Must match the main window so the WebView2 data directory (and
         // therefore the Twitch cookie jar) is shared across windows.
         .additional_browser_args(NEXUS_WEBVIEW_ARGS)
+        // Links inside the clip's embedded chrome behave the same way chat
+        // links do — route them to the OS default browser.
+        .on_new_window(move |url, _features| {
+            route_new_window_to_browser(&app_for_new_window, &url);
+            NewWindowResponse::Deny
+        })
         .build()
         .map_err(|e| CommandError::Unknown(format!("failed to create clip pop-out: {e}")))?;
 
@@ -1761,5 +1816,29 @@ mod diagnostics_tests {
         assert_eq!(json["ok"], true);
         assert_eq!(json["latencyMs"], 123);
         assert!(json.get("error").map(|v| v.is_null()).unwrap_or(true));
+    }
+
+    #[test]
+    fn is_safe_external_url_accepts_http_and_https() {
+        assert!(is_safe_external_url("http://example.com/path"));
+        assert!(is_safe_external_url("https://twitch.tv/shroud"));
+        assert!(is_safe_external_url("HTTPS://EXAMPLE.COM"));
+    }
+
+    #[test]
+    fn is_safe_external_url_accepts_mailto() {
+        assert!(is_safe_external_url("mailto:user@example.com"));
+        assert!(is_safe_external_url("MAILTO:user@example.com"));
+    }
+
+    #[test]
+    fn is_safe_external_url_rejects_dangerous_schemes() {
+        assert!(!is_safe_external_url("javascript:alert(1)"));
+        assert!(!is_safe_external_url("data:text/html,<script>alert(1)</script>"));
+        assert!(!is_safe_external_url("file:///C:/Windows/System32/cmd.exe"));
+        assert!(!is_safe_external_url("vbscript:msgbox(1)"));
+        assert!(!is_safe_external_url("ftp://example.com/"));
+        assert!(!is_safe_external_url("steam://rungameid/1"));
+        assert!(!is_safe_external_url(""));
     }
 }
