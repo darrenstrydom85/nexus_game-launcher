@@ -1,7 +1,10 @@
 import { fetch } from "@tauri-apps/plugin-http";
 
 const BASE_URL = "https://howlongtobeat.com/";
-const SEARCH_PATH = "api/find";
+// HLTB periodically rotates this path (previously "api/find", now "api/bleed"
+// as of May 2026). If searches start 404ing, inspect
+// https://howlongtobeat.com/_next/static/chunks/*.js for the current path.
+const SEARCH_PATH = "api/bleed";
 
 export interface HltbSearchResult {
   id: number;
@@ -166,8 +169,8 @@ async function doSearch(
 
 /**
  * Search HLTB via their unofficial API.
- * Obtains a session (token + fingerprint pair) from /api/find/init,
- * then POSTs to /api/find with the required auth headers and payload field.
+ * Obtains a session (token + fingerprint pair) from `${SEARCH_PATH}/init`,
+ * then POSTs to `${SEARCH_PATH}` with the required auth headers and payload field.
  * On 403, invalidates the session and retries once with a fresh session.
  */
 export async function searchHltb(
