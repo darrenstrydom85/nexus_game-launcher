@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.5 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.3.6 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.3.5" class="changelog-latest-pill">
+          <a href="#v0.3.6" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.3.5</span>
+            <span>Latest · v0.3.6</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.3.5_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.3.6_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.3.5
+            Download v0.3.6
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.3.5">
+          <a class="changelog-rail-link is-latest" href="#v0.3.6">
+            <span class="changelog-rail-version">v0.3.6</span>
+            <span class="changelog-rail-date">May 2</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.3.5">
             <span class="changelog-rail-version">v0.3.5</span>
             <span class="changelog-rail-date">Apr 29</span>
           </a>
@@ -204,7 +208,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.3.5">v0.3.5 — Apr 29, 2026 (Latest)</option>
+              <option value="v0.3.6">v0.3.6 — May 2, 2026 (Latest)</option>
+              <option value="v0.3.5">v0.3.5 — Apr 29, 2026</option>
               <option value="v0.3.4">v0.3.4 — Apr 27, 2026</option>
               <option value="v0.3.3">v0.3.3 — Apr 23, 2026</option>
               <option value="v0.3.2">v0.3.2 — Apr 23, 2026</option>
@@ -254,11 +259,61 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.3.5 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.3.5">
+            <!-- ── v0.3.6 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.3.6">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.3.6</h2>
+                <time class="changelog-entry-date" datetime="2026-05-02">May 2, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A maintenance release focused on keeping the lights on.
+                  HowLongToBeat's internal API was rotated again and broke
+                  search inside Nexus &mdash; the client has been pointed at
+                  their new endpoint. The Wrapped &ldquo;Your #1 Game&rdquo;
+                  screen gets a richer layout with the game&rsquo;s banner,
+                  cover, and logo. Under the hood, five RUSTSEC
+                  certificate-validation and networking advisories have been
+                  patched.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="search" class="icon-sm"></i>HowLongToBeat search works again</li>
+                  <li><i data-lucide="image" class="icon-sm"></i>Richer &ldquo;Your #1 Game&rdquo; Wrapped card</li>
+                  <li><i data-lucide="shield-check" class="icon-sm"></i>Certificate-validation and QUIC DoS patches</li>
+                </ul>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HowLongToBeat search restored</strong> &mdash; HowLongToBeat rotated their internal API path again; auto-fetch and manual search started returning a &ldquo;Search failed &mdash; HLTB may be temporarily unavailable.&rdquo; error. Nexus now points at the current endpoint with the same three-part authentication scheme and resumes normal HLTB lookups without any action from you.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="improved">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>&ldquo;Your #1 Game&rdquo; Wrapped card redesign</strong> &mdash; The full-bleed background now uses the game&rsquo;s landscape banner (with a fallback to cover art), and the title area shows a prominent portrait cover plus the game&rsquo;s logo. When no logo exists it falls back to the previous big-text title. Smaller Wrapped tiles still use cover art, which suits their portrait framing.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="security">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Security</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Certificate validation patches (4 advisories)</strong> &mdash; Bumped <code>rustls-webpki</code> from 0.103.9 to 0.103.13 to resolve RUSTSEC-2026-0049, RUSTSEC-2026-0098, RUSTSEC-2026-0099, and RUSTSEC-2026-0104 &mdash; covering CRL authority handling, URI and wildcard name-constraint bypasses, and a panic in CRL parsing. These affect HTTPS validation for all outbound requests (IGDB, SteamGridDB, Twitch, HowLongToBeat, Google OAuth).</li>
+                    <li><strong>Quinn DoS patch</strong> &mdash; Bumped <code>quinn-proto</code> 0.11.13 to 0.11.14 to resolve RUSTSEC-2026-0037 (denial of service in Quinn endpoints, pulled in transitively via <code>reqwest</code>).</li>
+                    <li><strong>Dev toolchain hardening</strong> &mdash; Patched eight GHSA advisories across Vite, PostCSS, Picomatch, brace-expansion, Hono, and path-to-regexp. None of these packages ship in the installed app &mdash; they only run on developers&rsquo; machines during build &mdash; but this keeps the local dev server, build pipeline, and CLI tooling clean.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.3.5 ── -->
+            <article class="changelog-entry" id="v0.3.5">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.3.5</h2>
-                <time class="changelog-entry-date" datetime="2026-04-29">April 29, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-04-29">April 29, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
