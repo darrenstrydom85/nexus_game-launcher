@@ -18,6 +18,8 @@ export interface WrappedGame {
   id: string;
   name: string;
   coverUrl: string | null;
+  heroUrl: string | null;
+  logoUrl: string | null;
   playTimeS: number;
   sessionCount: number;
   source: string;

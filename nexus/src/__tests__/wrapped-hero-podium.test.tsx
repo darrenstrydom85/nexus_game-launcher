@@ -33,6 +33,8 @@ vi.mock("@/hooks/use-reduced-motion", () => ({
 
 const makeGame = (overrides: Partial<WrappedGame> & { id: string; name: string }): WrappedGame => ({
   coverUrl: null,
+  heroUrl: null,
+  logoUrl: null,
   playTimeS: 3600,
   sessionCount: 5,
   source: "steam",

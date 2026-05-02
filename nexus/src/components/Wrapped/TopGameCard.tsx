@@ -33,7 +33,12 @@ export function TopGameCard({ report }: TopGameCardProps) {
     );
   }
 
+  // Prefer the landscape banner (heroUrl) for the full-bleed background —
+  // it's shot for widescreen framing and looks much better than the portrait
+  // cover stretched across the card. Fall back to cover, then a plain gradient.
+  const backgroundUrl = resolveUrl(game.heroUrl) ?? resolveUrl(game.coverUrl);
   const coverUrl = resolveUrl(game.coverUrl);
+  const logoUrl = resolveUrl(game.logoUrl);
   const percent =
     report.totalPlayTimeS > 0
       ? ((game.playTimeS / report.totalPlayTimeS) * 100).toFixed(1)
@@ -43,14 +48,15 @@ export function TopGameCard({ report }: TopGameCardProps) {
   return (
     <button
       data-testid="top-game-card"
-      className="relative flex h-full w-full flex-col items-center justify-end overflow-hidden text-left"
+      className="group relative flex h-full w-full flex-col items-center justify-end overflow-hidden text-left"
       onClick={() => openGame(game.id, game.name)}
     >
       {/* Full-bleed hero image */}
-      {coverUrl ? (
+      {backgroundUrl ? (
         <img
-          src={coverUrl}
-          alt={game.name}
+          src={backgroundUrl}
+          alt=""
+          aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
           style={{ filter: "brightness(0.45)" }}
         />
@@ -62,13 +68,34 @@ export function TopGameCard({ report }: TopGameCardProps) {
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
       {/* Content */}
-      <div className="relative z-10 flex w-full flex-col items-center gap-4 px-8 pb-16 text-center">
+      <div className="relative z-10 flex w-full flex-col items-center gap-5 px-8 pb-16 text-center">
         <p className="text-sm font-medium uppercase tracking-widest text-primary">
           Your #1 Game
         </p>
-        <h2 className="text-4xl font-bold text-foreground hover:text-primary transition-colors">
-          {game.name}
-        </h2>
+
+        {coverUrl && (
+          <img
+            data-testid="top-game-cover"
+            src={coverUrl}
+            alt=""
+            aria-hidden="true"
+            className="h-56 w-40 rounded-lg object-cover shadow-2xl ring-1 ring-white/10 transition-transform duration-200 group-hover:scale-[1.02]"
+          />
+        )}
+
+        {logoUrl ? (
+          <img
+            data-testid="top-game-logo"
+            src={logoUrl}
+            alt={game.name}
+            className="max-h-24 max-w-[80%] object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] transition-opacity group-hover:opacity-90"
+          />
+        ) : (
+          <h2 className="text-4xl font-bold text-foreground transition-colors group-hover:text-primary">
+            {game.name}
+          </h2>
+        )}
+
         {resolved?.isRemoved && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur-sm">
             <HardDriveDownload className="size-3" />

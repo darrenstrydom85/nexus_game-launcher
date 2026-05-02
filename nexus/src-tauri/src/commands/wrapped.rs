@@ -222,7 +222,7 @@ fn get_wrapped_report_inner(
 
     // 5) Top games by play time in period (for most_played_game and top_games)
     let top_games_sql = format!(
-        "SELECT g.id, g.name, g.cover_url, g.source,
+        "SELECT g.id, g.name, g.cover_url, g.hero_url, g.logo_url, g.source,
                 COALESCE(SUM(ps.duration_s), 0) as play_time_s, COUNT(*) as session_count
          FROM play_sessions ps
          {GAME_JOIN}
@@ -240,6 +240,8 @@ fn get_wrapped_report_inner(
                 id: row.get("id")?,
                 name: row.get("name")?,
                 cover_url: row.get("cover_url")?,
+                hero_url: row.get("hero_url")?,
+                logo_url: row.get("logo_url")?,
                 play_time_s: row.get("play_time_s")?,
                 session_count: row.get("session_count")?,
                 source: row.get::<_, String>("source").unwrap_or_else(|_| "unknown".to_string()),
@@ -358,7 +360,7 @@ fn get_wrapped_report_inner(
     let first_game: Option<WrappedGame> = tx
         .query_row(
             &format!(
-                "SELECT g.id, g.name, g.cover_url, g.source,
+                "SELECT g.id, g.name, g.cover_url, g.hero_url, g.logo_url, g.source,
                         COALESCE(SUM(ps.duration_s), 0) as play_time_s, COUNT(*) as session_count
                  FROM play_sessions ps {GAME_JOIN}
                  WHERE {} AND ps.started_at >= ?1 AND ps.started_at <= ?2
@@ -372,9 +374,11 @@ fn get_wrapped_report_inner(
                     id: row.get(0)?,
                     name: row.get(1)?,
                     cover_url: row.get(2)?,
-                    play_time_s: row.get(4)?,
-                    session_count: row.get(5)?,
-                    source: row.get::<_, String>(3).unwrap_or_else(|_| "unknown".to_string()),
+                    hero_url: row.get(3)?,
+                    logo_url: row.get(4)?,
+                    play_time_s: row.get(6)?,
+                    session_count: row.get(7)?,
+                    source: row.get::<_, String>(5).unwrap_or_else(|_| "unknown".to_string()),
                 })
             },
         )
@@ -384,7 +388,7 @@ fn get_wrapped_report_inner(
     let last_game: Option<WrappedGame> = tx
         .query_row(
             &format!(
-                "SELECT g.id, g.name, g.cover_url, g.source,
+                "SELECT g.id, g.name, g.cover_url, g.hero_url, g.logo_url, g.source,
                         COALESCE(SUM(ps.duration_s), 0) as play_time_s, COUNT(*) as session_count
                  FROM play_sessions ps {GAME_JOIN}
                  WHERE {} AND ps.started_at >= ?1 AND ps.started_at <= ?2
@@ -398,9 +402,11 @@ fn get_wrapped_report_inner(
                     id: row.get(0)?,
                     name: row.get(1)?,
                     cover_url: row.get(2)?,
-                    play_time_s: row.get(4)?,
-                    session_count: row.get(5)?,
-                    source: row.get::<_, String>(3).unwrap_or_else(|_| "unknown".to_string()),
+                    hero_url: row.get(3)?,
+                    logo_url: row.get(4)?,
+                    play_time_s: row.get(6)?,
+                    session_count: row.get(7)?,
+                    source: row.get::<_, String>(5).unwrap_or_else(|_| "unknown".to_string()),
                 })
             },
         )

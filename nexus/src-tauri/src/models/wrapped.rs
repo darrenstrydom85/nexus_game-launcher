@@ -29,6 +29,8 @@ pub struct WrappedGame {
     pub id: String,
     pub name: String,
     pub cover_url: Option<String>,
+    pub hero_url: Option<String>,
+    pub logo_url: Option<String>,
     pub play_time_s: i64,
     pub session_count: i64,
     pub source: String,
