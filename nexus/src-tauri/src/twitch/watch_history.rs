@@ -312,12 +312,36 @@ mod tests {
     fn aggregate_top_channels_and_games() {
         let conn = fresh_conn();
         // Two sessions of Shroud playing GTA V (60s + 120s = 180s)
-        let a = start_session(&conn, "shroud", Some("Shroud"), Some("g1"), Some("GTA V"), None).unwrap();
+        let a = start_session(
+            &conn,
+            "shroud",
+            Some("Shroud"),
+            Some("g1"),
+            Some("GTA V"),
+            None,
+        )
+        .unwrap();
         end_session(&conn, a, 60).unwrap();
-        let b = start_session(&conn, "shroud", Some("Shroud"), Some("g1"), Some("GTA V"), None).unwrap();
+        let b = start_session(
+            &conn,
+            "shroud",
+            Some("Shroud"),
+            Some("g1"),
+            Some("GTA V"),
+            None,
+        )
+        .unwrap();
         end_session(&conn, b, 120).unwrap();
         // One session of summit1g playing Valorant (90s)
-        let c = start_session(&conn, "summit1g", Some("summit1g"), Some("g2"), Some("Valorant"), None).unwrap();
+        let c = start_session(
+            &conn,
+            "summit1g",
+            Some("summit1g"),
+            Some("g2"),
+            Some("Valorant"),
+            None,
+        )
+        .unwrap();
         end_session(&conn, c, 90).unwrap();
 
         let agg = aggregate_for_recent_days(&conn, 30, 5).unwrap();

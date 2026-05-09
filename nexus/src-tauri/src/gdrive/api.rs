@@ -129,9 +129,7 @@ pub async fn upload_backup(
         },
     });
 
-    eprintln!(
-        "[gdrive-api] initiating resumable upload: {file_name} ({file_size} bytes)"
-    );
+    eprintln!("[gdrive-api] initiating resumable upload: {file_name} ({file_size} bytes)");
 
     let init_res = client
         .post(format!("{DRIVE_UPLOAD_URL}?uploadType=resumable"))
@@ -146,10 +144,7 @@ pub async fn upload_backup(
 
     if !init_res.status().is_success() {
         let status = init_res.status().as_u16();
-        let body = init_res
-            .text()
-            .await
-            .unwrap_or_default();
+        let body = init_res.text().await.unwrap_or_default();
         return Err(CommandError::Api(format!(
             "resumable upload init failed ({status}): {body}"
         )));
@@ -205,10 +200,7 @@ pub async fn list_backups(
         .bearer_auth(access_token)
         .query(&[
             ("q", query.as_str()),
-            (
-                "fields",
-                "files(id,name,size,createdTime,appProperties)",
-            ),
+            ("fields", "files(id,name,size,createdTime,appProperties)"),
             ("orderBy", "createdTime desc"),
             ("pageSize", "100"),
         ])
@@ -231,12 +223,7 @@ pub async fn list_backups(
         .filter_map(|f| {
             let id = f.id?;
             let name = f.name.unwrap_or_default();
-            let size = f
-                .size
-                .as_deref()
-                .unwrap_or("0")
-                .parse::<u64>()
-                .unwrap_or(0);
+            let size = f.size.as_deref().unwrap_or("0").parse::<u64>().unwrap_or(0);
             let created_at = f.created_time.unwrap_or_default();
             let schema_version = f
                 .app_properties
@@ -323,7 +310,10 @@ pub async fn prune_old_backups(
     let mut deleted = 0u32;
     if backups.len() > retention_count {
         for entry in backups.iter().skip(retention_count) {
-            eprintln!("[gdrive-api] pruning old backup: {} ({})", entry.name, entry.id);
+            eprintln!(
+                "[gdrive-api] pruning old backup: {} ({})",
+                entry.name, entry.id
+            );
             delete_file(access_token, &entry.id).await?;
             deleted += 1;
         }

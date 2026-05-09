@@ -11,11 +11,16 @@ pub fn write_image_to_clipboard(base64_png: String) -> Result<(), String> {
 
     // Decode PNG to raw RGBA pixels
     let decoder = png::Decoder::new(std::io::Cursor::new(&bytes));
-    let mut reader = decoder.read_info().map_err(|e| format!("PNG decode error: {e}"))?;
-    let buf_size = reader.output_buffer_size()
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| format!("PNG decode error: {e}"))?;
+    let buf_size = reader
+        .output_buffer_size()
         .ok_or_else(|| "PNG output buffer size unavailable".to_string())?;
     let mut img_data = vec![0u8; buf_size];
-    let info = reader.next_frame(&mut img_data).map_err(|e| format!("PNG frame error: {e}"))?;
+    let info = reader
+        .next_frame(&mut img_data)
+        .map_err(|e| format!("PNG frame error: {e}"))?;
 
     let width = info.width as usize;
     let height = info.height as usize;
@@ -42,8 +47,11 @@ pub fn write_image_to_clipboard(base64_png: String) -> Result<(), String> {
         bytes: std::borrow::Cow::Owned(rgba_data),
     };
 
-    let mut clipboard = arboard::Clipboard::new().map_err(|e| format!("clipboard init error: {e}"))?;
-    clipboard.set_image(img).map_err(|e| format!("clipboard write error: {e}"))?;
+    let mut clipboard =
+        arboard::Clipboard::new().map_err(|e| format!("clipboard init error: {e}"))?;
+    clipboard
+        .set_image(img)
+        .map_err(|e| format!("clipboard write error: {e}"))?;
 
     Ok(())
 }

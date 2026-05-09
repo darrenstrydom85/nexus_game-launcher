@@ -13,5 +13,7 @@ pub struct PlaytimeRecord {
 #[tauri::command]
 pub fn get_playtime(game_id: String) -> Result<PlaytimeRecord, CommandError> {
     let _ = game_id;
-    Err(CommandError::Unknown("get_playtime not yet implemented".into()))
+    Err(CommandError::Unknown(
+        "get_playtime not yet implemented".into(),
+    ))
 }

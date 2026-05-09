@@ -18,10 +18,11 @@ const KEY_LEN: usize = 32;
 
 /// Device-bound encryption key for Twitch tokens. Stored in app data dir.
 fn key_path() -> Result<PathBuf, CommandError> {
-    let app_data = std::env::var("APPDATA").map_err(|_| {
-        CommandError::Unknown("APPDATA not set (non-Windows?)".to_string())
-    })?;
-    Ok(PathBuf::from(app_data).join("nexus").join(TWITCH_KEY_FILENAME))
+    let app_data = std::env::var("APPDATA")
+        .map_err(|_| CommandError::Unknown("APPDATA not set (non-Windows?)".to_string()))?;
+    Ok(PathBuf::from(app_data)
+        .join("nexus")
+        .join(TWITCH_KEY_FILENAME))
 }
 
 /// Ensure the nexus app dir exists and return the key path.
@@ -56,7 +57,8 @@ fn load_key() -> Result<[u8; KEY_LEN], CommandError> {
 /// Encrypt plaintext with AES-256-GCM. Returns "base64(nonce || ciphertext)".
 pub fn encrypt(plaintext: &str) -> Result<String, CommandError> {
     let key = load_key()?;
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
     let mut nonce_bytes = [0u8; NONCE_LEN];
     getrandom::getrandom(&mut nonce_bytes).map_err(|e| CommandError::Unknown(e.to_string()))?;
     let nonce = aes_gcm::Nonce::from_slice(&nonce_bytes);
@@ -71,18 +73,19 @@ pub fn encrypt(plaintext: &str) -> Result<String, CommandError> {
 /// Decrypt a value produced by `encrypt`.
 pub fn decrypt(encoded: &str) -> Result<String, CommandError> {
     let key = load_key()?;
-    let combined = base64::engine::general_purpose::STANDARD.decode(encoded.trim()).map_err(|e| {
-        CommandError::Parse(format!("twitch token decode: {e}"))
-    })?;
+    let combined = base64::engine::general_purpose::STANDARD
+        .decode(encoded.trim())
+        .map_err(|e| CommandError::Parse(format!("twitch token decode: {e}")))?;
     if combined.len() < NONCE_LEN {
         return Err(CommandError::Parse("twitch token too short".to_string()));
     }
     let (nonce_slice, ct) = combined.split_at(NONCE_LEN);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let cipher =
+        Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
     let nonce = aes_gcm::Nonce::from_slice(nonce_slice);
-    let plaintext = cipher
-        .decrypt(nonce, ct)
-        .map_err(|_| CommandError::Auth("token decryption failed (wrong machine or corrupted)".to_string()))?;
+    let plaintext = cipher.decrypt(nonce, ct).map_err(|_| {
+        CommandError::Auth("token decryption failed (wrong machine or corrupted)".to_string())
+    })?;
     String::from_utf8(plaintext).map_err(|e| CommandError::Parse(e.to_string()))
 }
 
@@ -109,8 +112,13 @@ pub fn get_setting_raw(
     let mut rows = stmt
         .query(params![key])
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    if let Some(row) = rows.next().map_err(|e| CommandError::Database(e.to_string()))? {
-        let v: Option<String> = row.get(0).map_err(|e| CommandError::Database(e.to_string()))?;
+    if let Some(row) = rows
+        .next()
+        .map_err(|e| CommandError::Database(e.to_string()))?
+    {
+        let v: Option<String> = row
+            .get(0)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(v)
     } else {
         Ok(None)
@@ -152,7 +160,11 @@ pub fn store_tokens(
     let enc_refresh = encrypt(refresh_token)?;
     set_setting_raw(conn, keys::TWITCH_ACCESS_TOKEN, &enc_access)?;
     set_setting_raw(conn, keys::TWITCH_REFRESH_TOKEN, &enc_refresh)?;
-    set_setting_raw(conn, keys::TWITCH_TOKEN_EXPIRES_AT, &expires_at_secs.to_string())?;
+    set_setting_raw(
+        conn,
+        keys::TWITCH_TOKEN_EXPIRES_AT,
+        &expires_at_secs.to_string(),
+    )?;
     set_setting_raw(conn, keys::TWITCH_USER_ID, user_id)?;
     set_setting_raw(conn, keys::TWITCH_DISPLAY_NAME, display_name)?;
     if let Some(url) = profile_image_url {
@@ -180,9 +192,10 @@ pub fn load_refresh_token(conn: &rusqlite::Connection) -> Result<Option<String>,
 /// Load expiry timestamp (seconds since epoch).
 pub fn load_expires_at(conn: &rusqlite::Connection) -> Result<Option<i64>, CommandError> {
     match get_setting_raw(conn, keys::TWITCH_TOKEN_EXPIRES_AT)? {
-        Some(s) => s.parse::<i64>().map(Some).map_err(|_| {
-            CommandError::Parse(format!("invalid twitch_token_expires_at: {s}"))
-        }),
+        Some(s) => s
+            .parse::<i64>()
+            .map(Some)
+            .map_err(|_| CommandError::Parse(format!("invalid twitch_token_expires_at: {s}"))),
         None => Ok(None),
     }
 }
@@ -240,7 +253,9 @@ mod tests {
         let mut combined = nonce_bytes.to_vec();
         combined.extend(ct);
         let encoded = base64::engine::general_purpose::STANDARD.encode(&combined);
-        let decoded = base64::engine::general_purpose::STANDARD.decode(&encoded).unwrap();
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(&encoded)
+            .unwrap();
         let (n, c) = decoded.split_at(NONCE_LEN);
         let cipher2 = Aes256Gcm::new_from_slice(&key).unwrap();
         let out = cipher2.decrypt(aes_gcm::Nonce::from_slice(n), c).unwrap();

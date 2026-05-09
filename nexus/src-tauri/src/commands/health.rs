@@ -43,7 +43,15 @@ pub async fn check_library_health(
 ) -> Result<LibraryHealthReport, CommandError> {
     // Collect candidate games while holding the lock, then release before doing
     // filesystem work so we don't block other commands.
-    let candidates: Vec<(String, String, String, Option<String>, Option<String>, Option<String>, i64)> = {
+    let candidates: Vec<(
+        String,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        i64,
+    )> = {
         let conn = db
             .conn
             .lock()
@@ -170,8 +178,19 @@ mod tests {
     }
 
     fn run_health_check_inner(state: &DbState) -> Result<LibraryHealthReport, CommandError> {
-        let candidates: Vec<(String, String, String, Option<String>, Option<String>, Option<String>, i64)> = {
-            let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let candidates: Vec<(
+            String,
+            String,
+            String,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            i64,
+        )> = {
+            let conn = state
+                .conn
+                .lock()
+                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
             let mut stmt = conn
                 .prepare(
                     "SELECT id, name, source, exe_path, folder_path, last_played, total_play_time
@@ -180,18 +199,19 @@ mod tests {
                        AND (source = 'standalone' OR exe_path IS NOT NULL)",
                 )
                 .map_err(|e| CommandError::Database(e.to_string()))?;
-            let rows = stmt.query_map(params![], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                    row.get::<_, Option<String>>(4)?,
-                    row.get::<_, Option<String>>(5)?,
-                    row.get::<_, i64>(6)?,
-                ))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            let rows = stmt
+                .query_map(params![], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<String>>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                })
+                .map_err(|e| CommandError::Database(e.to_string()))?;
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(|e| CommandError::Database(e.to_string()))?
         };
@@ -200,7 +220,11 @@ mod tests {
             .into_iter()
             .filter(|(_, _, source, exe_path, _, _, _)| {
                 let is_protocol = PROTOCOL_SOURCES.contains(&source.as_str());
-                if is_protocol { exe_path.is_some() } else { true }
+                if is_protocol {
+                    exe_path.is_some()
+                } else {
+                    true
+                }
             })
             .collect();
 
@@ -219,11 +243,23 @@ mod tests {
                 }
             };
             if is_dead {
-                dead_games.push(DeadGame { id, name, source, exe_path, folder_path, last_played, total_play_time_s: total_play_time });
+                dead_games.push(DeadGame {
+                    id,
+                    name,
+                    source,
+                    exe_path,
+                    folder_path,
+                    last_played,
+                    total_play_time_s: total_play_time,
+                });
             }
         }
 
-        Ok(LibraryHealthReport { dead_games, total_checked: total, checked_at: now_iso() })
+        Ok(LibraryHealthReport {
+            dead_games,
+            total_checked: total,
+            checked_at: now_iso(),
+        })
     }
 
     #[test]
@@ -256,7 +292,13 @@ mod tests {
         let state = setup_db();
         {
             let conn = state.conn.lock().unwrap();
-            insert_game(&conn, "g1", "Dead Game", "standalone", Some("C:\\nonexistent\\game.exe"));
+            insert_game(
+                &conn,
+                "g1",
+                "Dead Game",
+                "standalone",
+                Some("C:\\nonexistent\\game.exe"),
+            );
         }
         let report = run_health_check_inner(&state).unwrap();
         assert_eq!(report.total_checked, 1);
@@ -286,7 +328,13 @@ mod tests {
         {
             let conn = state.conn.lock().unwrap();
             insert_game(&conn, "g1", "Alive", "standalone", Some(&existing));
-            insert_game(&conn, "g2", "Dead", "standalone", Some("C:\\fake\\path.exe"));
+            insert_game(
+                &conn,
+                "g2",
+                "Dead",
+                "standalone",
+                Some("C:\\fake\\path.exe"),
+            );
         }
         let report = run_health_check_inner(&state).unwrap();
         assert_eq!(report.total_checked, 2);
@@ -315,7 +363,13 @@ mod tests {
         {
             let conn = state.conn.lock().unwrap();
             // GOG is not in PROTOCOL_SOURCES, so it's treated like standalone
-            insert_game(&conn, "g1", "GOG Game", "gog", Some("C:\\fake\\gog_game.exe"));
+            insert_game(
+                &conn,
+                "g1",
+                "GOG Game",
+                "gog",
+                Some("C:\\fake\\gog_game.exe"),
+            );
         }
         let report = run_health_check_inner(&state).unwrap();
         assert_eq!(report.total_checked, 1);
@@ -328,7 +382,13 @@ mod tests {
         {
             let conn = state.conn.lock().unwrap();
             // Steam WITH an explicit exe_path should be checked
-            insert_game(&conn, "g1", "Steam Direct", "steam", Some("C:\\fake\\steam_game.exe"));
+            insert_game(
+                &conn,
+                "g1",
+                "Steam Direct",
+                "steam",
+                Some("C:\\fake\\steam_game.exe"),
+            );
         }
         let report = run_health_check_inner(&state).unwrap();
         assert_eq!(report.total_checked, 1);

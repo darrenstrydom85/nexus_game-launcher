@@ -93,10 +93,7 @@ impl SteamGridDbClient {
     }
 
     pub async fn search_game(&self, name: &str) -> Result<Vec<SteamGridSearchResult>, String> {
-        let url = format!(
-            "{BASE_URL}/search/autocomplete/{}",
-            urlencoded(name)
-        );
+        let url = format!("{BASE_URL}/search/autocomplete/{}", urlencoded(name));
 
         let resp = self
             .http
@@ -198,7 +195,9 @@ impl SteamGridDbClient {
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(format!("SteamGridDB steam shortcut returned {status}: {body}"));
+            return Err(format!(
+                "SteamGridDB steam shortcut returned {status}: {body}"
+            ));
         }
 
         let api_resp: ApiResponse<Vec<SteamGridImage>> = resp
@@ -209,7 +208,10 @@ impl SteamGridDbClient {
         Ok(api_resp.data)
     }
 
-    pub fn select_best_image(images: &[SteamGridImage], art_type: ArtworkType) -> Option<&SteamGridImage> {
+    pub fn select_best_image(
+        images: &[SteamGridImage],
+        art_type: ArtworkType,
+    ) -> Option<&SteamGridImage> {
         if images.is_empty() {
             return None;
         }
@@ -249,7 +251,12 @@ impl SteamGridDbClient {
     }
 
     pub async fn fetch_artwork_set(&self, steamgrid_id: i64) -> Result<ArtworkSet, String> {
-        let types = [ArtworkType::Grid, ArtworkType::Hero, ArtworkType::Logo, ArtworkType::Icon];
+        let types = [
+            ArtworkType::Grid,
+            ArtworkType::Hero,
+            ArtworkType::Logo,
+            ArtworkType::Icon,
+        ];
         let mut set = ArtworkSet {
             grid: None,
             hero: None,
@@ -270,7 +277,10 @@ impl SteamGridDbClient {
                     }
                 }
                 Err(e) => {
-                    log::warn!("SteamGridDB: failed to fetch {:?} for {steamgrid_id}: {e}", art_type);
+                    log::warn!(
+                        "SteamGridDB: failed to fetch {:?} for {steamgrid_id}: {e}",
+                        art_type
+                    );
                 }
             }
         }
@@ -305,8 +315,16 @@ mod tests {
     #[test]
     fn best_match_exact_name() {
         let results = vec![
-            SteamGridSearchResult { id: 1, name: "The Witcher 3".into(), verified: false },
-            SteamGridSearchResult { id: 2, name: "Witcher 3: Wild Hunt".into(), verified: true },
+            SteamGridSearchResult {
+                id: 1,
+                name: "The Witcher 3".into(),
+                verified: false,
+            },
+            SteamGridSearchResult {
+                id: 2,
+                name: "Witcher 3: Wild Hunt".into(),
+                verified: true,
+            },
         ];
         let best = SteamGridDbClient::best_match(&results, "The Witcher 3").unwrap();
         assert_eq!(best.id, 1);
@@ -315,8 +333,16 @@ mod tests {
     #[test]
     fn best_match_fuzzy() {
         let results = vec![
-            SteamGridSearchResult { id: 1, name: "Halo Infinite".into(), verified: false },
-            SteamGridSearchResult { id: 2, name: "Halo: Combat Evolved".into(), verified: false },
+            SteamGridSearchResult {
+                id: 1,
+                name: "Halo Infinite".into(),
+                verified: false,
+            },
+            SteamGridSearchResult {
+                id: 2,
+                name: "Halo: Combat Evolved".into(),
+                verified: false,
+            },
         ];
         let best = SteamGridDbClient::best_match(&results, "Halo Infinite").unwrap();
         assert_eq!(best.id, 1);
@@ -330,9 +356,11 @@ mod tests {
 
     #[test]
     fn best_match_case_insensitive() {
-        let results = vec![
-            SteamGridSearchResult { id: 1, name: "DOOM Eternal".into(), verified: false },
-        ];
+        let results = vec![SteamGridSearchResult {
+            id: 1,
+            name: "DOOM Eternal".into(),
+            verified: false,
+        }];
         let best = SteamGridDbClient::best_match(&results, "doom eternal").unwrap();
         assert_eq!(best.id, 1);
     }
@@ -341,14 +369,28 @@ mod tests {
     fn select_best_image_prefers_official() {
         let images = vec![
             SteamGridImage {
-                id: 1, url: "http://a.com/1.jpg".into(), thumb: "".into(),
-                width: 600, height: 900, style: "community".into(), mime: "image/jpeg".into(),
-                score: 100, notes: None, author: None,
+                id: 1,
+                url: "http://a.com/1.jpg".into(),
+                thumb: "".into(),
+                width: 600,
+                height: 900,
+                style: "community".into(),
+                mime: "image/jpeg".into(),
+                score: 100,
+                notes: None,
+                author: None,
             },
             SteamGridImage {
-                id: 2, url: "http://a.com/2.jpg".into(), thumb: "".into(),
-                width: 600, height: 900, style: "official".into(), mime: "image/jpeg".into(),
-                score: 50, notes: None, author: None,
+                id: 2,
+                url: "http://a.com/2.jpg".into(),
+                thumb: "".into(),
+                width: 600,
+                height: 900,
+                style: "official".into(),
+                mime: "image/jpeg".into(),
+                score: 50,
+                notes: None,
+                author: None,
             },
         ];
         let best = SteamGridDbClient::select_best_image(&images, ArtworkType::Grid).unwrap();
@@ -359,14 +401,28 @@ mod tests {
     fn select_best_image_prefers_png_for_logo() {
         let images = vec![
             SteamGridImage {
-                id: 1, url: "http://a.com/1.jpg".into(), thumb: "".into(),
-                width: 400, height: 200, style: "".into(), mime: "image/jpeg".into(),
-                score: 50, notes: None, author: None,
+                id: 1,
+                url: "http://a.com/1.jpg".into(),
+                thumb: "".into(),
+                width: 400,
+                height: 200,
+                style: "".into(),
+                mime: "image/jpeg".into(),
+                score: 50,
+                notes: None,
+                author: None,
             },
             SteamGridImage {
-                id: 2, url: "http://a.com/2.png".into(), thumb: "".into(),
-                width: 400, height: 200, style: "".into(), mime: "image/png".into(),
-                score: 40, notes: None, author: None,
+                id: 2,
+                url: "http://a.com/2.png".into(),
+                thumb: "".into(),
+                width: 400,
+                height: 200,
+                style: "".into(),
+                mime: "image/png".into(),
+                score: 40,
+                notes: None,
+                author: None,
             },
         ];
         let best = SteamGridDbClient::select_best_image(&images, ArtworkType::Logo).unwrap();

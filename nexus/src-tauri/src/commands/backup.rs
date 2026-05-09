@@ -191,9 +191,7 @@ pub async fn gdrive_auth_start(
 }
 
 #[tauri::command]
-pub async fn gdrive_auth_status(
-    db: State<'_, DbState>,
-) -> Result<GDriveAuthStatus, CommandError> {
+pub async fn gdrive_auth_status(db: State<'_, DbState>) -> Result<GDriveAuthStatus, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -258,16 +256,20 @@ pub async fn run_backup(
             .conn
             .lock()
             .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let vacuum_sql = format!("VACUUM INTO '{}'", temp_path.to_string_lossy().replace('\'', "''"));
+        let vacuum_sql = format!(
+            "VACUUM INTO '{}'",
+            temp_path.to_string_lossy().replace('\'', "''")
+        );
         conn.execute_batch(&vacuum_sql)
             .map_err(|e| CommandError::Database(format!("VACUUM INTO failed: {e}")))?;
     }
 
-    let file_size = std::fs::metadata(&temp_path)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let file_size = std::fs::metadata(&temp_path).map(|m| m.len()).unwrap_or(0);
 
-    let now_str = now_iso().replace(':', "-").trim_end_matches('Z').to_string();
+    let now_str = now_iso()
+        .replace(':', "-")
+        .trim_end_matches('Z')
+        .to_string();
     let file_name = format!("nexus-backup-{now_str}.db");
 
     let upload_result = api::upload_backup(
@@ -324,9 +326,7 @@ pub async fn run_backup(
 }
 
 #[tauri::command]
-pub async fn list_backups(
-    db: State<'_, DbState>,
-) -> Result<Vec<api::BackupEntry>, CommandError> {
+pub async fn list_backups(db: State<'_, DbState>) -> Result<Vec<api::BackupEntry>, CommandError> {
     let access_token = ensure_valid_token(&db).await?;
     let folder_id = resolve_folder_id(&db, &access_token).await?;
     api::list_backups(&access_token, &folder_id).await
@@ -417,9 +417,7 @@ pub async fn restore_backup(
 // ── Status & Config Commands ──────────────────────────────────────────
 
 #[tauri::command]
-pub async fn get_backup_status(
-    db: State<'_, DbState>,
-) -> Result<BackupStatus, CommandError> {
+pub async fn get_backup_status(db: State<'_, DbState>) -> Result<BackupStatus, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -463,10 +461,7 @@ pub async fn set_backup_frequency(
 }
 
 #[tauri::command]
-pub async fn set_backup_retention(
-    db: State<'_, DbState>,
-    count: u32,
-) -> Result<(), CommandError> {
+pub async fn set_backup_retention(db: State<'_, DbState>, count: u32) -> Result<(), CommandError> {
     if count == 0 || count > 100 {
         return Err(CommandError::Parse(
             "retention count must be between 1 and 100".to_string(),
@@ -495,107 +490,126 @@ pub fn start_backup_scheduler(app: AppHandle) {
             loop {
                 tokio::time::sleep(Duration::from_secs(CHECK_INTERVAL_SECS)).await;
 
-            let db = match app.try_state::<DbState>() {
-                Some(s) => s,
-                None => continue,
-            };
+                let db = match app.try_state::<DbState>() {
+                    Some(s) => s,
+                    None => continue,
+                };
 
-            let should_backup = match check_backup_due(&db) {
-                Ok(due) => due,
-                Err(_) => continue,
-            };
-
-            if !should_backup {
-                continue;
-            }
-
-            eprintln!("[backup-scheduler] automatic backup is due, starting...");
-
-            let access_token = match ensure_valid_token_unmanaged(&db).await {
-                Ok(t) => t,
-                Err(e) => {
-                    eprintln!("[backup-scheduler] token error, skipping: {e}");
-                    continue;
-                }
-            };
-
-            let folder_id = match resolve_folder_id_unmanaged(&db, &access_token).await {
-                Ok(id) => id,
-                Err(e) => {
-                    eprintln!("[backup-scheduler] folder error, skipping: {e}");
-                    continue;
-                }
-            };
-
-            let schema_version = {
-                let conn = match db.conn.lock() {
-                    Ok(c) => c,
+                let should_backup = match check_backup_due(&db) {
+                    Ok(due) => due,
                     Err(_) => continue,
                 };
-                crate::db::migrations::current_version(&conn).unwrap_or(0)
-            };
 
-            let app_data = match std::env::var("APPDATA") {
-                Ok(v) => v,
-                Err(_) => continue,
-            };
-            let temp_path = std::path::PathBuf::from(&app_data)
-                .join("nexus")
-                .join("backup_temp.db");
+                if !should_backup {
+                    continue;
+                }
 
-            let vacuum_ok = {
-                let conn = match db.conn.lock() {
-                    Ok(c) => c,
-                    Err(_) => continue,
-                };
-                let sql = format!(
-                    "VACUUM INTO '{}'",
-                    temp_path.to_string_lossy().replace('\'', "''")
-                );
-                conn.execute_batch(&sql).is_ok()
-            };
+                eprintln!("[backup-scheduler] automatic backup is due, starting...");
 
-            if !vacuum_ok {
-                eprintln!("[backup-scheduler] VACUUM INTO failed, skipping");
-                continue;
-            }
-
-            let now_str = now_iso().replace(':', "-").trim_end_matches('Z').to_string();
-            let file_name = format!("nexus-backup-{now_str}.db");
-
-            match api::upload_backup(&access_token, &folder_id, &temp_path, &file_name, schema_version).await {
-                Ok(_file_id) => {
-                    eprintln!("[backup-scheduler] upload complete: {file_name}");
-                    let completed_at = now_iso();
-                    if let Ok(conn) = db.conn.lock() {
-                        let _ = tokens::set_setting_raw(&conn, keys::BACKUP_LAST_AT, &completed_at);
+                let access_token = match ensure_valid_token_unmanaged(&db).await {
+                    Ok(t) => t,
+                    Err(e) => {
+                        eprintln!("[backup-scheduler] token error, skipping: {e}");
+                        continue;
                     }
-                    let retention = db.conn.lock().ok()
-                        .and_then(|c| tokens::get_setting_raw(&c, keys::BACKUP_RETENTION_COUNT).ok().flatten())
-                        .and_then(|s| s.parse::<usize>().ok())
-                        .unwrap_or(5);
-                    let _ = api::prune_old_backups(&access_token, &folder_id, retention).await;
-                    let _ = app.emit(
-                        "backup-status-changed",
-                        serde_json::json!({
-                            "lastBackupAt": completed_at,
-                            "success": true,
-                            "fileName": file_name,
-                            "automatic": true,
-                        }),
+                };
+
+                let folder_id = match resolve_folder_id_unmanaged(&db, &access_token).await {
+                    Ok(id) => id,
+                    Err(e) => {
+                        eprintln!("[backup-scheduler] folder error, skipping: {e}");
+                        continue;
+                    }
+                };
+
+                let schema_version = {
+                    let conn = match db.conn.lock() {
+                        Ok(c) => c,
+                        Err(_) => continue,
+                    };
+                    crate::db::migrations::current_version(&conn).unwrap_or(0)
+                };
+
+                let app_data = match std::env::var("APPDATA") {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let temp_path = std::path::PathBuf::from(&app_data)
+                    .join("nexus")
+                    .join("backup_temp.db");
+
+                let vacuum_ok = {
+                    let conn = match db.conn.lock() {
+                        Ok(c) => c,
+                        Err(_) => continue,
+                    };
+                    let sql = format!(
+                        "VACUUM INTO '{}'",
+                        temp_path.to_string_lossy().replace('\'', "''")
                     );
+                    conn.execute_batch(&sql).is_ok()
+                };
+
+                if !vacuum_ok {
+                    eprintln!("[backup-scheduler] VACUUM INTO failed, skipping");
+                    continue;
                 }
-                Err(e) => {
-                    eprintln!("[backup-scheduler] upload failed: {e}");
-                    let _ = app.emit(
+
+                let now_str = now_iso()
+                    .replace(':', "-")
+                    .trim_end_matches('Z')
+                    .to_string();
+                let file_name = format!("nexus-backup-{now_str}.db");
+
+                match api::upload_backup(
+                    &access_token,
+                    &folder_id,
+                    &temp_path,
+                    &file_name,
+                    schema_version,
+                )
+                .await
+                {
+                    Ok(_file_id) => {
+                        eprintln!("[backup-scheduler] upload complete: {file_name}");
+                        let completed_at = now_iso();
+                        if let Ok(conn) = db.conn.lock() {
+                            let _ =
+                                tokens::set_setting_raw(&conn, keys::BACKUP_LAST_AT, &completed_at);
+                        }
+                        let retention = db
+                            .conn
+                            .lock()
+                            .ok()
+                            .and_then(|c| {
+                                tokens::get_setting_raw(&c, keys::BACKUP_RETENTION_COUNT)
+                                    .ok()
+                                    .flatten()
+                            })
+                            .and_then(|s| s.parse::<usize>().ok())
+                            .unwrap_or(5);
+                        let _ = api::prune_old_backups(&access_token, &folder_id, retention).await;
+                        let _ = app.emit(
+                            "backup-status-changed",
+                            serde_json::json!({
+                                "lastBackupAt": completed_at,
+                                "success": true,
+                                "fileName": file_name,
+                                "automatic": true,
+                            }),
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!("[backup-scheduler] upload failed: {e}");
+                        let _ = app.emit(
                         "backup-status-changed",
                         serde_json::json!({ "success": false, "error": e.to_string(), "automatic": true }),
                     );
+                    }
                 }
-            }
 
-            let _ = std::fs::remove_file(&temp_path);
-        }
+                let _ = std::fs::remove_file(&temp_path);
+            }
         });
     });
 }
@@ -619,7 +633,9 @@ fn check_backup_due(db: &DbState) -> Result<bool, ()> {
         _ => return Ok(false),
     };
 
-    let last_at = tokens::get_setting_raw(&conn, keys::BACKUP_LAST_AT).ok().flatten();
+    let last_at = tokens::get_setting_raw(&conn, keys::BACKUP_LAST_AT)
+        .ok()
+        .flatten();
 
     let now_secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

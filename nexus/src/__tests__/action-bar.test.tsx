@@ -62,11 +62,24 @@ describe("Story 7.2: Action Bar", () => {
     expect(btn).toHaveTextContent("Play");
   });
 
-  it("Play button shows 'Playing...' with spinner when isPlaying", () => {
-    render(<ActionBar game={mockGame} isPlaying />);
-    const btn = screen.getByTestId("action-play");
-    expect(btn).toHaveTextContent("Playing...");
-    expect(btn).toBeDisabled();
+  it("shows Stop and elapsed time when isPlaying", () => {
+    render(
+      <ActionBar
+        game={mockGame}
+        isPlaying
+        activeSessionStartedAt="2026-01-01T00:00:00Z"
+      />,
+    );
+    expect(screen.getByTestId("action-stop")).toHaveTextContent("Stop");
+    expect(screen.getByTestId("action-running-timer")).toBeInTheDocument();
+    expect(screen.queryByTestId("action-play")).not.toBeInTheDocument();
+  });
+
+  it("calls onStop when Stop button is clicked", () => {
+    const onStop = vi.fn();
+    render(<ActionBar game={mockGame} isPlaying onStop={onStop} />);
+    fireEvent.click(screen.getByTestId("action-stop"));
+    expect(onStop).toHaveBeenCalledOnce();
   });
 
   it("calls onPlay when Play button is clicked", () => {

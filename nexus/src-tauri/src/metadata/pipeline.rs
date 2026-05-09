@@ -62,20 +62,16 @@ fn get_setting_value(conn: &rusqlite::Connection, key: &str) -> Option<String> {
 }
 
 fn build_context(db: &DbState) -> Result<FetchContext, String> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| format!("lock poisoned: {e}"))?;
+    let conn = db.conn.lock().map_err(|e| format!("lock poisoned: {e}"))?;
 
-    let steamgrid = get_setting_value(&conn, keys::STEAMGRID_API_KEY)
-        .map(SteamGridDbClient::new);
+    let steamgrid = get_setting_value(&conn, keys::STEAMGRID_API_KEY).map(SteamGridDbClient::new);
 
     let igdb = {
         let client_id = get_setting_value(&conn, keys::IGDB_CLIENT_ID);
         let client_secret = get_setting_value(&conn, keys::IGDB_CLIENT_SECRET);
         let cached_token = get_setting_value(&conn, keys::IGDB_ACCESS_TOKEN);
-        let cached_expires = get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES)
-            .and_then(|s| s.parse::<i64>().ok());
+        let cached_expires =
+            get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
 
         match (client_id, client_secret) {
             (Some(id), Some(secret)) => {
@@ -196,16 +192,14 @@ pub async fn fetch_metadata_for_game(
 
     // Fetch SteamGridDB artwork if available
     if let Some(ref steamgrid) = ctx.steamgrid {
-        let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
-        if let Err(e) = fetch_steamgrid_artwork(
-            steamgrid,
-            &ctx.http,
-            db,
-            game_id,
-            &search_name,
-            steam_appid,
-        )
-        .await
+        let steam_appid = if source == "steam" {
+            source_id.as_deref()
+        } else {
+            None
+        };
+        if let Err(e) =
+            fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &search_name, steam_appid)
+                .await
         {
             log::warn!("SteamGridDB artwork fetch failed for {game_name}: {e}");
             return Err(MetadataSyncError {
@@ -302,7 +296,11 @@ pub async fn fetch_metadata_for_game_with_igdb_id(
         let search_name = utils::normalize_game_title(&game_name);
         let artwork_search_name = igdb_game_name.as_deref().unwrap_or(&search_name);
         if let Some(ref steamgrid) = ctx.steamgrid {
-            let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
+            let steam_appid = if source == "steam" {
+                source_id.as_deref()
+            } else {
+                None
+            };
             if let Err(e) = fetch_steamgrid_artwork(
                 steamgrid,
                 &ctx.http,
@@ -359,10 +357,7 @@ async fn apply_igdb_metadata_to_game(
     game_id: &str,
     meta: &crate::metadata::igdb::GameMetadata,
 ) -> Result<(), String> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| format!("lock poisoned: {e}"))?;
+    let conn = db.conn.lock().map_err(|e| format!("lock poisoned: {e}"))?;
 
     let screenshot_json = if meta.screenshot_urls.is_empty() {
         None
@@ -442,7 +437,8 @@ async fn fetch_steamgrid_artwork(
         SteamGridDbClient::best_match(&results, game_name).map(|r| r.id)
     };
 
-    let steamgrid_id = steamgrid_id.ok_or_else(|| format!("no SteamGridDB match for {game_name}"))?;
+    let steamgrid_id =
+        steamgrid_id.ok_or_else(|| format!("no SteamGridDB match for {game_name}"))?;
 
     apply_steamgrid_artwork_by_id(steamgrid, http, db, game_id, steamgrid_id).await
 }
@@ -469,10 +465,7 @@ fn apply_steamgrid_artwork_by_id<'a>(
         )
         .await?;
 
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| format!("lock poisoned: {e}"))?;
+        let conn = db.conn.lock().map_err(|e| format!("lock poisoned: {e}"))?;
 
         let cover_url = artwork.grid.clone().or(cached.cover_path);
         let hero_url = artwork.hero.clone().or(cached.hero_path);
@@ -580,7 +573,11 @@ pub async fn fetch_artwork_for_game(
 
     let search_name = utils::normalize_game_title(&game_name);
     if let Some(ref steamgrid) = ctx.steamgrid {
-        let steam_appid = if source == "steam" { source_id.as_deref() } else { None };
+        let steam_appid = if source == "steam" {
+            source_id.as_deref()
+        } else {
+            None
+        };
         fetch_steamgrid_artwork(steamgrid, &ctx.http, db, game_id, &search_name, steam_appid)
             .await
             .map_err(|e| MetadataSyncError {
@@ -794,8 +791,8 @@ pub async fn run_score_backfill(db: Arc<DbState>, app_handle: tauri::AppHandle) 
         let client_id = get_setting_value(&conn, keys::IGDB_CLIENT_ID);
         let client_secret = get_setting_value(&conn, keys::IGDB_CLIENT_SECRET);
         let cached_token = get_setting_value(&conn, keys::IGDB_ACCESS_TOKEN);
-        let cached_expires = get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES)
-            .and_then(|s| s.parse::<i64>().ok());
+        let cached_expires =
+            get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
 
         match (client_id, client_secret) {
             (Some(id), Some(secret)) => {
@@ -979,9 +976,9 @@ mod tests {
     fn find_games_needing_backfill_returns_unscored_igdb_games() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_with_igdb(&conn, "g1", 100, None);    // needs backfill
+        insert_game_with_igdb(&conn, "g1", 100, None); // needs backfill
         insert_game_with_igdb(&conn, "g2", 200, Some(87.5)); // already scored
-        insert_game_without_igdb(&conn, "g3");             // no igdb_id
+        insert_game_without_igdb(&conn, "g3"); // no igdb_id
 
         let results = find_games_needing_score_backfill(&conn);
         assert_eq!(results.len(), 1);
@@ -1022,11 +1019,8 @@ mod tests {
         assert_eq!(first.len(), 1);
 
         // Simulate scoring the game.
-        conn.execute(
-            "UPDATE games SET critic_score = 85.0 WHERE id = 'g1'",
-            [],
-        )
-        .unwrap();
+        conn.execute("UPDATE games SET critic_score = 85.0 WHERE id = 'g1'", [])
+            .unwrap();
 
         // Second call — should find nothing (idempotent).
         let second = find_games_needing_score_backfill(&conn);
@@ -1047,7 +1041,10 @@ mod tests {
 
     #[test]
     fn score_backfill_progress_event_serializes() {
-        let event = ScoreBackfillProgressEvent { completed: 5, total: 47 };
+        let event = ScoreBackfillProgressEvent {
+            completed: 5,
+            total: 47,
+        };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("\"completed\":5"));
         assert!(json.contains("\"total\":47"));

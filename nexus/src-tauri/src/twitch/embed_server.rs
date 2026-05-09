@@ -186,7 +186,12 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
                 return Ok(());
             }
             let html = render_watch(&params, &ctx.token);
-            write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
+            write_response(
+                &mut stream,
+                200,
+                "text/html; charset=utf-8",
+                html.as_bytes(),
+            );
         }
         ("GET", "/clip") => {
             if !check_token_query(&params, ctx) {
@@ -194,18 +199,33 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
                 return Ok(());
             }
             let html = render_clip(&params);
-            write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
+            write_response(
+                &mut stream,
+                200,
+                "text/html; charset=utf-8",
+                html.as_bytes(),
+            );
         }
         ("GET", "/player") => {
             // Legacy single-iframe wrapper; no token check to preserve prior
             // behaviour for any callers that still use it. No sensitive data
             // is served here.
             let html = render_player(&params);
-            write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
+            write_response(
+                &mut stream,
+                200,
+                "text/html; charset=utf-8",
+                html.as_bytes(),
+            );
         }
         ("GET", "/chat") => {
             let html = render_chat(&params);
-            write_response(&mut stream, 200, "text/html; charset=utf-8", html.as_bytes());
+            write_response(
+                &mut stream,
+                200,
+                "text/html; charset=utf-8",
+                html.as_bytes(),
+            );
         }
         ("POST", "/__api/signin") => {
             if !check_token_bearer(&auth_header, ctx) {
@@ -222,9 +242,8 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
             }
             let body_str = String::from_utf8_lossy(body);
             let body_params = parse_query(body_str.trim_end_matches('\0').trim());
-            let channel = sanitize_channel(
-                body_params.get("channel").map(String::as_str).unwrap_or(""),
-            );
+            let channel =
+                sanitize_channel(body_params.get("channel").map(String::as_str).unwrap_or(""));
             if channel.is_empty() {
                 write_response(&mut stream, 400, "text/plain", b"bad channel");
                 return Ok(());
@@ -444,7 +463,8 @@ fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
     let player_src = format!(
         "https://player.twitch.tv/?channel={channel}&parent=localhost&muted=true&autoplay=true"
     );
-    let chat_src = format!("https://www.twitch.tv/embed/{channel}/chat?parent=localhost&darkpopout");
+    let chat_src =
+        format!("https://www.twitch.tv/embed/{channel}/chat?parent=localhost&darkpopout");
 
     let channel_js = js_string(&channel);
     let token_js = js_string(api_token);
@@ -647,12 +667,9 @@ fn render_chat(params: &HashMap<String, String>) -> String {
         return wrapper_html("<p style=\"color:#999;font-family:sans-serif\">Missing channel.</p>");
     }
 
-    let iframe_src = format!(
-        "https://www.twitch.tv/embed/{channel}/chat?parent=localhost&darkpopout"
-    );
-    let iframe = format!(
-        "<iframe src=\"{iframe_src}\" frameborder=\"0\"></iframe>"
-    );
+    let iframe_src =
+        format!("https://www.twitch.tv/embed/{channel}/chat?parent=localhost&darkpopout");
+    let iframe = format!("<iframe src=\"{iframe_src}\" frameborder=\"0\"></iframe>");
     wrapper_html(&iframe)
 }
 
@@ -664,9 +681,8 @@ fn render_clip(params: &HashMap<String, String>) -> String {
     if clip_id.is_empty() {
         return error_page("Missing clip — nothing to play.");
     }
-    let iframe_src = format!(
-        "https://clips.twitch.tv/embed?clip={clip_id}&parent=localhost&autoplay=true"
-    );
+    let iframe_src =
+        format!("https://clips.twitch.tv/embed?clip={clip_id}&parent=localhost&autoplay=true");
     let iframe = format!(
         "<iframe src=\"{iframe_src}\" allow=\"autoplay; fullscreen\" allowfullscreen frameborder=\"0\"></iframe>"
     );
@@ -810,10 +826,7 @@ mod tests {
     #[test]
     fn render_clip_uses_parent_localhost() {
         let mut params = HashMap::new();
-        params.insert(
-            "id".to_string(),
-            "AwkwardPoisedTomatoCurseLit".to_string(),
-        );
+        params.insert("id".to_string(), "AwkwardPoisedTomatoCurseLit".to_string());
         let html = render_clip(&params);
         assert!(html.contains("clips.twitch.tv/embed"));
         assert!(html.contains("clip=AwkwardPoisedTomatoCurseLit"));

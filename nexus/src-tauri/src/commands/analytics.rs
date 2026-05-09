@@ -264,11 +264,9 @@ pub fn get_per_game_session_stats(
         // Determine which 12 months to include (rolling window).
         // Use current month from SQLite to stay consistent.
         let current_month: u8 = conn
-            .query_row(
-                "SELECT CAST(strftime('%m', 'now') AS INTEGER)",
-                [],
-                |row| row.get(0),
-            )
+            .query_row("SELECT CAST(strftime('%m', 'now') AS INTEGER)", [], |row| {
+                row.get(0)
+            })
             .unwrap_or(1);
 
         (0u8..12)
@@ -405,13 +403,13 @@ mod tests {
     #[test]
     fn distribution_sessions_span_all_7_buckets() {
         let durations = vec![
-            5 * 60,        // < 15m
-            20 * 60,       // 15–30m
-            45 * 60,       // 30m–1h
-            90 * 60,       // 1–2h
-            3 * 60 * 60,   // 2–4h
-            6 * 60 * 60,   // 4–8h
-            10 * 60 * 60,  // 8h+
+            5 * 60,       // < 15m
+            20 * 60,      // 15–30m
+            45 * 60,      // 30m–1h
+            90 * 60,      // 1–2h
+            3 * 60 * 60,  // 2–4h
+            6 * 60 * 60,  // 4–8h
+            10 * 60 * 60, // 8h+
         ];
         let dist = build_distribution(&durations);
         assert_eq!(dist.total_sessions, 7);
@@ -457,7 +455,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
-        insert_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         insert_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", None, None); // orphaned
         drop(conn);
 
@@ -472,8 +477,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
-        insert_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:10Z"), Some(10)); // < 30s
-        insert_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T10:00:10Z"),
+            Some(10),
+        ); // < 30s
+        insert_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let conn = state.conn.lock().unwrap();
@@ -488,8 +507,22 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
         insert_game(&conn, "g2");
-        insert_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g2", "2026-01-11T10:00:00Z", Some("2026-01-11T10:30:00Z"), Some(1800));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T10:30:00Z"),
+            Some(1800),
+        );
         drop(conn);
 
         let conn = state.conn.lock().unwrap();
@@ -504,7 +537,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
-        insert_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let conn = state.conn.lock().unwrap();
@@ -517,8 +557,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
-        insert_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let conn = state.conn.lock().unwrap();
@@ -532,9 +586,30 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1");
         // gaps: 2 days, 4 days → average = 3 days
-        insert_session(&conn, "s1", "g1", "2026-01-01T00:00:00Z", Some("2026-01-01T01:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g1", "2026-01-03T00:00:00Z", Some("2026-01-03T01:00:00Z"), Some(3600));
-        insert_session(&conn, "s3", "g1", "2026-01-07T00:00:00Z", Some("2026-01-07T01:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-01T00:00:00Z",
+            Some("2026-01-01T01:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-03T00:00:00Z",
+            Some("2026-01-03T01:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s3",
+            "g1",
+            "2026-01-07T00:00:00Z",
+            Some("2026-01-07T01:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let conn = state.conn.lock().unwrap();

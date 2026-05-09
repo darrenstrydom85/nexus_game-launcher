@@ -6,8 +6,7 @@ use tauri::State;
 
 use super::error::CommandError;
 use super::utils::{
-    date_only_to_end_epoch_secs, date_only_to_start_epoch_secs, epoch_secs_to_iso_date,
-    now_iso,
+    date_only_to_end_epoch_secs, date_only_to_start_epoch_secs, epoch_secs_to_iso_date, now_iso,
 };
 use crate::db::DbState;
 use crate::models::wrapped::*;
@@ -30,8 +29,18 @@ const GAME_LEFT_JOIN: &str =
      OR (ps.game_source_id IS NULL AND ps.game_name IS NOT NULL AND g.source = ps.game_source AND g.name = ps.game_name)";
 
 const MONTH_NAMES: [&str; 12] = [
-    "January", "February", "March", "April", "May", "June", "July", "August", "September",
-    "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ];
 
 /// Resolves a WrappedPeriod to (start_iso, end_iso, period_label). Uses `today_iso` for presets (injectable for tests).
@@ -54,19 +63,32 @@ pub(crate) fn resolve_period_to_range(
         }
         WrappedPeriod::Month { year: y, month: m } => {
             let (start, end) = month_range_iso(*y, *m)?;
-            let label = format!("{} {}", MONTH_NAMES.get((*m as usize).saturating_sub(1)).unwrap_or(&"?"), y);
+            let label = format!(
+                "{} {}",
+                MONTH_NAMES
+                    .get((*m as usize).saturating_sub(1))
+                    .unwrap_or(&"?"),
+                y
+            );
             Ok((start, end, label))
         }
         WrappedPeriod::Preset(preset) => {
             preset_range_and_label(preset, today_date).map_err(CommandError::Parse)
         }
-        WrappedPeriod::Custom { start_date, end_date } => {
-            let start_epoch = date_only_to_start_epoch_secs(start_date).map_err(CommandError::Parse)?;
+        WrappedPeriod::Custom {
+            start_date,
+            end_date,
+        } => {
+            let start_epoch =
+                date_only_to_start_epoch_secs(start_date).map_err(CommandError::Parse)?;
             let end_epoch = date_only_to_end_epoch_secs(end_date).map_err(CommandError::Parse)?;
             if start_epoch > end_epoch {
                 return Err(CommandError::Parse("start_date must be <= end_date".into()));
             }
-            let start = format!("{}T00:00:00Z", &start_date.trim()[..10.min(start_date.len())]);
+            let start = format!(
+                "{}T00:00:00Z",
+                &start_date.trim()[..10.min(start_date.len())]
+            );
             let end = format!("{}T23:59:59Z", &end_date.trim()[..10.min(end_date.len())]);
             let label = format!("{} – {}", start_date.trim(), end_date.trim());
             Ok((start, end, label))
@@ -90,13 +112,20 @@ fn days_in_month(year: i32, month: u8) -> u8 {
         4 | 6 | 9 | 11 => 30,
         2 => {
             let leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-            if leap { 29 } else { 28 }
+            if leap {
+                29
+            } else {
+                28
+            }
         }
         _ => 28,
     }
 }
 
-fn preset_range_and_label(preset: &str, today_date: &str) -> Result<(String, String, String), String> {
+fn preset_range_and_label(
+    preset: &str,
+    today_date: &str,
+) -> Result<(String, String, String), String> {
     let today_epoch = date_only_to_start_epoch_secs(today_date)?;
     match preset {
         "this_month" => {
@@ -162,7 +191,11 @@ fn get_wrapped_report_inner(
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-    let today_date = if today_iso.len() >= 10 { &today_iso[..10] } else { "1970-01-01" };
+    let today_date = if today_iso.len() >= 10 {
+        &today_iso[..10]
+    } else {
+        "1970-01-01"
+    };
     let (start_iso, end_iso, period_label) = resolve_period_to_range(&period, today_iso)?;
 
     let tx = conn
@@ -190,7 +223,11 @@ fn get_wrapped_report_inner(
 
     // 2) Total games in library (non-hidden, at report time)
     let total_games_in_library: i64 = tx
-        .query_row("SELECT COUNT(*) FROM games WHERE is_hidden = 0", [], |row| row.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM games WHERE is_hidden = 0",
+            [],
+            |row| row.get(0),
+        )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     // 3) New games added in period (added_at in range)
@@ -244,7 +281,9 @@ fn get_wrapped_report_inner(
                 logo_url: row.get("logo_url")?,
                 play_time_s: row.get("play_time_s")?,
                 session_count: row.get("session_count")?,
-                source: row.get::<_, String>("source").unwrap_or_else(|_| "unknown".to_string()),
+                source: row
+                    .get::<_, String>("source")
+                    .unwrap_or_else(|_| "unknown".to_string()),
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?
@@ -294,7 +333,11 @@ fn get_wrapped_report_inner(
         .into_iter()
         .map(|(source, play_time_s)| {
             let percent = 100.0 * (play_time_s as f64) / (total_for_pct as f64);
-            PlatformShare { source, play_time_s, percent }
+            PlatformShare {
+                source,
+                play_time_s,
+                percent,
+            }
         })
         .collect();
 
@@ -378,7 +421,9 @@ fn get_wrapped_report_inner(
                     logo_url: row.get(4)?,
                     play_time_s: row.get(6)?,
                     session_count: row.get(7)?,
-                    source: row.get::<_, String>(5).unwrap_or_else(|_| "unknown".to_string()),
+                    source: row
+                        .get::<_, String>(5)
+                        .unwrap_or_else(|_| "unknown".to_string()),
                 })
             },
         )
@@ -406,7 +451,9 @@ fn get_wrapped_report_inner(
                     logo_url: row.get(4)?,
                     play_time_s: row.get(6)?,
                     session_count: row.get(7)?,
-                    source: row.get::<_, String>(5).unwrap_or_else(|_| "unknown".to_string()),
+                    source: row
+                        .get::<_, String>(5)
+                        .unwrap_or_else(|_| "unknown".to_string()),
                 })
             },
         )
@@ -433,11 +480,21 @@ fn get_wrapped_report_inner(
                     buckets[(mo - 1) as usize].1 = t;
                 }
             }
-            buckets.into_iter().map(|(month, play_time_s)| MonthBucket { month, play_time_s }).collect()
+            buckets
+                .into_iter()
+                .map(|(month, play_time_s)| MonthBucket { month, play_time_s })
+                .collect()
         }
         _ => {
-            if let Ok((_, m)) = parse_ymd(if start_iso.len() >= 10 { &start_iso[..10] } else { "" }) {
-                vec![MonthBucket { month: m, play_time_s: total_play_time_s }]
+            if let Ok((_, m)) = parse_ymd(if start_iso.len() >= 10 {
+                &start_iso[..10]
+            } else {
+                ""
+            }) {
+                vec![MonthBucket {
+                    month: m,
+                    play_time_s: total_play_time_s,
+                }]
             } else {
                 vec![]
             }
@@ -454,7 +511,9 @@ fn get_wrapped_report_inner(
     for (dow, t) in tx
         .prepare(&dow_sql)
         .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map(params![start_iso, end_iso], |row| Ok((row.get::<_, i64>(0)? as u8, row.get(1)?)))
+        .query_map(params![start_iso, end_iso], |row| {
+            Ok((row.get::<_, i64>(0)? as u8, row.get(1)?))
+        })
         .map_err(|e| CommandError::Database(e.to_string()))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| CommandError::Database(e.to_string()))?
@@ -466,7 +525,10 @@ fn get_wrapped_report_inner(
     let play_time_by_day_of_week: Vec<DayBucket> = day_buckets
         .into_iter()
         .enumerate()
-        .map(|(day, (_, play_time_s))| DayBucket { day: day as u8, play_time_s })
+        .map(|(day, (_, play_time_s))| DayBucket {
+            day: day as u8,
+            play_time_s,
+        })
         .collect();
 
     // 14) play_time_by_hour_of_day
@@ -479,7 +541,9 @@ fn get_wrapped_report_inner(
     for (h, t) in tx
         .prepare(&hour_sql)
         .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map(params![start_iso, end_iso], |row| Ok((row.get::<_, i64>(0)?, row.get(1)?)))
+        .query_map(params![start_iso, end_iso], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get(1)?))
+        })
         .map_err(|e| CommandError::Database(e.to_string()))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| CommandError::Database(e.to_string()))?
@@ -491,7 +555,10 @@ fn get_wrapped_report_inner(
     let play_time_by_hour_of_day: Vec<HourBucket> = hour_buckets
         .into_iter()
         .enumerate()
-        .map(|(hour, play_time_s)| HourBucket { hour: hour as u8, play_time_s })
+        .map(|(hour, play_time_s)| HourBucket {
+            hour: hour as u8,
+            play_time_s,
+        })
         .collect();
 
     // 15) Fun facts (marathons = 4h, full days, feature films ~2h)
@@ -499,9 +566,16 @@ fn get_wrapped_report_inner(
 
     // 16) Comparison to previous period (for presets only)
     let comparison_previous_period = if let WrappedPeriod::Preset(preset) = &period {
-        compute_comparison_previous(&tx, preset, &start_iso, &end_iso, total_play_time_s, today_date)
-            .ok()
-            .flatten()
+        compute_comparison_previous(
+            &tx,
+            preset,
+            &start_iso,
+            &end_iso,
+            total_play_time_s,
+            today_date,
+        )
+        .ok()
+        .flatten()
     } else {
         None
     };
@@ -520,7 +594,8 @@ fn get_wrapped_report_inner(
     };
     let trivia = build_trivia(&tx, &start_iso, &end_iso, &most_played_game, period_year);
 
-    tx.commit().map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(WrappedReport {
         period_label,
@@ -538,7 +613,11 @@ fn get_wrapped_report_inner(
         platform_breakdown,
         longest_session,
         longest_streak_days,
-        busiest_day: if busiest_day.is_empty() { None } else { Some(busiest_day) },
+        busiest_day: if busiest_day.is_empty() {
+            None
+        } else {
+            Some(busiest_day)
+        },
         busiest_day_play_time_s,
         first_game_played: first_game,
         last_game_played: last_game,
@@ -554,7 +633,10 @@ fn get_wrapped_report_inner(
 }
 
 #[tauri::command]
-pub fn get_wrapped_report(db: State<'_, DbState>, period: WrappedPeriod) -> Result<WrappedReport, CommandError> {
+pub fn get_wrapped_report(
+    db: State<'_, DbState>,
+    period: WrappedPeriod,
+) -> Result<WrappedReport, CommandError> {
     get_wrapped_report_inner(&db, period, &now_iso())
 }
 
@@ -588,7 +670,11 @@ fn build_genre_breakdown(
         .into_iter()
         .map(|(name, play_time_s)| {
             let percent = 100.0 * (play_time_s as f64) / (total as f64);
-            GenreShare { name, play_time_s, percent }
+            GenreShare {
+                name,
+                play_time_s,
+                percent,
+            }
         })
         .collect();
     list.sort_by(|a, b| b.play_time_s.cmp(&a.play_time_s));
@@ -600,14 +686,23 @@ fn build_genre_breakdown(
 
 fn genre_tagline(genre: &str) -> Option<String> {
     let s = genre.to_lowercase();
-    let t = if s.contains("action") { "You're a true action hero" }
-    else if s.contains("rpg") || s.contains("role") { "You're a true adventurer at heart" }
-    else if s.contains("strategy") { "A master strategist" }
-    else if s.contains("puzzle") { "You love a good brain teaser" }
-    else if s.contains("adventure") { "You're a true adventurer at heart" }
-    else if s.contains("racing") { "Speed is your middle name" }
-    else if s.contains("sport") { "You bring the competitive spirit" }
-    else { "You have great taste in games" };
+    let t = if s.contains("action") {
+        "You're a true action hero"
+    } else if s.contains("rpg") || s.contains("role") {
+        "You're a true adventurer at heart"
+    } else if s.contains("strategy") {
+        "A master strategist"
+    } else if s.contains("puzzle") {
+        "You love a good brain teaser"
+    } else if s.contains("adventure") {
+        "You're a true adventurer at heart"
+    } else if s.contains("racing") {
+        "Speed is your middle name"
+    } else if s.contains("sport") {
+        "You bring the competitive spirit"
+    } else {
+        "You have great taste in games"
+    };
     Some(t.to_string())
 }
 
@@ -715,10 +810,7 @@ fn build_hidden_gem(
             let play_time_s: i64 = row.get(3)?;
             let hours = play_time_s as f64 / 3600.0;
             let tagline = match rating {
-                Some(r) => format!(
-                    "You put {:.1}h into a {}/5-rated title",
-                    hours, r
-                ),
+                Some(r) => format!("You put {:.1}h into a {}/5-rated title", hours, r),
                 None => format!("You put {:.1}h into a low-rated title", hours),
             };
             Ok(HiddenGem {
@@ -860,12 +952,20 @@ fn compute_comparison_previous(
         }
         "last_month" => {
             let (y, m) = parse_ymd(today_date).map_err(CommandError::Parse)?;
-            let (prev_y, prev_m) = if m == 1 { (y - 1, 11) } else if m == 2 { (y - 1, 12) } else { (y, m - 2) };
+            let (prev_y, prev_m) = if m == 1 {
+                (y - 1, 11)
+            } else if m == 2 {
+                (y - 1, 12)
+            } else {
+                (y, m - 2)
+            };
             let (s, e) = month_range_iso(prev_y, prev_m)?;
             (s, e, "the month before".to_string())
         }
         "this_year" => {
-            let y: i32 = today_date[..4].parse().map_err(|_| CommandError::Parse("invalid year".into()))?;
+            let y: i32 = today_date[..4]
+                .parse()
+                .map_err(|_| CommandError::Parse("invalid year".into()))?;
             let py = y - 1;
             (
                 format!("{py}-01-01T00:00:00Z"),
@@ -874,7 +974,9 @@ fn compute_comparison_previous(
             )
         }
         "last_year" => {
-            let y: i32 = today_date[..4].parse().map_err(|_| CommandError::Parse("invalid year".into()))?;
+            let y: i32 = today_date[..4]
+                .parse()
+                .map_err(|_| CommandError::Parse("invalid year".into()))?;
             let py = y - 2;
             (
                 format!("{py}-01-01T00:00:00Z"),
@@ -919,7 +1021,9 @@ fn compute_comparison_previous(
     }))
 }
 
-fn get_available_wrapped_periods_inner(db: &DbState) -> Result<AvailableWrappedPeriods, CommandError> {
+fn get_available_wrapped_periods_inner(
+    db: &DbState,
+) -> Result<AvailableWrappedPeriods, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -940,11 +1044,18 @@ fn get_available_wrapped_periods_inner(db: &DbState) -> Result<AvailableWrappedP
         .collect();
 
     let now = now_iso();
-    let today = if now.len() >= 10 { &now[..10] } else { "1970-01-01" };
+    let today = if now.len() >= 10 {
+        &now[..10]
+    } else {
+        "1970-01-01"
+    };
 
     let (this_month_start, this_month_end) = {
         let (y, m) = parse_ymd(today).unwrap_or((1970, 1));
-        month_range_iso(y, m).unwrap_or((format!("{y}-01-01T00:00:00Z"), format!("{y}-01-31T23:59:59Z")))
+        month_range_iso(y, m).unwrap_or((
+            format!("{y}-01-01T00:00:00Z"),
+            format!("{y}-01-31T23:59:59Z"),
+        ))
     };
     let this_month_has_data: bool = conn
         .query_row(
@@ -962,7 +1073,10 @@ fn get_available_wrapped_periods_inner(db: &DbState) -> Result<AvailableWrappedP
     let (last_month_start, last_month_end) = {
         let (y, m) = parse_ymd(today).unwrap_or((1970, 1));
         let (py, pm) = if m == 1 { (y - 1, 12) } else { (y, m - 1) };
-        month_range_iso(py, pm).unwrap_or((format!("{py}-01-01T00:00:00Z"), format!("{py}-01-31T23:59:59Z")))
+        month_range_iso(py, pm).unwrap_or((
+            format!("{py}-01-01T00:00:00Z"),
+            format!("{py}-01-31T23:59:59Z"),
+        ))
     };
     let last_month_has_data: bool = conn
         .query_row(
@@ -1014,7 +1128,9 @@ fn get_available_wrapped_periods_inner(db: &DbState) -> Result<AvailableWrappedP
 }
 
 #[tauri::command]
-pub fn get_available_wrapped_periods(db: State<'_, DbState>) -> Result<AvailableWrappedPeriods, CommandError> {
+pub fn get_available_wrapped_periods(
+    db: State<'_, DbState>,
+) -> Result<AvailableWrappedPeriods, CommandError> {
     get_available_wrapped_periods_inner(&db)
 }
 
@@ -1061,12 +1177,9 @@ mod tests {
     #[test]
     fn empty_period_returns_zero_report() {
         let state = setup_db();
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.period_label, "2026");
         assert_eq!(report.total_play_time_s, 0);
         assert_eq!(report.total_sessions, 0);
@@ -1080,7 +1193,14 @@ mod tests {
     fn single_session_in_period() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Game One", "steam", "2026-01-01T00:00:00Z", None);
+        insert_game(
+            &conn,
+            "g1",
+            "Game One",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+        );
         insert_session(
             &conn,
             "s1",
@@ -1091,12 +1211,9 @@ mod tests {
         );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.total_play_time_s, 3600);
         assert_eq!(report.total_sessions, 1);
         assert_eq!(report.total_games_played, 1);
@@ -1107,8 +1224,11 @@ mod tests {
 
     #[test]
     fn preset_this_month_resolves_correct_range() {
-        let (start, end, label) =
-            resolve_period_to_range(&WrappedPeriod::Preset("this_month".into()), "2026-03-05T00:00:00Z").unwrap();
+        let (start, end, label) = resolve_period_to_range(
+            &WrappedPeriod::Preset("this_month".into()),
+            "2026-03-05T00:00:00Z",
+        )
+        .unwrap();
         assert_eq!(start, "2026-03-01T00:00:00Z");
         assert!(end.starts_with("2026-03-31T23:59:59"));
         assert_eq!(label, "This month");
@@ -1116,8 +1236,11 @@ mod tests {
 
     #[test]
     fn preset_last_month_resolves_correct_range() {
-        let (start, end, label) =
-            resolve_period_to_range(&WrappedPeriod::Preset("last_month".into()), "2026-03-05T00:00:00Z").unwrap();
+        let (start, end, label) = resolve_period_to_range(
+            &WrappedPeriod::Preset("last_month".into()),
+            "2026-03-05T00:00:00Z",
+        )
+        .unwrap();
         assert_eq!(start, "2026-02-01T00:00:00Z");
         assert!(end.starts_with("2026-02-28")); // 2026 not leap
         assert_eq!(label, "Last month");
@@ -1142,15 +1265,19 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-10T10:00:00Z", Some("2026-02-10T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-10T10:00:00Z",
+            Some("2026-02-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.longest_streak_days, 1);
     }
 
@@ -1171,12 +1298,9 @@ mod tests {
         }
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.longest_streak_days, 7);
     }
 
@@ -1185,15 +1309,19 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-15T10:00:00Z", Some("2026-02-15T10:00:20Z"), Some(20));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T10:00:20Z"),
+            Some(20),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.total_sessions, 0);
         assert_eq!(report.total_play_time_s, 0);
     }
@@ -1206,12 +1334,9 @@ mod tests {
         insert_session(&conn, "s1", "g1", "2026-02-15T10:00:00Z", None, None);
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.total_sessions, 0);
     }
 
@@ -1221,16 +1346,24 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game", "steam", "2026-01-01T00:00:00Z", None);
         // 4h = 1 marathon
-        insert_session(&conn, "s1", "g1", "2026-02-15T10:00:00Z", Some("2026-02-15T14:00:00Z"), Some(14400));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
-        let marathons = report.fun_facts.iter().find(|f| f.kind == "marathons").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        let marathons = report
+            .fun_facts
+            .iter()
+            .find(|f| f.kind == "marathons")
+            .unwrap();
         assert!((marathons.value - 1.0).abs() < 0.01);
     }
 
@@ -1241,18 +1374,36 @@ mod tests {
         insert_game(&conn, "g1", "A", "steam", "2026-01-01T00:00:00Z", None);
         insert_game(&conn, "g2", "B", "steam", "2026-01-01T00:00:00Z", None);
         // g1: first session in 2025, second in 2026 Feb -> not "new" in 2026
-        insert_session(&conn, "s1", "g1", "2025-06-01T10:00:00Z", Some("2025-06-01T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2025-06-01T10:00:00Z",
+            Some("2025-06-01T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
         // g2: first session in 2026 Feb -> new in 2026
-        insert_session(&conn, "s3", "g2", "2026-02-15T10:00:00Z", Some("2026-02-15T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s3",
+            "g2",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert_eq!(report.new_titles_in_period, 1);
     }
 
@@ -1262,16 +1413,27 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "A", "steam", "2026-01-01T00:00:00Z", None);
         insert_game(&conn, "g2", "B", "epic", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g2", "2026-02-01T12:00:00Z", Some("2026-02-01T13:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-02-01T12:00:00Z",
+            Some("2026-02-01T13:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let total_pct: f64 = report.platform_breakdown.iter().map(|p| p.percent).sum();
         assert!((total_pct - 100.0).abs() < 0.01);
     }
@@ -1288,17 +1450,25 @@ mod tests {
             "2026-01-01T00:00:00Z",
             Some(r#"["RPG", "Adventure"]"#),
         );
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(!report.genre_breakdown.is_empty());
-        let names: Vec<&str> = report.genre_breakdown.iter().map(|g| g.name.as_str()).collect();
+        let names: Vec<&str> = report
+            .genre_breakdown
+            .iter()
+            .map(|g| g.name.as_str())
+            .collect();
         assert!(names.contains(&"RPG"));
         assert!(names.contains(&"Adventure"));
     }
@@ -1315,17 +1485,25 @@ mod tests {
             "2026-01-01T00:00:00Z",
             Some("Action,Strategy,Indie"),
         );
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(
-            &state,
-            WrappedPeriod::Year(2026),
-            "2026-03-05T12:00:00Z",
-        )
-        .unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(!report.genre_breakdown.is_empty());
-        let names: Vec<&str> = report.genre_breakdown.iter().map(|g| g.name.as_str()).collect();
+        let names: Vec<&str> = report
+            .genre_breakdown
+            .iter()
+            .map(|g| g.name.as_str())
+            .collect();
         assert!(names.contains(&"Action"));
         assert!(names.contains(&"Strategy"));
         assert!(names.contains(&"Indie"));
@@ -1335,13 +1513,35 @@ mod tests {
     fn mood_tagline_from_comma_separated_genres() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "RPG Game", "steam", "2026-01-01T00:00:00Z", Some("RPG,Adventure"));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "RPG Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            Some("RPG,Adventure"),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert!(report.mood_tagline.is_some(), "mood_tagline should be set for comma-separated genres");
-        assert!(!report.genre_breakdown.is_empty(), "genre_breakdown should be populated from comma-separated genres");
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert!(
+            report.mood_tagline.is_some(),
+            "mood_tagline should be set for comma-separated genres"
+        );
+        assert!(
+            !report.genre_breakdown.is_empty(),
+            "genre_breakdown should be populated from comma-separated genres"
+        );
     }
 
     #[test]
@@ -1349,7 +1549,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let avail = get_available_wrapped_periods_inner(&state).unwrap();
@@ -1379,39 +1586,96 @@ mod tests {
     fn mood_tagline_rpg_top_genre() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "RPG Game", "steam", "2026-01-01T00:00:00Z", Some(r#"["RPG"]"#));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "RPG Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            Some(r#"["RPG"]"#),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let tagline = report.mood_tagline.unwrap();
-        assert!(tagline.contains("adventurer"), "expected adventurer phrase, got: {tagline}");
+        assert!(
+            tagline.contains("adventurer"),
+            "expected adventurer phrase, got: {tagline}"
+        );
     }
 
     #[test]
     fn mood_tagline_puzzle_top_genre() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Puzzle Game", "steam", "2026-01-01T00:00:00Z", Some(r#"["Puzzle"]"#));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "Puzzle Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            Some(r#"["Puzzle"]"#),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let tagline = report.mood_tagline.unwrap();
-        assert!(tagline.contains("chill vibes"), "expected chill vibes phrase, got: {tagline}");
+        assert!(
+            tagline.contains("chill vibes"),
+            "expected chill vibes phrase, got: {tagline}"
+        );
     }
 
     #[test]
     fn mood_tagline_action_top_genre() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Action Game", "steam", "2026-01-01T00:00:00Z", Some(r#"["Action"]"#));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "Action Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            Some(r#"["Action"]"#),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let tagline = report.mood_tagline.unwrap();
-        assert!(tagline.contains("action"), "expected action phrase, got: {tagline}");
+        assert!(
+            tagline.contains("action"),
+            "expected action phrase, got: {tagline}"
+        );
     }
 
     #[test]
@@ -1419,10 +1683,19 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(report.mood_tagline.is_none());
     }
 
@@ -1430,13 +1703,32 @@ mod tests {
     fn mood_tagline_includes_second_genre_when_significant() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "RPG Game", "steam", "2026-01-01T00:00:00Z", Some(r#"["RPG", "Strategy"]"#));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "RPG Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            Some(r#"["RPG", "Strategy"]"#),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let tagline = report.mood_tagline.unwrap();
-        assert!(tagline.contains("side of"), "expected second genre mention, got: {tagline}");
+        assert!(
+            tagline.contains("side of"),
+            "expected second genre mention, got: {tagline}"
+        );
     }
 
     // --- Story 16.4: hidden gem tests ---
@@ -1445,29 +1737,85 @@ mod tests {
     fn hidden_gem_found_when_low_rated_high_play() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "Popular Game", "steam", "2026-01-01T00:00:00Z", None, Some(5), None);
-        insert_game_full(&conn, "g2", "Hidden Gem", "steam", "2026-01-01T00:00:00Z", None, Some(2), None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g2", "2026-02-01T12:00:00Z", Some("2026-02-01T16:00:00Z"), Some(14400));
+        insert_game_full(
+            &conn,
+            "g1",
+            "Popular Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(5),
+            None,
+        );
+        insert_game_full(
+            &conn,
+            "g2",
+            "Hidden Gem",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(2),
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-02-01T12:00:00Z",
+            Some("2026-02-01T16:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let gem = report.hidden_gem.unwrap();
         assert_eq!(gem.name, "Hidden Gem");
         assert_eq!(gem.play_time_s, 14400);
         assert!((gem.rating.unwrap() - 2.0).abs() < 0.01);
-        assert!(gem.tagline.contains("2/5-rated"), "tagline should mention rating, got: {}", gem.tagline);
+        assert!(
+            gem.tagline.contains("2/5-rated"),
+            "tagline should mention rating, got: {}",
+            gem.tagline
+        );
     }
 
     #[test]
     fn hidden_gem_none_when_no_low_rated_game() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "Great Game", "steam", "2026-01-01T00:00:00Z", None, Some(5), None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game_full(
+            &conn,
+            "g1",
+            "Great Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(5),
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(report.hidden_gem.is_none());
     }
 
@@ -1475,11 +1823,27 @@ mod tests {
     fn hidden_gem_none_when_no_ratings() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Unrated Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "Unrated Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(report.hidden_gem.is_none());
     }
 
@@ -1487,13 +1851,47 @@ mod tests {
     fn hidden_gem_picks_highest_play_time_among_low_rated() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "Low A", "steam", "2026-01-01T00:00:00Z", None, Some(2), None);
-        insert_game_full(&conn, "g2", "Low B", "steam", "2026-01-01T00:00:00Z", None, Some(1), None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T11:00:00Z"), Some(3600));
-        insert_session(&conn, "s2", "g2", "2026-02-01T12:00:00Z", Some("2026-02-01T16:00:00Z"), Some(14400));
+        insert_game_full(
+            &conn,
+            "g1",
+            "Low A",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(2),
+            None,
+        );
+        insert_game_full(
+            &conn,
+            "g2",
+            "Low B",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(1),
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T11:00:00Z"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-02-01T12:00:00Z",
+            Some("2026-02-01T16:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         let gem = report.hidden_gem.unwrap();
         assert_eq!(gem.name, "Low B");
         assert_eq!(gem.play_time_s, 14400);
@@ -1505,52 +1903,156 @@ mod tests {
     fn trivia_includes_top_game_rating() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "Rated Game", "steam", "2026-01-01T00:00:00Z", None, Some(4), None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game_full(
+            &conn,
+            "g1",
+            "Rated Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            Some(4),
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
         assert!(!report.trivia.is_empty(), "trivia should not be empty");
-        assert!(report.trivia.iter().any(|t| t.contains("4/5")), "expected rating trivia, got: {:?}", report.trivia);
+        assert!(
+            report.trivia.iter().any(|t| t.contains("4/5")),
+            "expected rating trivia, got: {:?}",
+            report.trivia
+        );
     }
 
     #[test]
     fn trivia_includes_release_year_count() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "New Game", "steam", "2026-01-01T00:00:00Z", None, None, Some("2026-06-15"));
-        insert_game_full(&conn, "g2", "Old Game", "steam", "2026-01-01T00:00:00Z", None, None, Some("2020-01-01"));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
-        insert_session(&conn, "s2", "g2", "2026-02-01T15:00:00Z", Some("2026-02-01T16:00:00Z"), Some(3600));
+        insert_game_full(
+            &conn,
+            "g1",
+            "New Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            None,
+            Some("2026-06-15"),
+        );
+        insert_game_full(
+            &conn,
+            "g2",
+            "Old Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            None,
+            Some("2020-01-01"),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-02-01T15:00:00Z",
+            Some("2026-02-01T16:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert!(report.trivia.iter().any(|t| t.contains("released in 2026")), "expected release year trivia, got: {:?}", report.trivia);
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert!(
+            report.trivia.iter().any(|t| t.contains("released in 2026")),
+            "expected release year trivia, got: {:?}",
+            report.trivia
+        );
     }
 
     #[test]
     fn trivia_empty_when_no_metadata() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Plain Game", "steam", "2026-01-01T00:00:00Z", None);
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game(
+            &conn,
+            "g1",
+            "Plain Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert!(report.trivia.is_empty(), "trivia should be empty when no rating or release_date, got: {:?}", report.trivia);
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert!(
+            report.trivia.is_empty(),
+            "trivia should be empty when no rating or release_date, got: {:?}",
+            report.trivia
+        );
     }
 
     #[test]
     fn trivia_includes_oldest_game() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_full(&conn, "g1", "Retro Classic", "steam", "2026-01-01T00:00:00Z", None, None, Some("1998-11-19"));
-        insert_session(&conn, "s1", "g1", "2026-02-01T10:00:00Z", Some("2026-02-01T14:00:00Z"), Some(14400));
+        insert_game_full(
+            &conn,
+            "g1",
+            "Retro Classic",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+            None,
+            Some("1998-11-19"),
+        );
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-02-01T10:00:00Z",
+            Some("2026-02-01T14:00:00Z"),
+            Some(14400),
+        );
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert!(report.trivia.iter().any(|t| t.contains("Retro Classic") && t.contains("1998")),
-            "expected oldest game trivia, got: {:?}", report.trivia);
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert!(
+            report
+                .trivia
+                .iter()
+                .any(|t| t.contains("Retro Classic") && t.contains("1998")),
+            "expected oldest game trivia, got: {:?}",
+            report.trivia
+        );
     }
 
     fn insert_game_with_source_id(
@@ -1591,41 +2093,84 @@ mod tests {
     fn orphaned_session_resolved_via_source_fallback() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game_with_source_id(&conn, "new-uuid", "Elden Ring", "steam", "app_1245620", "2026-01-01T00:00:00Z", Some("RPG,Action"));
+        insert_game_with_source_id(
+            &conn,
+            "new-uuid",
+            "Elden Ring",
+            "steam",
+            "app_1245620",
+            "2026-01-01T00:00:00Z",
+            Some("RPG,Action"),
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
         insert_session_with_source(
-            &conn, "s1", "old-uuid",
-            "2026-02-15T10:00:00Z", Some("2026-02-15T14:00:00Z"), Some(14400),
-            Some("steam"), Some("app_1245620"), Some("Elden Ring"),
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T14:00:00Z"),
+            Some(14400),
+            Some("steam"),
+            Some("app_1245620"),
+            Some("Elden Ring"),
         );
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert_eq!(report.total_play_time_s, 14400, "orphaned session should contribute to total play time");
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert_eq!(
+            report.total_play_time_s, 14400,
+            "orphaned session should contribute to total play time"
+        );
         assert_eq!(report.total_sessions, 1);
         assert_eq!(report.total_games_played, 1);
-        assert!(report.most_played_game.is_some(), "most played game should resolve via source fallback");
+        assert!(
+            report.most_played_game.is_some(),
+            "most played game should resolve via source fallback"
+        );
         assert_eq!(report.most_played_game.as_ref().unwrap().name, "Elden Ring");
-        assert!(!report.genre_breakdown.is_empty(), "genre breakdown should work via source fallback");
+        assert!(
+            !report.genre_breakdown.is_empty(),
+            "genre breakdown should work via source fallback"
+        );
     }
 
     #[test]
     fn orphaned_session_no_source_metadata_still_counted_in_totals() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "new-uuid", "Some Game", "steam", "2026-01-01T00:00:00Z", None);
+        insert_game(
+            &conn,
+            "new-uuid",
+            "Some Game",
+            "steam",
+            "2026-01-01T00:00:00Z",
+            None,
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
         insert_session_with_source(
-            &conn, "s1", "old-uuid",
-            "2026-02-15T10:00:00Z", Some("2026-02-15T14:00:00Z"), Some(14400),
-            None, None, Some("Some Game"),
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T14:00:00Z"),
+            Some(14400),
+            None,
+            None,
+            Some("Some Game"),
         );
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert_eq!(report.total_play_time_s, 14400, "session time should still be counted even without source metadata");
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert_eq!(
+            report.total_play_time_s, 14400,
+            "session time should still be counted even without source metadata"
+        );
         assert_eq!(report.total_sessions, 1);
     }
 
@@ -1633,22 +2178,49 @@ mod tests {
     fn orphaned_standalone_session_resolved_via_name_fallback() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "new-uuid", "Eriksholm - The Stolen Dream", "standalone", "2026-01-01T00:00:00Z", Some("Adventure,Stealth"));
+        insert_game(
+            &conn,
+            "new-uuid",
+            "Eriksholm - The Stolen Dream",
+            "standalone",
+            "2026-01-01T00:00:00Z",
+            Some("Adventure,Stealth"),
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
         insert_session_with_source(
-            &conn, "s1", "old-uuid",
-            "2026-02-15T10:00:00Z", Some("2026-02-15T12:00:00Z"), Some(7200),
-            Some("standalone"), None, Some("Eriksholm - The Stolen Dream"),
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-02-15T10:00:00Z",
+            Some("2026-02-15T12:00:00Z"),
+            Some(7200),
+            Some("standalone"),
+            None,
+            Some("Eriksholm - The Stolen Dream"),
         );
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
-        let report = get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z").unwrap();
-        assert_eq!(report.total_play_time_s, 7200, "standalone orphaned session should contribute to total play time");
+        let report =
+            get_wrapped_report_inner(&state, WrappedPeriod::Year(2026), "2026-03-05T12:00:00Z")
+                .unwrap();
+        assert_eq!(
+            report.total_play_time_s, 7200,
+            "standalone orphaned session should contribute to total play time"
+        );
         assert_eq!(report.total_sessions, 1);
         assert_eq!(report.total_games_played, 1);
-        assert!(report.most_played_game.is_some(), "most played game should resolve via name fallback");
-        assert_eq!(report.most_played_game.as_ref().unwrap().name, "Eriksholm - The Stolen Dream");
-        assert!(!report.genre_breakdown.is_empty(), "genre breakdown should work via name fallback");
+        assert!(
+            report.most_played_game.is_some(),
+            "most played game should resolve via name fallback"
+        );
+        assert_eq!(
+            report.most_played_game.as_ref().unwrap().name,
+            "Eriksholm - The Stolen Dream"
+        );
+        assert!(
+            !report.genre_breakdown.is_empty(),
+            "genre breakdown should work via name fallback"
+        );
     }
 }

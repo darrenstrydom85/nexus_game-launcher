@@ -223,9 +223,7 @@ fn build_cumulative_context(
 ) -> Result<CumulativeContext, CommandError> {
     let total_session_count: i64 = conn
         .query_row(
-            &format!(
-                "SELECT COUNT(*) FROM play_sessions WHERE {SESSION_FILTER} AND id <= ?1"
-            ),
+            &format!("SELECT COUNT(*) FROM play_sessions WHERE {SESSION_FILTER} AND id <= ?1"),
             params![session.id],
             |row| row.get(0),
         )
@@ -310,10 +308,7 @@ fn evaluate_session(
     Ok(milestones)
 }
 
-fn load_session(
-    conn: &rusqlite::Connection,
-    session_id: &str,
-) -> Result<SessionRow, CommandError> {
+fn load_session(conn: &rusqlite::Connection, session_id: &str) -> Result<SessionRow, CommandError> {
     conn.query_row(
         &format!(
             "SELECT ps.id, ps.game_id, g.name AS game_name, ps.started_at, ps.ended_at, ps.duration_s
@@ -421,8 +416,12 @@ mod tests {
     fn quick_round_under_15_min() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T12:10:00Z", 600,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T12:10:00Z",
+            600,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -433,8 +432,12 @@ mod tests {
     fn marathon_4h_session() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T16:30:00Z", 16200,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T16:30:00Z",
+            16200,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -445,8 +448,12 @@ mod tests {
     fn early_bird_before_7am() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T06:00:00Z", "2026-01-15T07:30:00Z", 5400,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T06:00:00Z",
+            "2026-01-15T07:30:00Z",
+            5400,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -457,8 +464,12 @@ mod tests {
     fn night_owl_past_midnight() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T22:00:00Z", "2026-01-16T01:30:00Z", 12600,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T22:00:00Z",
+            "2026-01-16T01:30:00Z",
+            12600,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -499,8 +510,12 @@ mod tests {
     fn first_timer_first_game_session() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T13:00:00Z", 3600,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T13:00:00Z",
+            3600,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -511,12 +526,20 @@ mod tests {
     fn welcome_back_after_30_day_gap() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-01T12:00:00Z", "2026-01-01T13:00:00Z", 3600,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-01T12:00:00Z",
+            "2026-01-01T13:00:00Z",
+            3600,
         );
         insert_session_full(
-            &conn, "s2", "g1",
-            "2026-02-15T12:00:00Z", "2026-02-15T13:00:00Z", 3600,
+            &conn,
+            "s2",
+            "g1",
+            "2026-02-15T12:00:00Z",
+            "2026-02-15T13:00:00Z",
+            3600,
         );
         let session = load_session(&conn, "s2").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -528,8 +551,12 @@ mod tests {
     fn multiple_milestones_simultaneously() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T22:00:00Z", "2026-01-16T03:00:00Z", 18000,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T22:00:00Z",
+            "2026-01-16T03:00:00Z",
+            18000,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -542,8 +569,12 @@ mod tests {
     fn sessions_under_30s_trigger_nothing() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T12:00:25Z", 25,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T12:00:25Z",
+            25,
         );
         let result = load_session(&conn, "s1");
         assert!(result.is_err());
@@ -557,7 +588,15 @@ mod tests {
             let id = format!("s{i:04}");
             let game = format!("g{}", (i % 5) + 1);
             let day = (i % 28) + 1;
-            let month = if i <= 28 { 1 } else if i <= 56 { 2 } else if i <= 84 { 3 } else { 4 };
+            let month = if i <= 28 {
+                1
+            } else if i <= 56 {
+                2
+            } else if i <= 84 {
+                3
+            } else {
+                4
+            };
             let started = format!("2026-{month:02}-{day:02}T12:00:00Z");
             let ended = format!("2026-{month:02}-{day:02}T13:00:00Z");
             insert_session_full(&conn, &id, &game, &started, &ended, 3600);
@@ -614,8 +653,12 @@ mod tests {
     fn solid_session_1_to_2_hours() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T13:30:00Z", 5400,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T13:30:00Z",
+            5400,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -626,8 +669,12 @@ mod tests {
     fn ultra_marathon_8h() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T08:00:00Z", "2026-01-15T18:00:00Z", 36000,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T08:00:00Z",
+            "2026-01-15T18:00:00Z",
+            36000,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -638,8 +685,12 @@ mod tests {
     fn all_nighter_12h() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T14:00:00Z", "2026-01-16T03:00:00Z", 46800,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T14:00:00Z",
+            "2026-01-16T03:00:00Z",
+            46800,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -650,8 +701,12 @@ mod tests {
     fn lunch_break_gamer() {
         let conn = setup_db();
         insert_session_full(
-            &conn, "s1", "g1",
-            "2026-01-15T12:00:00Z", "2026-01-15T12:30:00Z", 1800,
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-15T12:00:00Z",
+            "2026-01-15T12:30:00Z",
+            1800,
         );
         let session = load_session(&conn, "s1").unwrap();
         let milestones = evaluate_session(&conn, &session).unwrap();
@@ -665,8 +720,12 @@ mod tests {
             let id = format!("s{i:03}");
             let game = format!("g{i}");
             insert_session_full(
-                &conn, &id, &game,
-                "2026-01-15T12:00:00Z", "2026-01-15T13:00:00Z", 3600,
+                &conn,
+                &id,
+                &game,
+                "2026-01-15T12:00:00Z",
+                "2026-01-15T13:00:00Z",
+                3600,
             );
         }
         let session = load_session(&conn, "s010").unwrap();
@@ -681,8 +740,12 @@ mod tests {
             let id = format!("s{i:03}");
             let game = format!("g{i}");
             insert_session_full(
-                &conn, &id, &game,
-                "2026-01-15T12:00:00Z", "2026-01-15T13:00:00Z", 3600,
+                &conn,
+                &id,
+                &game,
+                "2026-01-15T12:00:00Z",
+                "2026-01-15T13:00:00Z",
+                3600,
             );
         }
         let session = load_session(&conn, "s025").unwrap();

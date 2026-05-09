@@ -284,7 +284,10 @@ mod tests {
             "milestones_json",
         ];
         for col in &expected {
-            assert!(cols.contains(&col.to_string()), "games missing column: {col}");
+            assert!(
+                cols.contains(&col.to_string()),
+                "games missing column: {col}"
+            );
         }
     }
 
@@ -410,10 +413,7 @@ mod tests {
             "idx_sessions_started_at",
         ];
         for idx in &expected {
-            assert!(
-                indexes.contains(&idx.to_string()),
-                "missing index: {idx}"
-            );
+            assert!(indexes.contains(&idx.to_string()), "missing index: {idx}");
         }
     }
 }

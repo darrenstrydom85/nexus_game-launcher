@@ -33,7 +33,13 @@ pub fn normalize_name(name: &str) -> String {
 
     s = s
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == ' ' { c } else { ' ' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == ' ' {
+                c
+            } else {
+                ' '
+            }
+        })
         .collect();
 
     // Collapse whitespace before suffix matching so "director s cut" matches "directors cut"
@@ -78,9 +84,7 @@ pub fn levenshtein(a: &str, b: &str) -> usize {
             } else {
                 1
             };
-            curr[j] = (prev[j] + 1)
-                .min(curr[j - 1] + 1)
-                .min(prev[j - 1] + cost);
+            curr[j] = (prev[j] + 1).min(curr[j - 1] + 1).min(prev[j - 1] + cost);
         }
         std::mem::swap(&mut prev, &mut curr);
     }
@@ -294,7 +298,11 @@ pub fn find_duplicates(conn: &Connection) -> Result<Vec<DuplicateCandidate>, Str
         }
     }
 
-    candidates.sort_by(|a, b| b.confidence.partial_cmp(&a.confidence).unwrap_or(std::cmp::Ordering::Equal));
+    candidates.sort_by(|a, b| {
+        b.confidence
+            .partial_cmp(&a.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     Ok(candidates)
 }
 
@@ -544,7 +552,10 @@ mod tests {
 
     #[test]
     fn normalize_strips_punctuation() {
-        assert_eq!(normalize_name("Assassin's Creed: Odyssey"), "assassin s creed odyssey");
+        assert_eq!(
+            normalize_name("Assassin's Creed: Odyssey"),
+            "assassin s creed odyssey"
+        );
     }
 
     #[test]
@@ -567,15 +578,15 @@ mod tests {
 
     #[test]
     fn normalize_strips_special_edition() {
-        assert_eq!(
-            normalize_name("Skyrim Special Edition"),
-            "skyrim"
-        );
+        assert_eq!(normalize_name("Skyrim Special Edition"), "skyrim");
     }
 
     #[test]
     fn normalize_strips_directors_cut() {
-        assert_eq!(normalize_name("Death Stranding Director's Cut"), "death stranding");
+        assert_eq!(
+            normalize_name("Death Stranding Director's Cut"),
+            "death stranding"
+        );
     }
 
     #[test]
@@ -682,10 +693,7 @@ mod tests {
 
     #[test]
     fn fuzzy_match_same_game_different_editions() {
-        let result = is_fuzzy_match(
-            "The Witcher 3 Game of the Year Edition",
-            "The Witcher 3",
-        );
+        let result = is_fuzzy_match("The Witcher 3 Game of the Year Edition", "The Witcher 3");
         assert!(result.is_some());
     }
 
@@ -799,12 +807,16 @@ mod tests {
         assert_eq!(resolved.resolution, "hide_one");
 
         let hidden: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| r.get(0))
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(hidden, 1);
 
         let visible: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(visible, 0);
     }
@@ -896,7 +908,9 @@ mod tests {
         .unwrap();
 
         let hidden: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| r.get(0))
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(hidden, 1);
 
@@ -910,7 +924,9 @@ mod tests {
         .unwrap();
 
         let unhidden: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| r.get(0))
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(unhidden, 0);
     }

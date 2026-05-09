@@ -3,13 +3,13 @@ pub mod analytics;
 pub mod ceremony;
 pub mod collection;
 pub mod game;
+pub mod mastery;
+pub mod milestone;
 pub mod queue;
 pub mod session;
 pub mod settings;
-pub mod tag;
-pub mod milestone;
 pub mod streak;
-pub mod mastery;
+pub mod tag;
 pub mod wrapped;
 pub mod xp;
 
@@ -23,11 +23,11 @@ pub use analytics::{
 pub use ceremony::{GameCeremonyData, MonthPlayTime};
 pub use collection::{Collection, CollectionWithCount};
 pub use game::{Game, GameSource, GameStatus};
+pub use mastery::{GameMasteryTier, MasteryTier};
+pub use milestone::SessionMilestone;
+pub use queue::PlayQueueEntry;
 pub use session::{ActivityBucket, PlaySession, PlayStats};
 pub use settings::{Setting, SettingsMap, WatchedFolder};
-pub use queue::PlayQueueEntry;
-pub use milestone::SessionMilestone;
-pub use mastery::{GameMasteryTier, MasteryTier};
 pub use streak::StreakSnapshot;
 pub use tag::{Tag, TagWithCount};
 pub use wrapped::{

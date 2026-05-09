@@ -18,11 +18,13 @@ interface DetailContentProps {
   game: Game;
   isPlaying?: boolean;
   processDetected?: boolean;
+  activeSessionStartedAt?: string | null;
   isArchived?: boolean;
   screenshots?: string[];
   youtubeId?: string | null;
   collections?: string[];
   onPlay?: () => void;
+  onStop?: () => void;
   onForceIdentify?: () => void;
   onStatusChange?: (status: import("@/stores/gameStore").GameStatus) => void;
   onRatingChange?: (rating: number | null) => void;
@@ -114,11 +116,13 @@ export function DetailContent({
   game,
   isPlaying,
   processDetected,
+  activeSessionStartedAt,
   isArchived,
   screenshots = [],
   youtubeId = null,
   collections = [],
   onPlay,
+  onStop,
   onForceIdentify,
   onStatusChange,
   onRatingChange,
@@ -136,8 +140,10 @@ export function DetailContent({
         game={game}
         isPlaying={isPlaying}
         processDetected={processDetected}
+        activeSessionStartedAt={activeSessionStartedAt}
         isArchived={isArchived}
         onPlay={onPlay}
+        onStop={onStop}
         onForceIdentify={onForceIdentify}
         onStatusChange={onStatusChange}
         onRatingChange={onRatingChange}

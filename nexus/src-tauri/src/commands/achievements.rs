@@ -389,11 +389,9 @@ fn fetch_library_stats(conn: &Connection) -> LibraryStats {
         .unwrap_or(0);
 
     let completed_count = conn
-        .query_row(
-            "SELECT COUNT(*) FROM games WHERE completed = 1",
-            [],
-            |r| r.get::<_, i64>(0),
-        )
+        .query_row("SELECT COUNT(*) FROM games WHERE completed = 1", [], |r| {
+            r.get::<_, i64>(0)
+        })
         .unwrap_or(0);
 
     let session_count = conn
@@ -635,9 +633,7 @@ fn build_context_num(key: &str, value: i64) -> String {
 }
 
 /// Core evaluation logic — callable without `State` (used by `end_session` and startup).
-pub fn evaluate_achievements_inner(
-    conn: &Connection,
-) -> Result<Vec<NewlyUnlocked>, CommandError> {
+pub fn evaluate_achievements_inner(conn: &Connection) -> Result<Vec<NewlyUnlocked>, CommandError> {
     let already_unlocked: HashSet<String> = {
         let mut stmt = conn
             .prepare("SELECT id FROM achievements")
@@ -666,18 +662,27 @@ pub fn evaluate_achievements_inner(
             id if check_threshold(def, &stats) => {
                 // Build context based on category
                 let ctx = match def.category {
-                    AchievementCategory::Library => Some(build_context_num("gameCount", stats.game_count)),
+                    AchievementCategory::Library => {
+                        Some(build_context_num("gameCount", stats.game_count))
+                    }
                     AchievementCategory::Play => {
                         if id.contains("hours") {
-                            Some(build_context_num("totalHours", stats.total_play_time_s / 3600))
+                            Some(build_context_num(
+                                "totalHours",
+                                stats.total_play_time_s / 3600,
+                            ))
                         } else if id.contains("sessions") {
                             Some(build_context_num("sessionCount", stats.session_count))
                         } else {
                             Some(build_context_num("sessionCount", stats.session_count))
                         }
                     }
-                    AchievementCategory::Completion => Some(build_context_num("completedCount", stats.completed_count)),
-                    AchievementCategory::Streak => Some(build_context_num("streakDays", stats.current_streak)),
+                    AchievementCategory::Completion => {
+                        Some(build_context_num("completedCount", stats.completed_count))
+                    }
+                    AchievementCategory::Streak => {
+                        Some(build_context_num("streakDays", stats.current_streak))
+                    }
                     _ => None,
                 };
                 Some(ctx)
@@ -695,49 +700,77 @@ pub fn evaluate_achievements_inner(
                 let passed = *exploration_cache
                     .entry("monthly_genres_5")
                     .or_insert_with(|| count_monthly_genres(conn) >= 5);
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "explore_10_genres" => {
                 let passed = *exploration_cache
                     .entry("all_time_genres_10")
                     .or_insert_with(|| count_all_time_genres(conn) >= 10);
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "explore_hidden_gem_3" => {
                 let passed = *exploration_cache
                     .entry("hidden_gem")
                     .or_insert_with(|| check_hidden_gem(conn));
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "session_night_owl_10" => {
                 let passed = *session_cache
                     .entry("night_owl")
                     .or_insert_with(|| count_night_owl_sessions(conn) >= 10);
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "session_early_bird_10" => {
                 let passed = *session_cache
                     .entry("early_bird")
                     .or_insert_with(|| count_early_bird_sessions(conn) >= 10);
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "session_marathon_5" => {
                 let passed = *session_cache
                     .entry("marathon")
                     .or_insert_with(|| count_marathon_sessions(conn) >= 5);
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             "session_weekend_warrior" => {
                 let passed = *session_cache
                     .entry("weekend_warrior")
                     .or_insert_with(|| check_weekend_warrior(conn));
-                if passed { Some(None) } else { None }
+                if passed {
+                    Some(None)
+                } else {
+                    None
+                }
             }
 
             _ => None,
@@ -785,13 +818,20 @@ pub fn evaluate_achievements_inner(
             AchievementCategory::Library => Some(build_context_num("gameCount", stats.game_count)),
             AchievementCategory::Play => {
                 if def.id.contains("hours") {
-                    Some(build_context_num("totalHours", stats.total_play_time_s / 3600))
+                    Some(build_context_num(
+                        "totalHours",
+                        stats.total_play_time_s / 3600,
+                    ))
                 } else {
                     Some(build_context_num("sessionCount", stats.session_count))
                 }
             }
-            AchievementCategory::Completion => Some(build_context_num("completedCount", stats.completed_count)),
-            AchievementCategory::Streak => Some(build_context_num("streakDays", stats.current_streak)),
+            AchievementCategory::Completion => {
+                Some(build_context_num("completedCount", stats.completed_count))
+            }
+            AchievementCategory::Streak => {
+                Some(build_context_num("streakDays", stats.current_streak))
+            }
             _ => continue,
         };
         tx.execute(
@@ -808,9 +848,7 @@ pub fn evaluate_achievements_inner(
 }
 
 #[tauri::command]
-pub fn evaluate_achievements(
-    db: State<'_, DbState>,
-) -> Result<Vec<NewlyUnlocked>, CommandError> {
+pub fn evaluate_achievements(db: State<'_, DbState>) -> Result<Vec<NewlyUnlocked>, CommandError> {
     let conn = db
         .conn
         .lock()

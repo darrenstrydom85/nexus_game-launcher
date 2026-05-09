@@ -28,11 +28,7 @@ pub fn get_setting(db: State<'_, DbState>, key: String) -> Result<Option<String>
 }
 
 #[tauri::command]
-pub fn set_setting(
-    db: State<'_, DbState>,
-    key: String,
-    value: String,
-) -> Result<(), CommandError> {
+pub fn set_setting(db: State<'_, DbState>, key: String, value: String) -> Result<(), CommandError> {
     let conn = db
         .conn
         .lock()
@@ -178,11 +174,7 @@ mod tests {
         }
     }
 
-    fn set_setting_inner(
-        state: &DbState,
-        key: String,
-        value: String,
-    ) -> Result<(), CommandError> {
+    fn set_setting_inner(state: &DbState, key: String, value: String) -> Result<(), CommandError> {
         let conn = state
             .conn
             .lock()
@@ -366,8 +358,7 @@ mod tests {
     #[test]
     fn add_watched_folder_basic() {
         let state = setup_db();
-        let folder =
-            add_watched_folder_inner(&state, "C:\\Games".into(), None, None).unwrap();
+        let folder = add_watched_folder_inner(&state, "C:\\Games".into(), None, None).unwrap();
         assert_eq!(folder.path, "C:\\Games");
         assert!(folder.label.is_none());
         assert!(folder.auto_scan);
@@ -413,8 +404,7 @@ mod tests {
     #[test]
     fn remove_watched_folder_deletes_record() {
         let state = setup_db();
-        let folder =
-            add_watched_folder_inner(&state, "C:\\Games".into(), None, None).unwrap();
+        let folder = add_watched_folder_inner(&state, "C:\\Games".into(), None, None).unwrap();
         remove_watched_folder_inner(&state, folder.id).unwrap();
 
         let folders = get_watched_folders_inner(&state).unwrap();
@@ -471,18 +461,8 @@ mod tests {
     fn setting_key_constants_can_be_stored_and_retrieved() {
         let state = setup_db();
         set_setting_inner(&state, keys::IGDB_CLIENT_ID.into(), "my-client-id".into()).unwrap();
-        set_setting_inner(
-            &state,
-            keys::ONBOARDING_COMPLETED.into(),
-            "true".into(),
-        )
-        .unwrap();
-        set_setting_inner(
-            &state,
-            keys::LIBRARY_VIEW_MODE.into(),
-            "grid".into(),
-        )
-        .unwrap();
+        set_setting_inner(&state, keys::ONBOARDING_COMPLETED.into(), "true".into()).unwrap();
+        set_setting_inner(&state, keys::LIBRARY_VIEW_MODE.into(), "grid".into()).unwrap();
 
         let map = get_settings_inner(&state).unwrap();
         assert_eq!(

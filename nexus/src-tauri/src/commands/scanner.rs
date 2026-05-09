@@ -12,5 +12,7 @@ pub struct ScanResult {
 #[tauri::command]
 pub fn scan_directory(path: String) -> Result<Vec<ScanResult>, CommandError> {
     let _ = path;
-    Err(CommandError::Unknown("scan_directory not yet implemented".into()))
+    Err(CommandError::Unknown(
+        "scan_directory not yet implemented".into(),
+    ))
 }

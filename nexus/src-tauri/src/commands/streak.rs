@@ -81,9 +81,7 @@ pub fn recalculate_streak_inner(
         )
         .unwrap_or(0);
 
-    let longest_streak = prev_longest
-        .max(longest_from_history)
-        .max(current_streak);
+    let longest_streak = prev_longest.max(longest_from_history).max(current_streak);
 
     let now = now_iso();
 
@@ -204,13 +202,7 @@ mod tests {
         conn.execute(
             "INSERT INTO play_sessions (id, game_id, started_at, ended_at, duration_s)
              VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![
-                id,
-                format!("game-{id}"),
-                started,
-                ended,
-                duration,
-            ],
+            params![id, format!("game-{id}"), started, ended, duration,],
         )
         .unwrap();
     }
@@ -334,7 +326,10 @@ mod tests {
         }
 
         let snap = recalculate_streak_inner(&conn).unwrap();
-        assert_eq!(snap.streak_started_at.as_deref(), Some(days_ago(2).as_str()));
+        assert_eq!(
+            snap.streak_started_at.as_deref(),
+            Some(days_ago(2).as_str())
+        );
     }
 
     #[test]
@@ -347,7 +342,10 @@ mod tests {
         let snap = recalculate_streak_inner(&conn).unwrap();
         assert_eq!(snap.current_streak, 5);
         assert_eq!(snap.longest_streak, 5);
-        assert_eq!(snap.streak_started_at.as_deref(), Some(days_ago(4).as_str()));
+        assert_eq!(
+            snap.streak_started_at.as_deref(),
+            Some(days_ago(4).as_str())
+        );
     }
 
     #[test]

@@ -50,6 +50,11 @@ const MAX_SUBSCRIPTIONS: usize = 145;
 const BACKOFF_START_SECS: u64 = 2;
 const BACKOFF_MAX_SECS: u64 = 60;
 
+enum SessionEnd {
+    RefreshSubscriptions,
+    ServerClosed(String),
+}
+
 /// Worker entry point. Runs until its `JoinHandle` is aborted.
 pub async fn run(mgr: TwitchTokenManager, app: AppHandle, wake: Arc<Notify>) {
     eprintln!("[twitch-eventsub-worker] started");
@@ -67,9 +72,24 @@ pub async fn run(mgr: TwitchTokenManager, app: AppHandle, wake: Arc<Notify>) {
         }
 
         match connect_and_run(&mgr, &app, &wake, DEFAULT_WS_URL).await {
-            Ok(_) => {
-                // Normal close (e.g. reconnect signal returned from inner loop).
+            Ok(SessionEnd::RefreshSubscriptions) => {
+                // Local wake requested a fresh subscription set.
                 backoff = BACKOFF_START_SECS;
+            }
+            Ok(SessionEnd::ServerClosed(reason)) => {
+                eprintln!(
+                    "[twitch-eventsub-worker] session closed by server: {reason}; reconnecting in {backoff}s"
+                );
+                mgr.set_eventsub_state(None, 0);
+                let _ = app.emit(
+                    "twitch-eventsub-status",
+                    json!({ "connected": false, "reason": reason }),
+                );
+                tokio::select! {
+                    _ = sleep(Duration::from_secs(backoff)) => {}
+                    _ = wake.notified() => {}
+                }
+                backoff = (backoff * 2).min(BACKOFF_MAX_SECS);
             }
             Err(e) => {
                 eprintln!("[twitch-eventsub-worker] session ended: {e}");
@@ -88,14 +108,15 @@ pub async fn run(mgr: TwitchTokenManager, app: AppHandle, wake: Arc<Notify>) {
     }
 }
 
-/// Connect to one WebSocket session. Returns `Ok(())` on a clean close (the
-/// outer loop will reconnect with reset backoff) or `Err` on a real failure.
+/// Connect to one WebSocket session. Local wakes refresh subscriptions
+/// immediately; server closes are normal WebSocket lifecycle and reconnect with
+/// backoff instead of being reported as API failures.
 async fn connect_and_run(
     mgr: &TwitchTokenManager,
     app: &AppHandle,
     wake: &Arc<Notify>,
     url: &str,
-) -> Result<(), CommandError> {
+) -> Result<SessionEnd, CommandError> {
     let (mut ws, _resp) = tokio_tungstenite::connect_async(url)
         .await
         .map_err(|e| CommandError::Api(format!("eventsub connect: {e}")))?;
@@ -110,7 +131,7 @@ async fn connect_and_run(
             _ = wake.notified() => {
                 eprintln!("[twitch-eventsub-worker] wake -> reconnecting to refresh subs");
                 let _ = ws.close(None).await;
-                return Ok(());
+                return Ok(SessionEnd::RefreshSubscriptions);
             }
 
             msg = ws.next() => {
@@ -119,7 +140,7 @@ async fn connect_and_run(
                     Some(Err(e)) => {
                         return Err(CommandError::Api(format!("eventsub ws error: {e}")));
                     }
-                    None => return Err(CommandError::Api("eventsub ws closed".into())),
+                    None => return Ok(SessionEnd::ServerClosed("websocket stream ended".into())),
                 };
 
                 match msg {
@@ -140,7 +161,7 @@ async fn connect_and_run(
                         let _ = ws.send(Message::Pong(p)).await;
                     }
                     Message::Close(_) => {
-                        return Err(CommandError::Api("eventsub server sent close".into()));
+                        return Ok(SessionEnd::ServerClosed("close frame received".into()));
                     }
                     _ => {}
                 }
@@ -160,7 +181,10 @@ async fn handle_frame(
     let frame: EventSubFrame = match serde_json::from_str(txt) {
         Ok(f) => f,
         Err(e) => {
-            eprintln!("[twitch-eventsub-worker] unparseable frame: {e}; raw={}", short(txt));
+            eprintln!(
+                "[twitch-eventsub-worker] unparseable frame: {e}; raw={}",
+                short(txt)
+            );
             return Ok(None);
         }
     };
@@ -205,9 +229,9 @@ async fn handle_frame(
             let session = frame.payload.session.ok_or_else(|| {
                 CommandError::Api("session_reconnect missing session payload".into())
             })?;
-            let url = session
-                .reconnect_url
-                .ok_or_else(|| CommandError::Api("session_reconnect missing reconnect_url".into()))?;
+            let url = session.reconnect_url.ok_or_else(|| {
+                CommandError::Api("session_reconnect missing reconnect_url".into())
+            })?;
             Ok(Some(url))
         }
         "notification" => {
@@ -288,11 +312,21 @@ async fn subscribe_followed(
             let session_id = session_id_owned.clone();
             async move {
                 let online = api::create_eventsub_subscription(
-                    &client, client_id, &access, &session_id, "stream.online", &broadcaster_id,
+                    &client,
+                    client_id,
+                    &access,
+                    &session_id,
+                    "stream.online",
+                    &broadcaster_id,
                 )
                 .await;
                 let offline = api::create_eventsub_subscription(
-                    &client, client_id, &access, &session_id, "stream.offline", &broadcaster_id,
+                    &client,
+                    client_id,
+                    &access,
+                    &session_id,
+                    "stream.offline",
+                    &broadcaster_id,
                 )
                 .await;
                 (online, offline)
@@ -420,7 +454,10 @@ mod tests {
         assert_eq!(f.metadata.message_type, "notification");
         assert_eq!(f.payload.subscription.unwrap().r#type, "stream.online");
         let ev = f.payload.event.unwrap();
-        assert_eq!(ev.get("broadcaster_user_login").and_then(|v| v.as_str()), Some("shroud"));
+        assert_eq!(
+            ev.get("broadcaster_user_login").and_then(|v| v.as_str()),
+            Some("shroud")
+        );
     }
 
     #[test]
@@ -431,6 +468,9 @@ mod tests {
         }"#;
         let f: EventSubFrame = serde_json::from_str(body).unwrap();
         let s = f.payload.session.unwrap();
-        assert_eq!(s.reconnect_url.as_deref(), Some("wss://eventsub.wss.twitch.tv/ws?reconnect=true"));
+        assert_eq!(
+            s.reconnect_url.as_deref(),
+            Some("wss://eventsub.wss.twitch.tv/ws?reconnect=true")
+        );
     }
 }

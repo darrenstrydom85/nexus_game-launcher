@@ -26,9 +26,7 @@ struct WatcherHandle {
 #[derive(Debug, Clone)]
 pub enum WatcherEvent {
     GameDetected(DetectedGame),
-    GameRemoved {
-        folder_path: PathBuf,
-    },
+    GameRemoved { folder_path: PathBuf },
 }
 
 impl FolderWatcher {
@@ -77,14 +75,12 @@ impl FolderWatcher {
         let wp = watched_path.clone();
         let mut debouncer = new_debouncer(
             std::time::Duration::from_secs(1),
-            move |result: Result<Vec<DebouncedEvent>, notify::Error>| {
-                match result {
-                    Ok(events) => {
-                        handle_events(&events, &wp, cb.as_ref());
-                    }
-                    Err(e) => {
-                        log::error!("filesystem watcher error: {e}");
-                    }
+            move |result: Result<Vec<DebouncedEvent>, notify::Error>| match result {
+                Ok(events) => {
+                    handle_events(&events, &wp, cb.as_ref());
+                }
+                Err(e) => {
+                    log::error!("filesystem watcher error: {e}");
                 }
             },
         )

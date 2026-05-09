@@ -6,14 +6,14 @@
 /// so APIs like IGDB and SteamGridDB can match correctly.
 pub fn normalize_game_title(s: &str) -> String {
     let mut t = s
-        .replace('\u{00AE}', "")  // ®
-        .replace('\u{2122}', "")  // ™
+        .replace('\u{00AE}', "") // ®
+        .replace('\u{2122}', "") // ™
         .replace('\u{00A9}', ""); // ©
 
     // Strip parenthesized (R), (r), (TM), (tm), (C), (c) and common variants
     let patterns = [
-        " (R)", "(R)", " (r)", "(r)", " (TM)", "(TM)", " (tm)", "(tm)",
-        " (C)", "(C)", " (c)", "(c)", " (C)", " ®", " ™", " ©",
+        " (R)", "(R)", " (r)", "(r)", " (TM)", "(TM)", " (tm)", "(tm)", " (C)", "(C)", " (c)",
+        "(c)", " (C)", " ®", " ™", " ©",
     ];
     for p in &patterns {
         t = t.replace(p, "");
@@ -27,7 +27,11 @@ pub fn normalize_game_title(s: &str) -> String {
     }
 
     // Collapse internal whitespace and trim
-    t.split_whitespace().collect::<Vec<_>>().join(" ").trim().to_string()
+    t.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string()
 }
 
 pub fn now_iso() -> String {
@@ -65,7 +69,9 @@ fn days_to_ymd(days_since_epoch: u64) -> (u64, u64, u64) {
 pub fn date_only_to_start_epoch_secs(date_str: &str) -> Result<i64, String> {
     let trimmed = date_str.trim();
     if trimmed.len() < 10 {
-        return Err(format!("invalid date string (expected YYYY-MM-DD): {date_str}"));
+        return Err(format!(
+            "invalid date string (expected YYYY-MM-DD): {date_str}"
+        ));
     }
     let iso = format!("{}T00:00:00Z", &trimmed[..10]);
     iso_to_epoch_secs(&iso)
@@ -75,7 +81,9 @@ pub fn date_only_to_start_epoch_secs(date_str: &str) -> Result<i64, String> {
 pub fn date_only_to_end_epoch_secs(date_str: &str) -> Result<i64, String> {
     let trimmed = date_str.trim();
     if trimmed.len() < 10 {
-        return Err(format!("invalid date string (expected YYYY-MM-DD): {date_str}"));
+        return Err(format!(
+            "invalid date string (expected YYYY-MM-DD): {date_str}"
+        ));
     }
     let iso = format!("{}T23:59:59Z", &trimmed[..10]);
     iso_to_epoch_secs(&iso)
@@ -110,17 +118,33 @@ pub fn iso_to_epoch_secs(iso: &str) -> Result<i64, String> {
         return Err(format!("invalid ISO timestamp: {iso}"));
     }
 
-    let year: i64 = date_parts[0].parse().map_err(|_| format!("invalid year in: {iso}"))?;
-    let month: i64 = date_parts[1].parse().map_err(|_| format!("invalid month in: {iso}"))?;
-    let day: i64 = date_parts[2].parse().map_err(|_| format!("invalid day in: {iso}"))?;
-    let hour: i64 = time_parts[0].parse().map_err(|_| format!("invalid hour in: {iso}"))?;
-    let min: i64 = time_parts[1].parse().map_err(|_| format!("invalid minute in: {iso}"))?;
+    let year: i64 = date_parts[0]
+        .parse()
+        .map_err(|_| format!("invalid year in: {iso}"))?;
+    let month: i64 = date_parts[1]
+        .parse()
+        .map_err(|_| format!("invalid month in: {iso}"))?;
+    let day: i64 = date_parts[2]
+        .parse()
+        .map_err(|_| format!("invalid day in: {iso}"))?;
+    let hour: i64 = time_parts[0]
+        .parse()
+        .map_err(|_| format!("invalid hour in: {iso}"))?;
+    let min: i64 = time_parts[1]
+        .parse()
+        .map_err(|_| format!("invalid minute in: {iso}"))?;
 
     // Handle seconds with optional fractional part (e.g. "45.123")
     let sec_str = time_parts[2].split('.').next().unwrap_or(time_parts[2]);
-    let sec: i64 = sec_str.parse().map_err(|_| format!("invalid second in: {iso}"))?;
+    let sec: i64 = sec_str
+        .parse()
+        .map_err(|_| format!("invalid second in: {iso}"))?;
 
-    let (y, m_adj) = if month <= 2 { (year - 1, month + 9) } else { (year, month - 3) };
+    let (y, m_adj) = if month <= 2 {
+        (year - 1, month + 9)
+    } else {
+        (year, month - 3)
+    };
     let era = y / 400;
     let yoe = y - era * 400;
     let doy = (153 * m_adj + 2) / 5 + day - 1;

@@ -103,10 +103,7 @@ pub fn add_to_play_queue(
 }
 
 #[tauri::command]
-pub fn remove_from_play_queue(
-    db: State<'_, DbState>,
-    game_id: String,
-) -> Result<(), CommandError> {
+pub fn remove_from_play_queue(db: State<'_, DbState>, game_id: String) -> Result<(), CommandError> {
     let conn = db
         .conn
         .lock()
@@ -164,9 +161,7 @@ pub fn reorder_play_queue(
             .map_err(|e| CommandError::Database(e.to_string()))?;
 
         if rows == 0 {
-            return Err(CommandError::NotFound(format!(
-                "game {gid} not in queue"
-            )));
+            return Err(CommandError::NotFound(format!("game {gid} not in queue")));
         }
     }
 
@@ -337,9 +332,7 @@ mod tests {
                 .map_err(|e| CommandError::Database(e.to_string()))?;
 
             if rows == 0 {
-                return Err(CommandError::NotFound(format!(
-                    "game {gid} not in queue"
-                )));
+                return Err(CommandError::NotFound(format!("game {gid} not in queue")));
             }
         }
 
@@ -398,7 +391,10 @@ mod tests {
         add_inner(&state, "g1").unwrap();
         let result = add_inner(&state, "g1");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("already in the queue"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("already in the queue"));
     }
 
     #[test]
@@ -445,11 +441,7 @@ mod tests {
         add_inner(&state, "g2").unwrap();
         add_inner(&state, "g3").unwrap();
 
-        reorder_inner(
-            &state,
-            vec!["g3".into(), "g1".into(), "g2".into()],
-        )
-        .unwrap();
+        reorder_inner(&state, vec!["g3".into(), "g1".into(), "g2".into()]).unwrap();
 
         let queue = get_queue_inner(&state).unwrap();
         assert_eq!(queue[0].game_id, "g3");
@@ -507,7 +499,8 @@ mod tests {
         add_inner(&state, "g1").unwrap();
 
         let conn = state.conn.lock().unwrap();
-        conn.execute("DELETE FROM games WHERE id = 'g1'", []).unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'g1'", [])
+            .unwrap();
         drop(conn);
 
         let queue = get_queue_inner(&state).unwrap();

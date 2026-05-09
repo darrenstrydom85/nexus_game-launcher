@@ -1,10 +1,12 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatRunningTimer } from "@/lib/utils";
 import type { Game, GameStatus } from "@/stores/gameStore";
 import { Button } from "@/components/ui/button";
 import {
   Play,
   Loader2,
+  Square,
+  Clock,
   Star,
   ChevronDown,
   MoreHorizontal,
@@ -34,8 +36,10 @@ interface ActionBarProps {
   game: Game;
   isPlaying?: boolean;
   processDetected?: boolean;
+  activeSessionStartedAt?: string | null;
   isArchived?: boolean;
   onPlay?: () => void;
+  onStop?: () => void;
   onForceIdentify?: () => void;
   onStatusChange?: (status: GameStatus) => void;
   onRatingChange?: (rating: number | null) => void;
@@ -51,8 +55,10 @@ export function ActionBar({
   game,
   isPlaying = false,
   processDetected = false,
+  activeSessionStartedAt = null,
   isArchived = false,
   onPlay,
+  onStop,
   onForceIdentify,
   onStatusChange,
   onRatingChange,
@@ -67,6 +73,7 @@ export function ActionBar({
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [hoveredStar, setHoveredStar] = React.useState(0);
   const [isRefetching, setIsRefetching] = React.useState(false);
+  const [elapsed, setElapsed] = React.useState(0);
   const isQueued = useQueueStore((s) => s.isQueued(game.id));
   const queueAdd = useQueueStore((s) => s.add);
   const queueRemove = useQueueStore((s) => s.remove);
@@ -74,10 +81,23 @@ export function ActionBar({
   const currentStatus = STATUSES.find((s) => s.value === game.status) ?? STATUSES[5];
 
   React.useEffect(() => {
+    if (!isPlaying || !activeSessionStartedAt) {
+      setElapsed(0);
+      return;
+    }
+
+    const startTime = new Date(activeSessionStartedAt).getTime();
+    const updateElapsed = () => setElapsed(Date.now() - startTime);
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying, activeSessionStartedAt]);
+
+  React.useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "Enter") {
-        if (!isArchived) {
+        if (!isArchived && !isPlaying) {
           e.preventDefault();
           onPlay?.();
         }
@@ -96,7 +116,7 @@ export function ActionBar({
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [game.status, game.rating, game.completed, isArchived, onPlay, onStatusChange, onRatingChange]);
+  }, [game.status, game.rating, game.completed, isArchived, isPlaying, onPlay, onStatusChange, onRatingChange]);
 
   const menuItemClass = cn(
     "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
@@ -120,24 +140,48 @@ export function ActionBar({
           <Archive className="size-4" />
           Uninstalled
         </Button>
+      ) : isPlaying ? (
+        <>
+          <Button
+            data-testid="action-stop"
+            className="gap-2"
+            variant="destructive"
+            onClick={onStop}
+          >
+            <Square className="size-4" />
+            Stop
+          </Button>
+          <div
+            data-testid="action-running-status"
+            className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2"
+          >
+            <span className={cn(
+              "size-2 rounded-full",
+              processDetected ? "bg-success" : "bg-warning animate-pulse",
+            )} />
+            <span className={cn(
+              "text-xs font-medium",
+              processDetected ? "text-success" : "text-warning",
+            )}>
+              {processDetected ? "Now Playing" : "Launching..."}
+            </span>
+            <span
+              data-testid="action-running-timer"
+              className="inline-flex items-center gap-1 font-mono text-sm tabular-nums text-foreground"
+            >
+              <Clock className="size-3.5 text-muted-foreground" />
+              {formatRunningTimer(elapsed)}
+            </span>
+          </div>
+        </>
       ) : (
         <Button
           data-testid="action-play"
           className="gap-2 shadow-lg shadow-primary/25"
-          disabled={isPlaying}
           onClick={onPlay}
         >
-          {isPlaying ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Playing...
-            </>
-          ) : (
-            <>
-              <Play className="size-4" />
-              Play
-            </>
-          )}
+          <Play className="size-4" />
+          Play
         </Button>
       )}
 

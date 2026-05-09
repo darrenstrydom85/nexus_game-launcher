@@ -61,11 +61,8 @@ fn parse_launcher_installed(epic_path: &Path) -> Result<Vec<InstalledApp>, Sourc
         ))
     })?;
 
-    let data: LauncherInstalled = serde_json::from_str(&content).map_err(|e| {
-        SourceError::Parse(format!(
-            "failed to parse LauncherInstalled.dat: {e}"
-        ))
-    })?;
+    let data: LauncherInstalled = serde_json::from_str(&content)
+        .map_err(|e| SourceError::Parse(format!("failed to parse LauncherInstalled.dat: {e}")))?;
 
     Ok(data.installation_list)
 }
@@ -262,10 +259,7 @@ mod tests {
             })
             .collect();
 
-        let json = format!(
-            r#"{{ "InstallationList": [{}] }}"#,
-            entries.join(", ")
-        );
+        let json = format!(r#"{{ "InstallationList": [{}] }}"#, entries.join(", "));
 
         let dat_path = epic_path
             .join("UnrealEngineLauncher")
@@ -279,9 +273,7 @@ mod tests {
             .join("EpicGamesLauncher")
             .join("Data")
             .join("Manifests");
-        let json = format!(
-            r#"{{ "AppName": "{app_name}", "DisplayName": "{display_name}" }}"#
-        );
+        let json = format!(r#"{{ "AppName": "{app_name}", "DisplayName": "{display_name}" }}"#);
         fs::write(manifests.join(format!("{app_name}.item")), json).unwrap();
     }
 
@@ -321,15 +313,15 @@ mod tests {
         let install_dir = tmp.path().join("Games").join("Fortnite");
         fs::create_dir_all(&install_dir).unwrap();
 
-        write_launcher_installed(
-            &epic,
-            &[("Fortnite", &install_dir.to_string_lossy())],
-        );
+        write_launcher_installed(&epic, &[("Fortnite", &install_dir.to_string_lossy())]);
 
         let apps = parse_launcher_installed(&epic).unwrap();
         assert_eq!(apps.len(), 1);
         assert_eq!(apps[0].app_name, "Fortnite");
-        assert_eq!(apps[0].install_location, install_dir.to_string_lossy().as_ref());
+        assert_eq!(
+            apps[0].install_location,
+            install_dir.to_string_lossy().as_ref()
+        );
     }
 
     #[test]
@@ -448,10 +440,7 @@ mod tests {
         let install_dir = tmp.path().join("Games").join("Fortnite");
         fs::create_dir_all(&install_dir).unwrap();
 
-        write_launcher_installed(
-            &epic,
-            &[("FortniteGame", &install_dir.to_string_lossy())],
-        );
+        write_launcher_installed(&epic, &[("FortniteGame", &install_dir.to_string_lossy())]);
         write_manifest_item(&epic, "FortniteGame", "Fortnite");
 
         let mut scanner = EpicScanner::new();
@@ -471,10 +460,7 @@ mod tests {
         let install_dir = tmp.path().join("Games").join("SomeGame");
         fs::create_dir_all(&install_dir).unwrap();
 
-        write_launcher_installed(
-            &epic,
-            &[("SomeGameId", &install_dir.to_string_lossy())],
-        );
+        write_launcher_installed(&epic, &[("SomeGameId", &install_dir.to_string_lossy())]);
 
         let mut scanner = EpicScanner::new();
         scanner.set_path_override(Some(epic));
@@ -494,10 +480,7 @@ mod tests {
         let install_dir = tmp.path().join("Games").join("Fortnite");
         fs::create_dir_all(&install_dir).unwrap();
 
-        write_launcher_installed(
-            &epic,
-            &[("FortniteGame", &install_dir.to_string_lossy())],
-        );
+        write_launcher_installed(&epic, &[("FortniteGame", &install_dir.to_string_lossy())]);
         write_manifest_item(&epic, "FortniteGame", "Fortnite");
 
         let mut scanner = EpicScanner::new();
@@ -516,7 +499,9 @@ mod tests {
         assert!(game.exe_name.is_none());
         assert_eq!(
             game.launch_url,
-            Some("com.epicgames.launcher://apps/FortniteGame?action=launch&silent=true".to_string())
+            Some(
+                "com.epicgames.launcher://apps/FortniteGame?action=launch&silent=true".to_string()
+            )
         );
     }
 
@@ -527,10 +512,7 @@ mod tests {
 
         let nonexistent = tmp.path().join("Games").join("Missing");
 
-        write_launcher_installed(
-            &epic,
-            &[("MissingGame", &nonexistent.to_string_lossy())],
-        );
+        write_launcher_installed(&epic, &[("MissingGame", &nonexistent.to_string_lossy())]);
 
         let mut scanner = EpicScanner::new();
         scanner.set_path_override(Some(epic));
@@ -687,9 +669,7 @@ mod tests {
             let app_name = game.source_id.as_ref().unwrap();
             assert_eq!(
                 launch_url,
-                &format!(
-                    "com.epicgames.launcher://apps/{app_name}?action=launch&silent=true"
-                )
+                &format!("com.epicgames.launcher://apps/{app_name}?action=launch&silent=true")
             );
         }
 

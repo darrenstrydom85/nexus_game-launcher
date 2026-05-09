@@ -88,9 +88,8 @@ fn parse_appx_json(json_str: &str) -> Result<Vec<AppxPackageEntry>, SourceError>
     }
 
     if trimmed.starts_with('[') {
-        serde_json::from_str(trimmed).map_err(|e| {
-            SourceError::Parse(format!("failed to parse AppxPackage JSON array: {e}"))
-        })
+        serde_json::from_str(trimmed)
+            .map_err(|e| SourceError::Parse(format!("failed to parse AppxPackage JSON array: {e}")))
     } else {
         let single: AppxPackageEntry = serde_json::from_str(trimmed).map_err(|e| {
             SourceError::Parse(format!("failed to parse AppxPackage JSON object: {e}"))
@@ -348,10 +347,7 @@ fn build_launch_url(package_family_name: &str, app_id: &str) -> String {
 /// Priority:
 /// 1. DisplayName from AppxManifest.xml (if not a resource reference)
 /// 2. The package Name field, cleaned up (remove publisher prefix, replace dots)
-fn resolve_display_name(
-    manifest_display_name: Option<&str>,
-    package_name: &str,
-) -> String {
+fn resolve_display_name(manifest_display_name: Option<&str>, package_name: &str) -> String {
     if let Some(name) = manifest_display_name {
         if !name.is_empty() {
             return name.to_string();
@@ -477,10 +473,8 @@ impl XboxScanner {
             }
 
             // Task 5: extract metadata
-            let display_name = resolve_display_name(
-                manifest_info.display_name.as_deref(),
-                package_name,
-            );
+            let display_name =
+                resolve_display_name(manifest_info.display_name.as_deref(), package_name);
 
             // Task 6: assemble DetectedGame
             let launch_url = build_launch_url(package_family_name, &manifest_info.app_id);
@@ -683,7 +677,10 @@ mod tests {
         let entries = parse_appx_json(json).unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].name.as_deref(), Some("TestGame"));
-        assert_eq!(entries[0].package_family_name.as_deref(), Some("TestPFN_abc"));
+        assert_eq!(
+            entries[0].package_family_name.as_deref(),
+            Some("TestPFN_abc")
+        );
     }
 
     #[test]
@@ -727,10 +724,7 @@ mod tests {
     #[test]
     fn extract_display_name_from_xml() {
         let xml = r#"<DisplayName>Halo Infinite</DisplayName>"#;
-        assert_eq!(
-            extract_display_name(xml),
-            Some("Halo Infinite".to_string())
-        );
+        assert_eq!(extract_display_name(xml), Some("Halo Infinite".to_string()));
     }
 
     #[test]
@@ -857,10 +851,7 @@ mod tests {
     #[test]
     fn build_launch_url_custom_app_id() {
         let url = build_launch_url("Publisher.Game_abc123", "GameLauncher");
-        assert_eq!(
-            url,
-            "shell:AppsFolder\\Publisher.Game_abc123!GameLauncher"
-        );
+        assert_eq!(url, "shell:AppsFolder\\Publisher.Game_abc123!GameLauncher");
     }
 
     // -- Task 7: Accessibility check --

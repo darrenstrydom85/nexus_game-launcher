@@ -26,9 +26,18 @@ pub struct UpdateCheckResult {
 /// Parses a "major.minor.patch" string into (major, minor, patch). Non-numeric segments default to 0.
 fn parse_semver(s: &str) -> (u32, u32, u32) {
     let parts: Vec<&str> = s.trim().split('.').collect();
-    let major = parts.get(0).and_then(|p| p.parse::<u32>().ok()).unwrap_or(0);
-    let minor = parts.get(1).and_then(|p| p.parse::<u32>().ok()).unwrap_or(0);
-    let patch = parts.get(2).and_then(|p| p.parse::<u32>().ok()).unwrap_or(0);
+    let major = parts
+        .get(0)
+        .and_then(|p| p.parse::<u32>().ok())
+        .unwrap_or(0);
+    let minor = parts
+        .get(1)
+        .and_then(|p| p.parse::<u32>().ok())
+        .unwrap_or(0);
+    let patch = parts
+        .get(2)
+        .and_then(|p| p.parse::<u32>().ok())
+        .unwrap_or(0);
     (major, minor, patch)
 }
 
@@ -85,9 +94,8 @@ pub async fn check_update_available(app: AppHandle) -> Result<UpdateCheckResult,
         .await
         .map_err(|e| CommandError::Unknown(format!("read body: {e}")))?;
 
-    let record: JsonBinRecord = serde_json::from_str(&body).map_err(|e| {
-        CommandError::Parse(format!("jsonbin response: {e}"))
-    })?;
+    let record: JsonBinRecord = serde_json::from_str(&body)
+        .map_err(|e| CommandError::Parse(format!("jsonbin response: {e}")))?;
 
     let latest = record.version.trim().to_string();
     let update_available = !latest.is_empty() && version_greater_than(&latest, &current);

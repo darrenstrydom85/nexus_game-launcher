@@ -149,10 +149,7 @@ pub fn check_key_availability(
 }
 
 pub fn derive_name_from_path(path: &str) -> String {
-    let cleaned = path
-        .replace('\\', "/")
-        .trim_end_matches('/')
-        .to_string();
+    let cleaned = path.replace('\\', "/").trim_end_matches('/').to_string();
 
     if let Some(last) = cleaned.rsplit('/').next() {
         let name = last

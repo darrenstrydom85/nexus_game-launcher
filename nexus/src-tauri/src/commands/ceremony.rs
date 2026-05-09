@@ -118,8 +118,13 @@ pub(crate) fn get_game_ceremony_data_inner(
         .optional()
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
-    let (total_play_time_s, total_sessions, longest_session_s, first_played_at_opt, last_played_at_opt) =
-        agg.unwrap_or((0, 0, 0, None, None));
+    let (
+        total_play_time_s,
+        total_sessions,
+        longest_session_s,
+        first_played_at_opt,
+        last_played_at_opt,
+    ) = agg.unwrap_or((0, 0, 0, None, None));
 
     // 3. If no qualifying sessions, return a minimal-but-valid struct.
     if total_sessions == 0 {
@@ -261,10 +266,7 @@ fn query_months(
     Ok(months)
 }
 
-fn query_day_of_week(
-    conn: &rusqlite::Connection,
-    game_id: &str,
-) -> Result<Vec<i64>, CommandError> {
+fn query_day_of_week(conn: &rusqlite::Connection, game_id: &str) -> Result<Vec<i64>, CommandError> {
     let sql = format!(
         "SELECT (CAST(strftime('%w', started_at) AS INTEGER) + 6) % 7 AS dow,
                 COALESCE(SUM(duration_s), 0) AS t
@@ -289,10 +291,7 @@ fn query_day_of_week(
     Ok(buckets)
 }
 
-fn query_hour_of_day(
-    conn: &rusqlite::Connection,
-    game_id: &str,
-) -> Result<Vec<i64>, CommandError> {
+fn query_hour_of_day(conn: &rusqlite::Connection, game_id: &str) -> Result<Vec<i64>, CommandError> {
     let sql = format!(
         "SELECT CAST(strftime('%H', started_at) AS INTEGER) AS h,
                 COALESCE(SUM(duration_s), 0) AS t
@@ -435,9 +434,7 @@ pub(crate) fn build_fun_facts(
 
     // 6. Session count if high enough to be notable.
     if total_sessions >= 20 {
-        facts.push(format!(
-            "You booted this game up {total_sessions} times"
-        ));
+        facts.push(format!("You booted this game up {total_sessions} times"));
     }
 
     // Keep a minimum of 0 and a maximum of 4.
@@ -667,7 +664,10 @@ mod tests {
 
         let data = get_game_ceremony_data_inner(&conn, "g1").unwrap();
         assert_eq!(data.play_time_by_day_of_week.len(), 7);
-        assert_eq!(data.play_time_by_day_of_week[0], 3600, "Monday should have 3600s");
+        assert_eq!(
+            data.play_time_by_day_of_week[0], 3600,
+            "Monday should have 3600s"
+        );
         for (i, &v) in data.play_time_by_day_of_week.iter().enumerate() {
             if i != 0 {
                 assert_eq!(v, 0, "day {i} should be 0");

@@ -114,10 +114,10 @@ async fn helix_get(
     rate_limit_wait_if_needed();
     let base = base.trim_end_matches('/');
     let url = format!("{base}{path}");
-    let mut req = client.get(&url).header("Client-ID", client_id).header(
-        "Authorization",
-        format!("Bearer {access_token}"),
-    );
+    let mut req = client
+        .get(&url)
+        .header("Client-ID", client_id)
+        .header("Authorization", format!("Bearer {access_token}"));
     for (k, v) in query {
         req = req.query(&[(k, v.as_str())]);
     }
@@ -142,10 +142,10 @@ async fn helix_get(
             RATE_TOKENS_USED.store(0, Ordering::Relaxed);
         }
         rate_limit_wait_if_needed();
-        let retry = client.get(&url).header("Client-ID", client_id).header(
-            "Authorization",
-            format!("Bearer {access_token}"),
-        );
+        let retry = client
+            .get(&url)
+            .header("Client-ID", client_id)
+            .header("Authorization", format!("Bearer {access_token}"));
         let mut retry_req = retry;
         for (k, v) in query {
             retry_req = retry_req.query(&[(k, v.as_str())]);
@@ -157,9 +157,9 @@ async fn helix_get(
         let body = res.text().await.unwrap_or_default();
         return Err(CommandError::Auth(
             serde_json::from_str::<serde_json::Value>(&body)
-                                .ok()
-                                .and_then(|j| j.get("message").and_then(|v| v.as_str()).map(String::from))
-                                .unwrap_or_else(|| "Twitch token invalid or expired".to_string()),
+                .ok()
+                .and_then(|j| j.get("message").and_then(|v| v.as_str()).map(String::from))
+                .unwrap_or_else(|| "Twitch token invalid or expired".to_string()),
         ));
     }
 
@@ -207,9 +207,12 @@ pub async fn fetch_followed_channels(
             access_token,
         )
         .await?;
-        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
-        let json: HelixChannelsFollowedResponse =
-            serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("channels/followed: {e}")))?;
+        let body = res
+            .text()
+            .await
+            .map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let json: HelixChannelsFollowedResponse = serde_json::from_str(&body)
+            .map_err(|e| CommandError::Parse(format!("channels/followed: {e}")))?;
 
         for ch in json.data {
             all.push(CachedChannel {
@@ -261,14 +264,22 @@ pub async fn fetch_live_streams(
     let mut all = Vec::new();
 
     for chunk in user_ids.chunks(100) {
-        let query: Vec<(&str, String)> = chunk
-            .iter()
-            .map(|id| ("user_id", id.clone()))
-            .collect();
-        let res = helix_get(HELIX_BASE, client, "/streams", &query, client_id, access_token).await?;
-        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
-        let json: HelixStreamsResponse =
-            serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
+        let query: Vec<(&str, String)> = chunk.iter().map(|id| ("user_id", id.clone())).collect();
+        let res = helix_get(
+            HELIX_BASE,
+            client,
+            "/streams",
+            &query,
+            client_id,
+            access_token,
+        )
+        .await?;
+        let body = res
+            .text()
+            .await
+            .map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let json: HelixStreamsResponse = serde_json::from_str(&body)
+            .map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
 
         for s in json.data {
             all.push(CachedStream {
@@ -330,9 +341,12 @@ pub async fn fetch_top_games(
             access_token,
         )
         .await?;
-        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
-        let json: HelixTopGamesResponse =
-            serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("games/top: {e}")))?;
+        let body = res
+            .text()
+            .await
+            .map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let json: HelixTopGamesResponse = serde_json::from_str(&body)
+            .map_err(|e| CommandError::Parse(format!("games/top: {e}")))?;
 
         for g in json.data {
             rank += 1;
@@ -366,8 +380,19 @@ pub async fn fetch_game_viewer_stream_counts(
         ("game_id", game_id.to_string()),
         ("first", "100".to_string()),
     ];
-    let res = helix_get(HELIX_BASE, client, "/streams", &query, client_id, access_token).await?;
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let res = helix_get(
+        HELIX_BASE,
+        client,
+        "/streams",
+        &query,
+        client_id,
+        access_token,
+    )
+    .await?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: HelixStreamsResponse =
         serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
     let total_viewers: i64 = json.data.iter().map(|s| s.viewer_count).sum::<u64>() as i64;
@@ -384,8 +409,19 @@ pub async fn fetch_twitch_game(
     name: &str,
 ) -> Result<Option<(String, String)>, CommandError> {
     let query = vec![("name", name.to_string())];
-    let res = helix_get(HELIX_BASE, client, "/games", &query, client_id, access_token).await?;
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let res = helix_get(
+        HELIX_BASE,
+        client,
+        "/games",
+        &query,
+        client_id,
+        access_token,
+    )
+    .await?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: HelixGamesResponse =
         serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("games: {e}")))?;
 
@@ -428,8 +464,19 @@ async fn fetch_user_avatars(
     let mut map = std::collections::HashMap::new();
     for chunk in user_ids.chunks(100) {
         let query: Vec<(&str, String)> = chunk.iter().map(|id| ("id", id.clone())).collect();
-        let res = helix_get(HELIX_BASE, client, "/users", &query, client_id, access_token).await?;
-        let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+        let res = helix_get(
+            HELIX_BASE,
+            client,
+            "/users",
+            &query,
+            client_id,
+            access_token,
+        )
+        .await?;
+        let body = res
+            .text()
+            .await
+            .map_err(|e| CommandError::Unknown(e.to_string()))?;
         let json: HelixUsersResponse =
             serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("users: {e}")))?;
         for u in json.data {
@@ -449,14 +496,24 @@ pub async fn fetch_streams_by_game(
 ) -> Result<(Vec<StreamWithBroadcaster>, String), CommandError> {
     let (game_id, twitch_game_name) = fetch_twitch_game(client, client_id, access_token, game_name)
         .await?
-        .ok_or_else(|| CommandError::NotFound(format!("No Twitch game/category for: {game_name}")))?;
+        .ok_or_else(|| {
+            CommandError::NotFound(format!("No Twitch game/category for: {game_name}"))
+        })?;
 
-    let query = vec![
-        ("game_id", game_id.clone()),
-        ("first", "10".to_string()),
-    ];
-    let res = helix_get(HELIX_BASE, client, "/streams", &query, client_id, access_token).await?;
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let query = vec![("game_id", game_id.clone()), ("first", "10".to_string())];
+    let res = helix_get(
+        HELIX_BASE,
+        client,
+        "/streams",
+        &query,
+        client_id,
+        access_token,
+    )
+    .await?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: HelixStreamsResponse =
         serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("streams: {e}")))?;
 
@@ -544,7 +601,16 @@ pub async fn get_top_clips(
     period_days: u32,
     count: u32,
 ) -> Result<Vec<TwitchClip>, CommandError> {
-    get_top_clips_with_base(HELIX_BASE, client, client_id, access_token, game_id, period_days, count).await
+    get_top_clips_with_base(
+        HELIX_BASE,
+        client,
+        client_id,
+        access_token,
+        game_id,
+        period_days,
+        count,
+    )
+    .await
 }
 
 /// Same as [`get_top_clips`] but allows overriding the base URL — used in tests with
@@ -577,7 +643,10 @@ pub(crate) async fn get_top_clips_with_base(
     ];
 
     let res = helix_get(base, client, "/clips", &query, client_id, access_token).await?;
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: HelixClipsResponse =
         serde_json::from_str(&body).map_err(|e| CommandError::Parse(format!("clips: {e}")))?;
 
@@ -623,7 +692,10 @@ fn format_rfc3339_utc(secs_since_epoch: i64) -> String {
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let year = if m <= 2 { y + 1 } else { y };
 
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, m, d, hour, minute, second)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, m, d, hour, minute, second
+    )
 }
 
 /// Snapshot of rate-limit state for the diagnostics view (Story D1).
@@ -644,7 +716,11 @@ pub fn rate_limit_snapshot() -> RateLimitSnapshot {
     RateLimitSnapshot {
         tokens_used: used,
         tokens_remaining: RATE_LIMIT_CAP.saturating_sub(used),
-        window_reset_at: if last == 0 { 0 } else { last + RATE_LIMIT_WINDOW_SECS },
+        window_reset_at: if last == 0 {
+            0
+        } else {
+            last + RATE_LIMIT_WINDOW_SECS
+        },
         window_secs: RATE_LIMIT_WINDOW_SECS,
         cap: RATE_LIMIT_CAP,
     }
@@ -800,17 +876,10 @@ mod tests {
             .await;
 
         let client = reqwest::Client::new();
-        let clips = get_top_clips_with_base(
-            &server.uri(),
-            &client,
-            "client_id",
-            "token",
-            "32982",
-            7,
-            6,
-        )
-        .await
-        .expect("should parse");
+        let clips =
+            get_top_clips_with_base(&server.uri(), &client, "client_id", "token", "32982", 7, 6)
+                .await
+                .expect("should parse");
 
         assert_eq!(clips.len(), 1);
         let c = &clips[0];
@@ -876,14 +945,19 @@ mod tests {
         let reset_str = reset_ts.to_string();
         Mock::given(method("GET"))
             .and(path("/channels/followed"))
-            .respond_with(ResponseTemplate::new(429).insert_header("Ratelimit-Reset", reset_str.as_str()))
+            .respond_with(
+                ResponseTemplate::new(429).insert_header("Ratelimit-Reset", reset_str.as_str()),
+            )
             .up_to_n_times(1)
             .mount(&server)
             .await;
 
         Mock::given(method("GET"))
             .and(path("/channels/followed"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({ "data": [], "pagination": {} })))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({ "data": [], "pagination": {} })),
+            )
             .mount(&server)
             .await;
 

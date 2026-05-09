@@ -52,7 +52,9 @@ impl TokenState {
 
     fn needs_refresh(&self, now_secs: i64) -> bool {
         self.refresh_token.is_some()
-            && self.expires_at.map_or(true, |e| now_secs >= e - REFRESH_THRESHOLD_SECS)
+            && self
+                .expires_at
+                .map_or(true, |e| now_secs >= e - REFRESH_THRESHOLD_SECS)
     }
 }
 
@@ -133,16 +135,26 @@ impl TwitchTokenManager {
         self.inner.last_refresh_at.load(Ordering::Relaxed)
     }
     pub fn last_refresh_error(&self) -> Option<String> {
-        self.inner.last_refresh_error.lock().ok().and_then(|g| g.clone())
+        self.inner
+            .last_refresh_error
+            .lock()
+            .ok()
+            .and_then(|g| g.clone())
     }
     pub fn eventsub_connected(&self) -> bool {
         self.inner.eventsub_connected.load(Ordering::Relaxed)
     }
     pub fn eventsub_subscription_count(&self) -> u32 {
-        self.inner.eventsub_subscription_count.load(Ordering::Relaxed)
+        self.inner
+            .eventsub_subscription_count
+            .load(Ordering::Relaxed)
     }
     pub fn eventsub_session_id(&self) -> Option<String> {
-        self.inner.eventsub_session_id.lock().ok().and_then(|g| g.clone())
+        self.inner
+            .eventsub_session_id
+            .lock()
+            .ok()
+            .and_then(|g| g.clone())
     }
     pub fn last_event_at(&self) -> i64 {
         self.inner.last_event_at.load(Ordering::Relaxed)
@@ -150,17 +162,18 @@ impl TwitchTokenManager {
 
     /// Set EventSub session/connected state from the worker. `session_id == None` means
     /// disconnected (and resets the subscription count).
-    pub fn set_eventsub_state(
-        &self,
-        session_id: Option<String>,
-        subscription_count: u32,
-    ) {
+    pub fn set_eventsub_state(&self, session_id: Option<String>, subscription_count: u32) {
         self.inner
             .eventsub_connected
             .store(session_id.is_some(), Ordering::Relaxed);
-        self.inner
-            .eventsub_subscription_count
-            .store(if session_id.is_some() { subscription_count } else { 0 }, Ordering::Relaxed);
+        self.inner.eventsub_subscription_count.store(
+            if session_id.is_some() {
+                subscription_count
+            } else {
+                0
+            },
+            Ordering::Relaxed,
+        );
         if let Ok(mut g) = self.inner.eventsub_session_id.lock() {
             *g = session_id;
         }
@@ -284,7 +297,8 @@ impl TwitchTokenManager {
             }
         }
 
-        self.refresh_locked(/*allow_skip_if_already_fresh=*/ true).await
+        self.refresh_locked(/*allow_skip_if_already_fresh=*/ true)
+            .await
     }
 
     /// Always attempt a refresh, even if the in-memory token still looks valid. Intended for
@@ -292,7 +306,8 @@ impl TwitchTokenManager {
     /// Still serialized through the same mutex so multiple parallel 401s collapse into one
     /// network round-trip.
     pub async fn force_refresh(&self) -> Result<(String, String), CommandError> {
-        self.refresh_locked(/*allow_skip_if_already_fresh=*/ false).await
+        self.refresh_locked(/*allow_skip_if_already_fresh=*/ false)
+            .await
     }
 
     async fn refresh_locked(
@@ -398,11 +413,7 @@ impl TwitchTokenManager {
                 guard.profile_image_url = user.profile_image_url.clone();
             }
         }
-        self.emit_authenticated(
-            true,
-            Some(user.display_name),
-            user.profile_image_url,
-        );
+        self.emit_authenticated(true, Some(user.display_name), user.profile_image_url);
         Ok(())
     }
 
@@ -524,11 +535,7 @@ impl TwitchTokenManager {
             return;
         }
         let mut slot = self.inner.worker.lock().await;
-        if !slot
-            .handle
-            .as_ref()
-            .map_or(false, |h| !h.is_finished())
-        {
+        if !slot.handle.as_ref().map_or(false, |h| !h.is_finished()) {
             let mgr = self.clone();
             let wake = self.inner.wake.clone();
             slot.handle = Some(tokio::spawn(async move {
@@ -662,10 +669,7 @@ mod tests {
 
         // Mimics get_valid_access_token: read snapshot, if needs_refresh take refresh_lock
         // and re-check before doing the simulated HTTP call.
-        async fn caller(
-            mgr: Arc<MiniManager>,
-            http_calls: Arc<AtomicUsize>,
-        ) -> String {
+        async fn caller(mgr: Arc<MiniManager>, http_calls: Arc<AtomicUsize>) -> String {
             let snap = mgr.state.lock().await.clone();
             if !snap.needs_refresh(now_secs()) {
                 return snap.access_token.clone().unwrap();

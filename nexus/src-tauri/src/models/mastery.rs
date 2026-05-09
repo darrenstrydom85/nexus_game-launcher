@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 // ── Tier thresholds (seconds) ──────────────────────────────────────
 
-pub const THRESHOLD_BRONZE: i64 = 3_600;      // 1 hour
-pub const THRESHOLD_SILVER: i64 = 36_000;     // 10 hours
-pub const THRESHOLD_GOLD: i64 = 90_000;       // 25 hours
-pub const THRESHOLD_PLATINUM: i64 = 180_000;  // 50 hours
-pub const THRESHOLD_DIAMOND: i64 = 360_000;   // 100 hours
+pub const THRESHOLD_BRONZE: i64 = 3_600; // 1 hour
+pub const THRESHOLD_SILVER: i64 = 36_000; // 10 hours
+pub const THRESHOLD_GOLD: i64 = 90_000; // 25 hours
+pub const THRESHOLD_PLATINUM: i64 = 180_000; // 50 hours
+pub const THRESHOLD_DIAMOND: i64 = 360_000; // 100 hours
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -128,10 +128,19 @@ mod tests {
     #[test]
     fn progress_at_tier_boundary_minimum_is_zero() {
         assert_eq!(progress_to_next(0, &MasteryTier::None), 0.0);
-        assert_eq!(progress_to_next(THRESHOLD_BRONZE, &MasteryTier::Bronze), 0.0);
-        assert_eq!(progress_to_next(THRESHOLD_SILVER, &MasteryTier::Silver), 0.0);
+        assert_eq!(
+            progress_to_next(THRESHOLD_BRONZE, &MasteryTier::Bronze),
+            0.0
+        );
+        assert_eq!(
+            progress_to_next(THRESHOLD_SILVER, &MasteryTier::Silver),
+            0.0
+        );
         assert_eq!(progress_to_next(THRESHOLD_GOLD, &MasteryTier::Gold), 0.0);
-        assert_eq!(progress_to_next(THRESHOLD_PLATINUM, &MasteryTier::Platinum), 0.0);
+        assert_eq!(
+            progress_to_next(THRESHOLD_PLATINUM, &MasteryTier::Platinum),
+            0.0
+        );
     }
 
     #[test]
@@ -154,8 +163,8 @@ mod tests {
         let gmt = build_game_mastery_tier("game-1".into(), 120_000);
         assert_eq!(gmt.tier, MasteryTier::Gold);
         assert_eq!(gmt.next_tier_threshold_s, Some(THRESHOLD_PLATINUM));
-        let expected_progress = (120_000 - THRESHOLD_GOLD) as f64
-            / (THRESHOLD_PLATINUM - THRESHOLD_GOLD) as f64;
+        let expected_progress =
+            (120_000 - THRESHOLD_GOLD) as f64 / (THRESHOLD_PLATINUM - THRESHOLD_GOLD) as f64;
         assert!((gmt.progress_to_next_tier - expected_progress).abs() < 1e-9);
     }
 

@@ -70,7 +70,9 @@ fn pick_best_gpu(gpus: Vec<GpuEntry>) -> (String, String) {
     }
 
     // Prefer discrete (NVIDIA or AMD) over integrated (Intel)
-    let discrete = gpus.iter().find(|g| g.brand == "nvidia" || g.brand == "amd");
+    let discrete = gpus
+        .iter()
+        .find(|g| g.brand == "nvidia" || g.brand == "amd");
     match discrete {
         Some(g) => (g.brand.to_string(), g.name.clone()),
         None => {
@@ -81,9 +83,8 @@ fn pick_best_gpu(gpus: Vec<GpuEntry>) -> (String, String) {
 }
 
 fn detect_cpu() -> (String, String) {
-    let sys = System::new_with_specifics(
-        RefreshKind::nothing().with_cpu(CpuRefreshKind::nothing()),
-    );
+    let sys =
+        System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::nothing()));
 
     match sys.cpus().first() {
         Some(cpu) => {
@@ -121,7 +122,13 @@ fn new_hidden_command(program: &str) -> Command {
 fn detect_gpu() -> (String, String) {
     // Try wmic first (available on older Windows builds)
     if let Ok(output) = new_hidden_command("wmic")
-        .args(["path", "Win32_VideoController", "get", "Name", "/format:list"])
+        .args([
+            "path",
+            "Win32_VideoController",
+            "get",
+            "Name",
+            "/format:list",
+        ])
         .output()
     {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -179,13 +186,19 @@ mod tests {
     #[test]
     fn cpu_brand_intel() {
         assert_eq!(classify_cpu_brand("Intel(R) Core(TM) i9-13900K"), "intel");
-        assert_eq!(classify_cpu_brand("12th Gen Intel(R) Core(TM) i7-12700K"), "intel");
+        assert_eq!(
+            classify_cpu_brand("12th Gen Intel(R) Core(TM) i7-12700K"),
+            "intel"
+        );
     }
 
     #[test]
     fn cpu_brand_amd() {
         assert_eq!(classify_cpu_brand("AMD Ryzen 9 7950X"), "amd");
-        assert_eq!(classify_cpu_brand("AMD Ryzen 5 5600X 6-Core Processor"), "amd");
+        assert_eq!(
+            classify_cpu_brand("AMD Ryzen 5 5600X 6-Core Processor"),
+            "amd"
+        );
     }
 
     #[test]
@@ -252,8 +265,14 @@ mod tests {
     #[test]
     fn multi_gpu_prefers_discrete_nvidia() {
         let gpus = vec![
-            GpuEntry { name: "Intel UHD Graphics 770".to_string(), brand: "intel" },
-            GpuEntry { name: "NVIDIA GeForce RTX 4090".to_string(), brand: "nvidia" },
+            GpuEntry {
+                name: "Intel UHD Graphics 770".to_string(),
+                brand: "intel",
+            },
+            GpuEntry {
+                name: "NVIDIA GeForce RTX 4090".to_string(),
+                brand: "nvidia",
+            },
         ];
         let (brand, name) = pick_best_gpu(gpus);
         assert_eq!(brand, "nvidia");
@@ -263,8 +282,14 @@ mod tests {
     #[test]
     fn multi_gpu_prefers_discrete_amd() {
         let gpus = vec![
-            GpuEntry { name: "Intel UHD Graphics 770".to_string(), brand: "intel" },
-            GpuEntry { name: "AMD Radeon RX 7900 XTX".to_string(), brand: "amd" },
+            GpuEntry {
+                name: "Intel UHD Graphics 770".to_string(),
+                brand: "intel",
+            },
+            GpuEntry {
+                name: "AMD Radeon RX 7900 XTX".to_string(),
+                brand: "amd",
+            },
         ];
         let (brand, name) = pick_best_gpu(gpus);
         assert_eq!(brand, "amd");
@@ -273,9 +298,10 @@ mod tests {
 
     #[test]
     fn single_integrated_gpu_returned() {
-        let gpus = vec![
-            GpuEntry { name: "Intel UHD Graphics 770".to_string(), brand: "intel" },
-        ];
+        let gpus = vec![GpuEntry {
+            name: "Intel UHD Graphics 770".to_string(),
+            brand: "intel",
+        }];
         let (brand, name) = pick_best_gpu(gpus);
         assert_eq!(brand, "intel");
         assert_eq!(name, "Intel UHD Graphics 770");
@@ -317,8 +343,14 @@ mod tests {
     #[test]
     fn multi_gpu_prefers_discrete_over_integrated_amd() {
         let gpus = vec![
-            GpuEntry { name: "AMD Radeon RX 9070 XT".to_string(), brand: "amd" },
-            GpuEntry { name: "AMD Radeon(TM) Graphics".to_string(), brand: "amd" },
+            GpuEntry {
+                name: "AMD Radeon RX 9070 XT".to_string(),
+                brand: "amd",
+            },
+            GpuEntry {
+                name: "AMD Radeon(TM) Graphics".to_string(),
+                brand: "amd",
+            },
         ];
         let (brand, name) = pick_best_gpu(gpus);
         assert_eq!(brand, "amd");

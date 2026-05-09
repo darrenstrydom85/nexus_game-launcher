@@ -175,9 +175,16 @@ mod tests {
         // rename_all = "camelCase" on the enum should rename struct variant fields too
         let json = r#"{"custom":{"startDate":"2026-01-01","endDate":"2026-03-09"}}"#;
         let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
-        assert!(result.is_ok(), "camelCase fields should deserialize: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "camelCase fields should deserialize: {:?}",
+            result.err()
+        );
         match result.unwrap() {
-            WrappedPeriod::Custom { start_date, end_date } => {
+            WrappedPeriod::Custom {
+                start_date,
+                end_date,
+            } => {
                 assert_eq!(start_date, "2026-01-01");
                 assert_eq!(end_date, "2026-03-09");
             }
@@ -189,7 +196,10 @@ mod tests {
     fn custom_period_rejects_snake_case_fields() {
         let json = r#"{"custom":{"start_date":"2026-01-01","end_date":"2026-03-09"}}"#;
         let result: Result<WrappedPeriod, _> = serde_json::from_str(json);
-        assert!(result.is_err(), "snake_case fields should be rejected after rename");
+        assert!(
+            result.is_err(),
+            "snake_case fields should be rejected after rename"
+        );
     }
 
     #[test]

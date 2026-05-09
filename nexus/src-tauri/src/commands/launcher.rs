@@ -233,7 +233,10 @@ pub fn stop_game(pid: u32) -> Result<(), CommandError> {
 }
 
 #[tauri::command(async)]
-pub fn check_process_running(pid: Option<u32>, exe_name: Option<String>) -> Result<bool, CommandError> {
+pub fn check_process_running(
+    pid: Option<u32>,
+    exe_name: Option<String>,
+) -> Result<bool, CommandError> {
     if let Some(pid) = pid {
         return Ok(is_pid_alive(pid));
     }
@@ -262,7 +265,13 @@ fn is_pid_alive(pid: u32) -> bool {
 
 fn is_exe_running(exe_name: &str) -> bool {
     let output = Command::new("tasklist")
-        .args(["/FI", &format!("IMAGENAME eq {exe_name}"), "/NH", "/FO", "CSV"])
+        .args([
+            "/FI",
+            &format!("IMAGENAME eq {exe_name}"),
+            "/NH",
+            "/FO",
+            "CSV",
+        ])
         .creation_flags(0x08000000)
         .output();
 
@@ -286,7 +295,12 @@ pub fn find_game_process(folder_path: String) -> Result<Option<RunningProcess>, 
     }
 
     let output = Command::new("wmic")
-        .args(["process", "get", "ExecutablePath,Name,ProcessId", "/FORMAT:CSV"])
+        .args([
+            "process",
+            "get",
+            "ExecutablePath,Name,ProcessId",
+            "/FORMAT:CSV",
+        ])
         .creation_flags(0x08000000)
         .output();
 

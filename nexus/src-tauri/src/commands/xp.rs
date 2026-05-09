@@ -4,9 +4,7 @@ use tauri::State;
 use super::error::CommandError;
 use super::utils::now_iso;
 use crate::db::DbState;
-use crate::models::xp::{
-    build_xp_summary, calculate_level, XpBreakdownRow, XpEvent, XpSummary,
-};
+use crate::models::xp::{build_xp_summary, calculate_level, XpBreakdownRow, XpEvent, XpSummary};
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -114,7 +112,13 @@ pub fn award_xp(
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-    award_xp_inner(&conn, &source, source_id.as_deref(), xp_amount, &description)
+    award_xp_inner(
+        &conn,
+        &source,
+        source_id.as_deref(),
+        xp_amount,
+        &description,
+    )
 }
 
 /// Inner implementation callable without State wrapper.
@@ -233,8 +237,7 @@ pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
         );
 
         if *duration_s >= 3600 {
-            let bonus_desc =
-                format!("1-hour session bonus for {game_name} (+15 XP)");
+            let bonus_desc = format!("1-hour session bonus for {game_name} (+15 XP)");
             let _ = award_xp_inner(
                 conn,
                 crate::models::xp::sources::SESSION_BONUS_1H,
@@ -383,8 +386,7 @@ mod tests {
     fn get_xp_history_respects_limit() {
         let conn = setup_db();
         for i in 0..10 {
-            award_xp_inner(&conn, "test", Some(&format!("x{i}")), 10, &format!("ev{i}"))
-                .unwrap();
+            award_xp_inner(&conn, "test", Some(&format!("x{i}")), 10, &format!("ev{i}")).unwrap();
         }
         let history = get_xp_history_inner(&conn, Some(3)).unwrap();
         assert_eq!(history.len(), 3);
@@ -424,11 +426,8 @@ mod tests {
     fn backfill_completed_games() {
         let conn = setup_db();
         insert_game(&conn, "g1", "Elden Ring");
-        conn.execute(
-            "UPDATE games SET completed = 1 WHERE id = 'g1'",
-            [],
-        )
-        .unwrap();
+        conn.execute("UPDATE games SET completed = 1 WHERE id = 'g1'", [])
+            .unwrap();
 
         let summary = backfill_xp_inner(&conn).unwrap();
         assert_eq!(summary.total_xp, 100);
@@ -478,11 +477,17 @@ mod tests {
         let breakdown = get_xp_breakdown_inner(&conn).unwrap();
         assert_eq!(breakdown.len(), 2);
 
-        let game_row = breakdown.iter().find(|r| r.source_type == sources::GAME_COMPLETE).unwrap();
+        let game_row = breakdown
+            .iter()
+            .find(|r| r.source_type == sources::GAME_COMPLETE)
+            .unwrap();
         assert_eq!(game_row.total_xp, 100);
         assert_eq!(game_row.event_count, 1);
 
-        let session_row = breakdown.iter().find(|r| r.source_type == sources::SESSION_COMPLETE).unwrap();
+        let session_row = breakdown
+            .iter()
+            .find(|r| r.source_type == sources::SESSION_COMPLETE)
+            .unwrap();
         assert_eq!(session_row.total_xp, 50);
         assert_eq!(session_row.event_count, 2);
     }

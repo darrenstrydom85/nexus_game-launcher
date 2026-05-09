@@ -31,7 +31,10 @@ impl StandaloneScanner {
 
         for folder in &self.watched_folders {
             if !folder.is_dir() {
-                log::warn!("watched folder does not exist or is not a directory: {}", folder.display());
+                log::warn!(
+                    "watched folder does not exist or is not a directory: {}",
+                    folder.display()
+                );
                 continue;
             }
 
@@ -141,23 +144,24 @@ fn find_executables_recursive(
 // ---------------------------------------------------------------------------
 
 const BLOCKLIST_NAME_PREFIXES: &[&str] = &[
-    "uninstall", "unins",
-    "setup", "install",
-    "redist", "vc_redist", "vcredist",
-    "dxsetup", "dxwebsetup",
+    "uninstall",
+    "unins",
+    "setup",
+    "install",
+    "redist",
+    "vc_redist",
+    "vcredist",
+    "dxsetup",
+    "dxwebsetup",
     "unitycrashhandler",
-    "crashreporter", "bugsplat",
+    "crashreporter",
+    "bugsplat",
     "dotnet",
     "quicksfv", // FitGirl repack checksum verifier — not a game exe
 ];
 
-const BLOCKLIST_FOLDER_NAMES: &[&str] = &[
-    "__redist",
-    "_commonredist",
-    "redist",
-    "directx",
-    "vcredist",
-];
+const BLOCKLIST_FOLDER_NAMES: &[&str] =
+    &["__redist", "_commonredist", "redist", "directx", "vcredist"];
 
 /// Returns `true` if the exe should be excluded from game detection.
 fn is_blocklisted(exe_path: &Path) -> bool {
@@ -189,8 +193,7 @@ fn is_blocklisted(exe_path: &Path) -> bool {
 // ---------------------------------------------------------------------------
 
 const DEPRIORITIZED_NAMES: &[&str] = &[
-    "launcher", "config", "settings", "editor",
-    "crash", "reporter", "helper", "updater",
+    "launcher", "config", "settings", "editor", "crash", "reporter", "helper", "updater",
 ];
 
 /// Score an executable for likelihood of being the main game binary.
@@ -203,7 +206,7 @@ fn score_executable(exe_path: &Path, game_folder: &Path) -> i64 {
         .map(|rel| rel.components().count())
         .unwrap_or(4);
     score += match depth {
-        1 => 100,  // directly in root
+        1 => 100, // directly in root
         2 => 50,
         3 => 25,
         _ => 0,
@@ -302,7 +305,8 @@ fn strip_dash_build(s: &str) -> String {
 }
 
 fn strip_trailing_versions(s: &str) -> String {
-    let re_trailing = regex_lite::Regex::new(r"(?i)\s+(?:v\d[\d.]*|build\s*\d+|\d+\.\d+[\d.]*)$").unwrap();
+    let re_trailing =
+        regex_lite::Regex::new(r"(?i)\s+(?:v\d[\d.]*|build\s*\d+|\d+\.\d+[\d.]*)$").unwrap();
     re_trailing.replace(s, "").to_string()
 }
 
@@ -316,8 +320,12 @@ fn smart_title_case(s: &str) -> String {
         return String::new();
     }
 
-    let is_all_upper = trimmed.chars().all(|c| !c.is_alphabetic() || c.is_uppercase());
-    let is_all_lower = trimmed.chars().all(|c| !c.is_alphabetic() || c.is_lowercase());
+    let is_all_upper = trimmed
+        .chars()
+        .all(|c| !c.is_alphabetic() || c.is_uppercase());
+    let is_all_lower = trimmed
+        .chars()
+        .all(|c| !c.is_alphabetic() || c.is_lowercase());
 
     if is_all_upper || is_all_lower {
         title_case(trimmed)
@@ -334,7 +342,9 @@ fn title_case(s: &str) -> String {
                 None => String::new(),
                 Some(first) => {
                     let upper: String = first.to_uppercase().collect();
-                    let rest: String = chars.map(|c| c.to_lowercase().next().unwrap_or(c)).collect();
+                    let rest: String = chars
+                        .map(|c| c.to_lowercase().next().unwrap_or(c))
+                        .collect();
                     format!("{upper}{rest}")
                 }
             }
@@ -447,7 +457,11 @@ pub fn derive_potential_exe_names(folder: &Path) -> Option<String> {
         .filter_map(|(p, _)| p.file_name().map(|n| n.to_string_lossy().to_string()))
         .collect();
 
-    if names.is_empty() { None } else { Some(names.join(",")) }
+    if names.is_empty() {
+        None
+    } else {
+        Some(names.join(","))
+    }
 }
 
 /// Scan a single game directory: find exes, filter, rank, derive name, detect origin.
@@ -618,7 +632,10 @@ mod tests {
         // deep.exe is at depth 4 from root, should be excluded at max_depth=3
 
         let exes = find_executables(tmp.path(), 3);
-        let names: Vec<String> = exes.iter().map(|p| p.file_name().unwrap().to_string_lossy().to_string()).collect();
+        let names: Vec<String> = exes
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
+            .collect();
         assert!(names.contains(&"game.exe".to_string()));
         assert!(names.contains(&"helper.exe".to_string()));
         assert!(!names.contains(&"deep.exe".to_string()));
@@ -657,14 +674,18 @@ mod tests {
 
     #[test]
     fn blocklist_filters_crash_handlers() {
-        assert!(is_blocklisted(Path::new("C:\\Game\\UnityCrashHandler64.exe")));
+        assert!(is_blocklisted(Path::new(
+            "C:\\Game\\UnityCrashHandler64.exe"
+        )));
         assert!(is_blocklisted(Path::new("C:\\Game\\CrashReporter.exe")));
         assert!(is_blocklisted(Path::new("C:\\Game\\BugSplatRc.exe")));
     }
 
     #[test]
     fn blocklist_filters_redist_folders() {
-        assert!(is_blocklisted(Path::new("C:\\Game\\_CommonRedist\\vcredist\\vc.exe")));
+        assert!(is_blocklisted(Path::new(
+            "C:\\Game\\_CommonRedist\\vcredist\\vc.exe"
+        )));
         assert!(is_blocklisted(Path::new("C:\\Game\\__redist\\setup.exe")));
         assert!(is_blocklisted(Path::new("C:\\Game\\DirectX\\dxsetup.exe")));
     }
@@ -739,12 +760,18 @@ mod tests {
 
     #[test]
     fn derive_name_strips_fitgirl_tag() {
-        assert_eq!(derive_game_name("Elden Ring [FitGirl Repack]"), "Elden Ring");
+        assert_eq!(
+            derive_game_name("Elden Ring [FitGirl Repack]"),
+            "Elden Ring"
+        );
     }
 
     #[test]
     fn derive_name_strips_dodi_tag() {
-        assert_eq!(derive_game_name("Cyberpunk 2077 [DODI Repack]"), "Cyberpunk 2077");
+        assert_eq!(
+            derive_game_name("Cyberpunk 2077 [DODI Repack]"),
+            "Cyberpunk 2077"
+        );
     }
 
     #[test]
@@ -808,7 +835,11 @@ mod tests {
     #[test]
     fn detect_fitgirl_by_verify_txt() {
         let tmp = TempDir::new().unwrap();
-        fs::write(tmp.path().join("Verify BIN files before installation.txt"), "").unwrap();
+        fs::write(
+            tmp.path().join("Verify BIN files before installation.txt"),
+            "",
+        )
+        .unwrap();
         assert_eq!(detect_origin_hint(tmp.path()), Some(OriginHint::FitGirl));
     }
 
@@ -830,14 +861,24 @@ mod tests {
     fn detect_goldberg_by_txt() {
         let tmp = TempDir::new().unwrap();
         fs::write(tmp.path().join("Goldberg.txt"), "").unwrap();
-        assert_eq!(detect_origin_hint(tmp.path()), Some(OriginHint::GoldbergEmu));
+        assert_eq!(
+            detect_origin_hint(tmp.path()),
+            Some(OriginHint::GoldbergEmu)
+        );
     }
 
     #[test]
     fn detect_goldberg_by_steam_api_ini() {
         let tmp = TempDir::new().unwrap();
-        fs::write(tmp.path().join("steam_api.ini"), "[Settings]\n; Goldberg Steam Emu\n").unwrap();
-        assert_eq!(detect_origin_hint(tmp.path()), Some(OriginHint::GoldbergEmu));
+        fs::write(
+            tmp.path().join("steam_api.ini"),
+            "[Settings]\n; Goldberg Steam Emu\n",
+        )
+        .unwrap();
+        assert_eq!(
+            detect_origin_hint(tmp.path()),
+            Some(OriginHint::GoldbergEmu)
+        );
     }
 
     #[test]
@@ -862,7 +903,11 @@ mod tests {
         assert_eq!(game.name, "Elden Ring");
         assert_eq!(game.source, GameSourceType::Standalone);
         assert_eq!(game.source_hint, Some("FitGirl".to_string()));
-        assert!(game.exe_path.unwrap().to_string_lossy().contains("eldenring.exe"));
+        assert!(game
+            .exe_path
+            .unwrap()
+            .to_string_lossy()
+            .contains("eldenring.exe"));
         assert_eq!(game.exe_name, Some("eldenring.exe".to_string()));
         assert!(game.launch_url.is_none());
     }

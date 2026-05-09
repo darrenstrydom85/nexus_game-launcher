@@ -567,6 +567,49 @@ function MainApp() {
     },
     [],
   );
+  const handleStopActiveGame = React.useCallback(async () => {
+    const session = useGameStore.getState().activeSession;
+    if (!session) return;
+
+    const startMs = new Date(session.startedAt).getTime();
+    const durationS = Math.floor((Date.now() - startMs) / 1000);
+    if (session.pid) {
+      invoke("stop_game", { pid: session.pid }).catch(() => {});
+    }
+    useGameStore.getState().setActiveSession(null);
+    setRunningGame(null);
+    if (session.hasDbSession) {
+      try {
+        await invoke("end_session", {
+          sessionId: session.sessionId,
+          endedAt: new Date().toISOString(),
+        });
+      } catch {
+        // best-effort
+      }
+      useSessionNoteStore.getState().enqueue({
+        sessionId: session.sessionId,
+        gameName: session.gameName,
+        durationS,
+      });
+    }
+    await refreshGames();
+
+    // Refresh derived stores so the Stats screen / XP / streak / mastery
+    // reflect the just-ended session without requiring an app restart.
+    if (session.hasDbSession) {
+      useGameStore.getState().bumpSessionEnded();
+      useStreakStore.getState().refreshAfterSession();
+      useMasteryStore.getState().refreshGame(session.gameId);
+      useAchievementStore.getState().evaluate();
+      useXpStore.getState().refreshXp().then(() => {
+        const summary = useXpStore.getState().summary;
+        if (summary?.leveledUp && summary.newLevel) {
+          useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
+        }
+      });
+    }
+  }, []);
   const activeCollectionId = useCollectionStore((s) => s.activeCollectionId);
   const activeManualCollectionName = React.useMemo(() => {
     const active = collections.find((c) => c.id === activeCollectionId);
@@ -587,49 +630,7 @@ function MainApp() {
         const game = useGameStore.getState().games.find((g) => g.id === gameId);
         if (game) launch(game);
       }}
-      onStopGame={async () => {
-        const session = useGameStore.getState().activeSession;
-        if (session) {
-          const startMs = new Date(session.startedAt).getTime();
-          const durationS = Math.floor((Date.now() - startMs) / 1000);
-          if (session.pid) {
-            invoke("stop_game", { pid: session.pid }).catch(() => {});
-          }
-          useGameStore.getState().setActiveSession(null);
-          setRunningGame(null);
-          if (session.hasDbSession) {
-            try {
-              await invoke("end_session", {
-                sessionId: session.sessionId,
-                endedAt: new Date().toISOString(),
-              });
-            } catch {
-              // best-effort
-            }
-            useSessionNoteStore.getState().enqueue({
-              sessionId: session.sessionId,
-              gameName: session.gameName,
-              durationS,
-            });
-          }
-          await refreshGames();
-
-          // Refresh derived stores so the Stats screen / XP / streak / mastery
-          // reflect the just-ended session without requiring an app restart.
-          if (session.hasDbSession) {
-            useGameStore.getState().bumpSessionEnded();
-            useStreakStore.getState().refreshAfterSession();
-            useMasteryStore.getState().refreshGame(session.gameId);
-            useAchievementStore.getState().evaluate();
-            useXpStore.getState().refreshXp().then(() => {
-              const summary = useXpStore.getState().summary;
-              if (summary?.leveledUp && summary.newLevel) {
-                useXpStore.getState().showLevelUp(summary.newLevel, summary.totalXp);
-              }
-            });
-          }
-        }
-      }}
+      onStopGame={handleStopActiveGame}
       onGameDetails={(gameId) => {
         useUiStore.getState().setDetailOverlayGameId(gameId);
       }}
@@ -677,12 +678,14 @@ function MainApp() {
               game={game}
               isPlaying={activeSession?.gameId === game.id}
               processDetected={activeSession?.gameId === game.id ? activeSession?.processDetected : undefined}
+              activeSessionStartedAt={activeSession?.gameId === game.id ? activeSession.startedAt : null}
               isArchived={gameIsArchived}
               youtubeId={game.trailerUrl ? extractYoutubeId(game.trailerUrl) : null}
               collections={collections
                 .filter((c) => c.gameIds.includes(game.id))
                 .map((c) => `${c.icon} ${c.name}`)}
               onPlay={() => launch(game)}
+              onStop={handleStopActiveGame}
               onForceIdentify={handleForceIdentify}
               onStatusChange={(status) => {
                 if (gameIsArchived) {

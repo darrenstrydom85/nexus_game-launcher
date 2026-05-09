@@ -1,5 +1,5 @@
-pub mod steamgriddb;
-pub mod igdb;
 pub mod cache;
+pub mod igdb;
 pub mod pipeline;
 pub mod placeholders;
+pub mod steamgriddb;
