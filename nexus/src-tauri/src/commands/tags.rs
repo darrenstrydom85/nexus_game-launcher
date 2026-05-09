@@ -74,7 +74,11 @@ pub fn create_tag(
     .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let tag = conn
-        .query_row("SELECT * FROM tags WHERE id = ?1", params![id], Tag::from_row)
+        .query_row(
+            "SELECT * FROM tags WHERE id = ?1",
+            params![id],
+            Tag::from_row,
+        )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(tag)
@@ -304,9 +308,7 @@ pub fn get_games_by_tag(
 }
 
 #[tauri::command]
-pub fn get_all_game_tag_ids(
-    db: State<'_, DbState>,
-) -> Result<Vec<(String, String)>, CommandError> {
+pub fn get_all_game_tag_ids(db: State<'_, DbState>) -> Result<Vec<(String, String)>, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -354,7 +356,8 @@ mod tests {
         conn.execute(
             "INSERT INTO game_tags (game_id, tag_id) VALUES (?1, ?2)",
             params![game_id, tag_id],
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     // ── create_tag ──
@@ -407,7 +410,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let tag_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM tags WHERE id = 't1'", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM tags WHERE id = 't1'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(tag_count, 0);
 
@@ -685,7 +690,11 @@ mod tests {
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
         let tag = conn
-            .query_row("SELECT * FROM tags WHERE id = ?1", params![id], Tag::from_row)
+            .query_row(
+                "SELECT * FROM tags WHERE id = ?1",
+                params![id],
+                Tag::from_row,
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
 
         Ok(tag)
@@ -829,10 +838,7 @@ mod tests {
         Ok(())
     }
 
-    fn get_game_tags_inner(
-        state: &DbState,
-        game_id: String,
-    ) -> Result<Vec<Tag>, CommandError> {
+    fn get_game_tags_inner(state: &DbState, game_id: String) -> Result<Vec<Tag>, CommandError> {
         let conn = state
             .conn
             .lock()

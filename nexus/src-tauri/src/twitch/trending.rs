@@ -15,7 +15,12 @@ pub fn match_trending_library(
 ) -> Vec<CachedTrendingEntry> {
     let lib_by_name: HashMap<String, (String, String)> = library
         .iter()
-        .map(|(id, name)| (name.to_lowercase().trim().to_string(), (id.clone(), name.clone())))
+        .map(|(id, name)| {
+            (
+                name.to_lowercase().trim().to_string(),
+                (id.clone(), name.clone()),
+            )
+        })
         .collect();
 
     let mut matched: Vec<(String, String, String, String, u32)> = Vec::new(); // nexus_id, nexus_name, twitch_name, twitch_id, rank
@@ -81,14 +86,19 @@ pub async fn enrich_trending_with_viewer_counts(
 }
 
 /// Load library game id and name from DB (non-removed games).
-pub fn load_library_games(conn: &rusqlite::Connection) -> Result<Vec<(String, String)>, CommandError> {
+pub fn load_library_games(
+    conn: &rusqlite::Connection,
+) -> Result<Vec<(String, String)>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT id, name FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY name",
         )
         .map_err(|e| CommandError::Database(e.to_string()))?;
     let rows = stmt
-        .query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))
 }

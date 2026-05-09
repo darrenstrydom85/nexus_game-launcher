@@ -1,15 +1,15 @@
 mod commands;
 pub mod db;
 pub mod dedup;
+pub mod gdrive;
 pub mod metadata;
 pub mod models;
 pub mod sources;
-pub mod gdrive;
 pub mod twitch;
 mod utils;
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::params;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
@@ -33,40 +33,58 @@ pub static TRAY_EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 pub static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
 
 use commands::{
-    achievements::{evaluate_achievements, get_achievement_definitions, get_achievement_status, get_unlocked_achievements},
+    achievements::{
+        evaluate_achievements, get_achievement_definitions, get_achievement_status,
+        get_unlocked_achievements,
+    },
     analytics::{get_per_game_session_stats, get_session_distribution},
+    backup::{
+        gdrive_auth_logout, gdrive_auth_start, gdrive_auth_status, get_backup_status, list_backups,
+        restore_backup, run_backup, set_backup_frequency, set_backup_retention,
+    },
+    ceremony::get_game_ceremony_data,
+    clipboard::write_image_to_clipboard,
     collections::{
         add_to_collection, create_collection, delete_collection, evaluate_smart_collection,
         get_collection_games, get_collections, get_collections_with_game_ids,
         remove_from_collection, reorder_collections, update_collection,
     },
-    database::{clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all, reset_keep_keys, reset_library_keep_stats},
-    hardware::get_system_hardware,
-    health::check_library_health,
+    database::{
+        clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all,
+        reset_keep_keys, reset_library_keep_stats,
+    },
+    dedup::{
+        find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
+        update_duplicate_resolution,
+    },
     events::emit_test_event,
     games::{confirm_games, delete_game, get_game, get_games, search_games, update_game},
-    launcher::{check_process_running, find_game_process, launch_game, list_running_processes, stop_game},
+    hardware::get_system_hardware,
+    health::check_library_health,
+    known_issues::fetch_known_issues,
+    launcher::{
+        check_process_running, find_game_process, launch_game, list_running_processes, stop_game,
+    },
+    mastery::{get_mastery_tier, get_mastery_tiers_bulk},
     metadata::{
         apply_steamgrid_artwork, clear_cache, clear_hltb_data, fetch_all_metadata, fetch_artwork,
-        fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, get_key_status,
-        get_metadata, get_placeholder_cover, run_score_backfill, save_hltb_data, search_metadata,
+        fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, get_key_status, get_metadata,
+        get_placeholder_cover, run_score_backfill, save_hltb_data, search_metadata,
         search_steamgrid_artwork, verify_igdb_keys, verify_steamgrid_key,
     },
+    milestones::{check_session_milestones, evaluate_milestones_batch},
     ping::ping,
     playtime::get_playtime,
+    queue::{
+        add_to_play_queue, clear_play_queue, get_play_queue, remove_from_play_queue,
+        reorder_play_queue,
+    },
     scanner::scan_directory,
     sessions::{
         bulk_delete_short_sessions, count_short_sessions, create_session, end_session,
         get_activity_data, get_all_sessions, get_library_stats, get_orphaned_sessions,
         get_play_sessions, get_play_stats, get_top_games, update_session_note,
     },
-    ceremony::get_game_ceremony_data,
-    clipboard::write_image_to_clipboard,
-    mastery::{get_mastery_tier, get_mastery_tiers_bulk},
-    milestones::{check_session_milestones, evaluate_milestones_batch},
-    streak::{get_streak, recalculate_streak},
-    wrapped::{get_available_wrapped_periods, get_wrapped_report},
-    xp::{award_xp, backfill_xp_from_history, get_xp_breakdown, get_xp_history, get_xp_summary},
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
         set_setting,
@@ -75,37 +93,24 @@ use commands::{
         detect_launchers, get_active_watchers, scan_sources, start_folder_watchers,
         stop_folder_watcher, stop_folder_watchers,
     },
-    dedup::{
-        find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
-        update_duplicate_resolution,
+    streak::{get_streak, recalculate_streak},
+    tags::{
+        add_tag_to_game, create_tag, delete_tag, get_all_game_tag_ids, get_game_tags,
+        get_games_by_tag, get_tags, remove_tag_from_game, rename_tag, update_tag_color,
     },
     twitch::{
         build_token_manager, check_connectivity, clear_twitch_cache, get_twitch_clips_for_game,
-        get_twitch_diagnostics, get_twitch_followed_channels, get_twitch_live_streams,
-        get_twitch_streams_by_game, get_twitch_trending_library_games, get_twitch_watch_stats,
-        get_twitch_embed_base_url, get_twitch_watch_for_range, get_twitch_watch_year,
-        open_twitch_login, popout_clip, popout_stream,
-        set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
-        twitch_test_connection, twitch_watch_session_end, twitch_watch_session_start,
-        validate_twitch_token, TwitchEmbedBaseUrl,
+        get_twitch_diagnostics, get_twitch_embed_base_url, get_twitch_followed_channels,
+        get_twitch_live_streams, get_twitch_streams_by_game, get_twitch_trending_library_games,
+        get_twitch_watch_for_range, get_twitch_watch_stats, get_twitch_watch_year,
+        open_twitch_login, popout_clip, popout_stream, set_twitch_favorite, twitch_auth_logout,
+        twitch_auth_start, twitch_auth_status, twitch_test_connection, twitch_watch_session_end,
+        twitch_watch_session_start, validate_twitch_token, TwitchEmbedBaseUrl,
     },
-    backup::{
-        gdrive_auth_start, gdrive_auth_status, gdrive_auth_logout,
-        run_backup, list_backups, restore_backup,
-        get_backup_status, set_backup_frequency, set_backup_retention,
-    },
-    known_issues::fetch_known_issues,
     version_check::check_update_available,
     window::{confirm_app_close, hide_main_window, show_main_window},
-    queue::{
-        get_play_queue, add_to_play_queue, remove_from_play_queue,
-        reorder_play_queue, clear_play_queue,
-    },
-    tags::{
-        get_tags, create_tag, delete_tag, rename_tag, update_tag_color,
-        add_tag_to_game, remove_tag_from_game, get_game_tags, get_games_by_tag,
-        get_all_game_tag_ids,
-    },
+    wrapped::{get_available_wrapped_periods, get_wrapped_report},
+    xp::{award_xp, backfill_xp_from_history, get_xp_breakdown, get_xp_history, get_xp_summary},
 };
 
 /// Story 20.1: Read ask_before_close from settings. Default true (show dialog).
@@ -118,8 +123,11 @@ fn read_ask_before_close(app: &tauri::AppHandle) -> bool {
         Ok(c) => c,
         Err(_) => return true,
     };
-    let val: Result<Option<String>, _> =
-        conn.query_row("SELECT value FROM settings WHERE key = ?1", params![keys::ASK_BEFORE_CLOSE], |r| r.get(0));
+    let val: Result<Option<String>, _> = conn.query_row(
+        "SELECT value FROM settings WHERE key = ?1",
+        params![keys::ASK_BEFORE_CLOSE],
+        |r| r.get(0),
+    );
     match val {
         Ok(Some(v)) => v != "false",
         _ => true,
@@ -176,8 +184,7 @@ fn build_tray_menu<R: Runtime>(
     let stats = MenuItemBuilder::with_id("nav:stats", "Stats").build(app)?;
     let completed = MenuItemBuilder::with_id("nav:completed", "Completed").build(app)?;
     let archive = MenuItemBuilder::with_id("nav:archive", "Archive").build(app)?;
-    let achievements =
-        MenuItemBuilder::with_id("nav:achievements", "Achievements").build(app)?;
+    let achievements = MenuItemBuilder::with_id("nav:achievements", "Achievements").build(app)?;
     // Always built so the &reference below remains valid; only added to the menu when enabled.
     let twitch = MenuItemBuilder::with_id("nav:twitch", "Twitch").build(app)?;
     let exit = MenuItemBuilder::with_id("exit", "Exit").build(app)?;
@@ -319,7 +326,9 @@ pub fn run() {
                 }
             };
             app.manage(TwitchEmbedBaseUrl(embed_info.base.clone()));
-            app.manage(crate::commands::twitch::TwitchEmbedToken(embed_info.token.clone()));
+            app.manage(crate::commands::twitch::TwitchEmbedToken(
+                embed_info.token.clone(),
+            ));
             app.manage(crate::commands::twitch::WatchSessionRegistry::default());
 
             // The embed server (see `twitch/embed_server.rs`) can't invoke Tauri

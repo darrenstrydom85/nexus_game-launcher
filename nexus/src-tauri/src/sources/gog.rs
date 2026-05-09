@@ -76,9 +76,7 @@ fn enumerate_gog_games() -> Result<Vec<GogGame>, SourceError> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let games_key = hklm
         .open_subkey(r"SOFTWARE\WOW6432Node\GOG.com\Games")
-        .map_err(|e| {
-            SourceError::Unavailable(format!("GOG Games registry key not found: {e}"))
-        })?;
+        .map_err(|e| SourceError::Unavailable(format!("GOG Games registry key not found: {e}")))?;
 
     let mut games = Vec::new();
 
@@ -278,10 +276,7 @@ mod tests {
     #[test]
     fn launch_url_with_galaxy_installed() {
         let url = build_launch_url("1207658691", true);
-        assert_eq!(
-            url,
-            Some("goggalaxy://openGameView/1207658691".to_string())
-        );
+        assert_eq!(url, Some("goggalaxy://openGameView/1207658691".to_string()));
     }
 
     #[test]

@@ -168,11 +168,7 @@ mod tests {
         let override_dir = tmp.path().join("override");
         fs::create_dir(&override_dir).unwrap();
 
-        let (path, method) = resolve_path(
-            &Some(override_dir.clone()),
-            || None,
-            &[],
-        );
+        let (path, method) = resolve_path(&Some(override_dir.clone()), || None, &[]);
         assert_eq!(method, DetectionMethod::Override);
         assert_eq!(path.unwrap(), override_dir);
     }
@@ -184,11 +180,7 @@ mod tests {
         fs::create_dir(&auto_dir).unwrap();
 
         let auto_clone = auto_dir.clone();
-        let (path, method) = resolve_path(
-            &None,
-            move || Some(auto_clone),
-            &[],
-        );
+        let (path, method) = resolve_path(&None, move || Some(auto_clone), &[]);
         assert_eq!(method, DetectionMethod::Auto);
         assert_eq!(path.unwrap(), auto_dir);
     }
@@ -199,11 +191,7 @@ mod tests {
         let default_dir = tmp.path().join("default");
         fs::create_dir(&default_dir).unwrap();
 
-        let (path, method) = resolve_path(
-            &None,
-            || None,
-            &[default_dir.clone()],
-        );
+        let (path, method) = resolve_path(&None, || None, &[default_dir.clone()]);
         assert_eq!(method, DetectionMethod::Default);
         assert_eq!(path.unwrap(), default_dir);
     }

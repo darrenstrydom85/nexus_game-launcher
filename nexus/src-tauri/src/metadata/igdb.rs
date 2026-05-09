@@ -308,10 +308,7 @@ impl IgdbClient {
 
     /// Fetch a single game by IGDB id. Returns None if not found.
     pub async fn get_game_by_id(&self, id: i64) -> Result<Option<IgdbGame>, String> {
-        let query = format!(
-            "where id = {id}; fields {}; limit 1;",
-            Self::GAME_FIELDS
-        );
+        let query = format!("where id = {id}; fields {}; limit 1;", Self::GAME_FIELDS);
 
         let body = self.igdb_post("games", &query).await?;
         let games: Vec<IgdbGame> =
@@ -347,27 +344,21 @@ impl IgdbClient {
     }
 
     pub fn extract_metadata(game: &IgdbGame) -> GameMetadata {
-        let developer = game
-            .involved_companies
-            .as_ref()
-            .and_then(|companies| {
-                companies
-                    .iter()
-                    .find(|c| c.developer)
-                    .and_then(|c| c.company.as_ref())
-                    .map(|c| c.name.clone())
-            });
+        let developer = game.involved_companies.as_ref().and_then(|companies| {
+            companies
+                .iter()
+                .find(|c| c.developer)
+                .and_then(|c| c.company.as_ref())
+                .map(|c| c.name.clone())
+        });
 
-        let publisher = game
-            .involved_companies
-            .as_ref()
-            .and_then(|companies| {
-                companies
-                    .iter()
-                    .find(|c| c.publisher)
-                    .and_then(|c| c.company.as_ref())
-                    .map(|c| c.name.clone())
-            });
+        let publisher = game.involved_companies.as_ref().and_then(|companies| {
+            companies
+                .iter()
+                .find(|c| c.publisher)
+                .and_then(|c| c.company.as_ref())
+                .map(|c| c.name.clone())
+        });
 
         let genres = game.genres.as_ref().map(|g| {
             g.iter()
@@ -459,7 +450,10 @@ mod tests {
     #[test]
     fn igdb_image_url_format() {
         let url = igdb_image_url("abc123", "cover_big");
-        assert_eq!(url, "https://images.igdb.com/igdb/image/upload/t_cover_big/abc123.jpg");
+        assert_eq!(
+            url,
+            "https://images.igdb.com/igdb/image/upload/t_cover_big/abc123.jpg"
+        );
     }
 
     fn make_igdb_game(id: i64, name: &str) -> IgdbGame {
@@ -506,26 +500,50 @@ mod tests {
             summary: Some("A great game".into()),
             first_release_date: Some(1767225600),
             genres: Some(vec![
-                IgdbGenre { id: 1, name: "RPG".into() },
-                IgdbGenre { id: 2, name: "Action".into() },
+                IgdbGenre {
+                    id: 1,
+                    name: "RPG".into(),
+                },
+                IgdbGenre {
+                    id: 2,
+                    name: "Action".into(),
+                },
             ]),
             involved_companies: Some(vec![
                 IgdbInvolvedCompany {
-                    id: 1, developer: true, publisher: false,
-                    company: Some(IgdbCompany { id: 10, name: "DevCo".into() }),
+                    id: 1,
+                    developer: true,
+                    publisher: false,
+                    company: Some(IgdbCompany {
+                        id: 10,
+                        name: "DevCo".into(),
+                    }),
                 },
                 IgdbInvolvedCompany {
-                    id: 2, developer: false, publisher: true,
-                    company: Some(IgdbCompany { id: 20, name: "PubCo".into() }),
+                    id: 2,
+                    developer: false,
+                    publisher: true,
+                    company: Some(IgdbCompany {
+                        id: 20,
+                        name: "PubCo".into(),
+                    }),
                 },
             ]),
-            screenshots: Some(vec![
-                IgdbImage { id: 1, image_id: "ss1".into(), url: None },
-            ]),
-            videos: Some(vec![
-                IgdbVideo { id: 1, video_id: "dQw4w9WgXcQ".into(), name: Some("Trailer".into()) },
-            ]),
-            cover: Some(IgdbCover { id: 1, image_id: "co1234".into(), url: None }),
+            screenshots: Some(vec![IgdbImage {
+                id: 1,
+                image_id: "ss1".into(),
+                url: None,
+            }]),
+            videos: Some(vec![IgdbVideo {
+                id: 1,
+                video_id: "dQw4w9WgXcQ".into(),
+                name: Some("Trailer".into()),
+            }]),
+            cover: Some(IgdbCover {
+                id: 1,
+                image_id: "co1234".into(),
+                url: None,
+            }),
             aggregated_rating: Some(87.5),
             aggregated_rating_count: Some(42),
             rating: Some(74.2),
@@ -543,7 +561,10 @@ mod tests {
         assert_eq!(meta.genres, Some("RPG,Action".into()));
         assert_eq!(meta.screenshot_urls.len(), 1);
         assert!(meta.screenshot_urls[0].contains("ss1"));
-        assert_eq!(meta.trailer_url, Some("https://www.youtube.com/watch?v=dQw4w9WgXcQ".into()));
+        assert_eq!(
+            meta.trailer_url,
+            Some("https://www.youtube.com/watch?v=dQw4w9WgXcQ".into())
+        );
         assert!(meta.cover_url.unwrap().contains("co1234"));
         assert_eq!(meta.critic_score, Some(87.5));
         assert_eq!(meta.critic_score_count, Some(42));

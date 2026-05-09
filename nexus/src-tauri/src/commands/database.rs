@@ -278,13 +278,18 @@ pub struct ValidSessionInfo {
 
 #[tauri::command]
 pub fn debug_wrapped_sessions(db: State<'_, DbState>) -> Result<WrappedDiagnostics, CommandError> {
-    let conn = db.conn.lock()
+    let conn = db
+        .conn
+        .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-    let total_sessions: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30",
-        [], |row| row.get(0),
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
+    let total_sessions: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let sessions_with_valid_game_id: i64 = conn.query_row(
         "SELECT COUNT(*) FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id)",
@@ -306,33 +311,37 @@ pub fn debug_wrapped_sessions(db: State<'_, DbState>) -> Result<WrappedDiagnosti
     let mut stmt = conn.prepare(
         "SELECT ps.id, ps.game_id, ps.game_source, ps.game_source_id, ps.game_name, ps.duration_s FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id) LIMIT 5",
     ).map_err(|e| CommandError::Database(e.to_string()))?;
-    let sample_orphaned: Vec<OrphanedSessionInfo> = stmt.query_map([], |row| {
-        Ok(OrphanedSessionInfo {
-            session_id: row.get(0)?,
-            game_id: row.get(1)?,
-            game_source: row.get(2)?,
-            game_source_id: row.get(3)?,
-            game_name: row.get(4)?,
-            duration_s: row.get(5)?,
+    let sample_orphaned: Vec<OrphanedSessionInfo> = stmt
+        .query_map([], |row| {
+            Ok(OrphanedSessionInfo {
+                session_id: row.get(0)?,
+                game_id: row.get(1)?,
+                game_source: row.get(2)?,
+                game_source_id: row.get(3)?,
+                game_name: row.get(4)?,
+                duration_s: row.get(5)?,
+            })
         })
-    }).map_err(|e| CommandError::Database(e.to_string()))?
-    .collect::<Result<Vec<_>, _>>()
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+        .map_err(|e| CommandError::Database(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let mut stmt2 = conn.prepare(
         "SELECT ps.id, ps.game_id, g.name, g.genres, ps.duration_s FROM play_sessions ps JOIN games g ON g.id = ps.game_id WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 ORDER BY ps.duration_s DESC LIMIT 5",
     ).map_err(|e| CommandError::Database(e.to_string()))?;
-    let sample_valid: Vec<ValidSessionInfo> = stmt2.query_map([], |row| {
-        Ok(ValidSessionInfo {
-            session_id: row.get(0)?,
-            game_id: row.get(1)?,
-            game_name: row.get(2)?,
-            game_genres: row.get(3)?,
-            duration_s: row.get(4)?,
+    let sample_valid: Vec<ValidSessionInfo> = stmt2
+        .query_map([], |row| {
+            Ok(ValidSessionInfo {
+                session_id: row.get(0)?,
+                game_id: row.get(1)?,
+                game_name: row.get(2)?,
+                game_genres: row.get(3)?,
+                duration_s: row.get(4)?,
+            })
         })
-    }).map_err(|e| CommandError::Database(e.to_string()))?
-    .collect::<Result<Vec<_>, _>>()
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+        .map_err(|e| CommandError::Database(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(WrappedDiagnostics {
         total_sessions,
@@ -355,7 +364,13 @@ mod tests {
         db::init_in_memory().expect("in-memory db should init")
     }
 
-    fn insert_game(conn: &rusqlite::Connection, id: &str, name: &str, source: &str, source_id: Option<&str>) {
+    fn insert_game(
+        conn: &rusqlite::Connection,
+        id: &str,
+        name: &str,
+        source: &str,
+        source_id: Option<&str>,
+    ) {
         conn.execute(
             "INSERT INTO games (id, name, source, source_id, status, added_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, 'backlog', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
@@ -389,17 +404,37 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Test Game", "steam", Some("app_100"));
-        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
-        insert_session(&conn, "s2", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(1800),
+        );
         drop(conn);
 
         reset_library_keep_stats_impl(&state).unwrap();
 
         let conn = state.conn.lock().unwrap();
-        let game_count: i64 = conn.query_row("SELECT COUNT(*) FROM games", [], |r| r.get(0)).unwrap();
+        let game_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM games", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(game_count, 0, "games should be deleted");
 
-        let session_count: i64 = conn.query_row("SELECT COUNT(*) FROM play_sessions", [], |r| r.get(0)).unwrap();
+        let session_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM play_sessions", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(session_count, 2, "play sessions should be preserved");
     }
 
@@ -407,15 +442,29 @@ mod tests {
     fn reset_library_keep_stats_preserves_api_keys() {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
-        conn.execute("INSERT INTO settings (key, value) VALUES ('steamgrid_api_key', 'abc123')", []).unwrap();
-        conn.execute("INSERT INTO settings (key, value) VALUES ('igdb_client_id', 'def456')", []).unwrap();
-        conn.execute("INSERT INTO settings (key, value) VALUES ('some_other_setting', 'xyz')", []).unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('steamgrid_api_key', 'abc123')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('igdb_client_id', 'def456')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('some_other_setting', 'xyz')",
+            [],
+        )
+        .unwrap();
         drop(conn);
 
         reset_library_keep_stats_impl(&state).unwrap();
 
         let conn = state.conn.lock().unwrap();
-        let key_count: i64 = conn.query_row("SELECT COUNT(*) FROM settings", [], |r| r.get(0)).unwrap();
+        let key_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM settings", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(key_count, 2, "only API keys should remain");
     }
 
@@ -436,8 +485,12 @@ mod tests {
         reset_library_keep_stats_impl(&state).unwrap();
 
         let conn = state.conn.lock().unwrap();
-        let coll_count: i64 = conn.query_row("SELECT COUNT(*) FROM collections", [], |r| r.get(0)).unwrap();
-        let folder_count: i64 = conn.query_row("SELECT COUNT(*) FROM watched_folders", [], |r| r.get(0)).unwrap();
+        let coll_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM collections", [], |r| r.get(0))
+            .unwrap();
+        let folder_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM watched_folders", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(coll_count, 0);
         assert_eq!(folder_count, 0);
     }
@@ -449,8 +502,24 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "old-g1", "Test Game", "steam", Some("app_100"));
-        insert_session(&conn, "s1", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
-        insert_session(&conn, "s2", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        insert_session(
+            &conn,
+            "s1",
+            "old-g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "old-g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(1800),
+        );
         drop(conn);
 
         // Simulate library reset (delete games, keep sessions)
@@ -468,7 +537,11 @@ mod tests {
         // Verify sessions now point to the new game
         let conn = state.conn.lock().unwrap();
         let game_id: String = conn
-            .query_row("SELECT game_id FROM play_sessions WHERE id = 's1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT game_id FROM play_sessions WHERE id = 's1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(game_id, "new-g1");
     }
@@ -478,8 +551,24 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "old-g1", "Test Game", "steam", Some("app_100"));
-        insert_session(&conn, "s1", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
-        insert_session(&conn, "s2", "old-g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(1800));
+        insert_session(
+            &conn,
+            "s1",
+            "old-g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "old-g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(1800),
+        );
         drop(conn);
 
         reset_library_keep_stats_impl(&state).unwrap();
@@ -502,7 +591,11 @@ mod tests {
         assert_eq!(play_count, 2);
 
         let last_played: Option<String> = conn
-            .query_row("SELECT last_played FROM games WHERE id = 'new-g1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT last_played FROM games WHERE id = 'new-g1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert!(last_played.is_some());
     }
@@ -513,8 +606,24 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Game A", "steam", Some("app_100"));
         insert_game(&conn, "g2", "Game B", "epic", Some("epic_200"));
-        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Game A"), Some(3600));
-        insert_session(&conn, "s2", "g2", Some("epic"), Some("epic_200"), Some("Game B"), Some(1800));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Game A"),
+            Some(3600),
+        );
+        insert_session(
+            &conn,
+            "s2",
+            "g2",
+            Some("epic"),
+            Some("epic_200"),
+            Some("Game B"),
+            Some(1800),
+        );
         drop(conn);
 
         reset_library_keep_stats_impl(&state).unwrap();
@@ -554,7 +663,15 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Test Game", "steam", Some("app_100"));
-        insert_session(&conn, "s1", "g1", Some("steam"), Some("app_100"), Some("Test Game"), Some(3600));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            Some("steam"),
+            Some("app_100"),
+            Some("Test Game"),
+            Some(3600),
+        );
         drop(conn);
 
         // Sessions are already linked — relink should be a no-op
@@ -565,7 +682,11 @@ mod tests {
         // Stats should still be correct
         let conn = state.conn.lock().unwrap();
         let total: i64 = conn
-            .query_row("SELECT total_play_time FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT total_play_time FROM games WHERE id = 'g1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(total, 3600);
     }
@@ -575,7 +696,15 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Eriksholm", "standalone", None);
-        insert_session(&conn, "s1", "g1", Some("standalone"), None, Some("Eriksholm"), Some(5000));
+        insert_session(
+            &conn,
+            "s1",
+            "g1",
+            Some("standalone"),
+            None,
+            Some("Eriksholm"),
+            Some(5000),
+        );
         drop(conn);
 
         reset_library_keep_stats_impl(&state).unwrap();
@@ -585,17 +714,28 @@ mod tests {
         drop(conn);
 
         let result = relink_play_sessions_impl(&state).unwrap();
-        assert_eq!(result.relinked, 1, "standalone session should relink by name");
+        assert_eq!(
+            result.relinked, 1,
+            "standalone session should relink by name"
+        );
         assert_eq!(result.orphaned, 0);
 
         let conn = state.conn.lock().unwrap();
         let game_id: String = conn
-            .query_row("SELECT game_id FROM play_sessions WHERE id = 's1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT game_id FROM play_sessions WHERE id = 's1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(game_id, "new-g1", "session should point to the new game");
 
         let total: i64 = conn
-            .query_row("SELECT total_play_time FROM games WHERE id = 'new-g1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT total_play_time FROM games WHERE id = 'new-g1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(total, 5000, "denormalized stats should be recomputed");
     }

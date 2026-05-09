@@ -174,12 +174,7 @@ pub async fn twitch_auth_start(app: AppHandle) -> Result<(), CommandError> {
         let _ = opener.open_url(url, None::<&str>);
     };
 
-    let result = auth::run_auth_flow(
-        twitch_client_id()?,
-        twitch_client_secret(),
-        open_url,
-    )
-    .await?;
+    let result = auth::run_auth_flow(twitch_client_id()?, twitch_client_secret(), open_url).await?;
 
     mgr.store_initial(
         result.access_token,
@@ -418,19 +413,20 @@ pub async fn get_twitch_followed_channels(
     if check_twitch_api_available() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
-        let channels = match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
-            Ok(ch) => ch,
-            Err(e) => match try_recover_auth_error(e, &mgr).await {
-                Ok((new_uid, new_tok)) => {
-                    user_id = new_uid;
-                    access_token = new_tok;
-                    api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
-                        .await
-                        .unwrap_or_default()
-                }
-                Err(_) => vec![],
-            },
-        };
+        let channels =
+            match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
+                Ok(ch) => ch,
+                Err(e) => match try_recover_auth_error(e, &mgr).await {
+                    Ok((new_uid, new_tok)) => {
+                        user_id = new_uid;
+                        access_token = new_tok;
+                        api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
+                            .await
+                            .unwrap_or_default()
+                    }
+                    Err(_) => vec![],
+                },
+            };
         if !channels.is_empty() {
             {
                 let conn = db
@@ -507,22 +503,25 @@ pub async fn get_twitch_live_streams(
     if check_twitch_api_available() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
-        let channels = match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
-            Ok(ch) => Some(ch),
-            Err(e) => match try_recover_auth_error(e, &mgr).await {
-                Ok((new_uid, new_tok)) => {
-                    user_id = new_uid;
-                    access_token = new_tok;
-                    api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
-                        .await
-                        .ok()
-                }
-                Err(_) => None,
-            },
-        };
+        let channels =
+            match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
+                Ok(ch) => Some(ch),
+                Err(e) => match try_recover_auth_error(e, &mgr).await {
+                    Ok((new_uid, new_tok)) => {
+                        user_id = new_uid;
+                        access_token = new_tok;
+                        api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
+                            .await
+                            .ok()
+                    }
+                    Err(_) => None,
+                },
+            };
         if let Some(chs) = channels {
             let user_ids: Vec<String> = chs.iter().map(|c| c.channel_id.clone()).collect();
-            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids).await.ok();
+            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids)
+                .await
+                .ok();
             if let Some(streams) = streams {
                 {
                     let conn = db
@@ -609,7 +608,9 @@ pub async fn get_twitch_streams_by_game(
         let http = reqwest::Client::new();
         let game_id_opt = match &cached_mapping {
             Some(m) => Some((m.twitch_game_id.clone(), m.twitch_game_name.clone())),
-            None => match api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim()).await {
+            None => match api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
+                .await
+            {
                 Ok(opt) => opt,
                 Err(e) => match try_recover_auth_error(e, &mgr).await {
                     Ok((_, new_tok)) => {
@@ -624,7 +625,8 @@ pub async fn get_twitch_streams_by_game(
             },
         };
         if let Some((twitch_id, twitch_name)) = game_id_opt {
-            match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await
+            match api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim())
+                .await
             {
                 Ok((streams, twitch_game_name)) => {
                     let conn = db
@@ -660,14 +662,23 @@ pub async fn get_twitch_streams_by_game(
                 Err(e) => {
                     if let Ok((_, new_tok)) = try_recover_auth_error(e, &mgr).await {
                         access_token = new_tok;
-                        if let Ok((streams, twitch_game_name)) =
-                            api::fetch_streams_by_game(&http, client_id, &access_token, game_name.trim()).await
+                        if let Ok((streams, twitch_game_name)) = api::fetch_streams_by_game(
+                            &http,
+                            client_id,
+                            &access_token,
+                            game_name.trim(),
+                        )
+                        .await
                         {
-                            let conn = db
-                                .conn
-                                .lock()
-                                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-                            cache::cache_game_mapping(&conn, game_name.trim(), &twitch_id, &twitch_name)?;
+                            let conn = db.conn.lock().map_err(|e| {
+                                CommandError::Database(format!("lock poisoned: {e}"))
+                            })?;
+                            cache::cache_game_mapping(
+                                &conn,
+                                game_name.trim(),
+                                &twitch_id,
+                                &twitch_name,
+                            )?;
                             drop(conn);
                             let out: Vec<TwitchStreamByGame> = streams
                                 .into_iter()
@@ -993,9 +1004,7 @@ fn sanitize_login_for_label(login: &str) -> String {
 /// is included because legitimate chat links use it.
 fn is_safe_external_url(url_str: &str) -> bool {
     let lower = url_str.to_ascii_lowercase();
-    lower.starts_with("http://")
-        || lower.starts_with("https://")
-        || lower.starts_with("mailto:")
+    lower.starts_with("http://") || lower.starts_with("https://") || lower.starts_with("mailto:")
 }
 
 /// Route a new-window request from a pop-out Twitch window (stream or clip)
@@ -1011,9 +1020,7 @@ fn is_safe_external_url(url_str: &str) -> bool {
 fn route_new_window_to_browser(app: &AppHandle, url: &tauri::Url) {
     let url_str = url.as_str();
     if !is_safe_external_url(url_str) {
-        eprintln!(
-            "[twitch-popout] refusing to route non-http(s) new-window url: {url_str}"
-        );
+        eprintln!("[twitch-popout] refusing to route non-http(s) new-window url: {url_str}");
         return;
     }
     if let Err(e) = app.opener().open_url(url_str, None::<&str>) {
@@ -1273,7 +1280,9 @@ pub struct TwitchEmbedToken(pub String);
 /// whose React bundle and `invoke` runtime have been stripped out. Tracking
 /// via the window lifecycle is also more reliable (a crashed process can't
 /// skip the unload handler).
-pub struct WatchSessionRegistry(pub std::sync::Mutex<std::collections::HashMap<String, (i64, std::time::Instant)>>);
+pub struct WatchSessionRegistry(
+    pub std::sync::Mutex<std::collections::HashMap<String, (i64, std::time::Instant)>>,
+);
 
 impl Default for WatchSessionRegistry {
     fn default() -> Self {
@@ -1412,23 +1421,20 @@ pub async fn open_twitch_login(app: AppHandle) -> Result<(), CommandError> {
         .parse()
         .map_err(|e| CommandError::Unknown(format!("bad login url: {e}")))?;
 
-    let window = WebviewWindowBuilder::new(
-        &app,
-        TWITCH_LOGIN_LABEL,
-        WebviewUrl::External(login_url),
-    )
-    .title("Sign in to Twitch")
-    .inner_size(960.0, 720.0)
-    .min_inner_size(480.0, 480.0)
-    .resizable(true)
-    .decorations(true)
-    .skip_taskbar(false)
-    // Must match every other window so the WebView2 data directory (cookie
-    // jar) is shared. Without this the user's twitch.tv login wouldn't
-    // propagate to the embed iframes in the main and pop-out windows.
-    .additional_browser_args(NEXUS_WEBVIEW_ARGS)
-    .build()
-    .map_err(|e| CommandError::Unknown(format!("failed to open login window: {e}")))?;
+    let window =
+        WebviewWindowBuilder::new(&app, TWITCH_LOGIN_LABEL, WebviewUrl::External(login_url))
+            .title("Sign in to Twitch")
+            .inner_size(960.0, 720.0)
+            .min_inner_size(480.0, 480.0)
+            .resizable(true)
+            .decorations(true)
+            .skip_taskbar(false)
+            // Must match every other window so the WebView2 data directory (cookie
+            // jar) is shared. Without this the user's twitch.tv login wouldn't
+            // propagate to the embed iframes in the main and pop-out windows.
+            .additional_browser_args(NEXUS_WEBVIEW_ARGS)
+            .build()
+            .map_err(|e| CommandError::Unknown(format!("failed to open login window: {e}")))?;
 
     // When the user closes the window (after signing in or giving up), notify the
     // frontend so it can reload any mounted embed iframes — that's what makes the
@@ -1498,26 +1504,27 @@ pub async fn get_twitch_clips_for_game(
     let (twitch_game_id, twitch_game_name) = match cached_mapping {
         Some(m) => (m.twitch_game_id, m.twitch_game_name),
         None => {
-            let resolved = match api::fetch_twitch_game(
-                &http,
-                client_id,
-                &access_token,
-                game_name.trim(),
-            )
-            .await
-            {
-                Ok(opt) => opt,
-                Err(e) => match try_recover_auth_error(e, &mgr).await {
-                    Ok((_, new_tok)) => {
-                        access_token = new_tok;
-                        api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
+            let resolved =
+                match api::fetch_twitch_game(&http, client_id, &access_token, game_name.trim())
+                    .await
+                {
+                    Ok(opt) => opt,
+                    Err(e) => match try_recover_auth_error(e, &mgr).await {
+                        Ok((_, new_tok)) => {
+                            access_token = new_tok;
+                            api::fetch_twitch_game(
+                                &http,
+                                client_id,
+                                &access_token,
+                                game_name.trim(),
+                            )
                             .await
                             .ok()
                             .flatten()
-                    }
-                    Err(_) => None,
-                },
-            };
+                        }
+                        Err(_) => None,
+                    },
+                };
             match resolved {
                 Some((id, name)) => {
                     let conn = db
@@ -1619,8 +1626,7 @@ pub async fn get_twitch_clips_for_game(
                 .conn
                 .lock()
                 .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-            let _ =
-                cache::store_clips_payload(&conn, &twitch_game_id, CLIPS_PERIOD_DAYS, &payload);
+            let _ = cache::store_clips_payload(&conn, &twitch_game_id, CLIPS_PERIOD_DAYS, &payload);
         }
     }
 
@@ -1702,7 +1708,11 @@ pub async fn get_twitch_diagnostics(app: AppHandle) -> Result<TwitchDiagnostics,
         token_authenticated: snap.is_authenticated(),
         token_expires_at: snap.expires_at,
         token_expires_in_secs: snap.expires_at.map(|e| e - now),
-        last_refresh_at: if last_refresh > 0 { Some(last_refresh) } else { None },
+        last_refresh_at: if last_refresh > 0 {
+            Some(last_refresh)
+        } else {
+            None
+        },
         last_refresh_error: mgr.last_refresh_error(),
         display_name: snap.display_name,
         user_id: snap.user_id,
@@ -1710,7 +1720,11 @@ pub async fn get_twitch_diagnostics(app: AppHandle) -> Result<TwitchDiagnostics,
         eventsub_connected: mgr.eventsub_connected(),
         eventsub_session_id: mgr.eventsub_session_id(),
         eventsub_subscription_count: mgr.eventsub_subscription_count(),
-        last_event_at: if last_event > 0 { Some(last_event) } else { None },
+        last_event_at: if last_event > 0 {
+            Some(last_event)
+        } else {
+            None
+        },
         now_secs: now,
     })
 }
@@ -1834,7 +1848,9 @@ mod diagnostics_tests {
     #[test]
     fn is_safe_external_url_rejects_dangerous_schemes() {
         assert!(!is_safe_external_url("javascript:alert(1)"));
-        assert!(!is_safe_external_url("data:text/html,<script>alert(1)</script>"));
+        assert!(!is_safe_external_url(
+            "data:text/html,<script>alert(1)</script>"
+        ));
         assert!(!is_safe_external_url("file:///C:/Windows/System32/cmd.exe"));
         assert!(!is_safe_external_url("vbscript:msgbox(1)"));
         assert!(!is_safe_external_url("ftp://example.com/"));

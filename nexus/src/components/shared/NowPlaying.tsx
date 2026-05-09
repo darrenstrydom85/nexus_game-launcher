@@ -1,22 +1,12 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn, formatRunningTimer } from "@/lib/utils";
 import { useGameStore } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
 import { Square, Info, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-function formatTimer(elapsedMs: number): string {
-  const totalSeconds = Math.floor(elapsedMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (n: number) => n.toString().padStart(2, "0");
-
-  if (hours >= 10) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
-  if (hours >= 1) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
-  return `${minutes}:${pad(seconds)}`;
-}
+const formatTimer = formatRunningTimer;
 
 interface NowPlayingProps {
   onStop?: () => void;

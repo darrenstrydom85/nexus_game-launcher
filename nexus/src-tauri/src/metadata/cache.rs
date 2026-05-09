@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 fn cache_root() -> Result<PathBuf, String> {
     let app_data = std::env::var("APPDATA").map_err(|_| "APPDATA env var not set".to_string())?;
-    Ok(PathBuf::from(app_data).join("nexus").join("cache").join("images"))
+    Ok(PathBuf::from(app_data)
+        .join("nexus")
+        .join("cache")
+        .join("images"))
 }
 
 pub fn game_cache_dir(game_id: &str) -> Result<PathBuf, String> {
@@ -118,8 +121,7 @@ pub fn clear_all_cache_files() -> Result<(), String> {
 
 fn dir_size(path: &std::path::Path) -> Result<u64, String> {
     let mut total: u64 = 0;
-    let entries =
-        std::fs::read_dir(path).map_err(|e| format!("failed to read cache dir: {e}"))?;
+    let entries = std::fs::read_dir(path).map_err(|e| format!("failed to read cache dir: {e}"))?;
 
     for entry in entries {
         let entry = entry.map_err(|e| format!("dir entry error: {e}"))?;
@@ -228,7 +230,9 @@ pub async fn download_and_cache_artwork(
                 }
             }
             if cache_file_exists(&dest) {
-                result.screenshot_paths.push(dest.to_string_lossy().to_string());
+                result
+                    .screenshot_paths
+                    .push(dest.to_string_lossy().to_string());
             }
         }
     }
@@ -268,7 +272,9 @@ mod tests {
 
     #[test]
     fn cache_file_exists_false_for_missing() {
-        assert!(!cache_file_exists(std::path::Path::new("/nonexistent/file.jpg")));
+        assert!(!cache_file_exists(std::path::Path::new(
+            "/nonexistent/file.jpg"
+        )));
     }
 
     #[test]

@@ -24,6 +24,20 @@ export function formatPlayTime(seconds: number): string {
 }
 
 /**
+ * Formats a live running-session timer as M:SS or H:MM:SS.
+ */
+export function formatRunningTimer(elapsedMs: number): string {
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+
+  if (hours >= 1) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  return `${minutes}:${pad(seconds)}`;
+}
+
+/**
  * Formats HLTB hours to a human-readable duration string.
  * Returns "--" for null/zero, "Xm" for sub-hour, "Xh Ym" for fractional, "Xh" for exact/100+.
  */

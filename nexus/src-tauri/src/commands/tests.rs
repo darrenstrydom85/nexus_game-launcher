@@ -110,7 +110,10 @@ mod tests {
             "fs:allow-exists",
         ];
         for perm in &required_fs {
-            assert!(ids.contains(&perm.to_string()), "missing fs permission: {perm}");
+            assert!(
+                ids.contains(&perm.to_string()),
+                "missing fs permission: {perm}"
+            );
         }
     }
 
@@ -122,7 +125,9 @@ mod tests {
         for perm in perms {
             if let Some(id) = perm.get("identifier").and_then(|v| v.as_str()) {
                 if id.starts_with("fs:") {
-                    let allow = perm["allow"].as_array().expect("fs perm should have allow array");
+                    let allow = perm["allow"]
+                        .as_array()
+                        .expect("fs perm should have allow array");
                     for scope in allow {
                         let path = scope["path"].as_str().expect("scope should have path");
                         assert!(
@@ -138,7 +143,10 @@ mod tests {
     #[test]
     fn capabilities_include_shell_open() {
         let ids = permission_ids(&load_capabilities());
-        assert!(ids.contains(&"shell:allow-open".to_string()), "missing shell:allow-open");
+        assert!(
+            ids.contains(&"shell:allow-open".to_string()),
+            "missing shell:allow-open"
+        );
     }
 
     #[test]
@@ -159,7 +167,10 @@ mod tests {
     #[test]
     fn capabilities_include_process_default() {
         let ids = permission_ids(&load_capabilities());
-        assert!(ids.contains(&"process:default".to_string()), "missing process:default");
+        assert!(
+            ids.contains(&"process:default".to_string()),
+            "missing process:default"
+        );
     }
 
     #[test]
@@ -176,13 +187,27 @@ mod tests {
             })
             .expect("should have an http permission entry");
 
-        let allow = http_perm["allow"].as_array().expect("http perm should have allow array");
+        let allow = http_perm["allow"]
+            .as_array()
+            .expect("http perm should have allow array");
         let urls: Vec<&str> = allow.iter().map(|a| a["url"].as_str().unwrap()).collect();
 
-        assert!(urls.iter().any(|u| u.contains("steamgriddb.com")), "missing steamgriddb.com scope");
-        assert!(urls.iter().any(|u| u.contains("api.igdb.com")), "missing api.igdb.com scope");
-        assert!(urls.iter().any(|u| u.contains("id.twitch.tv")), "missing id.twitch.tv scope");
-        assert!(urls.iter().any(|u| u.contains("api.jsonbin.io")), "missing api.jsonbin.io scope");
+        assert!(
+            urls.iter().any(|u| u.contains("steamgriddb.com")),
+            "missing steamgriddb.com scope"
+        );
+        assert!(
+            urls.iter().any(|u| u.contains("api.igdb.com")),
+            "missing api.igdb.com scope"
+        );
+        assert!(
+            urls.iter().any(|u| u.contains("id.twitch.tv")),
+            "missing id.twitch.tv scope"
+        );
+        assert!(
+            urls.iter().any(|u| u.contains("api.jsonbin.io")),
+            "missing api.jsonbin.io scope"
+        );
     }
 
     #[test]
@@ -196,7 +221,10 @@ mod tests {
                     if let Some(allow) = perm["allow"].as_array() {
                         for scope in allow {
                             let url = scope["url"].as_str().unwrap();
-                            assert!(url.starts_with("https://"), "HTTP scope '{url}' must use HTTPS");
+                            assert!(
+                                url.starts_with("https://"),
+                                "HTTP scope '{url}' must use HTTPS"
+                            );
                         }
                     }
                 }
@@ -220,7 +248,10 @@ mod tests {
                                 .split('/')
                                 .next()
                                 .unwrap();
-                            assert!(!domain.contains('*'), "HTTP domain '{domain}' must not contain wildcards");
+                            assert!(
+                                !domain.contains('*'),
+                                "HTTP domain '{domain}' must not contain wildcards"
+                            );
                         }
                     }
                 }
@@ -231,7 +262,10 @@ mod tests {
     #[test]
     fn no_broad_fs_default_permission() {
         let ids = permission_ids(&load_capabilities());
-        assert!(!ids.contains(&"fs:default".to_string()), "fs:default is too broad — use scoped permissions");
+        assert!(
+            !ids.contains(&"fs:default".to_string()),
+            "fs:default is too broad — use scoped permissions"
+        );
     }
 
     #[test]

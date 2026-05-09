@@ -244,7 +244,11 @@ pub async fn exchange_code(
         .build()
         .map_err(|e| CommandError::Unknown(format!("http client build: {e}")))?;
     let has_secret = client_secret.is_some();
-    eprintln!("[twitch-auth] POST {TWITCH_TOKEN} (code len={}, verifier len={}, has_secret={has_secret})", code.len(), code_verifier.len());
+    eprintln!(
+        "[twitch-auth] POST {TWITCH_TOKEN} (code len={}, verifier len={}, has_secret={has_secret})",
+        code.len(),
+        code_verifier.len()
+    );
 
     let mut params = vec![
         ("client_id", client_id),
@@ -268,8 +272,14 @@ pub async fn exchange_code(
         })?;
 
     let status = res.status();
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
-    eprintln!("[twitch-auth] token exchange response: status={status}, body_len={}", body.len());
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
+    eprintln!(
+        "[twitch-auth] token exchange response: status={status}, body_len={}",
+        body.len()
+    );
 
     if !status.is_success() {
         eprintln!("[twitch-auth] token exchange error: {body}");
@@ -288,10 +298,7 @@ pub async fn exchange_code(
         .and_then(|v| v.as_str())
         .ok_or_else(|| CommandError::Auth("token response missing refresh_token".to_string()))?
         .to_string();
-    let expires_in = json
-        .get("expires_in")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let expires_in = json.get("expires_in").and_then(|v| v.as_i64()).unwrap_or(0);
     Ok((access_token, refresh_token, expires_in))
 }
 
@@ -343,7 +350,10 @@ pub async fn refresh_access_token(
         .map_err(map_reqwest_error)?;
 
     let status = res.status();
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
 
     if !status.is_success() {
         return Err(parse_token_error(status.as_u16(), &body));
@@ -361,10 +371,7 @@ pub async fn refresh_access_token(
         .and_then(|v| v.as_str())
         .map(String::from)
         .unwrap_or_else(|| refresh_token.to_string());
-    let expires_in = json
-        .get("expires_in")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let expires_in = json.get("expires_in").and_then(|v| v.as_i64()).unwrap_or(0);
     Ok((access_token, new_refresh, expires_in))
 }
 
@@ -389,16 +396,18 @@ pub async fn validate_token(access_token: &str) -> Result<i64, CommandError> {
 
     if !res.status().is_success() {
         let status = res.status().as_u16();
-        return Err(CommandError::Api(format!("Twitch validate returned {status}")));
+        return Err(CommandError::Api(format!(
+            "Twitch validate returned {status}"
+        )));
     }
 
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: serde_json::Value = serde_json::from_str(&body)
         .map_err(|e| CommandError::Parse(format!("validate json: {e}")))?;
-    let expires_in = json
-        .get("expires_in")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);
+    let expires_in = json.get("expires_in").and_then(|v| v.as_i64()).unwrap_or(0);
     Ok(expires_in)
 }
 
@@ -425,10 +434,15 @@ pub async fn get_twitch_user(
         .map_err(map_reqwest_error)?;
 
     if res.status() == 401 {
-        return Err(CommandError::Auth("Twitch token invalid or expired".to_string()));
+        return Err(CommandError::Auth(
+            "Twitch token invalid or expired".to_string(),
+        ));
     }
 
-    let body = res.text().await.map_err(|e| CommandError::Unknown(e.to_string()))?;
+    let body = res
+        .text()
+        .await
+        .map_err(|e| CommandError::Unknown(e.to_string()))?;
     let json: serde_json::Value = serde_json::from_str(&body)
         .map_err(|e| CommandError::Parse(format!("helix users json: {e}")))?;
     let data = json
@@ -532,7 +546,10 @@ pub async fn run_auth_flow(
     let expires_at = now_secs + expires_in;
 
     let user = get_twitch_user(client_id, &access_token).await?;
-    eprintln!("[twitch-auth] auth complete for user: {}", user.display_name);
+    eprintln!(
+        "[twitch-auth] auth complete for user: {}",
+        user.display_name
+    );
 
     Ok(AuthFlowResult {
         access_token,
@@ -605,7 +622,12 @@ mod tests {
 
     #[test]
     fn authorize_url_contains_required_params() {
-        let url = authorize_url("my_client", "http://127.0.0.1:9999", "challenge123", "stATE-123");
+        let url = authorize_url(
+            "my_client",
+            "http://127.0.0.1:9999",
+            "challenge123",
+            "stATE-123",
+        );
         assert!(url.contains("client_id=my_client"));
         assert!(url.contains("redirect_uri="));
         assert!(url.contains("response_type=code"));
@@ -621,8 +643,14 @@ mod tests {
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("Connected to Nexus"));
         assert!(html.contains("window.close()"));
-        assert!(html.contains("Content-Type") == false, "header is set on the response, not in body");
-        assert!(html.contains("text/html") == false, "header is set on the response, not in body");
+        assert!(
+            html.contains("Content-Type") == false,
+            "header is set on the response, not in body"
+        );
+        assert!(
+            html.contains("text/html") == false,
+            "header is set on the response, not in body"
+        );
     }
 
     /// Simulate the local callback server: send a fake HTTP request whose query string carries

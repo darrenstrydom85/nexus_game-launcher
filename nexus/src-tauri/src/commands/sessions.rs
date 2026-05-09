@@ -6,7 +6,9 @@ use uuid::Uuid;
 use super::error::CommandError;
 use super::utils::{iso_to_epoch_secs, now_iso};
 use crate::db::DbState;
-use crate::models::session::{ActivityBucket, LibraryStatsData, PlaySession, PlayStats, SessionEntry, TopGameEntry};
+use crate::models::session::{
+    ActivityBucket, LibraryStatsData, PlaySession, PlayStats, SessionEntry, TopGameEntry,
+};
 
 /// Three-strategy LEFT JOIN that resolves orphaned sessions (from removed/re-added games)
 /// to the current game entry via: 1) direct ID, 2) (source, source_id) natural key,
@@ -159,7 +161,11 @@ pub fn end_session(
     // XP awards — fire-and-forget; never block the primary operation
     if duration_s >= 30 {
         let game_name: String = conn
-            .query_row("SELECT name FROM games WHERE id = ?1", params![game_id], |r| r.get(0))
+            .query_row(
+                "SELECT name FROM games WHERE id = ?1",
+                params![game_id],
+                |r| r.get(0),
+            )
             .unwrap_or_else(|_| "Unknown".to_string());
 
         let session_xp = 10 + duration_s / 600;
@@ -210,10 +216,7 @@ pub fn get_play_sessions(
 }
 
 #[tauri::command]
-pub fn get_play_stats(
-    db: State<'_, DbState>,
-    game_id: String,
-) -> Result<PlayStats, CommandError> {
+pub fn get_play_stats(db: State<'_, DbState>, game_id: String) -> Result<PlayStats, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -268,7 +271,11 @@ pub fn get_activity_data(
         "daily" => "%Y-%m-%d",
         "weekly" => "%Y-W%W",
         "monthly" => "%Y-%m",
-        other => return Err(CommandError::Parse(format!("invalid period: {other}, expected daily|weekly|monthly"))),
+        other => {
+            return Err(CommandError::Parse(format!(
+                "invalid period: {other}, expected daily|weekly|monthly"
+            )))
+        }
     };
 
     let sql = format!(
@@ -302,9 +309,7 @@ pub fn get_activity_data(
 }
 
 #[tauri::command]
-pub fn get_orphaned_sessions(
-    db: State<'_, DbState>,
-) -> Result<Vec<PlaySession>, CommandError> {
+pub fn get_orphaned_sessions(db: State<'_, DbState>) -> Result<Vec<PlaySession>, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -389,8 +394,14 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
         let mut y = 1970i64;
         let mut d = days;
         loop {
-            let days_in_year = if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 };
-            if d < days_in_year { break; }
+            let days_in_year = if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) {
+                366
+            } else {
+                365
+            };
+            if d < days_in_year {
+                break;
+            }
             d -= days_in_year;
             y += 1;
         }
@@ -401,7 +412,9 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
         };
         let mut mo = 1i64;
         for &md in &month_days {
-            if d < md { break; }
+            if d < md {
+                break;
+            }
             d -= md;
             mo += 1;
         }
@@ -714,12 +727,8 @@ mod tests {
         insert_test_session(&conn, "s1", "g1", "2026-01-15T10:00:00Z", None, None);
         drop(conn);
 
-        let session = end_session_inner(
-            &state,
-            "s1".into(),
-            "2026-01-15T11:00:00Z".into(),
-        )
-        .unwrap();
+        let session =
+            end_session_inner(&state, "s1".into(), "2026-01-15T11:00:00Z".into()).unwrap();
 
         assert_eq!(session.ended_at, Some("2026-01-15T11:00:00Z".into()));
         assert_eq!(session.duration_s, Some(3600));
@@ -781,8 +790,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g1", "2026-01-15T10:00:00Z", Some("2026-01-15T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-15T10:00:00Z",
+            Some("2026-01-15T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
@@ -804,8 +827,22 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
         insert_test_game(&conn, "g2", "Game B");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g2", "2026-01-10T12:00:00Z", Some("2026-01-10T13:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g2",
+            "2026-01-10T12:00:00Z",
+            Some("2026-01-10T13:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
@@ -820,9 +857,30 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g1", "2026-01-15T10:00:00Z", Some("2026-01-15T10:30:00Z"), Some(1800));
-        insert_test_session(&conn, "s3", "g1", "2026-01-20T10:00:00Z", Some("2026-01-20T12:00:00Z"), Some(7200));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-15T10:00:00Z",
+            Some("2026-01-15T10:30:00Z"),
+            Some(1800),
+        );
+        insert_test_session(
+            &conn,
+            "s3",
+            "g1",
+            "2026-01-20T10:00:00Z",
+            Some("2026-01-20T12:00:00Z"),
+            Some(7200),
+        );
         drop(conn);
 
         let stats = get_play_stats_inner(&state, "g1".into()).unwrap();
@@ -840,7 +898,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         insert_test_session(&conn, "s2", "g1", "2026-01-15T10:00:00Z", None, None); // orphaned
         drop(conn);
 
@@ -872,14 +937,37 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g1", "2026-01-10T14:00:00Z", Some("2026-01-10T15:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s3", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:30:00Z"), Some(1800));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-10T14:00:00Z",
+            Some("2026-01-10T15:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s3",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T10:30:00Z"),
+            Some(1800),
+        );
         drop(conn);
 
         let buckets = get_activity_data_inner(
             &state,
-            ActivityParams { period: "daily".into() },
+            ActivityParams {
+                period: "daily".into(),
+            },
         )
         .unwrap();
 
@@ -897,13 +985,29 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g1", "2026-02-10T10:00:00Z", Some("2026-02-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-02-10T10:00:00Z",
+            Some("2026-02-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let buckets = get_activity_data_inner(
             &state,
-            ActivityParams { period: "monthly".into() },
+            ActivityParams {
+                period: "monthly".into(),
+            },
         )
         .unwrap();
 
@@ -917,7 +1021,9 @@ mod tests {
         let state = setup_db();
         let result = get_activity_data_inner(
             &state,
-            ActivityParams { period: "yearly".into() },
+            ActivityParams {
+                period: "yearly".into(),
+            },
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("invalid period"));
@@ -928,13 +1034,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         insert_test_session(&conn, "s2", "g1", "2026-01-10T14:00:00Z", None, None); // orphaned
         drop(conn);
 
         let buckets = get_activity_data_inner(
             &state,
-            ActivityParams { period: "daily".into() },
+            ActivityParams {
+                period: "daily".into(),
+            },
         )
         .unwrap();
 
@@ -950,7 +1065,14 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
         insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None);
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
         insert_test_session(&conn, "s3", "g1", "2026-01-12T10:00:00Z", None, None);
         drop(conn);
 
@@ -965,7 +1087,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let orphaned = get_orphaned_sessions_inner(&state).unwrap();
@@ -975,16 +1104,21 @@ mod tests {
     // ── Test helpers: non-Tauri wrappers ──
 
     fn create_session_inner(state: &DbState, game_id: String) -> Result<PlaySession, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-        let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) = conn
-            .query_row(
+        let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) =
+            conn.query_row(
                 "SELECT name, source, source_id FROM games WHERE id = ?1",
                 params![game_id],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("game {game_id}")),
+                rusqlite::Error::QueryReturnedNoRows => {
+                    CommandError::NotFound(format!("game {game_id}"))
+                }
                 other => CommandError::Database(other.to_string()),
             })?;
 
@@ -997,13 +1131,24 @@ mod tests {
         ).map_err(|e| CommandError::Database(e.to_string()))?;
 
         let session = conn
-            .query_row("SELECT * FROM play_sessions WHERE id = ?1", params![id], PlaySession::from_row)
+            .query_row(
+                "SELECT * FROM play_sessions WHERE id = ?1",
+                params![id],
+                PlaySession::from_row,
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(session)
     }
 
-    fn end_session_inner(state: &DbState, session_id: String, ended_at: String) -> Result<PlaySession, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn end_session_inner(
+        state: &DbState,
+        session_id: String,
+        ended_at: String,
+    ) -> Result<PlaySession, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
         let (game_id, started_at): (String, String) = conn
             .query_row(
@@ -1012,7 +1157,9 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("session {session_id}")),
+                rusqlite::Error::QueryReturnedNoRows => {
+                    CommandError::NotFound(format!("session {session_id}"))
+                }
                 other => CommandError::Database(other.to_string()),
             })?;
 
@@ -1020,12 +1167,15 @@ mod tests {
         let end_epoch = iso_to_epoch_secs(&ended_at).map_err(CommandError::Parse)?;
         let duration_s = (end_epoch - start_epoch).max(0);
 
-        let tx = conn.unchecked_transaction().map_err(|e| CommandError::Database(e.to_string()))?;
+        let tx = conn
+            .unchecked_transaction()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
 
         tx.execute(
             "UPDATE play_sessions SET ended_at = ?1, duration_s = ?2 WHERE id = ?3",
             params![ended_at, duration_s, session_id],
-        ).map_err(|e| CommandError::Database(e.to_string()))?;
+        )
+        .map_err(|e| CommandError::Database(e.to_string()))?;
 
         let now = now_iso();
         tx.execute(
@@ -1033,16 +1183,27 @@ mod tests {
             params![duration_s, ended_at, now, game_id],
         ).map_err(|e| CommandError::Database(e.to_string()))?;
 
-        tx.commit().map_err(|e| CommandError::Database(e.to_string()))?;
+        tx.commit()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
 
         let session = conn
-            .query_row("SELECT * FROM play_sessions WHERE id = ?1", params![session_id], PlaySession::from_row)
+            .query_row(
+                "SELECT * FROM play_sessions WHERE id = ?1",
+                params![session_id],
+                PlaySession::from_row,
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(session)
     }
 
-    fn get_play_sessions_inner(state: &DbState, game_id: String) -> Result<Vec<PlaySession>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn get_play_sessions_inner(
+        state: &DbState,
+        game_id: String,
+    ) -> Result<Vec<PlaySession>, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let mut stmt = conn
             .prepare("SELECT * FROM play_sessions WHERE game_id = ?1 ORDER BY started_at DESC")
             .map_err(|e| CommandError::Database(e.to_string()))?;
@@ -1055,7 +1216,10 @@ mod tests {
     }
 
     fn get_play_stats_inner(state: &DbState, game_id: String) -> Result<PlayStats, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let stats = conn
             .query_row(
                 "SELECT
@@ -1084,14 +1248,24 @@ mod tests {
         Ok(stats)
     }
 
-    fn get_activity_data_inner(state: &DbState, params: ActivityParams) -> Result<Vec<ActivityBucket>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn get_activity_data_inner(
+        state: &DbState,
+        params: ActivityParams,
+    ) -> Result<Vec<ActivityBucket>, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
         let date_format = match params.period.as_str() {
             "daily" => "%Y-%m-%d",
             "weekly" => "%Y-W%W",
             "monthly" => "%Y-%m",
-            other => return Err(CommandError::Parse(format!("invalid period: {other}, expected daily|weekly|monthly"))),
+            other => {
+                return Err(CommandError::Parse(format!(
+                    "invalid period: {other}, expected daily|weekly|monthly"
+                )))
+            }
         };
 
         let sql = format!(
@@ -1105,7 +1279,9 @@ mod tests {
              ORDER BY period ASC"
         );
 
-        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
         let buckets = stmt
             .query_map([], |row| {
                 Ok(ActivityBucket {
@@ -1121,7 +1297,10 @@ mod tests {
     }
 
     fn get_orphaned_sessions_inner(state: &DbState) -> Result<Vec<PlaySession>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let mut stmt = conn
             .prepare("SELECT * FROM play_sessions WHERE ended_at IS NULL ORDER BY started_at DESC")
             .map_err(|e| CommandError::Database(e.to_string()))?;
@@ -1164,7 +1343,10 @@ mod tests {
     }
 
     fn get_all_sessions_inner(state: &DbState) -> Result<Vec<SessionEntry>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let sql = format!(
             "SELECT ps.id,
                     COALESCE(g.id, ps.game_id) as game_id,
@@ -1175,7 +1357,9 @@ mod tests {
              WHERE ps.ended_at IS NOT NULL
              ORDER BY ps.started_at DESC"
         );
-        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
         let entries = stmt
             .query_map([], |row| {
                 Ok(SessionEntry {
@@ -1195,7 +1379,10 @@ mod tests {
     }
 
     fn get_top_games_inner(state: &DbState) -> Result<Vec<TopGameEntry>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let sql = format!(
             "SELECT g.id, g.name, g.cover_url, SUM(ps.duration_s) as total_play_time_s
              FROM play_sessions ps
@@ -1205,7 +1392,9 @@ mod tests {
              ORDER BY total_play_time_s DESC
              LIMIT 10"
         );
-        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
         let entries = stmt
             .query_map([], |row| {
                 Ok(TopGameEntry {
@@ -1232,19 +1421,43 @@ mod tests {
         // New game UUID (re-added) with same steam source_id
         insert_test_game_with_source(&conn, "new-uuid", "Half-Life 2", "steam", Some("220"));
         // Session recorded against old UUID, but stores game_source + game_source_id
-        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "steam", Some("220"), "Half-Life 2");
+        insert_session_with_source(
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-01-10T10:00:00Z",
+            "2026-01-10T11:00:00Z",
+            3600,
+            "steam",
+            Some("220"),
+            "Half-Life 2",
+        );
         // Session recorded against new UUID
-        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "steam", Some("220"), "Half-Life 2");
+        insert_session_with_source(
+            &conn,
+            "s2",
+            "new-uuid",
+            "2026-02-10T10:00:00Z",
+            "2026-02-10T11:00:00Z",
+            1800,
+            "steam",
+            Some("220"),
+            "Half-Life 2",
+        );
         // Remove old game to simulate it being deleted and re-added (FK off to allow orphaned sessions)
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
-        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", [])
+            .unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
         let sessions = get_all_sessions_inner(&state).unwrap();
         // Both sessions should resolve to new-uuid
         assert_eq!(sessions.len(), 2);
-        assert!(sessions.iter().all(|s| s.game_id == "new-uuid"), "all sessions should resolve to new-uuid");
+        assert!(
+            sessions.iter().all(|s| s.game_id == "new-uuid"),
+            "all sessions should resolve to new-uuid"
+        );
     }
 
     #[test]
@@ -1253,10 +1466,31 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game_with_source(&conn, "old-uuid", "Half-Life 2", "steam", Some("220"));
         insert_test_game_with_source(&conn, "new-uuid", "Half-Life 2", "steam", Some("220"));
-        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "steam", Some("220"), "Half-Life 2");
-        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "steam", Some("220"), "Half-Life 2");
+        insert_session_with_source(
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-01-10T10:00:00Z",
+            "2026-01-10T11:00:00Z",
+            3600,
+            "steam",
+            Some("220"),
+            "Half-Life 2",
+        );
+        insert_session_with_source(
+            &conn,
+            "s2",
+            "new-uuid",
+            "2026-02-10T10:00:00Z",
+            "2026-02-10T11:00:00Z",
+            1800,
+            "steam",
+            Some("220"),
+            "Half-Life 2",
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
-        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", [])
+            .unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
@@ -1274,16 +1508,40 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game_with_source(&conn, "old-uuid", "My Indie Game", "manual", None);
         insert_test_game_with_source(&conn, "new-uuid", "My Indie Game", "manual", None);
-        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 3600, "manual", None, "My Indie Game");
-        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 1800, "manual", None, "My Indie Game");
+        insert_session_with_source(
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-01-10T10:00:00Z",
+            "2026-01-10T11:00:00Z",
+            3600,
+            "manual",
+            None,
+            "My Indie Game",
+        );
+        insert_session_with_source(
+            &conn,
+            "s2",
+            "new-uuid",
+            "2026-02-10T10:00:00Z",
+            "2026-02-10T11:00:00Z",
+            1800,
+            "manual",
+            None,
+            "My Indie Game",
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
-        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", [])
+            .unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
         let sessions = get_all_sessions_inner(&state).unwrap();
         assert_eq!(sessions.len(), 2);
-        assert!(sessions.iter().all(|s| s.game_id == "new-uuid"), "all sessions should resolve to new-uuid via name fallback");
+        assert!(
+            sessions.iter().all(|s| s.game_id == "new-uuid"),
+            "all sessions should resolve to new-uuid via name fallback"
+        );
     }
 
     #[test]
@@ -1292,10 +1550,31 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game_with_source(&conn, "old-uuid", "My Indie Game", "manual", None);
         insert_test_game_with_source(&conn, "new-uuid", "My Indie Game", "manual", None);
-        insert_session_with_source(&conn, "s1", "old-uuid", "2026-01-10T10:00:00Z", "2026-01-10T11:00:00Z", 7200, "manual", None, "My Indie Game");
-        insert_session_with_source(&conn, "s2", "new-uuid", "2026-02-10T10:00:00Z", "2026-02-10T11:00:00Z", 3600, "manual", None, "My Indie Game");
+        insert_session_with_source(
+            &conn,
+            "s1",
+            "old-uuid",
+            "2026-01-10T10:00:00Z",
+            "2026-01-10T11:00:00Z",
+            7200,
+            "manual",
+            None,
+            "My Indie Game",
+        );
+        insert_session_with_source(
+            &conn,
+            "s2",
+            "new-uuid",
+            "2026-02-10T10:00:00Z",
+            "2026-02-10T11:00:00Z",
+            3600,
+            "manual",
+            None,
+            "My Indie Game",
+        );
         conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
-        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", []).unwrap();
+        conn.execute("DELETE FROM games WHERE id = 'old-uuid'", [])
+            .unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         drop(conn);
 
@@ -1307,8 +1586,15 @@ mod tests {
 
     // ── update_session_note ──
 
-    fn update_session_note_inner(state: &DbState, session_id: String, note: Option<String>) -> Result<(), CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn update_session_note_inner(
+        state: &DbState,
+        session_id: String,
+        note: Option<String>,
+    ) -> Result<(), CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
         let exists: bool = conn
             .query_row(
@@ -1336,14 +1622,25 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         update_session_note_inner(&state, "s1".into(), Some("Beat the boss".into())).unwrap();
 
         let conn = state.conn.lock().unwrap();
         let note: Option<String> = conn
-            .query_row("SELECT note FROM play_sessions WHERE id = 's1'", [], |row| row.get(0))
+            .query_row(
+                "SELECT note FROM play_sessions WHERE id = 's1'",
+                [],
+                |row| row.get(0),
+            )
             .unwrap();
         assert_eq!(note, Some("Beat the boss".into()));
     }
@@ -1353,7 +1650,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         update_session_note_inner(&state, "s1".into(), Some("A note".into())).unwrap();
@@ -1361,7 +1665,11 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let note: Option<String> = conn
-            .query_row("SELECT note FROM play_sessions WHERE id = 's1'", [], |row| row.get(0))
+            .query_row(
+                "SELECT note FROM play_sessions WHERE id = 's1'",
+                [],
+                |row| row.get(0),
+            )
             .unwrap();
         assert!(note.is_none());
     }
@@ -1379,8 +1687,19 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        conn.execute("UPDATE play_sessions SET note = 'My note' WHERE id = 's1'", []).unwrap();
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        conn.execute(
+            "UPDATE play_sessions SET note = 'My note' WHERE id = 's1'",
+            [],
+        )
+        .unwrap();
         drop(conn);
 
         let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
@@ -1393,8 +1712,19 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        conn.execute("UPDATE play_sessions SET note = 'Session note' WHERE id = 's1'", []).unwrap();
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        conn.execute(
+            "UPDATE play_sessions SET note = 'Session note' WHERE id = 's1'",
+            [],
+        )
+        .unwrap();
         drop(conn);
 
         let sessions = get_all_sessions_inner(&state).unwrap();
@@ -1404,8 +1734,14 @@ mod tests {
 
     // ── count_short_sessions / bulk_delete_short_sessions helpers ──
 
-    fn count_short_sessions_inner(state: &DbState, threshold_secs: i64) -> Result<ShortSessionsCount, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn count_short_sessions_inner(
+        state: &DbState,
+        threshold_secs: i64,
+    ) -> Result<ShortSessionsCount, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let (sessions_count, games_affected): (i64, i64) = conn
             .query_row(
                 "SELECT COUNT(*), COUNT(DISTINCT game_id) FROM play_sessions
@@ -1414,12 +1750,23 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(ShortSessionsCount { sessions_count, games_affected })
+        Ok(ShortSessionsCount {
+            sessions_count,
+            games_affected,
+        })
     }
 
-    fn bulk_delete_short_sessions_inner(state: &DbState, threshold_secs: i64) -> Result<BulkDeleteResult, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let tx = conn.unchecked_transaction().map_err(|e| CommandError::Database(e.to_string()))?;
+    fn bulk_delete_short_sessions_inner(
+        state: &DbState,
+        threshold_secs: i64,
+    ) -> Result<BulkDeleteResult, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let tx = conn
+            .unchecked_transaction()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
 
         let mut stmt = tx
             .prepare(
@@ -1434,8 +1781,8 @@ mod tests {
             .map_err(|e| CommandError::Database(e.to_string()))?;
         drop(stmt);
 
-        let sessions_removed = tx
-            .execute(
+        let sessions_removed =
+            tx.execute(
                 "DELETE FROM play_sessions
                  WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
                 params![threshold_secs],
@@ -1456,8 +1803,12 @@ mod tests {
             .map_err(|e| CommandError::Database(e.to_string()))?;
         }
 
-        tx.commit().map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(BulkDeleteResult { sessions_removed, games_affected: affected_game_ids.len() as i64 })
+        tx.commit()
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        Ok(BulkDeleteResult {
+            sessions_removed,
+            games_affected: affected_game_ids.len() as i64,
+        })
     }
 
     // ── count_short_sessions ──
@@ -1468,10 +1819,38 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
         insert_test_game(&conn, "g2", "Game B");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:30Z"), Some(30));
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s3", "g2", "2026-01-12T10:00:00Z", Some("2026-01-12T10:00:45Z"), Some(45));
-        insert_test_session(&conn, "s4", "g2", "2026-01-13T10:00:00Z", Some("2026-01-13T10:02:00Z"), Some(120));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T10:00:30Z"),
+            Some(30),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s3",
+            "g2",
+            "2026-01-12T10:00:00Z",
+            Some("2026-01-12T10:00:45Z"),
+            Some(45),
+        );
+        insert_test_session(
+            &conn,
+            "s4",
+            "g2",
+            "2026-01-13T10:00:00Z",
+            Some("2026-01-13T10:02:00Z"),
+            Some(120),
+        );
         drop(conn);
 
         let result = count_short_sessions_inner(&state, 60).unwrap();
@@ -1485,7 +1864,14 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
         insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None); // orphaned, no ended_at
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T10:00:10Z"),
+            Some(10),
+        );
         drop(conn);
 
         let result = count_short_sessions_inner(&state, 60).unwrap();
@@ -1498,7 +1884,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let result = count_short_sessions_inner(&state, 60).unwrap();
@@ -1513,8 +1906,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:30Z"), Some(30));
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T10:00:30Z"),
+            Some(30),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
         conn.execute(
             "UPDATE games SET total_play_time = 3630, play_count = 2, last_played = '2026-01-11T11:00:00Z' WHERE id = 'g1'",
             [],
@@ -1547,8 +1954,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s2", "g1", "2026-01-15T10:00:00Z", Some("2026-01-15T10:00:05Z"), Some(5));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-15T10:00:00Z",
+            Some("2026-01-15T10:00:05Z"),
+            Some(5),
+        );
         conn.execute(
             "UPDATE games SET total_play_time = 3605, play_count = 2, last_played = '2026-01-15T10:00:05Z' WHERE id = 'g1'",
             [],
@@ -1559,7 +1980,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let last_played: String = conn
-            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| row.get(0))
+            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(last_played, "2026-01-10T11:00:00Z");
     }
@@ -1569,8 +1992,22 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:05Z"), Some(5));
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T10:00:05Z"),
+            Some(5),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T10:00:10Z"),
+            Some(10),
+        );
         conn.execute(
             "UPDATE games SET total_play_time = 15, play_count = 2, last_played = '2026-01-11T10:00:10Z' WHERE id = 'g1'",
             [],
@@ -1592,7 +2029,9 @@ mod tests {
         assert_eq!(play_count, 0);
 
         let last_played: Option<String> = conn
-            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| row.get(0))
+            .query_row("SELECT last_played FROM games WHERE id = 'g1'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert!(last_played.is_none());
     }
@@ -1602,7 +2041,14 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T11:00:00Z"), Some(3600));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T11:00:00Z"),
+            Some(3600),
+        );
         drop(conn);
 
         let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
@@ -1616,7 +2062,14 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
         insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None); // orphaned
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T10:00:10Z"), Some(10));
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T10:00:10Z"),
+            Some(10),
+        );
         drop(conn);
 
         let result = bulk_delete_short_sessions_inner(&state, 60).unwrap();
@@ -1635,10 +2088,38 @@ mod tests {
         let conn = state.conn.lock().unwrap();
         insert_test_game(&conn, "g1", "Game A");
         insert_test_game(&conn, "g2", "Game B");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", Some("2026-01-10T10:00:20Z"), Some(20));
-        insert_test_session(&conn, "s2", "g1", "2026-01-11T10:00:00Z", Some("2026-01-11T11:00:00Z"), Some(3600));
-        insert_test_session(&conn, "s3", "g2", "2026-01-12T10:00:00Z", Some("2026-01-12T10:00:15Z"), Some(15));
-        insert_test_session(&conn, "s4", "g2", "2026-01-13T10:00:00Z", Some("2026-01-13T10:30:00Z"), Some(1800));
+        insert_test_session(
+            &conn,
+            "s1",
+            "g1",
+            "2026-01-10T10:00:00Z",
+            Some("2026-01-10T10:00:20Z"),
+            Some(20),
+        );
+        insert_test_session(
+            &conn,
+            "s2",
+            "g1",
+            "2026-01-11T10:00:00Z",
+            Some("2026-01-11T11:00:00Z"),
+            Some(3600),
+        );
+        insert_test_session(
+            &conn,
+            "s3",
+            "g2",
+            "2026-01-12T10:00:00Z",
+            Some("2026-01-12T10:00:15Z"),
+            Some(15),
+        );
+        insert_test_session(
+            &conn,
+            "s4",
+            "g2",
+            "2026-01-13T10:00:00Z",
+            Some("2026-01-13T10:30:00Z"),
+            Some(1800),
+        );
         conn.execute("UPDATE games SET total_play_time = 3620, play_count = 2, last_played = '2026-01-11T11:00:00Z' WHERE id = 'g1'", []).unwrap();
         conn.execute("UPDATE games SET total_play_time = 1815, play_count = 2, last_played = '2026-01-13T10:30:00Z' WHERE id = 'g2'", []).unwrap();
         drop(conn);
@@ -1649,13 +2130,21 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let (g1_time, g1_count): (i64, i64) = conn
-            .query_row("SELECT total_play_time, play_count FROM games WHERE id = 'g1'", [], |row| Ok((row.get(0)?, row.get(1)?)))
+            .query_row(
+                "SELECT total_play_time, play_count FROM games WHERE id = 'g1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
             .unwrap();
         assert_eq!(g1_time, 3600);
         assert_eq!(g1_count, 1);
 
         let (g2_time, g2_count): (i64, i64) = conn
-            .query_row("SELECT total_play_time, play_count FROM games WHERE id = 'g2'", [], |row| Ok((row.get(0)?, row.get(1)?)))
+            .query_row(
+                "SELECT total_play_time, play_count FROM games WHERE id = 'g2'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
             .unwrap();
         assert_eq!(g2_time, 1800);
         assert_eq!(g2_count, 1);

@@ -17,9 +17,8 @@ const NONCE_LEN: usize = 12;
 const KEY_LEN: usize = 32;
 
 fn key_path() -> Result<PathBuf, CommandError> {
-    let app_data = std::env::var("APPDATA").map_err(|_| {
-        CommandError::Unknown("APPDATA not set (non-Windows?)".to_string())
-    })?;
+    let app_data = std::env::var("APPDATA")
+        .map_err(|_| CommandError::Unknown("APPDATA not set (non-Windows?)".to_string()))?;
     Ok(PathBuf::from(app_data)
         .join("nexus")
         .join(GDRIVE_KEY_FILENAME))
@@ -74,9 +73,7 @@ pub fn decrypt(encoded: &str) -> Result<String, CommandError> {
         .decode(encoded.trim())
         .map_err(|e| CommandError::Parse(format!("gdrive token decode: {e}")))?;
     if combined.len() < NONCE_LEN {
-        return Err(CommandError::Parse(
-            "gdrive token too short".to_string(),
-        ));
+        return Err(CommandError::Parse("gdrive token too short".to_string()));
     }
     let (nonce_slice, ct) = combined.split_at(NONCE_LEN);
     let cipher =
@@ -108,8 +105,13 @@ pub fn get_setting_raw(
     let mut rows = stmt
         .query(params![key])
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    if let Some(row) = rows.next().map_err(|e| CommandError::Database(e.to_string()))? {
-        let v: Option<String> = row.get(0).map_err(|e| CommandError::Database(e.to_string()))?;
+    if let Some(row) = rows
+        .next()
+        .map_err(|e| CommandError::Database(e.to_string()))?
+    {
+        let v: Option<String> = row
+            .get(0)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(v)
     } else {
         Ok(None)
@@ -171,9 +173,10 @@ pub fn load_refresh_token(conn: &rusqlite::Connection) -> Result<Option<String>,
 
 pub fn load_expires_at(conn: &rusqlite::Connection) -> Result<Option<i64>, CommandError> {
     match get_setting_raw(conn, keys::GDRIVE_TOKEN_EXPIRES_AT)? {
-        Some(s) => s.parse::<i64>().map(Some).map_err(|_| {
-            CommandError::Parse(format!("invalid gdrive_token_expires_at: {s}"))
-        }),
+        Some(s) => s
+            .parse::<i64>()
+            .map(Some)
+            .map_err(|_| CommandError::Parse(format!("invalid gdrive_token_expires_at: {s}"))),
         None => Ok(None),
     }
 }

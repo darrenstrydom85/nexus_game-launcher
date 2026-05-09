@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 use rusqlite::{params, OptionalExtension};
 use serde::Deserialize;
+use std::collections::HashSet;
 use tauri::State;
 use uuid::Uuid;
 
@@ -44,9 +44,7 @@ pub fn get_games(
 
     // Return all games (including hidden and removed) so the frontend can manage visibility.
     // The frontend filters removed/hidden games from the library; the Archive view shows removed games.
-    let sql = format!(
-        "SELECT * FROM games ORDER BY {sort_column} {sort_direction}"
-    );
+    let sql = format!("SELECT * FROM games ORDER BY {sort_column} {sort_direction}");
 
     let mut stmt = conn
         .prepare(&sql)
@@ -69,11 +67,13 @@ pub fn get_game(db: State<'_, DbState>, id: String) -> Result<Game, CommandError
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
     let game = conn
-        .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
+        .query_row(
+            "SELECT * FROM games WHERE id = ?1",
+            params![id],
+            Game::from_row,
+        )
         .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => {
-                CommandError::NotFound(format!("game {id}"))
-            }
+            rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("game {id}")),
             other => CommandError::Database(other.to_string()),
         })?;
 
@@ -281,10 +281,7 @@ pub fn update_game(
 
     values.push(Box::new(id.clone()));
 
-    let sql = format!(
-        "UPDATE games SET {} WHERE id = ?",
-        set_clauses.join(", ")
-    );
+    let sql = format!("UPDATE games SET {} WHERE id = ?", set_clauses.join(", "));
 
     let params_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
@@ -292,7 +289,11 @@ pub fn update_game(
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     let game = conn
-        .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
+        .query_row(
+            "SELECT * FROM games WHERE id = ?1",
+            params![id],
+            Game::from_row,
+        )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     // XP award for game completion — fire-and-forget
@@ -404,7 +405,8 @@ pub(crate) fn confirm_games_impl(
             (g.source.clone(), id)
         })
         .collect();
-    let scanned_sources: HashSet<String> = detected_games.iter().map(|g| g.source.clone()).collect();
+    let scanned_sources: HashSet<String> =
+        detected_games.iter().map(|g| g.source.clone()).collect();
 
     let now = now_iso();
     let mut results = Vec::with_capacity(detected_games.len());
@@ -515,7 +517,11 @@ pub(crate) fn confirm_games_impl(
         };
 
         let game = tx
-            .query_row("SELECT * FROM games WHERE id = ?1", params![game_id], Game::from_row)
+            .query_row(
+                "SELECT * FROM games WHERE id = ?1",
+                params![game_id],
+                Game::from_row,
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
 
         results.push(game);
@@ -606,7 +612,11 @@ mod tests {
             sort_dir: None,
         };
         let games = get_games_inner(&state, params).unwrap();
-        assert_eq!(games.len(), 2, "returns both visible and hidden so frontend can sync hidden state");
+        assert_eq!(
+            games.len(),
+            2,
+            "returns both visible and hidden so frontend can sync hidden state"
+        );
         assert!(games.iter().any(|g| g.name == "Visible Game"));
         assert!(games.iter().any(|g| g.name == "Hidden Game" && g.is_hidden));
     }
@@ -762,8 +772,14 @@ mod tests {
         drop(conn);
 
         let results = search_games_inner(&state, "Halo".into(), false).unwrap();
-        assert_eq!(results.len(), 2, "returns both so frontend can sync hidden state");
-        assert!(results.iter().any(|g| g.name == "Halo Infinite" && !g.is_hidden));
+        assert_eq!(
+            results.len(),
+            2,
+            "returns both so frontend can sync hidden state"
+        );
+        assert!(results
+            .iter()
+            .any(|g| g.name == "Halo Infinite" && !g.is_hidden));
         assert!(results.iter().any(|g| g.name == "Halo Wars" && g.is_hidden));
     }
 
@@ -886,7 +902,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let hidden: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(hidden, 1);
     }
@@ -902,7 +920,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let updated_at: String = conn
-            .query_row("SELECT updated_at FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .query_row("SELECT updated_at FROM games WHERE id = 'g1'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_ne!(updated_at, "2026-01-01T00:00:00Z");
     }
@@ -925,10 +945,20 @@ mod tests {
 
         delete_game_inner(&state, "g2".into()).unwrap();
 
-        let params = GetGamesParams { sort_by: None, sort_dir: None };
+        let params = GetGamesParams {
+            sort_by: None,
+            sort_dir: None,
+        };
         let games = get_games_inner(&state, params).unwrap();
-        assert_eq!(games.len(), 2, "get_games returns all non-removed including hidden so frontend can sync");
-        assert_eq!(games.iter().find(|g| g.id == "g1").unwrap().is_hidden, false);
+        assert_eq!(
+            games.len(),
+            2,
+            "get_games returns all non-removed including hidden so frontend can sync"
+        );
+        assert_eq!(
+            games.iter().find(|g| g.id == "g1").unwrap().is_hidden,
+            false
+        );
         assert_eq!(games.iter().find(|g| g.id == "g2").unwrap().is_hidden, true);
     }
 
@@ -981,15 +1011,29 @@ mod tests {
         let state = setup_db();
         let detected = vec![
             DetectedGame {
-                name: "G1".into(), source: "steam".into(), source_id: None,
-                source_hint: None, folder_path: None, exe_path: None, exe_name: None,
-                launch_url: None, source_folder_id: None, potential_exe_names: None,
+                name: "G1".into(),
+                source: "steam".into(),
+                source_id: None,
+                source_hint: None,
+                folder_path: None,
+                exe_path: None,
+                exe_name: None,
+                launch_url: None,
+                source_folder_id: None,
+                potential_exe_names: None,
                 is_hidden: false,
             },
             DetectedGame {
-                name: "G2".into(), source: "steam".into(), source_id: None,
-                source_hint: None, folder_path: None, exe_path: None, exe_name: None,
-                launch_url: None, source_folder_id: None, potential_exe_names: None,
+                name: "G2".into(),
+                source: "steam".into(),
+                source_id: None,
+                source_hint: None,
+                folder_path: None,
+                exe_path: None,
+                exe_name: None,
+                launch_url: None,
+                source_folder_id: None,
+                potential_exe_names: None,
                 is_hidden: false,
             },
         ];
@@ -1002,9 +1046,16 @@ mod tests {
     fn confirm_games_rejects_invalid_source() {
         let state = setup_db();
         let detected = vec![DetectedGame {
-            name: "Bad".into(), source: "origin".into(), source_id: None,
-            source_hint: None, folder_path: None, exe_path: None, exe_name: None,
-            launch_url: None, source_folder_id: None, potential_exe_names: None,
+            name: "Bad".into(),
+            source: "origin".into(),
+            source_id: None,
+            source_hint: None,
+            folder_path: None,
+            exe_path: None,
+            exe_name: None,
+            launch_url: None,
+            source_folder_id: None,
+            potential_exe_names: None,
             is_hidden: false,
         }];
 
@@ -1048,7 +1099,10 @@ mod tests {
         let games = confirm_games_impl(&state, detected).unwrap();
         assert_eq!(games.len(), 1);
         assert_eq!(games[0].id, "existing-id");
-        assert_eq!(games[0].name, "My Custom Name", "resync must not overwrite user-edited name");
+        assert_eq!(
+            games[0].name, "My Custom Name",
+            "resync must not overwrite user-edited name"
+        );
     }
 
     #[test]
@@ -1076,14 +1130,32 @@ mod tests {
 
         let games = confirm_games_impl(&state, detected).unwrap();
         assert_eq!(games.len(), 1);
-        assert_eq!(games[0].exe_path.as_deref(), Some("C:\\Games\\Test\\game.exe"),
-            "resync with NULL exe_path must not wipe manual value");
-        assert_eq!(games[0].exe_name.as_deref(), Some("game.exe"),
-            "resync with NULL exe_name must not wipe manual value");
-        assert!(games[0].potential_exe_names.as_ref().unwrap().contains("game.exe"),
-            "manual exe must survive in potential_exe_names");
-        assert!(games[0].potential_exe_names.as_ref().unwrap().contains("launcher.exe"),
-            "previously stored exe must survive in potential_exe_names");
+        assert_eq!(
+            games[0].exe_path.as_deref(),
+            Some("C:\\Games\\Test\\game.exe"),
+            "resync with NULL exe_path must not wipe manual value"
+        );
+        assert_eq!(
+            games[0].exe_name.as_deref(),
+            Some("game.exe"),
+            "resync with NULL exe_name must not wipe manual value"
+        );
+        assert!(
+            games[0]
+                .potential_exe_names
+                .as_ref()
+                .unwrap()
+                .contains("game.exe"),
+            "manual exe must survive in potential_exe_names"
+        );
+        assert!(
+            games[0]
+                .potential_exe_names
+                .as_ref()
+                .unwrap()
+                .contains("launcher.exe"),
+            "previously stored exe must survive in potential_exe_names"
+        );
     }
 
     #[test]
@@ -1109,11 +1181,19 @@ mod tests {
 
         let games = confirm_games_impl(&state, detected).unwrap();
         let exe_names = games[0].potential_exe_names.as_ref().unwrap();
-        assert!(exe_names.contains("manual-pick.exe"),
-            "manually selected process must persist after resync");
-        assert!(exe_names.contains("scanner-found.exe"),
-            "newly scanned exe must be added");
-        let count = exe_names.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).count();
+        assert!(
+            exe_names.contains("manual-pick.exe"),
+            "manually selected process must persist after resync"
+        );
+        assert!(
+            exe_names.contains("scanner-found.exe"),
+            "newly scanned exe must be added"
+        );
+        let count = exe_names
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .count();
         assert_eq!(count, 2, "duplicates must be deduped");
     }
 
@@ -1142,7 +1222,10 @@ mod tests {
     // ── Test helpers: non-Tauri wrappers ──
 
     fn get_games_inner(state: &DbState, params: GetGamesParams) -> Result<Vec<Game>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
         let sort_column = match params.sort_by.as_deref() {
             Some("name") => "name",
@@ -1159,8 +1242,11 @@ mod tests {
         };
 
         let sql = format!("SELECT * FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY {sort_column} {sort_direction}");
-        let mut stmt = conn.prepare(&sql).map_err(|e| CommandError::Database(e.to_string()))?;
-        let games = stmt.query_map([], Game::from_row)
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        let games = stmt
+            .query_map([], Game::from_row)
             .map_err(|e| CommandError::Database(e.to_string()))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| CommandError::Database(e.to_string()))?;
@@ -1168,37 +1254,67 @@ mod tests {
     }
 
     fn get_game_inner(state: &DbState, id: String) -> Result<Game, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let game = conn
-            .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
+            .query_row(
+                "SELECT * FROM games WHERE id = ?1",
+                params![id],
+                Game::from_row,
+            )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("game {id}")),
+                rusqlite::Error::QueryReturnedNoRows => {
+                    CommandError::NotFound(format!("game {id}"))
+                }
                 other => CommandError::Database(other.to_string()),
             })?;
         Ok(game)
     }
 
-    fn search_games_inner(state: &DbState, query: String, include_notes: bool) -> Result<Vec<Game>, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn search_games_inner(
+        state: &DbState,
+        query: String,
+        include_notes: bool,
+    ) -> Result<Vec<Game>, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let pattern = format!("%{query}%");
         let sql = if include_notes {
             "SELECT * FROM games WHERE (name LIKE ?1 OR notes LIKE ?1) AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
         } else {
             "SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
         };
-        let mut stmt = conn.prepare(sql).map_err(|e| CommandError::Database(e.to_string()))?;
-        let games = stmt.query_map(params![pattern], Game::from_row)
+        let mut stmt = conn
+            .prepare(sql)
+            .map_err(|e| CommandError::Database(e.to_string()))?;
+        let games = stmt
+            .query_map(params![pattern], Game::from_row)
             .map_err(|e| CommandError::Database(e.to_string()))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(games)
     }
 
-    fn update_game_inner(state: &DbState, id: String, fields: UpdateGameFields) -> Result<Game, CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    fn update_game_inner(
+        state: &DbState,
+        id: String,
+        fields: UpdateGameFields,
+    ) -> Result<Game, CommandError> {
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
         let exists: bool = conn
-            .query_row("SELECT COUNT(*) > 0 FROM games WHERE id = ?1", params![id], |row| row.get(0))
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         if !exists {
             return Err(CommandError::NotFound(format!("game {id}")));
@@ -1282,20 +1398,32 @@ mod tests {
         values.push(Box::new(id.clone()));
 
         let sql = format!("UPDATE games SET {} WHERE id = ?", set_clauses.join(", "));
-        let params_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
-        conn.execute(&sql, params_refs.as_slice()).map_err(|e| CommandError::Database(e.to_string()))?;
+        let params_refs: Vec<&dyn rusqlite::types::ToSql> =
+            values.iter().map(|v| v.as_ref()).collect();
+        conn.execute(&sql, params_refs.as_slice())
+            .map_err(|e| CommandError::Database(e.to_string()))?;
 
         let game = conn
-            .query_row("SELECT * FROM games WHERE id = ?1", params![id], Game::from_row)
+            .query_row(
+                "SELECT * FROM games WHERE id = ?1",
+                params![id],
+                Game::from_row,
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(game)
     }
 
     fn delete_game_inner(state: &DbState, id: String) -> Result<(), CommandError> {
-        let conn = state.conn.lock().map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let now = now_iso();
         let rows = conn
-            .execute("UPDATE games SET is_hidden = 1, updated_at = ?1 WHERE id = ?2", params![now, id])
+            .execute(
+                "UPDATE games SET is_hidden = 1, updated_at = ?1 WHERE id = ?2",
+                params![now, id],
+            )
             .map_err(|e| CommandError::Database(e.to_string()))?;
         if rows == 0 {
             return Err(CommandError::NotFound(format!("game {id}")));
@@ -1461,7 +1589,11 @@ mod tests {
             ..Default::default()
         };
         let game = update_game_inner(&state, "g1".into(), fields).unwrap();
-        assert_eq!(game.progress, Some(0), "0 is a valid progress value, not null");
+        assert_eq!(
+            game.progress,
+            Some(0),
+            "0 is a valid progress value, not null"
+        );
     }
 
     #[test]
@@ -1544,5 +1676,4 @@ mod tests {
         assert_eq!(game.progress, Some(42));
         assert!(game.milestones_json.as_ref().unwrap().contains("Boss"));
     }
-
 }

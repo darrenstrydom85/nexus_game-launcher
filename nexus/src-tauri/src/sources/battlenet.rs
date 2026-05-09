@@ -35,11 +35,7 @@ impl BattleNetScanner {
         self.resolved = path;
 
         let data_defaults = vec![PathBuf::from(r"C:\ProgramData\Battle.net")];
-        let (data_path, _) = resolve_path(
-            &self.data_path_override,
-            || None,
-            &data_defaults,
-        );
+        let (data_path, _) = resolve_path(&self.data_path_override, || None, &data_defaults);
         self.resolved_data = data_path;
     }
 
@@ -58,9 +54,7 @@ fn detect_battlenet_from_registry() -> Option<PathBuf> {
     use winreg::RegKey;
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    if let Ok(key) =
-        hklm.open_subkey(r"SOFTWARE\WOW6432Node\Blizzard Entertainment\Battle.net")
-    {
+    if let Ok(key) = hklm.open_subkey(r"SOFTWARE\WOW6432Node\Blizzard Entertainment\Battle.net") {
         if let Ok(install_path) = key.get_value::<String, _>("InstallPath") {
             let path = PathBuf::from(&install_path);
             if path.exists() {
@@ -419,8 +413,7 @@ impl BattleNetScanner {
                 continue;
             }
 
-            let name =
-                resolve_product_name(&product.product_code, &product.install_path);
+            let name = resolve_product_name(&product.product_code, &product.install_path);
 
             games.push(DetectedGame {
                 name,
@@ -625,10 +618,7 @@ mod tests {
         let install_dir = tmp.path().join("WoW");
         fs::create_dir_all(&install_dir).unwrap();
 
-        let data_dir = create_product_db(
-            &tmp,
-            &[("wow", &install_dir.to_string_lossy())],
-        );
+        let data_dir = create_product_db(&tmp, &[("wow", &install_dir.to_string_lossy())]);
 
         let products = parse_product_db(&data_dir).unwrap();
         assert_eq!(products.len(), 1);
@@ -703,7 +693,10 @@ mod tests {
         let games = scanner.scan().unwrap();
         assert_eq!(games.len(), 2);
 
-        let wow = games.iter().find(|g| g.name == "World of Warcraft").unwrap();
+        let wow = games
+            .iter()
+            .find(|g| g.name == "World of Warcraft")
+            .unwrap();
         assert_eq!(wow.source, GameSourceType::Battlenet);
         assert_eq!(wow.source_id, Some("wow".to_string()));
         assert_eq!(wow.launch_url, Some("battlenet://wow".to_string()));
@@ -718,10 +711,7 @@ mod tests {
     fn scan_skips_products_with_missing_install_dir() {
         let tmp = TempDir::new().unwrap();
 
-        let data_dir = create_product_db(
-            &tmp,
-            &[("wow", r"C:\nonexistent_xyz_12345")],
-        );
+        let data_dir = create_product_db(&tmp, &[("wow", r"C:\nonexistent_xyz_12345")]);
 
         let mut scanner = BattleNetScanner::new();
         scanner.resolved_data = Some(data_dir);
@@ -875,7 +865,10 @@ mod tests {
             assert_eq!(launch_url, &format!("battlenet://{code}"));
         }
 
-        let wow = games.iter().find(|g| g.name == "World of Warcraft").unwrap();
+        let wow = games
+            .iter()
+            .find(|g| g.name == "World of Warcraft")
+            .unwrap();
         assert_eq!(wow.source_id, Some("wow".to_string()));
 
         let ow = games.iter().find(|g| g.name == "Overwatch 2").unwrap();

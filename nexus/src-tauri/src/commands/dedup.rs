@@ -50,8 +50,14 @@ pub fn resolve_duplicate_group(
 
     let now = now_iso();
 
-    dedup::create_duplicate_group(&conn, &params.game_ids, &params.preferred_game_id, &resolution, &now)
-        .map_err(CommandError::Database)
+    dedup::create_duplicate_group(
+        &conn,
+        &params.game_ids,
+        &params.preferred_game_id,
+        &resolution,
+        &now,
+    )
+    .map_err(CommandError::Database)
 }
 
 #[derive(Debug, Deserialize)]
@@ -180,14 +186,9 @@ mod tests {
         )
         .unwrap();
 
-        let updated = dedup::resolve_duplicate(
-            &conn,
-            &group.id,
-            "g2",
-            &DuplicateResolution::HideOne,
-            &now,
-        )
-        .unwrap();
+        let updated =
+            dedup::resolve_duplicate(&conn, &group.id, "g2", &DuplicateResolution::HideOne, &now)
+                .unwrap();
 
         assert_eq!(updated.resolution, "hide_one");
         let preferred = updated.members.iter().find(|m| m.is_preferred).unwrap();

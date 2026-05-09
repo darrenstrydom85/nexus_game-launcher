@@ -30,10 +30,7 @@ pub struct SourceScanError {
 }
 
 /// Load `source_{id}_path_override` from settings and apply it to the scanner.
-fn load_override_for_source(
-    db: &DbState,
-    source: &mut dyn GameSource,
-) -> Result<(), CommandError> {
+fn load_override_for_source(db: &DbState, source: &mut dyn GameSource) -> Result<(), CommandError> {
     let key = format!("source_{}_path_override", source.id());
     let conn = db
         .conn
@@ -173,9 +170,7 @@ pub async fn scan_sources(
 /// Checks which launchers are installed and returns their resolved path
 /// and detection method.
 #[tauri::command]
-pub async fn detect_launchers(
-    db: State<'_, DbState>,
-) -> Result<Vec<LauncherInfo>, CommandError> {
+pub async fn detect_launchers(db: State<'_, DbState>) -> Result<Vec<LauncherInfo>, CommandError> {
     let watched_folders = load_watched_folders(&db)?;
     let mut sources = get_registered_sources(watched_folders);
 
@@ -252,9 +247,7 @@ fn get_registered_sources(watched_folders: Vec<std::path::PathBuf>) -> Vec<Box<d
 // ---------------------------------------------------------------------------
 
 /// Load watched folders that have `auto_scan = 1` from the database.
-fn load_auto_scan_folders(
-    db: &DbState,
-) -> Result<Vec<(String, PathBuf)>, CommandError> {
+fn load_auto_scan_folders(db: &DbState) -> Result<Vec<(String, PathBuf)>, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -291,31 +284,24 @@ fn start_watcher_for_folder(
     let fid = folder_id.to_string();
 
     watcher
-        .watch_folder(folder_id, folder_path, move |event| {
-            match event {
-                WatcherEvent::GameDetected(game) => {
-                    log::info!(
-                        "watcher detected new game '{}' in folder {}",
-                        game.name,
-                        fid
-                    );
-                    let _ = app_handle.emit("watcher-game-detected", &game);
+        .watch_folder(folder_id, folder_path, move |event| match event {
+            WatcherEvent::GameDetected(game) => {
+                log::info!(
+                    "watcher detected new game '{}' in folder {}",
+                    game.name,
+                    fid
+                );
+                let _ = app_handle.emit("watcher-game-detected", &game);
+            }
+            WatcherEvent::GameRemoved { folder_path } => {
+                log::info!("watcher detected removed folder: {}", folder_path.display());
+                if let Err(e) = mark_game_hidden_by_folder(&db_conn_path, &folder_path) {
+                    log::error!("failed to mark game hidden: {e}");
                 }
-                WatcherEvent::GameRemoved { folder_path } => {
-                    log::info!(
-                        "watcher detected removed folder: {}",
-                        folder_path.display()
-                    );
-                    if let Err(e) =
-                        mark_game_hidden_by_folder(&db_conn_path, &folder_path)
-                    {
-                        log::error!("failed to mark game hidden: {e}");
-                    }
-                    let _ = app_handle.emit(
-                        "watcher-game-removed",
-                        folder_path.to_string_lossy().to_string(),
-                    );
-                }
+                let _ = app_handle.emit(
+                    "watcher-game-removed",
+                    folder_path.to_string_lossy().to_string(),
+                );
             }
         })
         .map_err(|e| CommandError::Unknown(e.to_string()))?;
@@ -328,8 +314,8 @@ fn mark_game_hidden_by_folder(
     db_path: &std::path::Path,
     folder_path: &std::path::Path,
 ) -> Result<(), String> {
-    let conn = rusqlite::Connection::open(db_path)
-        .map_err(|e| format!("failed to open db: {e}"))?;
+    let conn =
+        rusqlite::Connection::open(db_path).map_err(|e| format!("failed to open db: {e}"))?;
 
     let folder_str = folder_path.to_string_lossy();
     conn.execute(
@@ -372,9 +358,7 @@ pub async fn start_folder_watchers(
 
 /// Stop all active folder watchers.
 #[tauri::command]
-pub async fn stop_folder_watchers(
-    watcher: State<'_, FolderWatcher>,
-) -> Result<(), CommandError> {
+pub async fn stop_folder_watchers(watcher: State<'_, FolderWatcher>) -> Result<(), CommandError> {
     watcher
         .unwatch_all()
         .map_err(|e| CommandError::Unknown(e.to_string()))
@@ -686,11 +670,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let hidden: i64 = conn
-            .query_row(
-                "SELECT is_hidden FROM games WHERE id = 'g1'",
-                [],
-                |row| row.get(0),
-            )
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(hidden, 1);
     }
@@ -698,10 +680,7 @@ mod tests {
     #[test]
     fn mark_game_hidden_by_folder_no_match_is_ok() {
         let (state, _tmp) = init_file_db();
-        let result = mark_game_hidden_by_folder(
-            &state.db_path,
-            &PathBuf::from("C:\\Nonexistent"),
-        );
+        let result = mark_game_hidden_by_folder(&state.db_path, &PathBuf::from("C:\\Nonexistent"));
         assert!(result.is_ok());
     }
 
@@ -722,11 +701,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let hidden: i64 = conn
-            .query_row(
-                "SELECT is_hidden FROM games WHERE id = 'g2'",
-                [],
-                |row| row.get(0),
-            )
+            .query_row("SELECT is_hidden FROM games WHERE id = 'g2'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(hidden, 1);
     }

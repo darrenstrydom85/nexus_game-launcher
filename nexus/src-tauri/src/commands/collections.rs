@@ -7,15 +7,13 @@ use super::error::CommandError;
 use super::utils::now_iso;
 use crate::db::DbState;
 use crate::models::collection::{
-    Collection, CollectionWithCount, CollectionWithGameIds,
-    GroupOperator, SmartCollectionRule, SmartCollectionRuleGroup, SmartCondition,
+    Collection, CollectionWithCount, CollectionWithGameIds, GroupOperator, SmartCollectionRule,
+    SmartCollectionRuleGroup, SmartCondition,
 };
 use crate::models::game::Game;
 
 #[tauri::command]
-pub fn get_collections(
-    db: State<'_, DbState>,
-) -> Result<Vec<CollectionWithCount>, CommandError> {
+pub fn get_collections(db: State<'_, DbState>) -> Result<Vec<CollectionWithCount>, CommandError> {
     let conn = db
         .conn
         .lock()
@@ -67,7 +65,15 @@ pub fn get_collections_with_game_ids(
         )
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
-    let collections: Vec<(String, String, Option<String>, Option<String>, i64, i32, Option<String>)> = coll_stmt
+    let collections: Vec<(
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        i64,
+        i32,
+        Option<String>,
+    )> = coll_stmt
         .query_map([], |row| {
             Ok((
                 row.get::<_, String>("id")?,
@@ -89,33 +95,35 @@ pub fn get_collections_with_game_ids(
 
     let result = collections
         .into_iter()
-        .map(|(id, name, icon, color, sort_order, is_smart, rules_json)| {
-            let smart = is_smart != 0;
-            let game_ids = if smart {
-                if let Some(ref rj) = rules_json {
-                    evaluate_rules_sql(&conn, rj)?
+        .map(
+            |(id, name, icon, color, sort_order, is_smart, rules_json)| {
+                let smart = is_smart != 0;
+                let game_ids = if smart {
+                    if let Some(ref rj) = rules_json {
+                        evaluate_rules_sql(&conn, rj)?
+                    } else {
+                        Vec::new()
+                    }
                 } else {
-                    Vec::new()
-                }
-            } else {
-                game_stmt
-                    .query_map(params![id], |row| row.get::<_, String>(0))
-                    .map_err(|e| CommandError::Database(e.to_string()))?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|e| CommandError::Database(e.to_string()))?
-            };
+                    game_stmt
+                        .query_map(params![id], |row| row.get::<_, String>(0))
+                        .map_err(|e| CommandError::Database(e.to_string()))?
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(|e| CommandError::Database(e.to_string()))?
+                };
 
-            Ok(CollectionWithGameIds {
-                id,
-                name,
-                icon,
-                color,
-                sort_order,
-                is_smart: smart,
-                rules_json,
-                game_ids,
-            })
-        })
+                Ok(CollectionWithGameIds {
+                    id,
+                    name,
+                    icon,
+                    color,
+                    sort_order,
+                    is_smart: smart,
+                    rules_json,
+                    game_ids,
+                })
+            },
+        )
         .collect::<Result<Vec<_>, CommandError>>()?;
 
     Ok(result)
@@ -224,9 +232,7 @@ pub fn update_collection(
     push_field!(fields.rules_json, "rules_json");
 
     if set_clauses.is_empty() {
-        return Err(CommandError::Parse(
-            "no fields provided for update".into(),
-        ));
+        return Err(CommandError::Parse("no fields provided for update".into()));
     }
 
     let now = now_iso();
@@ -240,8 +246,7 @@ pub fn update_collection(
         set_clauses.join(", ")
     );
 
-    let params_refs: Vec<&dyn rusqlite::types::ToSql> =
-        values.iter().map(|v| v.as_ref()).collect();
+    let params_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
     conn.execute(&sql, params_refs.as_slice())
         .map_err(|e| CommandError::Database(e.to_string()))?;
@@ -299,12 +304,11 @@ pub fn add_to_collection(
         .lock()
         .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
 
-    let row_result = conn
-        .query_row(
-            "SELECT is_smart FROM collections WHERE id = ?1",
-            params![collection_id],
-            |row| row.get::<_, i32>(0),
-        );
+    let row_result = conn.query_row(
+        "SELECT is_smart FROM collections WHERE id = ?1",
+        params![collection_id],
+        |row| row.get::<_, i32>(0),
+    );
 
     match row_result {
         Err(rusqlite::Error::QueryReturnedNoRows) => {
@@ -402,10 +406,7 @@ pub fn remove_from_collection(
 }
 
 #[tauri::command]
-pub fn reorder_collections(
-    db: State<'_, DbState>,
-    ids: Vec<String>,
-) -> Result<(), CommandError> {
+pub fn reorder_collections(db: State<'_, DbState>, ids: Vec<String>) -> Result<(), CommandError> {
     let conn = db
         .conn
         .lock()
@@ -518,8 +519,7 @@ fn evaluate_rules_sql(
         )
     };
 
-    let params_refs: Vec<&dyn rusqlite::types::ToSql> =
-        params.iter().map(|v| v.as_ref()).collect();
+    let params_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|v| v.as_ref()).collect();
 
     let mut stmt = conn
         .prepare(&sql)
@@ -585,51 +585,73 @@ fn build_rule_clause(
 
     match field {
         "status" => {
-            let s = val.as_str().ok_or_else(|| CommandError::Parse("status value must be a string".into()))?;
+            let s = val
+                .as_str()
+                .ok_or_else(|| CommandError::Parse("status value must be a string".into()))?;
             params.push(Box::new(s.to_string()));
             match op {
                 "equals" => Ok(format!("g.status = ?{}", params.len())),
                 "not_equals" => Ok(format!("g.status != ?{}", params.len())),
-                _ => Err(CommandError::Parse(format!("unsupported operator for status: {op}"))),
+                _ => Err(CommandError::Parse(format!(
+                    "unsupported operator for status: {op}"
+                ))),
             }
         }
-        "source" => {
-            match op {
-                "equals" => {
-                    let s = val.as_str().ok_or_else(|| CommandError::Parse("source value must be a string".into()))?;
-                    params.push(Box::new(s.to_string()));
-                    Ok(format!("g.source = ?{}", params.len()))
-                }
-                "not_equals" => {
-                    let s = val.as_str().ok_or_else(|| CommandError::Parse("source value must be a string".into()))?;
-                    params.push(Box::new(s.to_string()));
-                    Ok(format!("g.source != ?{}", params.len()))
-                }
-                "in" => {
-                    let arr = val.as_array().ok_or_else(|| CommandError::Parse("source 'in' value must be an array".into()))?;
-                    let placeholders: Vec<String> = arr.iter().map(|v| {
+        "source" => match op {
+            "equals" => {
+                let s = val
+                    .as_str()
+                    .ok_or_else(|| CommandError::Parse("source value must be a string".into()))?;
+                params.push(Box::new(s.to_string()));
+                Ok(format!("g.source = ?{}", params.len()))
+            }
+            "not_equals" => {
+                let s = val
+                    .as_str()
+                    .ok_or_else(|| CommandError::Parse("source value must be a string".into()))?;
+                params.push(Box::new(s.to_string()));
+                Ok(format!("g.source != ?{}", params.len()))
+            }
+            "in" => {
+                let arr = val.as_array().ok_or_else(|| {
+                    CommandError::Parse("source 'in' value must be an array".into())
+                })?;
+                let placeholders: Vec<String> = arr
+                    .iter()
+                    .map(|v| {
                         let s = v.as_str().unwrap_or_default().to_string();
                         params.push(Box::new(s));
                         format!("?{}", params.len())
-                    }).collect();
-                    Ok(format!("g.source IN ({})", placeholders.join(", ")))
-                }
-                _ => Err(CommandError::Parse(format!("unsupported operator for source: {op}"))),
+                    })
+                    .collect();
+                Ok(format!("g.source IN ({})", placeholders.join(", ")))
             }
-        }
+            _ => Err(CommandError::Parse(format!(
+                "unsupported operator for source: {op}"
+            ))),
+        },
         "genre" => {
-            let s = val.as_str().ok_or_else(|| CommandError::Parse("genre value must be a string".into()))?;
+            let s = val
+                .as_str()
+                .ok_or_else(|| CommandError::Parse("genre value must be a string".into()))?;
             let pattern = format!("%{s}%");
             params.push(Box::new(pattern));
             match op {
                 "contains" => Ok(format!("g.genres LIKE ?{}", params.len())),
-                "not_contains" => Ok(format!("(g.genres IS NULL OR g.genres NOT LIKE ?{})", params.len())),
-                _ => Err(CommandError::Parse(format!("unsupported operator for genre: {op}"))),
+                "not_contains" => Ok(format!(
+                    "(g.genres IS NULL OR g.genres NOT LIKE ?{})",
+                    params.len()
+                )),
+                _ => Err(CommandError::Parse(format!(
+                    "unsupported operator for genre: {op}"
+                ))),
             }
         }
         "tag" => {
             *needs_tag_join = true;
-            let tag_id = val.as_str().ok_or_else(|| CommandError::Parse("tag value must be a string (tag ID)".into()))?;
+            let tag_id = val
+                .as_str()
+                .ok_or_else(|| CommandError::Parse("tag value must be a string (tag ID)".into()))?;
             params.push(Box::new(tag_id.to_string()));
             match op {
                 "has" => Ok(format!("gt.tag_id = ?{}", params.len())),
@@ -637,64 +659,72 @@ fn build_rule_clause(
                     "g.id NOT IN (SELECT game_id FROM game_tags WHERE tag_id = ?{})",
                     params.len()
                 )),
-                _ => Err(CommandError::Parse(format!("unsupported operator for tag: {op}"))),
+                _ => Err(CommandError::Parse(format!(
+                    "unsupported operator for tag: {op}"
+                ))),
             }
         }
-        "rating" => {
-            build_numeric_clause("g.rating", op, val, params)
-        }
-        "totalPlayTime" => {
-            build_numeric_clause("g.total_play_time", op, val, params)
-        }
-        "playCount" => {
-            build_numeric_clause("g.play_count", op, val, params)
-        }
-        "hltbMainH" => {
-            build_numeric_clause("g.hltb_main_h", op, val, params)
-        }
-        "criticScore" => {
-            build_numeric_clause("g.critic_score", op, val, params)
-        }
-        "lastPlayed" => {
-            match op {
-                "within_days" => {
-                    let days = val.as_i64().ok_or_else(|| CommandError::Parse("lastPlayed within_days value must be a number".into()))?;
-                    params.push(Box::new(format!("-{days} days")));
-                    Ok(format!("g.last_played >= datetime('now', ?{})", params.len()))
-                }
-                "before_days_ago" => {
-                    let days = val.as_i64().ok_or_else(|| CommandError::Parse("lastPlayed before_days_ago value must be a number".into()))?;
-                    params.push(Box::new(format!("-{days} days")));
-                    Ok(format!("g.last_played < datetime('now', ?{})", params.len()))
-                }
-                "never" => {
-                    Ok("g.last_played IS NULL".to_string())
-                }
-                _ => Err(CommandError::Parse(format!("unsupported operator for lastPlayed: {op}"))),
+        "rating" => build_numeric_clause("g.rating", op, val, params),
+        "totalPlayTime" => build_numeric_clause("g.total_play_time", op, val, params),
+        "playCount" => build_numeric_clause("g.play_count", op, val, params),
+        "hltbMainH" => build_numeric_clause("g.hltb_main_h", op, val, params),
+        "criticScore" => build_numeric_clause("g.critic_score", op, val, params),
+        "lastPlayed" => match op {
+            "within_days" => {
+                let days = val.as_i64().ok_or_else(|| {
+                    CommandError::Parse("lastPlayed within_days value must be a number".into())
+                })?;
+                params.push(Box::new(format!("-{days} days")));
+                Ok(format!(
+                    "g.last_played >= datetime('now', ?{})",
+                    params.len()
+                ))
             }
-        }
-        "addedAt" => {
-            match op {
-                "within_days" => {
-                    let days = val.as_i64().ok_or_else(|| CommandError::Parse("addedAt within_days value must be a number".into()))?;
-                    params.push(Box::new(format!("-{days} days")));
-                    Ok(format!("g.added_at >= datetime('now', ?{})", params.len()))
-                }
-                "before_days_ago" => {
-                    let days = val.as_i64().ok_or_else(|| CommandError::Parse("addedAt before_days_ago value must be a number".into()))?;
-                    params.push(Box::new(format!("-{days} days")));
-                    Ok(format!("g.added_at < datetime('now', ?{})", params.len()))
-                }
-                _ => Err(CommandError::Parse(format!("unsupported operator for addedAt: {op}"))),
+            "before_days_ago" => {
+                let days = val.as_i64().ok_or_else(|| {
+                    CommandError::Parse("lastPlayed before_days_ago value must be a number".into())
+                })?;
+                params.push(Box::new(format!("-{days} days")));
+                Ok(format!(
+                    "g.last_played < datetime('now', ?{})",
+                    params.len()
+                ))
             }
-        }
+            "never" => Ok("g.last_played IS NULL".to_string()),
+            _ => Err(CommandError::Parse(format!(
+                "unsupported operator for lastPlayed: {op}"
+            ))),
+        },
+        "addedAt" => match op {
+            "within_days" => {
+                let days = val.as_i64().ok_or_else(|| {
+                    CommandError::Parse("addedAt within_days value must be a number".into())
+                })?;
+                params.push(Box::new(format!("-{days} days")));
+                Ok(format!("g.added_at >= datetime('now', ?{})", params.len()))
+            }
+            "before_days_ago" => {
+                let days = val.as_i64().ok_or_else(|| {
+                    CommandError::Parse("addedAt before_days_ago value must be a number".into())
+                })?;
+                params.push(Box::new(format!("-{days} days")));
+                Ok(format!("g.added_at < datetime('now', ?{})", params.len()))
+            }
+            _ => Err(CommandError::Parse(format!(
+                "unsupported operator for addedAt: {op}"
+            ))),
+        },
         "isHidden" => {
-            let b = val.as_bool().ok_or_else(|| CommandError::Parse("isHidden value must be a boolean".into()))?;
+            let b = val
+                .as_bool()
+                .ok_or_else(|| CommandError::Parse("isHidden value must be a boolean".into()))?;
             let int_val = if b { 1 } else { 0 };
             params.push(Box::new(int_val));
             Ok(format!("g.is_hidden = ?{}", params.len()))
         }
-        _ => Err(CommandError::Parse(format!("unsupported rule field: {field}"))),
+        _ => Err(CommandError::Parse(format!(
+            "unsupported rule field: {field}"
+        ))),
     }
 }
 
@@ -706,34 +736,50 @@ fn build_numeric_clause(
 ) -> Result<String, CommandError> {
     match op {
         "equals" => {
-            let n = val.as_f64().ok_or_else(|| CommandError::Parse(format!("{column} equals value must be a number")))?;
+            let n = val.as_f64().ok_or_else(|| {
+                CommandError::Parse(format!("{column} equals value must be a number"))
+            })?;
             params.push(Box::new(n));
             Ok(format!("{column} = ?{}", params.len()))
         }
         "gt" => {
-            let n = val.as_f64().ok_or_else(|| CommandError::Parse(format!("{column} gt value must be a number")))?;
+            let n = val.as_f64().ok_or_else(|| {
+                CommandError::Parse(format!("{column} gt value must be a number"))
+            })?;
             params.push(Box::new(n));
             Ok(format!("{column} > ?{}", params.len()))
         }
         "lt" => {
-            let n = val.as_f64().ok_or_else(|| CommandError::Parse(format!("{column} lt value must be a number")))?;
+            let n = val.as_f64().ok_or_else(|| {
+                CommandError::Parse(format!("{column} lt value must be a number"))
+            })?;
             params.push(Box::new(n));
             Ok(format!("{column} < ?{}", params.len()))
         }
         "between" => {
-            let arr = val.as_array().ok_or_else(|| CommandError::Parse(format!("{column} between value must be [min, max]")))?;
+            let arr = val.as_array().ok_or_else(|| {
+                CommandError::Parse(format!("{column} between value must be [min, max]"))
+            })?;
             if arr.len() != 2 {
-                return Err(CommandError::Parse(format!("{column} between value must be [min, max]")));
+                return Err(CommandError::Parse(format!(
+                    "{column} between value must be [min, max]"
+                )));
             }
-            let min = arr[0].as_f64().ok_or_else(|| CommandError::Parse(format!("{column} between min must be a number")))?;
-            let max = arr[1].as_f64().ok_or_else(|| CommandError::Parse(format!("{column} between max must be a number")))?;
+            let min = arr[0].as_f64().ok_or_else(|| {
+                CommandError::Parse(format!("{column} between min must be a number"))
+            })?;
+            let max = arr[1].as_f64().ok_or_else(|| {
+                CommandError::Parse(format!("{column} between max must be a number"))
+            })?;
             params.push(Box::new(min));
             let min_idx = params.len();
             params.push(Box::new(max));
             let max_idx = params.len();
             Ok(format!("{column} BETWEEN ?{min_idx} AND ?{max_idx}"))
         }
-        _ => Err(CommandError::Parse(format!("unsupported numeric operator: {op}"))),
+        _ => Err(CommandError::Parse(format!(
+            "unsupported numeric operator: {op}"
+        ))),
     }
 }
 
@@ -919,7 +965,11 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM collections WHERE id = 'c1'", [], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM collections WHERE id = 'c1'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(count, 0);
 
@@ -946,7 +996,9 @@ mod tests {
 
         let conn = state.conn.lock().unwrap();
         let game_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM games WHERE id = 'g1'", [], |r| r.get(0))
+            .query_row("SELECT COUNT(*) FROM games WHERE id = 'g1'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert_eq!(game_count, 1);
     }
@@ -1236,9 +1288,7 @@ mod tests {
         push_field!(fields.rules_json, "rules_json");
 
         if set_clauses.is_empty() {
-            return Err(CommandError::Parse(
-                "no fields provided for update".into(),
-            ));
+            return Err(CommandError::Parse("no fields provided for update".into()));
         }
 
         let now = now_iso();
@@ -1314,7 +1364,9 @@ mod tests {
 
         match row_result {
             Err(rusqlite::Error::QueryReturnedNoRows) => {
-                return Err(CommandError::NotFound(format!("collection {collection_id}")));
+                return Err(CommandError::NotFound(format!(
+                    "collection {collection_id}"
+                )));
             }
             Err(e) => return Err(CommandError::Database(e.to_string())),
             Ok(is_smart) => {
@@ -1374,7 +1426,9 @@ mod tests {
 
         match row_result {
             Err(rusqlite::Error::QueryReturnedNoRows) => {
-                return Err(CommandError::NotFound(format!("collection {collection_id}")));
+                return Err(CommandError::NotFound(format!(
+                    "collection {collection_id}"
+                )));
             }
             Err(e) => return Err(CommandError::Database(e.to_string())),
             Ok(is_smart) => {
@@ -1402,10 +1456,7 @@ mod tests {
         Ok(())
     }
 
-    fn reorder_collections_inner(
-        state: &DbState,
-        ids: Vec<String>,
-    ) -> Result<(), CommandError> {
+    fn reorder_collections_inner(state: &DbState, ids: Vec<String>) -> Result<(), CommandError> {
         let conn = state
             .conn
             .lock()
@@ -1476,7 +1527,10 @@ mod tests {
         Ok(games)
     }
 
-    fn evaluate_rules_inner(state: &DbState, rules_json: &str) -> Result<Vec<String>, CommandError> {
+    fn evaluate_rules_inner(
+        state: &DbState,
+        rules_json: &str,
+    ) -> Result<Vec<String>, CommandError> {
         let conn = state
             .conn
             .lock()
@@ -1484,7 +1538,12 @@ mod tests {
         evaluate_rules_sql(&conn, rules_json)
     }
 
-    fn insert_smart_collection(conn: &rusqlite::Connection, id: &str, name: &str, rules_json: &str) {
+    fn insert_smart_collection(
+        conn: &rusqlite::Connection,
+        id: &str,
+        name: &str,
+        rules_json: &str,
+    ) {
         conn.execute(
             "INSERT INTO collections (id, name, sort_order, is_smart, rules_json, created_at, updated_at) VALUES (?1, ?2, 0, 1, ?3, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
             params![id, name, rules_json],
@@ -1604,7 +1663,8 @@ mod tests {
         ).unwrap();
         drop(conn);
 
-        let rules = r#"{"operator":"and","conditions":[{"field":"lastPlayed","op":"never","value":null}]}"#;
+        let rules =
+            r#"{"operator":"and","conditions":[{"field":"lastPlayed","op":"never","value":null}]}"#;
         let ids = evaluate_rules_inner(&state, rules).unwrap();
         assert_eq!(ids, vec!["g1".to_string()]);
     }
@@ -1614,11 +1674,13 @@ mod tests {
         let state = setup_db();
         let conn = state.conn.lock().unwrap();
         insert_game(&conn, "g1", "Visible");
-        conn.execute("UPDATE games SET is_hidden = 1 WHERE id = 'g1'", []).unwrap();
+        conn.execute("UPDATE games SET is_hidden = 1 WHERE id = 'g1'", [])
+            .unwrap();
         insert_game(&conn, "g2", "Also Visible");
         drop(conn);
 
-        let rules = r#"{"operator":"and","conditions":[{"field":"isHidden","op":"equals","value":true}]}"#;
+        let rules =
+            r#"{"operator":"and","conditions":[{"field":"isHidden","op":"equals","value":true}]}"#;
         let ids = evaluate_rules_inner(&state, rules).unwrap();
         assert_eq!(ids, vec!["g1".to_string()]);
     }
@@ -1688,7 +1750,8 @@ mod tests {
         ).unwrap();
         drop(conn);
 
-        let rules = r#"{"operator":"and","conditions":[{"field":"genre","op":"contains","value":"RPG"}]}"#;
+        let rules =
+            r#"{"operator":"and","conditions":[{"field":"genre","op":"contains","value":"RPG"}]}"#;
         let ids = evaluate_rules_inner(&state, rules).unwrap();
         assert_eq!(ids, vec!["g1".to_string()]);
     }

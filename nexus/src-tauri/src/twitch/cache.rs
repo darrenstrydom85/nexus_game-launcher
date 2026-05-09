@@ -95,7 +95,9 @@ pub fn cache_followed_channels(
 }
 
 /// Read all followed channels from cache.
-pub fn get_cached_followed_channels(conn: &rusqlite::Connection) -> Result<Vec<CachedChannel>, CommandError> {
+pub fn get_cached_followed_channels(
+    conn: &rusqlite::Connection,
+) -> Result<Vec<CachedChannel>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT channel_id, login, display_name, profile_image_url, is_favorite, cached_at
@@ -114,7 +116,8 @@ pub fn get_cached_followed_channels(conn: &rusqlite::Connection) -> Result<Vec<C
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))
 }
 
 /// Set is_favorite for a followed channel (Story 19.7). No-op if channel_id not in table.
@@ -163,7 +166,9 @@ pub fn cache_live_streams(
 }
 
 /// Read all cached live streams.
-pub fn get_cached_live_streams(conn: &rusqlite::Connection) -> Result<Vec<CachedStream>, CommandError> {
+pub fn get_cached_live_streams(
+    conn: &rusqlite::Connection,
+) -> Result<Vec<CachedStream>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT channel_id, title, game_name, game_id, viewer_count, thumbnail_url, started_at, cached_at
@@ -184,7 +189,8 @@ pub fn get_cached_live_streams(conn: &rusqlite::Connection) -> Result<Vec<Cached
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))
 }
 
 /// Upsert one game name -> Twitch category mapping. Game name is used case-insensitively for lookup; store as provided.
@@ -298,8 +304,9 @@ pub fn get_cached_trending_library(
             })
         })
         .map_err(|e| CommandError::Database(e.to_string()))?;
-    let list: Vec<CachedTrendingEntry> =
-        rows.collect::<Result<Vec<_>, _>>().map_err(|e| CommandError::Database(e.to_string()))?;
+    let list: Vec<CachedTrendingEntry> = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CommandError::Database(e.to_string()))?;
     let now = now_epoch_secs();
     if let Some(first) = list.first() {
         if now - first.cached_at > TRENDING_CACHE_TTL_SECS {
@@ -386,8 +393,10 @@ mod tests {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../db/migrations/007_twitch_cache_tables.sql"))
             .unwrap();
-        conn.execute_batch(include_str!("../db/migrations/008_twitch_trending_cache.sql"))
-            .unwrap();
+        conn.execute_batch(include_str!(
+            "../db/migrations/008_twitch_trending_cache.sql"
+        ))
+        .unwrap();
         conn.execute_batch(include_str!("../db/migrations/022_twitch_clips_cache.sql"))
             .unwrap();
         conn
@@ -439,18 +448,16 @@ mod tests {
         cache_live_streams(&conn, &streams1).unwrap();
         assert_eq!(get_cached_live_streams(&conn).unwrap().len(), 1);
 
-        let streams2 = vec![
-            CachedStream {
-                channel_id: "c2".to_string(),
-                title: "Two".to_string(),
-                game_name: "G".to_string(),
-                game_id: "g2".to_string(),
-                viewer_count: 50,
-                thumbnail_url: "t2".to_string(),
-                started_at: "2026-01-01T13:00:00Z".to_string(),
-                cached_at: 0,
-            },
-        ];
+        let streams2 = vec![CachedStream {
+            channel_id: "c2".to_string(),
+            title: "Two".to_string(),
+            game_name: "G".to_string(),
+            game_id: "g2".to_string(),
+            viewer_count: 50,
+            thumbnail_url: "t2".to_string(),
+            started_at: "2026-01-01T13:00:00Z".to_string(),
+            cached_at: 0,
+        }];
         cache_live_streams(&conn, &streams2).unwrap();
         let got = get_cached_live_streams(&conn).unwrap();
         assert_eq!(got.len(), 1);

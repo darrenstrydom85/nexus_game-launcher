@@ -49,9 +49,7 @@ pub fn get_metadata(db: State<'_, DbState>, game_id: String) -> Result<GameMetad
 
     let (id, title, description, cover_url, genres_str) = row;
 
-    let cover_url = cover_url.or_else(|| {
-        Some(placeholders::gradient_data_uri(&title))
-    });
+    let cover_url = cover_url.or_else(|| Some(placeholders::gradient_data_uri(&title)));
 
     let genres = genres_str.map(|g| g.split(',').map(|s| s.trim().to_string()).collect());
 
@@ -72,9 +70,7 @@ pub struct VerifyKeyResult {
 }
 
 #[tauri::command]
-pub async fn verify_steamgrid_key(
-    db: State<'_, DbState>,
-) -> Result<VerifyKeyResult, CommandError> {
+pub async fn verify_steamgrid_key(db: State<'_, DbState>) -> Result<VerifyKeyResult, CommandError> {
     let api_key = {
         let conn = db
             .conn
@@ -84,9 +80,8 @@ pub async fn verify_steamgrid_key(
         get_setting(&conn, keys::STEAMGRID_API_KEY)
     };
 
-    let api_key = api_key.ok_or_else(|| {
-        CommandError::NotFound("SteamGridDB API key not configured".into())
-    })?;
+    let api_key = api_key
+        .ok_or_else(|| CommandError::NotFound("SteamGridDB API key not configured".into()))?;
 
     let client = SteamGridDbClient::new(api_key);
     match client.verify_key().await {
@@ -118,12 +113,10 @@ pub async fn verify_igdb_keys(db: State<'_, DbState>) -> Result<VerifyKeyResult,
         (id, secret)
     };
 
-    let client_id = client_id.ok_or_else(|| {
-        CommandError::NotFound("IGDB Client ID not configured".into())
-    })?;
-    let client_secret = client_secret.ok_or_else(|| {
-        CommandError::NotFound("IGDB Client Secret not configured".into())
-    })?;
+    let client_id =
+        client_id.ok_or_else(|| CommandError::NotFound("IGDB Client ID not configured".into()))?;
+    let client_secret = client_secret
+        .ok_or_else(|| CommandError::NotFound("IGDB Client Secret not configured".into()))?;
 
     let client = IgdbClient::new(client_id, client_secret);
     match client.verify_keys().await {
@@ -207,7 +200,8 @@ pub async fn search_metadata(
             .lock()
             .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
         let token = get_setting(&conn, keys::IGDB_ACCESS_TOKEN);
-        let expires = get_setting(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
+        let expires =
+            get_setting(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
         match (token, expires) {
             (Some(t), Some(exp)) => Some((t, exp)),
             _ => None,
@@ -215,16 +209,16 @@ pub async fn search_metadata(
     };
 
     let igdb = match cached_token {
-        Some((token, expires)) => IgdbClient::with_cached_token(
-            client_id.clone(),
-            client_secret.clone(),
-            token,
-            expires,
-        ),
+        Some((token, expires)) => {
+            IgdbClient::with_cached_token(client_id.clone(), client_secret.clone(), token, expires)
+        }
         None => IgdbClient::new(client_id, client_secret),
     };
 
-    let games = igdb.search_game(query).await.map_err(CommandError::Unknown)?;
+    let games = igdb
+        .search_game(query)
+        .await
+        .map_err(CommandError::Unknown)?;
 
     let results: Vec<MetadataSearchResult> = games
         .into_iter()
@@ -295,10 +289,14 @@ pub async fn search_steamgrid_artwork(
         get_setting(&conn, keys::STEAMGRID_API_KEY)
     };
 
-    let api_key = api_key.ok_or_else(|| CommandError::NotFound("SteamGridDB API key not configured".into()))?;
+    let api_key = api_key
+        .ok_or_else(|| CommandError::NotFound("SteamGridDB API key not configured".into()))?;
 
     let client = SteamGridDbClient::new(api_key);
-    let results = client.search_game(query).await.map_err(CommandError::Unknown)?;
+    let results = client
+        .search_game(query)
+        .await
+        .map_err(CommandError::Unknown)?;
 
     let mut out = Vec::with_capacity(results.len());
     for r in results {
@@ -510,7 +508,14 @@ pub fn save_hltb_data(
     conn.execute(
         "UPDATE games SET hltb_id = ?1, hltb_main_h = ?2, hltb_main_extra_h = ?3, \
          hltb_completionist_h = ?4, hltb_fetched_at = ?5 WHERE id = ?6",
-        params![hltb_id, main_h, main_extra_h, completionist_h, fetched_at, game_id],
+        params![
+            hltb_id,
+            main_h,
+            main_extra_h,
+            completionist_h,
+            fetched_at,
+            game_id
+        ],
     )
     .map_err(|e| CommandError::Database(e.to_string()))?;
 
@@ -518,10 +523,7 @@ pub fn save_hltb_data(
 }
 
 #[tauri::command]
-pub fn clear_hltb_data(
-    db: State<'_, DbState>,
-    game_id: String,
-) -> Result<(), CommandError> {
+pub fn clear_hltb_data(db: State<'_, DbState>, game_id: String) -> Result<(), CommandError> {
     let conn = db
         .conn
         .lock()
@@ -647,7 +649,10 @@ mod tests {
         assert_eq!(meta.id, "g1");
         assert_eq!(meta.title, "Test Game");
         assert!(meta.cover_url.is_some());
-        assert!(meta.cover_url.unwrap().starts_with("data:image/svg+xml;base64,"));
+        assert!(meta
+            .cover_url
+            .unwrap()
+            .starts_with("data:image/svg+xml;base64,"));
     }
 
     #[test]
@@ -761,7 +766,14 @@ mod tests {
         conn.execute(
             "UPDATE games SET hltb_id = ?1, hltb_main_h = ?2, hltb_main_extra_h = ?3, \
              hltb_completionist_h = ?4, hltb_fetched_at = ?5 WHERE id = ?6",
-            params![hltb_id, main_h, main_extra_h, completionist_h, fetched_at, game_id],
+            params![
+                hltb_id,
+                main_h,
+                main_extra_h,
+                completionist_h,
+                fetched_at,
+                game_id
+            ],
         )
         .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(())
@@ -876,6 +888,9 @@ mod tests {
             )
             .unwrap();
 
-        assert!(fetched_at.is_some(), "hltb_fetched_at should be set even when times are NULL");
+        assert!(
+            fetched_at.is_some(),
+            "hltb_fetched_at should be set even when times are NULL"
+        );
     }
 }

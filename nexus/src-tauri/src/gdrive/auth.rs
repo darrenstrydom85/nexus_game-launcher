@@ -347,8 +347,7 @@ pub async fn run_auth_flow(
     eprintln!("[gdrive-auth] waiting for callback on port {GOOGLE_REDIRECT_PORT}...");
     let code = tokio::task::spawn_blocking(move || receive_callback(listener))
         .await
-        .map_err(|e| CommandError::Unknown(format!("callback task panicked: {e}")))?
-        ?;
+        .map_err(|e| CommandError::Unknown(format!("callback task panicked: {e}")))??;
     let code = code.ok_or_else(|| CommandError::Auth("Authorization was denied".to_string()))?;
     eprintln!("[gdrive-auth] got callback code, exchanging for tokens...");
 

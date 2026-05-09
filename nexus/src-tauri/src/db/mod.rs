@@ -58,8 +58,7 @@ pub fn init() -> Result<DbState, String> {
             .map_err(|e| format!("failed to create app data directory: {e}"))?;
     }
 
-    let conn =
-        Connection::open(&db_path).map_err(|e| format!("failed to open database: {e}"))?;
+    let conn = Connection::open(&db_path).map_err(|e| format!("failed to open database: {e}"))?;
 
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
         .map_err(|e| format!("failed to set pragmas: {e}"))?;

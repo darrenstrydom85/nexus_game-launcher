@@ -75,13 +75,20 @@ mod tests {
         let e = CommandError::Auth("invalid grant".to_string());
         let json = serde_json::to_value(&e).unwrap();
         assert_eq!(json.get("kind").and_then(|v| v.as_str()), Some("auth"));
-        assert!(json.get("message").and_then(|v| v.as_str()).unwrap().contains("invalid grant"));
+        assert!(json
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap()
+            .contains("invalid grant"));
     }
 
     #[test]
     fn network_unavailable_error_serializes_with_network_unavailable_kind() {
         let e = CommandError::NetworkUnavailable("No internet.".to_string());
         let json = serde_json::to_value(&e).unwrap();
-        assert_eq!(json.get("kind").and_then(|v| v.as_str()), Some("networkUnavailable"));
+        assert_eq!(
+            json.get("kind").and_then(|v| v.as_str()),
+            Some("networkUnavailable")
+        );
     }
 }

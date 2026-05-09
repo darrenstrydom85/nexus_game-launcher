@@ -45,10 +45,7 @@ fn detect_steam_from_registry() -> Option<PathBuf> {
 
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
 
-    let registry_paths = [
-        r"SOFTWARE\WOW6432Node\Valve\Steam",
-        r"SOFTWARE\Valve\Steam",
-    ];
+    let registry_paths = [r"SOFTWARE\WOW6432Node\Valve\Steam", r"SOFTWARE\Valve\Steam"];
 
     for reg_path in &registry_paths {
         if let Ok(key) = hklm.open_subkey(reg_path) {
@@ -177,7 +174,12 @@ fn tokenize_vdf(input: &str) -> Result<Vec<String>, SourceError> {
 
         // Unquoted token (some ACF files have unquoted values)
         let mut s = String::new();
-        while i < len && !chars[i].is_whitespace() && chars[i] != '{' && chars[i] != '}' && chars[i] != '"' {
+        while i < len
+            && !chars[i].is_whitespace()
+            && chars[i] != '{'
+            && chars[i] != '}'
+            && chars[i] != '"'
+        {
             s.push(chars[i]);
             i += 1;
         }
@@ -199,7 +201,9 @@ fn parse_pair(tokens: &[String], pos: &mut usize) -> Result<(String, VdfValue), 
     *pos += 1;
 
     if *pos >= tokens.len() {
-        return Err(SourceError::Parse(format!("expected value after key '{key}'")));
+        return Err(SourceError::Parse(format!(
+            "expected value after key '{key}'"
+        )));
     }
 
     if tokens[*pos] == "{" {
@@ -408,9 +412,7 @@ impl GameSource for SteamScanner {
         match &self.resolved {
             Some(p) => {
                 p.join("steam.exe").is_file()
-                    && p.join("steamapps")
-                        .join("libraryfolders.vdf")
-                        .is_file()
+                    && p.join("steamapps").join("libraryfolders.vdf").is_file()
             }
             None => false,
         }
@@ -479,11 +481,7 @@ mod tests {
         let content = format!(
             "\"AppState\"\n{{\n\t\"appid\"\t\t\"{appid}\"\n\t\"name\"\t\t\"{name}\"\n\t\"installdir\"\t\t\"{installdir}\"\n}}"
         );
-        fs::write(
-            steamapps.join(format!("appmanifest_{appid}.acf")),
-            content,
-        )
-        .unwrap();
+        fs::write(steamapps.join(format!("appmanifest_{appid}.acf")), content).unwrap();
     }
 
     // -- Task 1: Path resolution --
@@ -752,18 +750,12 @@ mod tests {
         let tf2 = games.iter().find(|g| g.name == "Team Fortress 2").unwrap();
         assert_eq!(tf2.source, GameSourceType::Steam);
         assert_eq!(tf2.source_id, Some("440".to_string()));
-        assert_eq!(
-            tf2.launch_url,
-            Some("steam://rungameid/440".to_string())
-        );
+        assert_eq!(tf2.launch_url, Some("steam://rungameid/440".to_string()));
         assert!(tf2.folder_path.is_some());
 
         let dota = games.iter().find(|g| g.name == "Dota 2").unwrap();
         assert_eq!(dota.source_id, Some("570".to_string()));
-        assert_eq!(
-            dota.launch_url,
-            Some("steam://rungameid/570".to_string())
-        );
+        assert_eq!(dota.launch_url, Some("steam://rungameid/570".to_string()));
     }
 
     #[test]
@@ -817,7 +809,11 @@ mod tests {
         let steam = tmp.path().join("Steam");
         let steamapps = steam.join("steamapps");
         fs::create_dir_all(&steamapps).unwrap();
-        fs::write(steamapps.join("libraryfolders.vdf"), "\"libraryfolders\"\n{\n}").unwrap();
+        fs::write(
+            steamapps.join("libraryfolders.vdf"),
+            "\"libraryfolders\"\n{\n}",
+        )
+        .unwrap();
         // No steam.exe
 
         let mut scanner = SteamScanner::new();
