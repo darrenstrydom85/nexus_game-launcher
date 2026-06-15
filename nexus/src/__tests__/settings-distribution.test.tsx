@@ -12,6 +12,7 @@ import { FolderManager } from "@/components/Settings/FolderManager";
 import { APIKeyManager } from "@/components/Settings/APIKeyManager";
 import { LibraryPreferences } from "@/components/Settings/LibraryPreferences";
 import { AppearanceSettings } from "@/components/Settings/AppearanceSettings";
+import { ThemeStudio } from "@/components/Settings/ThemeStudio";
 import { DataManagement } from "@/components/Settings/DataManagement";
 import { AboutSection } from "@/components/Settings/AboutSection";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -216,15 +217,9 @@ describe("Story 12.3: AppearanceSettings", () => {
     expect(screen.getByTestId("appearance-settings")).toBeInTheDocument();
   });
 
-  it("has accent color picker", () => {
+  it("no longer renders the accent picker (moved to Theme Studio)", () => {
     render(<AppearanceSettings />);
-    expect(screen.getByTestId("accent-color-picker")).toBeInTheDocument();
-  });
-
-  it("clicking accent color changes it", () => {
-    render(<AppearanceSettings />);
-    fireEvent.click(screen.getByTestId("accent-#22c55e"));
-    expect(useSettingsStore.getState().accentColor).toBe("#22c55e");
+    expect(screen.queryByTestId("accent-color-picker")).not.toBeInTheDocument();
   });
 
   it("has transparency toggle", () => {
@@ -240,6 +235,47 @@ describe("Story 12.3: AppearanceSettings", () => {
   it("does not render font size selector (removed)", () => {
     render(<AppearanceSettings />);
     expect(screen.queryByTestId("pref-font-size")).not.toBeInTheDocument();
+  });
+});
+
+describe("Theme Studio", () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ customTheme: null, accentColor: "#7600da", theme: "dark" });
+  });
+
+  it("renders the studio with presets and accent swatches", () => {
+    render(<ThemeStudio />);
+    expect(screen.getByTestId("theme-studio")).toBeInTheDocument();
+    expect(screen.getByTestId("theme-presets")).toBeInTheDocument();
+    expect(screen.getByTestId("theme-accent-presets")).toBeInTheDocument();
+  });
+
+  it("clicking an accent swatch updates the theme and accent color", () => {
+    render(<ThemeStudio />);
+    fireEvent.click(screen.getByTestId("theme-accent-#22c55e"));
+    const state = useSettingsStore.getState();
+    expect(state.accentColor).toBe("#22c55e");
+    expect(state.customTheme?.colors.dark.primary).toBe("#22c55e");
+  });
+
+  it("applying a preset sets a custom theme", () => {
+    render(<ThemeStudio />);
+    fireEvent.click(screen.getByTestId("theme-preset-dracula"));
+    expect(useSettingsStore.getState().customTheme?.name).toBe("Dracula");
+  });
+
+  it("random generates a custom theme", () => {
+    render(<ThemeStudio />);
+    fireEvent.click(screen.getByTestId("theme-preset-random"));
+    expect(useSettingsStore.getState().customTheme?.name).toBe("Random");
+  });
+
+  it("reset clears the custom theme", () => {
+    render(<ThemeStudio />);
+    fireEvent.click(screen.getByTestId("theme-preset-nord"));
+    expect(useSettingsStore.getState().customTheme).not.toBeNull();
+    fireEvent.click(screen.getByTestId("theme-reset"));
+    expect(useSettingsStore.getState().customTheme).toBeNull();
   });
 });
 

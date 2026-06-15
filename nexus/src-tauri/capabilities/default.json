@@ -36,6 +36,10 @@
       "allow": [{ "path": "$APPDATA/nexus/**" }]
     },
     {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [{ "path": "$APPDATA/nexus/**" }]
+    },
+    {
       "identifier": "fs:allow-write-file",
       "allow": [{ "path": "$APPDATA/nexus/**" }]
     },

@@ -9,6 +9,7 @@ pub mod dedup;
 pub mod error;
 pub mod events;
 pub mod export;
+pub mod fonts;
 pub mod games;
 pub mod hardware;
 pub mod health;

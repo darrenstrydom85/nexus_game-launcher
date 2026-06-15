@@ -44,6 +44,7 @@ describe("tauri capabilities configuration", () => {
     const requiredFs = [
       "fs:allow-read-dir",
       "fs:allow-read-file",
+      "fs:allow-read-text-file",
       "fs:allow-write-file",
       "fs:allow-write-text-file",
       "fs:allow-mkdir",

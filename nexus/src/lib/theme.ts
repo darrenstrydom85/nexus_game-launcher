@@ -1,3 +1,6 @@
+import { applyAccentOnly, applyCustomTheme } from "./themeApply";
+import { parseTheme } from "./themeSchema";
+
 export type ThemeMode = "light" | "dark" | "system";
 
 export const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];
@@ -42,4 +45,35 @@ export function applyPersistedThemeClassSync(): void {
     typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const effective = resolveEffectiveTheme(mode, prefersDark);
   applyThemeClassToDocument(effective);
+}
+
+/**
+ * Apply the persisted appearance class AND any custom theme / accent before
+ * React mounts, so the first paint already reflects the user's theme (no flash
+ * of the default Obsidian palette). Imported lazily-safe: reads the same Zustand
+ * persist blob as the store.
+ */
+export function applyPersistedCustomThemeSync(): void {
+  const mode = readPersistedThemeMode();
+  const prefersDark =
+    typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const effective = resolveEffectiveTheme(mode, prefersDark);
+  applyThemeClassToDocument(effective);
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as {
+      state?: { customTheme?: unknown; accentColor?: string };
+    };
+    const state = parsed?.state;
+    if (!state) return;
+    if (state.customTheme) {
+      applyCustomTheme(parseTheme(state.customTheme), effective);
+    } else if (state.accentColor) {
+      applyAccentOnly(state.accentColor);
+    }
+  } catch {
+    /* ignore — fall back to CSS defaults */
+  }
 }

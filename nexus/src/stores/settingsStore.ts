@@ -3,6 +3,8 @@ import { devtools, persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { type ThemeMode, isThemeMode } from "@/lib/theme";
+import type { CustomTheme } from "@/lib/themeTypes";
+import { parseTheme } from "@/lib/themeSchema";
 
 export interface ApiKeys {
   steamGridDbKey: string;
@@ -34,6 +36,12 @@ export interface SettingsState {
   milestoneNotificationsEnabled: boolean;
   autoStatusTransitions: boolean;
   accentColor: string;
+  /**
+   * Full custom theme (colors / fonts / radius / scale) from the Theme Studio.
+   * `null` means "use the stock Obsidian look" (only the accent is applied).
+   * Persisted as the `custom_theme` setting (JSON).
+   */
+  customTheme: CustomTheme | null;
   /** Light / Dark / System appearance; persisted as `theme_mode`. Default `dark` for existing installs. */
   theme: ThemeMode;
   windowTransparency: boolean;
@@ -91,6 +99,7 @@ export interface SettingsActions {
   setMilestoneNotificationsEnabled: (value: boolean) => void;
   setAutoStatusTransitions: (value: boolean) => void;
   setAccentColor: (color: string) => void;
+  setCustomTheme: (theme: CustomTheme | null) => void;
   setTheme: (mode: ThemeMode) => void;
   setWindowTransparency: (value: boolean) => void;
   setEnableAnimations: (value: boolean) => void;
@@ -153,6 +162,7 @@ const initialState: SettingsState = {
   milestoneNotificationsEnabled: true,
   autoStatusTransitions: true,
   accentColor: "#7600da",
+  customTheme: null,
   theme: "dark",
   windowTransparency: true,
   enableAnimations: true,
@@ -232,6 +242,13 @@ export const useSettingsStore = create<SettingsStore>()(
             patch.sourcesEnabled = sources;
 
             if (settings.theme_accent_color) patch.accentColor = settings.theme_accent_color;
+            if (settings.custom_theme) {
+              try {
+                patch.customTheme = parseTheme(JSON.parse(settings.custom_theme));
+              } catch {
+                // Ignore corrupt theme JSON; fall back to localStorage / stock look.
+              }
+            }
             if (settings.theme_mode != null && isThemeMode(settings.theme_mode)) {
               patch.theme = settings.theme_mode;
             }
@@ -366,6 +383,20 @@ export const useSettingsStore = create<SettingsStore>()(
         setAccentColor: (color) => {
           persistSetting("theme_accent_color", color);
           set({ accentColor: color }, false, "setAccentColor");
+        },
+        setCustomTheme: (theme) => {
+          persistSetting("custom_theme", theme ? JSON.stringify(theme) : "");
+          // Keep the legacy accent in sync so existing surfaces (and the
+          // accent-only fallback) stay consistent with the theme's accent.
+          const patch: Partial<SettingsState> = { customTheme: theme };
+          if (theme) {
+            const accent = theme.colors.dark.primary ?? theme.colors.light.primary;
+            if (accent) {
+              patch.accentColor = accent;
+              persistSetting("theme_accent_color", accent);
+            }
+          }
+          set(patch, false, "setCustomTheme");
         },
         setTheme: (mode) => {
           persistSetting("theme_mode", mode);

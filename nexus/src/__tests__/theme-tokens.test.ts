@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { COLOR_TOKENS, DEFAULT_COLORS } from "@/lib/themeTypes";
 
 const globalsCSS = readFileSync(
   resolve(__dirname, "../globals.css"),
@@ -102,5 +103,21 @@ describe("Story 5.1: Obsidian Theme Color Tokens", () => {
     expect(globalsCSS).toContain("--success:");
     expect(globalsCSS).toContain("--warning:");
     expect(globalsCSS).toContain("--info:");
+  });
+});
+
+describe("Theme Studio: editable token contract", () => {
+  it("every editable token exists as a CSS variable in globals.css", () => {
+    for (const token of COLOR_TOKENS) {
+      expect(globalsCSS).toContain(`--${token.key}:`);
+    }
+  });
+
+  it("provides a default value for every editable token in both bases", () => {
+    for (const base of ["light", "dark"] as const) {
+      for (const token of COLOR_TOKENS) {
+        expect(DEFAULT_COLORS[base][token.key]).toBeTruthy();
+      }
+    }
   });
 });
