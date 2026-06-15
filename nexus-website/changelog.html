@@ -84,7 +84,7 @@
           <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
         </span>
         Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.4.0 · Beta</span>
+        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.4.1 · Beta</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
               aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,14 +129,14 @@
           fixed in each version of Nexus.
         </p>
         <div class="changelog-hero-meta">
-          <a href="#v0.4.0" class="changelog-latest-pill">
+          <a href="#v0.4.1" class="changelog-latest-pill">
             <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.4.0</span>
+            <span>Latest · v0.4.1</span>
             <i data-lucide="arrow-down" class="icon-sm"></i>
           </a>
-          <a href="releases/Nexus_0.4.0_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
+          <a href="releases/Nexus_0.4.1_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
             <i data-lucide="download" class="icon-sm"></i>
-            Download v0.4.0
+            Download v0.4.1
           </a>
         </div>
       </div>
@@ -153,7 +153,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.4.0">
+          <a class="changelog-rail-link is-latest" href="#v0.4.1">
+            <span class="changelog-rail-version">v0.4.1</span>
+            <span class="changelog-rail-date">Jun 15</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.4.0">
             <span class="changelog-rail-version">v0.4.0</span>
             <span class="changelog-rail-date">May 9</span>
           </a>
@@ -212,7 +216,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.4.0">v0.4.0 — May 9, 2026 (Latest)</option>
+              <option value="v0.4.1">v0.4.1 — Jun 15, 2026 (Latest)</option>
+              <option value="v0.4.0">v0.4.0 — May 9, 2026</option>
               <option value="v0.3.6">v0.3.6 — May 2, 2026</option>
               <option value="v0.3.5">v0.3.5 — Apr 29, 2026</option>
               <option value="v0.3.4">v0.3.4 — Apr 27, 2026</option>
@@ -264,11 +269,47 @@
               <p class="type-body" style="margin: 0;">No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.4.0 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.4.0">
+            <!-- ── v0.4.1 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.4.1">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.4.1</h2>
+                <time class="changelog-entry-date" datetime="2026-06-15">Jun 15, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A core tenet of Nexus is that your data stays local — so instead
+                  of an online profile, this release lets you <em>export</em> your
+                  stats. A new Export Stats section in Settings turns any date range
+                  into a beautifully designed, self-contained HTML page you can share
+                  with friends or host anywhere, or a data-only JSON file for the
+                  technically minded. Nothing leaves your machine unless you choose
+                  to share it.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><i data-lucide="share-2" class="icon-sm"></i>Shareable HTML stats page, zipped with its artwork</li>
+                  <li><i data-lucide="bar-chart-3" class="icon-sm"></i>Full all-games breakdown with play time &amp; completion %</li>
+                  <li><i data-lucide="file-json" class="icon-sm"></i>Data-only JSON export for your own tools</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Export Stats (HTML)</strong> &mdash; Export the selected date range as a self-contained HTML page, zipped together with its cover, hero, and logo art via relative paths. A progress bar tracks image packaging.</li>
+                    <li><strong>Cinematic design</strong> &mdash; The page mirrors the Nexus look: a Most Played hero banner, KPI cards, Top Games, Completed, genre/platform breakdowns, activity charts, fun facts, and a full all-games breakdown with play-time bars and completion %.</li>
+                    <li><strong>Export Stats (JSON)</strong> &mdash; A versioned, data-only JSON document (schema v2) including the full report, completed games, all played games, and detected CPU/GPU — ready to integrate into your own systems.</li>
+                    <li><strong>Get Nexus footer</strong> &mdash; Exported pages include a tasteful call-to-action and your CPU/GPU hardware in the footer.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.4.0 ── -->
+            <article class="changelog-entry" id="v0.4.0">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.4.0</h2>
-                <time class="changelog-entry-date" datetime="2026-05-09">May 9, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-05-09">May 9, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
