@@ -12,6 +12,7 @@ import { FolderManager } from "./FolderManager";
 import { APIKeyManager } from "./APIKeyManager";
 import { LibraryPreferences } from "./LibraryPreferences";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { ThemeStudio } from "./ThemeStudio";
 import { DataManagement } from "./DataManagement";
 import { LibraryHealth } from "./LibraryHealth";
 import { StatsExport } from "./StatsExport";
@@ -102,6 +103,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   <AccordionTrigger>Appearance</AccordionTrigger>
                   <AccordionContent>
                     <AppearanceSettings />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="theme" data-testid="settings-group-theme">
+                  <AccordionTrigger>Theme Studio</AccordionTrigger>
+                  <AccordionContent>
+                    <ThemeStudio />
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="integrations" data-testid="settings-group-integrations">

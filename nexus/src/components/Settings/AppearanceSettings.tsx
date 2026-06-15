@@ -3,8 +3,6 @@ import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { ThemeMode } from "@/lib/theme";
 
-const ACCENT_COLORS = ["#7600da", "#22c55e", "#eab308", "#ef4444", "#a855f7", "#ec4899", "#06b6d4", "#f97316"];
-
 const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: "light", label: "Light", icon: Sun },
   { mode: "dark", label: "Dark", icon: Moon },
@@ -14,8 +12,6 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
 export function AppearanceSettings() {
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const accentColor = useSettingsStore((s) => s.accentColor);
-  const setAccentColor = useSettingsStore((s) => s.setAccentColor);
   const transparency = useSettingsStore((s) => s.windowTransparency);
   const setTransparency = useSettingsStore((s) => s.setWindowTransparency);
   const askBeforeClose = useSettingsStore((s) => s.askBeforeClose);
@@ -57,25 +53,6 @@ export function AppearanceSettings() {
                 <Icon className="size-3.5 shrink-0" aria-hidden />
                 {label}
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Accent color */}
-        <div>
-          <span className="mb-1 block text-sm text-foreground">Accent Color</span>
-          <div data-testid="accent-color-picker" className="flex gap-2">
-            {ACCENT_COLORS.map((color) => (
-              <button
-                key={color}
-                data-testid={`accent-${color}`}
-                className={cn(
-                  "size-7 rounded-full border-2 transition-all",
-                  accentColor === color ? "border-foreground scale-110" : "border-transparent",
-                )}
-                style={{ background: color }}
-                onClick={() => setAccentColor(color)}
-              />
             ))}
           </div>
         </div>
