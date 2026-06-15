@@ -1,0 +1,9 @@
+release: v0.4.2
+
+Bump version to 0.4.2 and ship the Theme Studio (custom colors, fonts,
+14 presets + random, import/export).
+
+- Bump version in package.json, Cargo.toml, tauri.conf.json
+- Update README version badge
+- Update website download links, version badges, and changelog entry
+- Add v0.4.2 MSI installer to website releases
