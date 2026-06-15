@@ -14,6 +14,7 @@ import { LibraryPreferences } from "./LibraryPreferences";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { DataManagement } from "./DataManagement";
 import { LibraryHealth } from "./LibraryHealth";
+import { StatsExport } from "./StatsExport";
 import { TwitchSettings } from "./TwitchSettings";
 import { CloudBackupSettings } from "./CloudBackupSettings";
 import { AboutSection } from "./AboutSection";
@@ -121,6 +122,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   <AccordionContent className="flex flex-col gap-6">
                     <DataManagement />
                     <LibraryHealth />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="export" data-testid="settings-group-export">
+                  <AccordionTrigger>Export Stats</AccordionTrigger>
+                  <AccordionContent>
+                    <StatsExport />
                   </AccordionContent>
                 </AccordionItem>
                 {import.meta.env.DEV && (

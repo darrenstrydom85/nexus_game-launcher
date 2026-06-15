@@ -50,6 +50,7 @@ arboard = "3"
 png = "0.18"
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 tauri-plugin-notification = "2.3.3"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tempfile = "3"
