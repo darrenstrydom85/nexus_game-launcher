@@ -8,6 +8,7 @@ pub mod database;
 pub mod dedup;
 pub mod error;
 pub mod events;
+pub mod export;
 pub mod games;
 pub mod hardware;
 pub mod health;
