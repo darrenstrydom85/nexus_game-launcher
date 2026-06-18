@@ -6,6 +6,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
+use std::sync::Mutex;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
@@ -1268,6 +1269,40 @@ pub struct TwitchEmbedBaseUrl(pub String);
 /// `embed_server::start` and stashed in Tauri state so Rust-side code that
 /// builds watch URLs can include `?token=...` in them.
 pub struct TwitchEmbedToken(pub String);
+
+/// Tauri-managed wrapper around the most recently resolved app theme tokens,
+/// so the embed server (which renders the pop-out / clip windows as plain
+/// HTML from a `localhost:PORT` origin with no React bundle) can mirror the
+/// user's selected theme.
+///
+/// The frontend pushes resolved CSS-variable values via
+/// [`set_twitch_embed_theme`] whenever the theme changes; the embed server
+/// reads the latest snapshot at render time. Defaults to the stock Obsidian
+/// palette so behaviour is unchanged until the frontend reports a theme.
+pub struct TwitchEmbedTheme(pub Mutex<crate::twitch::embed_server::EmbedTheme>);
+
+impl Default for TwitchEmbedTheme {
+    fn default() -> Self {
+        Self(Mutex::new(crate::twitch::embed_server::EmbedTheme::default()))
+    }
+}
+
+/// Store the latest resolved theme tokens for the Twitch embed windows.
+///
+/// New pop-out / clip windows opened after this call will mirror these
+/// colors. Already-open windows are not updated (they keep the theme they
+/// were rendered with). Incoming values are sanitised before storage so a
+/// malformed color string can never break out of the embed CSS.
+#[tauri::command]
+pub fn set_twitch_embed_theme(
+    state: State<'_, TwitchEmbedTheme>,
+    theme: crate::twitch::embed_server::EmbedTheme,
+) -> Result<(), CommandError> {
+    if let Ok(mut guard) = state.0.lock() {
+        *guard = theme.sanitized();
+    }
+    Ok(())
+}
 
 /// Tracks active Twitch watch sessions by the window label that owns them.
 /// Populated by [`popout_stream`] when it builds a window, and drained on the

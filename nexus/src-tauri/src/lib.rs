@@ -105,9 +105,10 @@ use commands::{
         get_twitch_diagnostics, get_twitch_embed_base_url, get_twitch_followed_channels,
         get_twitch_live_streams, get_twitch_streams_by_game, get_twitch_trending_library_games,
         get_twitch_watch_for_range, get_twitch_watch_stats, get_twitch_watch_year,
-        open_twitch_login, popout_clip, popout_stream, set_twitch_favorite, twitch_auth_logout,
-        twitch_auth_start, twitch_auth_status, twitch_test_connection, twitch_watch_session_end,
-        twitch_watch_session_start, validate_twitch_token, TwitchEmbedBaseUrl,
+        open_twitch_login, popout_clip, popout_stream, set_twitch_embed_theme,
+        set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
+        twitch_test_connection, twitch_watch_session_end, twitch_watch_session_start,
+        validate_twitch_token, TwitchEmbedBaseUrl, TwitchEmbedTheme,
     },
     window::{confirm_app_close, hide_main_window, show_main_window},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
@@ -332,6 +333,7 @@ pub fn run() {
                 embed_info.token.clone(),
             ));
             app.manage(crate::commands::twitch::WatchSessionRegistry::default());
+            app.manage(TwitchEmbedTheme::default());
 
             // The embed server (see `twitch/embed_server.rs`) can't invoke Tauri
             // commands directly, so it proxies the in-embed "Sign in" action
@@ -491,6 +493,7 @@ pub fn run() {
             popout_stream,
             popout_clip,
             open_twitch_login,
+            set_twitch_embed_theme,
             get_twitch_embed_base_url,
             get_twitch_clips_for_game,
             get_twitch_diagnostics,

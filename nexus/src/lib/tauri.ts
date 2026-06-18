@@ -392,6 +392,25 @@ export function clearTwitchCache(): Promise<void> {
   return invoke<void>("clear_twitch_cache");
 }
 
+/** Resolved theme tokens for the spawned Twitch windows (camelCase matches Rust `EmbedTheme`). */
+export interface TwitchEmbedTheme {
+  bg: string;
+  panel: string;
+  border: string;
+  fg: string;
+  muted: string;
+  accent: string;
+  danger: string;
+}
+
+/**
+ * Push resolved theme colors to the backend so future Twitch pop-out / clip
+ * windows mirror the selected theme. Already-open windows are not updated.
+ */
+export function setTwitchEmbedTheme(theme: TwitchEmbedTheme): Promise<void> {
+  return invoke<void>("set_twitch_embed_theme", { theme });
+}
+
 /** Check if Twitch API is reachable. Result cached 30s. Story 19.11. */
 export function checkConnectivity(): Promise<{ online: boolean }> {
   return invoke<{ online: boolean }>("check_connectivity");

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
@@ -202,9 +202,11 @@ describe("Story 19.4: Followed Streams Panel", () => {
     });
     render(<TwitchPanel />);
     await waitFor(() => {
-      const liveSection = screen.getByRole("region", { name: "Live Now" });
-      expect(within(liveSection).getByText("Test Game")).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Live Now" })).toBeInTheDocument();
     });
+    // The single live stream becomes the featured hero; its game and the
+    // "In Library" badge both render.
+    expect(screen.getAllByText("Test Game").length).toBeGreaterThan(0);
     expect(screen.getAllByText("In Library").length).toBeGreaterThan(0);
   });
 
@@ -226,10 +228,9 @@ describe("Story 19.4: Followed Streams Panel", () => {
       return Promise.resolve({});
     });
     render(<TwitchPanel />);
-    await waitFor(() => {
-      expect(screen.getByText("Offline")).toBeInTheDocument();
+    const offlineButton = await screen.findByRole("button", {
+      name: /offline/i,
     });
-    const offlineButton = screen.getByRole("button", { name: /offline/i });
     expect(offlineButton).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(offlineButton);
     await waitFor(() => {

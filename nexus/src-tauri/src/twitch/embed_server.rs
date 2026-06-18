@@ -51,7 +51,90 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter};
+use serde::Deserialize;
+use tauri::{AppHandle, Emitter, Manager};
+
+/// Resolved theme tokens for the embed pages, mirroring the user's selected
+/// app theme. Pushed from the frontend via `set_twitch_embed_theme` and read
+/// here at render time so the pop-out / clip windows match the rest of Nexus.
+///
+/// Each field holds a raw CSS color string (hex, `hsl(...)`, `oklch(...)`,
+/// etc.) read from the app's computed CSS variables. Values are validated by
+/// [`EmbedTheme::sanitized`] before they ever reach the HTML, so a malformed
+/// or hostile string can never escape the CSS context.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmbedTheme {
+    /// Window background (`--background`).
+    pub bg: String,
+    /// Header / chat panel surface (`--card`).
+    pub panel: String,
+    /// Hairline borders (`--border`).
+    pub border: String,
+    /// Primary text (`--foreground`).
+    pub fg: String,
+    /// Secondary / muted text (`--muted-foreground`).
+    pub muted: String,
+    /// Accent / interaction color (`--primary`).
+    pub accent: String,
+    /// Live / danger indicator (`--destructive`).
+    pub danger: String,
+}
+
+impl Default for EmbedTheme {
+    /// The stock Obsidian palette — used until the frontend reports a theme,
+    /// and as the per-token fallback when a reported value fails validation.
+    fn default() -> Self {
+        Self {
+            bg: "#0d0d10".to_string(),
+            panel: "#141418".to_string(),
+            border: "#26262c".to_string(),
+            fg: "#f1f1f3".to_string(),
+            muted: "#8a8a94".to_string(),
+            accent: "#7f5af0".to_string(),
+            danger: "#ff4d4f".to_string(),
+        }
+    }
+}
+
+impl EmbedTheme {
+    /// Return a copy with every token validated; any token that isn't a safe
+    /// CSS color string falls back to the corresponding Obsidian default.
+    pub fn sanitized(&self) -> EmbedTheme {
+        let def = EmbedTheme::default();
+        EmbedTheme {
+            bg: sanitize_css_color(&self.bg, &def.bg),
+            panel: sanitize_css_color(&self.panel, &def.panel),
+            border: sanitize_css_color(&self.border, &def.border),
+            fg: sanitize_css_color(&self.fg, &def.fg),
+            muted: sanitize_css_color(&self.muted, &def.muted),
+            accent: sanitize_css_color(&self.accent, &def.accent),
+            danger: sanitize_css_color(&self.danger, &def.danger),
+        }
+    }
+}
+
+/// Validate a CSS color string for safe interpolation into an embed `:root`
+/// block. Accepts the characters that appear in hex, `rgb()/rgba()`,
+/// `hsl()/hsla()`, and `oklch()/oklab()` values (alphanumerics plus
+/// `# ( ) , . % / -` and spaces) up to a sane length. Anything else — and in
+/// particular `;`, `{`, `}`, `<`, `>`, `:`, quotes — returns `fallback`,
+/// which makes CSS/HTML injection through this path impossible.
+fn sanitize_css_color(input: &str, fallback: &str) -> String {
+    let trimmed = input.trim();
+    if trimmed.is_empty() || trimmed.len() > 64 {
+        return fallback.to_string();
+    }
+    let ok = trimmed.chars().all(|c| {
+        c.is_ascii_alphanumeric()
+            || matches!(c, '#' | '(' | ')' | ',' | '.' | '%' | '/' | '-' | ' ')
+    });
+    if ok {
+        trimmed.to_string()
+    } else {
+        fallback.to_string()
+    }
+}
 
 /// Shared state every connection handler needs.
 struct ServerCtx {
@@ -175,6 +258,11 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
     };
     let params = parse_query(query);
 
+    // Snapshot the current theme once so every page rendered for this request
+    // mirrors the app's selected theme. Falls back to the Obsidian default
+    // when the frontend hasn't reported a theme yet.
+    let theme = resolve_theme(&ctx.app);
+
     // Route dispatch.
     match (method, route) {
         ("GET", "/health") => {
@@ -185,7 +273,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
                 write_response(&mut stream, 401, "text/plain", b"unauthorized");
                 return Ok(());
             }
-            let html = render_watch(&params, &ctx.token);
+            let html = render_watch(&params, &ctx.token, &theme);
             write_response(
                 &mut stream,
                 200,
@@ -198,7 +286,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
                 write_response(&mut stream, 401, "text/plain", b"unauthorized");
                 return Ok(());
             }
-            let html = render_clip(&params);
+            let html = render_clip(&params, &theme);
             write_response(
                 &mut stream,
                 200,
@@ -210,7 +298,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
             // Legacy single-iframe wrapper; no token check to preserve prior
             // behaviour for any callers that still use it. No sensitive data
             // is served here.
-            let html = render_player(&params);
+            let html = render_player(&params, &theme);
             write_response(
                 &mut stream,
                 200,
@@ -219,7 +307,7 @@ fn handle_connection(mut stream: TcpStream, ctx: &ServerCtx) -> std::io::Result<
             );
         }
         ("GET", "/chat") => {
-            let html = render_chat(&params);
+            let html = render_chat(&params, &theme);
             write_response(
                 &mut stream,
                 200,
@@ -323,6 +411,15 @@ fn handle_open_channel(app: &AppHandle, channel: &str) {
     if let Err(e) = app.opener().open_url(&url, None::<&str>) {
         eprintln!("[twitch-embed] failed to open channel url: {e}");
     }
+}
+
+/// Read the latest theme reported by the frontend from Tauri state. Returns
+/// the Obsidian default when no theme has been pushed yet (or the state lock
+/// is momentarily contended).
+fn resolve_theme(app: &AppHandle) -> EmbedTheme {
+    app.try_state::<crate::commands::twitch::TwitchEmbedTheme>()
+        .and_then(|s| s.0.lock().ok().map(|g| g.clone()))
+        .unwrap_or_default()
 }
 
 /// Parse `key=value&key2=value2` into a map. Values are URL-decoded with a tiny
@@ -440,7 +537,7 @@ fn js_string(s: &str) -> String {
     out
 }
 
-fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
+fn render_watch(params: &HashMap<String, String>, api_token: &str, theme: &EmbedTheme) -> String {
     let channel = sanitize_channel(params.get("channel").map(String::as_str).unwrap_or(""));
     let display_raw = params
         .get("display")
@@ -455,7 +552,7 @@ fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
     let game_name = params.get("gameName").cloned().unwrap_or_default();
 
     if channel.is_empty() {
-        return error_page("Missing channel — nothing to play.");
+        return error_page("Missing channel — nothing to play.", theme);
     }
 
     let display_escaped = html_escape(display);
@@ -484,13 +581,13 @@ fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
 <title>{display_escaped} · Nexus</title>
 <style>
   :root {{
-    --bg: #0d0d10;
-    --panel: #141418;
-    --border: #26262c;
-    --fg: #f1f1f3;
-    --muted: #8a8a94;
-    --accent: #7f5af0;
-    --danger: #ff4d4f;
+    --bg: {bg};
+    --panel: {panel};
+    --border: {border};
+    --fg: {fg};
+    --muted: {muted};
+    --accent: {accent};
+    --danger: {danger};
   }}
   * {{ box-sizing: border-box; }}
   html, body {{
@@ -521,7 +618,7 @@ fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
     padding: 6px 10px; border-radius: 4px; cursor: pointer;
     font-size: 12px; font-weight: 500;
   }}
-  button.act:hover {{ background: #26262c; color: var(--fg); }}
+  button.act:hover {{ background: var(--border); color: var(--fg); }}
   button.act[aria-pressed="true"] {{ color: var(--accent); }}
   main {{ display: flex; flex: 1 1 auto; min-height: 0; }}
   .player-wrap {{ position: relative; flex: 1 1 auto; background: #000; min-width: 0; }}
@@ -637,10 +734,17 @@ fn render_watch(params: &HashMap<String, String>, api_token: &str) -> String {
         token_js = token_js,
         player_src_js = player_src_js,
         chat_src_js = chat_src_js,
+        bg = theme.bg,
+        panel = theme.panel,
+        border = theme.border,
+        fg = theme.fg,
+        muted = theme.muted,
+        accent = theme.accent,
+        danger = theme.danger,
     )
 }
 
-fn render_player(params: &HashMap<String, String>) -> String {
+fn render_player(params: &HashMap<String, String>, theme: &EmbedTheme) -> String {
     let channel = sanitize_channel(params.get("channel").map(String::as_str).unwrap_or(""));
     let muted = matches!(
         params.get("muted").map(String::as_str).unwrap_or("true"),
@@ -649,7 +753,10 @@ fn render_player(params: &HashMap<String, String>) -> String {
     let muted_str = if muted { "true" } else { "false" };
 
     if channel.is_empty() {
-        return wrapper_html("<p style=\"color:#999;font-family:sans-serif\">Missing channel.</p>");
+        return wrapper_html(
+            "<p style=\"color:#999;font-family:sans-serif\">Missing channel.</p>",
+            theme,
+        );
     }
 
     let iframe_src = format!(
@@ -658,38 +765,41 @@ fn render_player(params: &HashMap<String, String>) -> String {
     let iframe = format!(
         "<iframe src=\"{iframe_src}\" allow=\"autoplay; fullscreen\" allowfullscreen frameborder=\"0\"></iframe>"
     );
-    wrapper_html(&iframe)
+    wrapper_html(&iframe, theme)
 }
 
-fn render_chat(params: &HashMap<String, String>) -> String {
+fn render_chat(params: &HashMap<String, String>, theme: &EmbedTheme) -> String {
     let channel = sanitize_channel(params.get("channel").map(String::as_str).unwrap_or(""));
     if channel.is_empty() {
-        return wrapper_html("<p style=\"color:#999;font-family:sans-serif\">Missing channel.</p>");
+        return wrapper_html(
+            "<p style=\"color:#999;font-family:sans-serif\">Missing channel.</p>",
+            theme,
+        );
     }
 
     let iframe_src =
         format!("https://www.twitch.tv/embed/{channel}/chat?parent=localhost&darkpopout");
     let iframe = format!("<iframe src=\"{iframe_src}\" frameborder=\"0\"></iframe>");
-    wrapper_html(&iframe)
+    wrapper_html(&iframe, theme)
 }
 
 /// Render the dedicated clip-player page. The window loaded by
 /// `popout_clip` navigates here; `clips.twitch.tv` is iframed with
 /// `parent=localhost` so the CSP accepts the embed.
-fn render_clip(params: &HashMap<String, String>) -> String {
+fn render_clip(params: &HashMap<String, String>, theme: &EmbedTheme) -> String {
     let clip_id = sanitize_clip_id(params.get("id").map(String::as_str).unwrap_or(""));
     if clip_id.is_empty() {
-        return error_page("Missing clip — nothing to play.");
+        return error_page("Missing clip — nothing to play.", theme);
     }
     let iframe_src =
         format!("https://clips.twitch.tv/embed?clip={clip_id}&parent=localhost&autoplay=true");
     let iframe = format!(
         "<iframe src=\"{iframe_src}\" allow=\"autoplay; fullscreen\" allowfullscreen frameborder=\"0\"></iframe>"
     );
-    wrapper_html(&iframe)
+    wrapper_html(&iframe, theme)
 }
 
-fn wrapper_html(body: &str) -> String {
+fn wrapper_html(body: &str, theme: &EmbedTheme) -> String {
     format!(
         r#"<!DOCTYPE html>
 <html lang="en">
@@ -698,24 +808,29 @@ fn wrapper_html(body: &str) -> String {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nexus Twitch Embed</title>
 <style>
-  html,body{{margin:0;padding:0;height:100%;background:#000;overflow:hidden}}
+  html,body{{margin:0;padding:0;height:100%;background:{bg};overflow:hidden}}
   iframe{{display:block;width:100%;height:100%;border:0}}
 </style>
 </head>
 <body>{body}</body>
 </html>
-"#
+"#,
+        bg = theme.bg,
+        body = body,
     )
 }
 
-fn error_page(msg: &str) -> String {
+fn error_page(msg: &str, theme: &EmbedTheme) -> String {
     let escaped = html_escape(msg);
     format!(
         r#"<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Nexus</title>
-<style>html,body{{margin:0;padding:24px;background:#0d0d10;color:#f1f1f3;font-family:-apple-system,system-ui,sans-serif}}</style>
+<style>html,body{{margin:0;padding:24px;background:{bg};color:{fg};font-family:-apple-system,system-ui,sans-serif}}</style>
 </head><body><p>{escaped}</p></body></html>
-"#
+"#,
+        bg = theme.bg,
+        fg = theme.fg,
+        escaped = escaped,
     )
 }
 
@@ -788,7 +903,7 @@ mod tests {
     fn render_player_uses_parent_localhost() {
         let mut params = HashMap::new();
         params.insert("channel".to_string(), "shroud".to_string());
-        let html = render_player(&params);
+        let html = render_player(&params, &EmbedTheme::default());
         assert!(html.contains("parent=localhost"));
         assert!(html.contains("channel=shroud"));
         assert!(html.contains("muted=true"));
@@ -796,7 +911,7 @@ mod tests {
 
     #[test]
     fn render_player_missing_channel_renders_safe_fallback() {
-        let html = render_player(&HashMap::new());
+        let html = render_player(&HashMap::new(), &EmbedTheme::default());
         assert!(html.contains("Missing channel"));
         assert!(!html.contains("player.twitch.tv"));
     }
@@ -805,7 +920,7 @@ mod tests {
     fn render_chat_uses_parent_localhost() {
         let mut params = HashMap::new();
         params.insert("channel".to_string(), "ninja".to_string());
-        let html = render_chat(&params);
+        let html = render_chat(&params, &EmbedTheme::default());
         assert!(html.contains("parent=localhost"));
         assert!(html.contains("/embed/ninja/chat"));
     }
@@ -827,7 +942,7 @@ mod tests {
     fn render_clip_uses_parent_localhost() {
         let mut params = HashMap::new();
         params.insert("id".to_string(), "AwkwardPoisedTomatoCurseLit".to_string());
-        let html = render_clip(&params);
+        let html = render_clip(&params, &EmbedTheme::default());
         assert!(html.contains("clips.twitch.tv/embed"));
         assert!(html.contains("clip=AwkwardPoisedTomatoCurseLit"));
         assert!(html.contains("parent=localhost"));
@@ -835,7 +950,7 @@ mod tests {
 
     #[test]
     fn render_clip_missing_id_renders_error() {
-        let html = render_clip(&HashMap::new());
+        let html = render_clip(&HashMap::new(), &EmbedTheme::default());
         assert!(html.contains("Missing clip"));
         assert!(!html.contains("clips.twitch.tv"));
     }
@@ -845,7 +960,7 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("channel".to_string(), "shroud".to_string());
         params.insert("display".to_string(), "Shroud".to_string());
-        let html = render_watch(&params, "tok");
+        let html = render_watch(&params, "tok", &EmbedTheme::default());
         assert!(html.contains("player.twitch.tv"));
         assert!(html.contains("twitch.tv/embed/shroud/chat"));
         assert!(html.contains("Shroud"));
@@ -858,13 +973,13 @@ mod tests {
         // button was removed entirely.
         let mut params = HashMap::new();
         params.insert("channel".to_string(), "shroud".to_string());
-        let html = render_watch(&params, "tok");
+        let html = render_watch(&params, "tok", &EmbedTheme::default());
         assert!(!html.contains("id=\"btn-popout\""));
     }
 
     #[test]
     fn render_watch_missing_channel_renders_error_page() {
-        let html = render_watch(&HashMap::new(), "tok");
+        let html = render_watch(&HashMap::new(), "tok", &EmbedTheme::default());
         assert!(html.contains("Missing channel"));
         assert!(!html.contains("player.twitch.tv"));
     }
@@ -874,7 +989,7 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("channel".to_string(), "shroud".to_string());
         params.insert("display".to_string(), "<img onerror=x>".to_string());
-        let html = render_watch(&params, "tok");
+        let html = render_watch(&params, "tok", &EmbedTheme::default());
         assert!(!html.contains("<img onerror=x>"));
         assert!(html.contains("&lt;img onerror=x&gt;"));
     }
@@ -921,5 +1036,84 @@ mod tests {
         let b = random_token();
         assert!(a.len() >= 32);
         assert_ne!(a, b);
+    }
+
+    fn sample_theme() -> EmbedTheme {
+        EmbedTheme {
+            bg: "hsl(240 10% 4%)".to_string(),
+            panel: "oklch(0.21 0.006 285)".to_string(),
+            border: "#26262c".to_string(),
+            fg: "#ffffff".to_string(),
+            muted: "rgb(138, 138, 148)".to_string(),
+            accent: "#7600da".to_string(),
+            danger: "#ff4d4f".to_string(),
+        }
+    }
+
+    #[test]
+    fn render_watch_uses_supplied_theme_colors() {
+        let mut params = HashMap::new();
+        params.insert("channel".to_string(), "shroud".to_string());
+        let html = render_watch(&params, "tok", &sample_theme());
+        assert!(html.contains("--bg: hsl(240 10% 4%);"));
+        assert!(html.contains("--accent: #7600da;"));
+        assert!(html.contains("--panel: oklch(0.21 0.006 285);"));
+        // The old hardcoded Obsidian accent must no longer leak through.
+        assert!(!html.contains("--accent: #7f5af0;"));
+    }
+
+    #[test]
+    fn render_clip_uses_supplied_theme_background() {
+        let mut params = HashMap::new();
+        params.insert("id".to_string(), "AwkwardPoisedTomatoCurseLit".to_string());
+        let html = render_clip(&params, &sample_theme());
+        assert!(html.contains("background:hsl(240 10% 4%)"));
+        assert!(!html.contains("background:#000"));
+    }
+
+    #[test]
+    fn error_page_uses_supplied_theme_colors() {
+        let html = error_page("boom", &sample_theme());
+        assert!(html.contains("background:hsl(240 10% 4%)"));
+        assert!(html.contains("color:#ffffff"));
+    }
+
+    #[test]
+    fn sanitize_css_color_accepts_valid_color_formats() {
+        assert_eq!(sanitize_css_color("#0d0d10", "fb"), "#0d0d10");
+        assert_eq!(sanitize_css_color("hsl(240 10% 4%)", "fb"), "hsl(240 10% 4%)");
+        assert_eq!(
+            sanitize_css_color("oklch(0.7 0.1 250 / 0.5)", "fb"),
+            "oklch(0.7 0.1 250 / 0.5)"
+        );
+        assert_eq!(sanitize_css_color("  #fff  ", "fb"), "#fff");
+    }
+
+    #[test]
+    fn sanitize_css_color_rejects_injection_attempts() {
+        // CSS-breaking / HTML-breaking characters must all fall back.
+        assert_eq!(sanitize_css_color("red; } body { x", "fb"), "fb");
+        assert_eq!(sanitize_css_color("</style><script>", "fb"), "fb");
+        assert_eq!(sanitize_css_color("url('http://x')", "fb"), "fb");
+        assert_eq!(sanitize_css_color("", "fb"), "fb");
+        assert_eq!(sanitize_css_color(&"a".repeat(100), "fb"), "fb");
+    }
+
+    #[test]
+    fn embed_theme_sanitized_replaces_only_bad_tokens() {
+        let theme = EmbedTheme {
+            bg: "#101015".to_string(),
+            panel: "red; }".to_string(), // hostile -> falls back
+            border: "#26262c".to_string(),
+            fg: "#ffffff".to_string(),
+            muted: "#8a8a94".to_string(),
+            accent: "#7600da".to_string(),
+            danger: "#ff4d4f".to_string(),
+        };
+        let clean = theme.sanitized();
+        assert_eq!(clean.bg, "#101015");
+        assert_eq!(clean.accent, "#7600da");
+        // Only the bad token reverts to the Obsidian default.
+        assert_eq!(clean.panel, EmbedTheme::default().panel);
     }
 }
