@@ -205,8 +205,8 @@ mod tests {
             "missing id.twitch.tv scope"
         );
         assert!(
-            urls.iter().any(|u| u.contains("api.jsonbin.io")),
-            "missing api.jsonbin.io scope"
+            urls.iter().any(|u| u.contains("nexusgamelauncher.com")),
+            "missing nexusgamelauncher.com scope"
         );
     }
 

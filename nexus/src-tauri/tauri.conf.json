@@ -22,16 +22,23 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com https://*.jtvnw.net https://*.twitch.tv data:; frame-src https://www.youtube-nocookie.com https://*.twitch.tv http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost https://api.jsonbin.io http://localhost:* http://127.0.0.1:*",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://*.steamgriddb.com https://cdn2.steamgriddb.com https://*.igdb.com https://images.igdb.com https://img.youtube.com https://*.jtvnw.net https://*.twitch.tv data:; frame-src https://www.youtube-nocookie.com https://*.twitch.tv http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost http://localhost:* http://127.0.0.1:*",
       "assetProtocol": {
         "enable": true,
         "scope": ["**/*"]
       }
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyNTRDMUZEQjRGMDI4N0UKUldSK0tQQzAvY0ZVMHBISms3VFBXeHplYVdRM2lzTFJ1L2taZ0NZaGN3UGpJYm9YSnZOK2pTQ2YK",
+      "endpoints": ["https://www.nexusgamelauncher.com/updates/latest.json"]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis", "msi"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

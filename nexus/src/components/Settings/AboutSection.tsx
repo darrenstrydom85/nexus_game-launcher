@@ -1,17 +1,18 @@
 import * as React from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, CircleAlert, Download, Heart, MessageCircle } from "lucide-react";
+import { Bug, CircleAlert, Download, Heart, MessageCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { KnownIssuesDialog } from "./KnownIssuesDialog";
 
 export function AboutSection() {
   const [version, setVersion] = React.useState<string | null>(null);
   const [knownIssuesOpen, setKnownIssuesOpen] = React.useState(false);
   const updateAvailable = useUpdateStore((s) => s.updateAvailable);
-  const downloadUrl = useUpdateStore((s) => s.downloadUrl);
+  const phase = useUpdateStore((s) => s.phase);
   const runCheck = useUpdateStore((s) => s.runCheck);
+  const downloadAndInstall = useUpdateStore((s) => s.downloadAndInstall);
+  const restart = useUpdateStore((s) => s.restart);
 
   React.useEffect(() => {
     getVersion().then(setVersion).catch(() => setVersion("0.1.0"));
@@ -22,8 +23,15 @@ export function AboutSection() {
   }, [runCheck]);
 
   const handleUpdateNow = React.useCallback(() => {
-    openUrl(downloadUrl).catch(() => {});
-  }, [downloadUrl]);
+    if (phase === "ready") {
+      restart().catch(() => {});
+    } else {
+      downloadAndInstall().catch(() => {});
+    }
+  }, [phase, downloadAndInstall, restart]);
+
+  const isDownloading = phase === "downloading";
+  const isReady = phase === "ready";
 
   return (
     <section data-testid="about-section">
@@ -37,10 +45,15 @@ export function AboutSection() {
             size="sm"
             className="w-fit"
             onClick={handleUpdateNow}
-            aria-label="Update now"
+            disabled={isDownloading}
+            aria-label={isReady ? "Restart to finish update" : "Update now"}
           >
-            <Download className="size-3.5" aria-hidden />
-            Update now
+            {isReady ? (
+              <RefreshCw className="size-3.5" aria-hidden />
+            ) : (
+              <Download className="size-3.5" aria-hidden />
+            )}
+            {isReady ? "Restart to finish" : isDownloading ? "Downloading…" : "Update now"}
           </Button>
         )}
         <a

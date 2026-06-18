@@ -1,0 +1,11 @@
+{
+  "version": "0.4.2",
+  "notes": "See the changelog at https://www.nexusgamelauncher.com/changelog.html",
+  "pub_date": "2026-06-18T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "REPLACE_WITH_CONTENTS_OF_SETUP_EXE_SIG_FILE",
+      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.4.2_x64-setup.exe"
+    }
+  }
+}

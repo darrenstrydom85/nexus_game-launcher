@@ -109,7 +109,6 @@ use commands::{
         twitch_auth_start, twitch_auth_status, twitch_test_connection, twitch_watch_session_end,
         twitch_watch_session_start, validate_twitch_token, TwitchEmbedBaseUrl,
     },
-    version_check::check_update_available,
     window::{confirm_app_close, hide_main_window, show_main_window},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
     xp::{award_xp, backfill_xp_from_history, get_xp_breakdown, get_xp_history, get_xp_summary},
@@ -278,6 +277,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 // The close-to-tray confirmation dialog is owned by the main
@@ -497,7 +497,6 @@ pub fn run() {
             twitch_test_connection,
             clear_twitch_cache,
             check_connectivity,
-            check_update_available,
             fetch_known_issues,
             write_image_to_clipboard,
             confirm_app_close,

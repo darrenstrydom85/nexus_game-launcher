@@ -617,17 +617,6 @@ export function getTwitchWatchForRange(
   });
 }
 
-// ── Version / Update Check (JSONBin) ─────────────────────────────────────
-export interface UpdateCheckResult {
-  updateAvailable: boolean;
-  latestVersion: string | null;
-  downloadUrl: string;
-}
-
-export function checkUpdateAvailable(): Promise<UpdateCheckResult> {
-  return invoke<UpdateCheckResult>("check_update_available");
-}
-
 // ── Known Issues (Story 21.1) ─────────────────────────────────────────
 export interface KnownIssuesResult {
   issues: string[];
