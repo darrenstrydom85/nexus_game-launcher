@@ -1,0 +1,11 @@
+{
+  "version": "0.4.3",
+  "notes": "Automatic in-app updates: Nexus now downloads and installs new versions in the background and applies them on restart. See https://www.nexusgamelauncher.com/changelog.html",
+  "pub_date": "2026-06-18T13:35:01Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FPWmp6MGlxVzYvaVQzdFlTV29uLy9RWTlNeGNOM3R3WHQ0cGVVN2lBS01DaFQyUFhISjcwZjJHS3hybU10aDFXRkd2ME4vdlVpSU1Vemo5V1ZOQ3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNzg5NjQwCWZpbGU6TmV4dXNfMC40LjNfeDY0LXNldHVwLmV4ZQp5bGlUb1Z5cDlPZlM0Q2FUalhRa2gzOHpPcWxyYm82SUtjdUdELzZ6RVRKS1Jab2FXbW1jOUo4ZnJBQnBoeGdNTnY5empPaXpiWFA2NkpUSXhEUytBZz09Cg==",
+      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.4.3_x64-setup.exe"
+    }
+  }
+}

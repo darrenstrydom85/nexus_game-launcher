@@ -1,5 +1,4 @@
 import * as React from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
 
@@ -8,15 +7,28 @@ export interface UpdateAvailableDialogProps {
   onClose: () => void;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 MB";
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
+}
+
 export function UpdateAvailableDialog({ open, onClose }: UpdateAvailableDialogProps) {
   const latestVersion = useUpdateStore((s) => s.latestVersion);
-  const downloadUrl = useUpdateStore((s) => s.downloadUrl);
+  const phase = useUpdateStore((s) => s.phase);
+  const downloadedBytes = useUpdateStore((s) => s.downloadedBytes);
+  const totalBytes = useUpdateStore((s) => s.totalBytes);
+  const downloadAndInstall = useUpdateStore((s) => s.downloadAndInstall);
+  const restart = useUpdateStore((s) => s.restart);
   const dismissUpdatePopup = useUpdateStore((s) => s.dismissUpdatePopup);
 
-  const handleDownload = React.useCallback(() => {
-    openUrl(downloadUrl).catch(() => {});
-    onClose();
-  }, [downloadUrl, onClose]);
+  const handleInstall = React.useCallback(() => {
+    downloadAndInstall().catch(() => {});
+  }, [downloadAndInstall]);
+
+  const handleRestart = React.useCallback(() => {
+    restart().catch(() => {});
+  }, [restart]);
 
   const handleNotNow = React.useCallback(() => {
     dismissUpdatePopup();
@@ -24,6 +36,11 @@ export function UpdateAvailableDialog({ open, onClose }: UpdateAvailableDialogPr
   }, [dismissUpdatePopup, onClose]);
 
   if (!open) return null;
+
+  const isDownloading = phase === "downloading";
+  const isReady = phase === "ready";
+  const isError = phase === "error";
+  const percent = totalBytes > 0 ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)) : 0;
 
   return (
     <div
@@ -36,32 +53,68 @@ export function UpdateAvailableDialog({ open, onClose }: UpdateAvailableDialogPr
       <div
         className="w-full max-w-sm rounded-lg border border-border bg-card p-4 shadow-lg"
         onKeyDown={(e) => {
-          if (e.key === "Escape") handleNotNow();
+          if (e.key === "Escape" && !isDownloading) handleNotNow();
         }}
       >
         <h4 id="update-dialog-title" className="text-sm font-semibold text-foreground">
-          Update available
+          {isReady ? "Update ready" : "Update available"}
         </h4>
-        <p id="update-dialog-desc" className="mt-2 text-sm text-muted-foreground">
-          The newest version {latestVersion ?? ""} is available. Download now to get the latest
-          features and fixes.
-        </p>
+
+        {isReady ? (
+          <p id="update-dialog-desc" className="mt-2 text-sm text-muted-foreground">
+            Version {latestVersion ?? ""} has been installed. Restart Nexus to finish updating.
+          </p>
+        ) : isError ? (
+          <p id="update-dialog-desc" className="mt-2 text-sm text-destructive">
+            The update could not be downloaded. Check your connection and try again.
+          </p>
+        ) : (
+          <p id="update-dialog-desc" className="mt-2 text-sm text-muted-foreground">
+            Version {latestVersion ?? ""} is available. Nexus can download and install it for you.
+          </p>
+        )}
+
+        {isDownloading && (
+          <div className="mt-3" aria-live="polite">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+              Downloading… {formatBytes(downloadedBytes)}
+              {totalBytes > 0 ? ` / ${formatBytes(totalBytes)} (${percent}%)` : ""}
+            </p>
+          </div>
+        )}
+
         <div className="mt-4 flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleNotNow}
-            aria-label="Not now"
-          >
-            Not now
-          </Button>
-          <Button
-            type="button"
-            onClick={handleDownload}
-            aria-label="Download now"
-          >
-            Download now
-          </Button>
+          {isReady ? (
+            <Button type="button" onClick={handleRestart} aria-label="Restart now">
+              Restart now
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleNotNow}
+                disabled={isDownloading}
+                aria-label="Not now"
+              >
+                Not now
+              </Button>
+              <Button
+                type="button"
+                onClick={handleInstall}
+                disabled={isDownloading}
+                aria-label={isError ? "Retry update" : "Download and install"}
+              >
+                {isDownloading ? "Downloading…" : isError ? "Retry" : "Download & install"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

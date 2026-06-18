@@ -1,11 +1,9 @@
-//! Fetches the Known Issues list from a JSONBin bin so the frontend can
-//! display current known issues to users on demand.
+//! Fetches the Known Issues list from a self-hosted JSON file on the Nexus
+//! website so the frontend can display current known issues to users on demand.
 
 use serde::{Deserialize, Serialize};
 
-use super::jsonbin;
-
-const JSONBIN_URL: &str = "https://api.jsonbin.io/v3/b/69abc8dd43b1c97be9bcc177/latest";
+const KNOWN_ISSUES_URL: &str = "https://www.nexusgamelauncher.com/known-issues.json";
 
 /// Raw JSONBin payload shape: `{ "Known_Issues": ["…", "…"] }`.
 #[derive(Debug, Deserialize)]
@@ -29,23 +27,12 @@ impl KnownIssuesResult {
 
 #[tauri::command]
 pub async fn fetch_known_issues() -> Result<KnownIssuesResult, String> {
-    let auth = match jsonbin::resolve_auth() {
-        Some(a) => a,
-        None => return Ok(KnownIssuesResult::empty()),
-    };
-
     let client = match reqwest::Client::builder().build() {
         Ok(c) => c,
         Err(_) => return Ok(KnownIssuesResult::empty()),
     };
 
-    let res = match client
-        .get(JSONBIN_URL)
-        .query(&[("meta", "false")])
-        .header(auth.header_name, &auth.key_value)
-        .send()
-        .await
-    {
+    let res = match client.get(KNOWN_ISSUES_URL).send().await {
         Ok(r) => r,
         Err(_) => return Ok(KnownIssuesResult::empty()),
     };

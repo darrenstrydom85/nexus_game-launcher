@@ -26,6 +26,7 @@
       ]
     },
     "process:default",
+    "updater:default",
 
     {
       "identifier": "fs:allow-read-dir",
@@ -77,8 +78,8 @@
         { "url": "https://api.twitch.tv/**" },
         { "url": "https://id.twitch.tv/**" },
         { "url": "https://images.igdb.com/**" },
-        { "url": "https://api.jsonbin.io/**" },
         { "url": "https://howlongtobeat.com/**" },
+        { "url": "https://www.nexusgamelauncher.com/**" },
         { "url": "https://accounts.google.com/**" },
         { "url": "https://oauth2.googleapis.com/**" },
         { "url": "https://www.googleapis.com/**" }

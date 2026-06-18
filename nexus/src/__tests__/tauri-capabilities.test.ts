@@ -97,7 +97,7 @@ describe("tauri capabilities configuration", () => {
     expect(urls.some((u) => u.includes("steamgriddb.com"))).toBe(true);
     expect(urls.some((u) => u.includes("api.igdb.com"))).toBe(true);
     expect(urls.some((u) => u.includes("id.twitch.tv"))).toBe(true);
-    expect(urls.some((u) => u.includes("api.jsonbin.io"))).toBe(true);
+    expect(urls.some((u) => u.includes("nexusgamelauncher.com"))).toBe(true);
   });
 
   it("all HTTP scopes use HTTPS only", () => {
