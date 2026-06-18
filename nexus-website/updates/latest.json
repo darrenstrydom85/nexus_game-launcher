@@ -1,11 +1,11 @@
 {
-  "version": "0.4.3",
-  "notes": "Automatic in-app updates: Nexus now downloads and installs new versions in the background and applies them on restart. See https://www.nexusgamelauncher.com/changelog.html",
-  "pub_date": "2026-06-18T13:35:01Z",
+  "version": "0.5.0",
+  "notes": "Redesigned Twitch experience: a two-pane layout with a searchable channel rail, in-app stream previews and game details, a dedicated Trending tab, and pop-out viewing windows themed to match your app. See https://www.nexusgamelauncher.com/changelog.html",
+  "pub_date": "2026-06-18T21:07:03Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FPWmp6MGlxVzYvaVQzdFlTV29uLy9RWTlNeGNOM3R3WHQ0cGVVN2lBS01DaFQyUFhISjcwZjJHS3hybU10aDFXRkd2ME4vdlVpSU1Vemo5V1ZOQ3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNzg5NjQwCWZpbGU6TmV4dXNfMC40LjNfeDY0LXNldHVwLmV4ZQp5bGlUb1Z5cDlPZlM0Q2FUalhRa2gzOHpPcWxyYm82SUtjdUdELzZ6RVRKS1Jab2FXbW1jOUo4ZnJBQnBoeGdNTnY5empPaXpiWFA2NkpUSXhEUytBZz09Cg==",
-      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.4.3_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1lnRkhpblBmZ084c2F4a2NDcGxVY1B1NHBkZUlLTkFoSEhjRFRLZXRlQ0lZc2Ftalk2S3RWRkJkWEkrcEFMMWlkTWhweFZLY1ZKcmYrVkd5UG0vVWdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxODE2NzgyCWZpbGU6TmV4dXNfMC41LjBfeDY0LXNldHVwLmV4ZQpVbTNINGtBVEZwOHlGb3VlaGFtdUlKOGw4Zm5LWTM4ajZWODVoYU9oZDlSaEw5SDFZMmxlUHFlTGJwRW1kYmE3MjUvNnZlSEI5WGs1TGRvR0oxVUNBZz09Cg==",
+      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.5.0_x64-setup.exe"
     }
   }
 }
