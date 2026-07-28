@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -13,7 +13,7 @@
   <meta name="keywords" content="Nexus changelog, Nexus updates, game launcher release notes, Nexus version history, Nexus patch notes">
   <meta name="author" content="Darren Strydom">
   <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#7600da">
+  <meta name="theme-color" content="#05060e">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
@@ -55,99 +55,115 @@
     gtag('config', 'G-867ZGB0GZY');
   </script>
 
-  <!-- Bootstrap 5.3 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <!-- Pixel type: Silkscreen (display + numerals), Pixelify Sans (UI).
+       Self-hosted — declared in pixel.css, no third-party font CDN. -->
+  <link rel="preload" href="assets/fonts/silkscreen-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/pixelify-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/img/hero-bg.webp" as="image">
 
-  <!-- Geist Sans & Geist Mono (Fontsource CDN) -->
-  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
-
-  <!-- Nexus Obsidian theme v2 -->
-  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <link href="assets/css/pixel.css?v=20260728c" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Scroll progress bar -->
-  <div class="scroll-progress" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- NAVBAR                                          -->
-  <!-- ════════════════════════════════════════════════ -->
-  <nav class="navbar navbar-nexus navbar-expand-md fixed-top" aria-label="Main navigation">
-    <div class="container">
-      <a class="navbar-brand" href="index.html">
-        <span class="brand-icon" aria-hidden="true">
-          <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
-        </span>
-        Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.4.3 · Beta</span>
+<!-- ═══════════════════════════════════════════════════════════
+     PIXEL SPRITE — chrome subset. Entry bullets are pure CSS.
+     ═══════════════════════════════════════════════════════════ -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <symbol id="i-nexus" viewBox="0 0 16 16"><path d="M7 1h2v1h-2zM6 2h1v1h-1zM9 2h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM1 7h1v2h-1zM14 7h1v2h-1zM2 9h1v1h-1zM13 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM7 14h2v1h-2zM7 5h2v1h-2zM6 6h1v1h-1zM9 6h1v1h-1zM5 7h1v2h-1zM10 7h1v2h-1zM6 9h1v1h-1zM9 9h1v1h-1zM7 10h2v1h-2zM7 7h2v2h-2z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 16 16"><path d="M7 1h2v5h-2zM4 6h8v1h-8zM5 7h6v1h-6zM6 8h4v1h-4zM7 9h2v1h-2zM3 12h10v2h-10z"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 16 16"><path d="M7 2h2v7h-2zM4 9h8v1h-8zM5 10h6v1h-6zM6 11h4v1h-4zM7 12h2v2h-2z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 3h12v2h-12zM2 7h12v2h-12zM2 11h12v2h-12z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><path d="M5 2h5v1h-5zM4 3h1v1h-1zM10 3h1v1h-1zM3 4h1v5h-1zM11 4h1v5h-1zM4 9h1v1h-1zM10 9h1v1h-1zM5 10h5v1h-5zM10 10h2v2h-2zM12 12h3v3h-3z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 16 16"><path d="M3 3h3v1h-3zM10 3h3v1h-3zM2 4h5v1h-5zM9 4h5v1h-5zM2 5h12v2h-12zM3 7h10v1h-10zM4 8h8v1h-8zM5 9h6v1h-6zM6 10h4v1h-4zM7 11h2v1h-2z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 16 16"><path d="M2 3h12v1h-12zM2 10h12v1h-12zM2 4h1v6h-1zM13 4h1v6h-1zM5 11h3v2h-3zM5 13h1v1h-1zM5 6h1v1h-1zM7 6h1v1h-1zM9 6h1v1h-1z"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 16 16"><path d="M3 1h8v1h-8zM3 2h1v12h-1zM11 2h1v1h-1zM12 3h1v11h-1zM3 14h10v1h-10zM5 5h6v1h-6zM5 7h6v1h-6zM5 9h4v1h-4z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 16 16"><path d="M5 2h6v1h-6zM4 3h1v4h-1zM11 3h1v4h-1zM3 7h10v1h-10zM3 8h1v6h-1zM12 8h1v6h-1zM3 13h10v1h-10zM7 9h2v3h-2z"/></symbol>
+    <symbol id="i-scales" viewBox="0 0 16 16"><path d="M7 2h2v11h-2zM3 4h10v1h-10zM2 5h2v1h-2zM12 5h2v1h-2zM1 6h1v2h-1zM4 6h1v2h-1zM11 6h1v2h-1zM14 6h1v2h-1zM2 8h2v1h-2zM12 8h2v1h-2zM5 13h6v1h-6z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 16 16"><path d="M8 1h4v6h-4zM4 7h8v2h-8zM4 9h4v6h-4z"/></symbol>
+  </defs>
+</svg>
+
+<!-- CRT shell -->
+<div class="progress" aria-hidden="true"></div>
+<div class="dust" aria-hidden="true"></div>
+<div class="crt-roll" aria-hidden="true"></div>
+<div class="crt-lines" aria-hidden="true"></div>
+<div class="crt-glass" aria-hidden="true"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAV
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="nav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">
+      <svg class="ico ico-24" aria-hidden="true"><use href="#i-nexus"></use></svg>
+      Nexus
+      <span class="brand-ver">v0.4.3 Beta</span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
+      <svg class="ico" aria-hidden="true"><use href="#i-menu"></use></svg>
+    </button>
+
+    <div class="nav-menu" id="nav-menu">
+      <a class="nav-link" href="index.html#features"><span class="sel" aria-hidden="true"></span>Features</a>
+      <a class="nav-link" href="index.html#showcase"><span class="sel" aria-hidden="true"></span>Showcase</a>
+      <a class="nav-link" href="index.html#tech"><span class="sel" aria-hidden="true"></span>Tech</a>
+      <a class="nav-link" href="changelog.html" aria-current="page"><span class="sel" aria-hidden="true"></span>Changelog</a>
+      <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer"><span class="sel" aria-hidden="true"></span>Community</a>
+      <span class="nav-cta">
+        <a class="btn btn--sm" href="index.html#download">
+          <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
+          Get Nexus
+        </a>
+      </span>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER — patch archive terminal
+     ═══════════════════════════════════════════════════════════ -->
+<header class="hero changelog-hero">
+  <div class="hero-bg" aria-hidden="true">
+    <img src="assets/img/hero-bg.webp" alt="" width="1920" height="823"
+         loading="eager" fetchpriority="high" decoding="async">
+    <div class="hero-shade"></div>
+  </div>
+
+  <div class="wrap hero-wrap">
+    <p class="boot">
+      <span data-boot="&gt; NEXUS.LOG — 30 RELEASES ARCHIVED — OK"></span>
+      <span class="caret" aria-hidden="true"></span>
+    </p>
+
+    <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
+    <p class="lede" style="margin-top:var(--s3)">
+      Thirty releases and counting — what's new, what's improved, and what got
+      fixed in each version of Nexus.
+    </p>
+
+    <div class="hero-actions">
+      <a href="releases/Nexus_0.4.3_x64_en-US.msi" class="btn">
+        <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
+        Download v0.4.3
       </a>
-      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
-              aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navMain">
-        <ul class="navbar-nav ms-auto align-items-center gap-1">
-          <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#showcase">Showcase</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#tech">Tech</a></li>
-          <li class="nav-item"><a class="nav-link" href="changelog.html" aria-current="page">Changelog</a></li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
-          </li>
-          <li class="nav-item ms-md-2">
-            <a class="btn-nexus btn-nexus-sm" href="index.html#download">
-              <i data-lucide="download" class="icon-sm"></i>
-              Get Nexus
-            </a>
-          </li>
-        </ul>
-      </div>
+      <a href="#v0.4.3" class="btn btn--ghost">
+        <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
+        Latest · v0.4.3
+      </a>
     </div>
-  </nav>
-
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- CINEMATIC HEADER                                -->
-  <!-- ════════════════════════════════════════════════ -->
-  <header class="changelog-hero">
-    <div class="hero-bg" aria-hidden="true">
-      <div class="hero-mesh"></div>
-      <div class="hero-grid"></div>
-      <div class="hero-fade"></div>
-    </div>
-
-    <div class="container">
-      <div class="changelog-hero-content">
-        <p class="type-eyebrow">Release history</p>
-        <h1 class="type-display">Every patch, in plain English.</h1>
-        <p class="type-body-lg text-muted-foreground">
-          Twenty releases and counting — what's new, what's improved, and what got
-          fixed in each version of Nexus.
-        </p>
-        <div class="changelog-hero-meta">
-          <a href="#v0.4.3" class="changelog-latest-pill">
-            <span class="dot" aria-hidden="true"></span>
-            <span>Latest · v0.4.3</span>
-            <i data-lucide="arrow-down" class="icon-sm"></i>
-          </a>
-          <a href="releases/Nexus_0.4.3_x64_en-US.msi" class="btn-nexus btn-nexus-sm">
-            <i data-lucide="download" class="icon-sm"></i>
-            Download v0.4.3
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
+  </div>
+</header>
 
   <!-- ════════════════════════════════════════════════ -->
   <!-- TWO-COLUMN LAYOUT — RAIL + STREAM               -->
   <!-- ════════════════════════════════════════════════ -->
-  <main>
-    <div class="container">
+  <main id="main">
+    <div class="wrap">
       <div class="changelog-layout">
 
         <!-- Sticky version rail (desktop) -->
@@ -260,23 +276,23 @@
           <!-- Sticky filter toolbar -->
           <div class="changelog-toolbar" role="search" aria-label="Filter changelog">
             <div class="changelog-search">
-              <i data-lucide="search" class="icon-sm changelog-search-icon"></i>
+              <svg class="ico changelog-search-icon" aria-hidden="true"><use href="#i-search"></use></svg>
               <input type="search" data-changelog-search placeholder="Search every release…" aria-label="Search the changelog">
             </div>
-            <div class="filter-pills" role="tablist" aria-label="Filter by change type">
-              <button type="button" class="filter-pill" data-changelog-type="all" aria-pressed="true">All</button>
-              <button type="button" class="filter-pill" data-changelog-type="added" aria-pressed="false">New</button>
-              <button type="button" class="filter-pill" data-changelog-type="changed" aria-pressed="false">Improved</button>
-              <button type="button" class="filter-pill" data-changelog-type="fixed" aria-pressed="false">Fixed</button>
+            <div class="tabs" role="group" aria-label="Filter by change type">
+              <button type="button" class="tab" data-changelog-type="all" aria-pressed="true">All</button>
+              <button type="button" class="tab" data-changelog-type="added" aria-pressed="false">New</button>
+              <button type="button" class="tab" data-changelog-type="changed" aria-pressed="false">Improved</button>
+              <button type="button" class="tab" data-changelog-type="fixed" aria-pressed="false">Fixed</button>
             </div>
           </div>
 
           <!-- Stream of entries -->
-          <div class="changelog-stream mt-4" data-changelog-stream>
+          <div class="changelog-stream" data-changelog-stream>
 
             <div class="changelog-empty">
-              <i data-lucide="search-x" class="icon-lg" style="color: var(--muted-foreground); margin-bottom: var(--space-3);"></i>
-              <p class="type-body" style="margin: 0;">No releases match your filters.</p>
+              <svg class="ico ico-32" aria-hidden="true"><use href="#i-search"></use></svg>
+              <p>No releases match your filters.</p>
             </div>
 
             <!-- ── v0.4.3 (latest) ── -->
@@ -296,9 +312,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="refresh-cw" class="icon-sm"></i>Automatic in-app updates with background download &amp; install</li>
-                  <li><i data-lucide="shield-check" class="icon-sm"></i>Signed releases verified before installation</li>
-                  <li><i data-lucide="bell" class="icon-sm"></i>Update prompt on launch and a refreshed known-issues feed</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Automatic in-app updates with background download &amp; install</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Signed releases verified before installation</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Update prompt on launch and a refreshed known-issues feed</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -336,9 +352,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="palette" class="icon-sm"></i>Full color &amp; font customization with live preview</li>
-                  <li><i data-lucide="layout-grid" class="icon-sm"></i>14 built-in presets plus a random theme generator</li>
-                  <li><i data-lucide="share-2" class="icon-sm"></i>Import &amp; export shareable .nexustheme files</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Full color &amp; font customization with live preview</li>
+                  <li><span class="bullet" aria-hidden="true"></span>14 built-in presets plus a random theme generator</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Import &amp; export shareable .nexustheme files</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -372,9 +388,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="share-2" class="icon-sm"></i>Shareable HTML stats page, zipped with its artwork</li>
-                  <li><i data-lucide="bar-chart-3" class="icon-sm"></i>Full all-games breakdown with play time &amp; completion %</li>
-                  <li><i data-lucide="file-json" class="icon-sm"></i>Data-only JSON export for your own tools</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Shareable HTML stats page, zipped with its artwork</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Full all-games breakdown with play time &amp; completion %</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Data-only JSON export for your own tools</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -406,9 +422,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="square" class="icon-sm"></i>Stop running games from the detail screen</li>
-                  <li><i data-lucide="timer" class="icon-sm"></i>Live elapsed time on active game details</li>
-                  <li><i data-lucide="radio" class="icon-sm"></i>Quieter Twitch EventSub reconnect handling</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Stop running games from the detail screen</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Live elapsed time on active game details</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Quieter Twitch EventSub reconnect handling</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -449,9 +465,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="search" class="icon-sm"></i>HowLongToBeat search works again</li>
-                  <li><i data-lucide="image" class="icon-sm"></i>Richer &ldquo;Your #1 Game&rdquo; Wrapped card</li>
-                  <li><i data-lucide="shield-check" class="icon-sm"></i>Certificate-validation and QUIC DoS patches</li>
+                  <li><span class="bullet" aria-hidden="true"></span>HowLongToBeat search works again</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Richer &ldquo;Your #1 Game&rdquo; Wrapped card</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Certificate-validation and QUIC DoS patches</li>
                 </ul>
 
                 <div class="changelog-category" data-type="fixed">
@@ -498,9 +514,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="calendar-clock" class="icon-sm"></i>HLTB "~N days" alongside each hour estimate</li>
-                  <li><i data-lucide="sliders-horizontal" class="icon-sm"></i>Configurable daily play pace (0.5 – 8 h/day)</li>
-                  <li><i data-lucide="external-link" class="icon-sm"></i>Twitch chat links open in your default browser</li>
+                  <li><span class="bullet" aria-hidden="true"></span>HLTB "~N days" alongside each hour estimate</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Configurable daily play pace (0.5 – 8 h/day)</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Twitch chat links open in your default browser</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -538,9 +554,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="bell" class="icon-sm"></i>Native desktop alerts</li>
-                  <li><i data-lucide="mouse-pointer-click" class="icon-sm"></i>Click-through navigation</li>
-                  <li><i data-lucide="shuffle" class="icon-sm"></i>Cleaner random picks</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Native desktop alerts</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Click-through navigation</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Cleaner random picks</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -587,8 +603,8 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="shield-check" class="icon-sm"></i>Overnight Twitch token refresh</li>
-                  <li><i data-lucide="film" class="icon-sm"></i>Clips open in an in-app pop-out</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Overnight Twitch token refresh</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Clips open in an in-app pop-out</li>
                 </ul>
 
                 <div class="changelog-category" data-type="fixed">
@@ -614,10 +630,10 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="play-circle" class="icon-sm"></i>In-app Twitch stream viewer</li>
-                  <li><i data-lucide="bell" class="icon-sm"></i>Push go-live alerts (EventSub)</li>
-                  <li><i data-lucide="film" class="icon-sm"></i>Top clips per library game</li>
-                  <li><i data-lucide="clock" class="icon-sm"></i>Twitch watch time in Stats &amp; Wrapped</li>
+                  <li><span class="bullet" aria-hidden="true"></span>In-app Twitch stream viewer</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Push go-live alerts (EventSub)</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Top clips per library game</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Twitch watch time in Stats &amp; Wrapped</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -666,9 +682,9 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="sun" class="icon-sm"></i>Light, Dark &amp; System themes</li>
-                  <li><i data-lucide="x-circle" class="icon-sm"></i>Cancel option on close</li>
-                  <li><i data-lucide="refresh-cw" class="icon-sm"></i>Live Stats refresh after sessions</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Light, Dark &amp; System themes</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Cancel option on close</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Live Stats refresh after sessions</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -703,12 +719,12 @@
                 </p>
 
                 <ul class="changelog-highlights" aria-label="Release highlights">
-                  <li><i data-lucide="party-popper" class="icon-sm"></i>Retirement ceremony</li>
-                  <li><i data-lucide="zap" class="icon-sm"></i>XP &amp; level system</li>
-                  <li><i data-lucide="trophy" class="icon-sm"></i>Native achievements</li>
-                  <li><i data-lucide="medal" class="icon-sm"></i>Game mastery tiers</li>
-                  <li><i data-lucide="bell" class="icon-sm"></i>Session milestones</li>
-                  <li><i data-lucide="flame" class="icon-sm"></i>Daily play streak</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Retirement ceremony</li>
+                  <li><span class="bullet" aria-hidden="true"></span>XP &amp; level system</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Native achievements</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Game mastery tiers</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Session milestones</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Daily play streak</li>
                 </ul>
 
                 <div class="changelog-category" data-type="added">
@@ -1281,51 +1297,30 @@
   <!-- ════════════════════════════════════════════════ -->
   <!-- FOOTER                                          -->
   <!-- ════════════════════════════════════════════════ -->
-  <footer class="footer-nexus">
-    <div class="container">
-      <div class="row align-items-center gy-4">
-        <div class="col-md-6">
-          <div class="d-flex align-items-center flex-wrap gap-3">
-            <span class="type-footnote text-muted-foreground">
-              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
-            </span>
-          </div>
-          <span class="footer-built mt-3 d-inline-flex">
-            <span class="dot" aria-hidden="true"></span>
-            Made with Rust + Tauri
-          </span>
-        </div>
-        <div class="col-md-6 text-md-end">
-          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Support this project">
-            <i data-lucide="heart" class="icon-md icon-footer"></i>
-            Support
-          </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Join the community on Discord">
-            <i data-lucide="message-circle" class="icon-md icon-footer"></i>
-            Discord
-          </a>
-          <a href="changelog.html" class="type-footnote me-4" aria-label="Release notes">
-            <i data-lucide="file-text" class="icon-md icon-footer"></i>
-            Changelog
-          </a>
-          <a href="privacy.html" class="type-footnote me-4" aria-label="Privacy Policy">
-            <i data-lucide="shield" class="icon-md icon-footer"></i>
-            Privacy
-          </a>
-          <a href="terms.html" class="type-footnote" aria-label="Terms of Service">
-            <i data-lucide="scale" class="icon-md icon-footer"></i>
-            Terms
-          </a>
-        </div>
+  <footer class="foot">
+    <div class="wrap foot-grid">
+      <div>
+        <p class="foot-note">&copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.</p>
+        <span class="chip chip--amber foot-badge">
+          <svg class="ico" aria-hidden="true"><use href="#i-bolt"></use></svg>
+          Made with Rust + Tauri
+        </span>
       </div>
+      <nav class="foot-links" aria-label="Footer">
+        <a class="foot-link" href="https://paypal.me/darrenstrydom85" target="_blank" rel="noopener noreferrer">
+          <svg class="ico" aria-hidden="true"><use href="#i-heart"></use></svg>Support</a>
+        <a class="foot-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">
+          <svg class="ico" aria-hidden="true"><use href="#i-chat"></use></svg>Discord</a>
+        <a class="foot-link" href="changelog.html" aria-current="page">
+          <svg class="ico" aria-hidden="true"><use href="#i-doc"></use></svg>Changelog</a>
+        <a class="foot-link" href="privacy.html">
+          <svg class="ico" aria-hidden="true"><use href="#i-lock"></use></svg>Privacy</a>
+        <a class="foot-link" href="terms.html">
+          <svg class="ico" aria-hidden="true"><use href="#i-scales"></use></svg>Terms</a>
+      </nav>
     </div>
   </footer>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-
-  <!-- Nexus interactions -->
-  <script src="assets/js/app.js?v=20260423" defer></script>
+<script src="assets/js/pixel.js?v=20260728c" defer></script>
 </body>
 </html>
