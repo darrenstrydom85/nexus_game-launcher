@@ -30,6 +30,18 @@ All paths relative to the repo root (`D:\Development\game-launcher\game-launcher
   - The key **has a password**, stored at `D:\Development\game-launcher\.secrets\nexus_updater_password.txt`.
   - IMPORTANT: this Tauri CLI version **hangs forever** when signing with a *passwordless* key, and the build's signer reads `TAURI_SIGNING_PRIVATE_KEY` (the key **string/contents**), **not** `TAURI_SIGNING_PRIVATE_KEY_PATH`. Always pass the key contents + password via the two env vars in step 6.
 
+> **Encoding warning:** `README.md`, `index.html`, and `changelog.html` are
+> UTF-8 with em dashes and other non-ASCII characters. Windows PowerShell 5.1
+> `Get-Content`/`Set-Content` default to ANSI and will silently mangle them
+> (mojibake like `â€”`). Do NOT bulk-rewrite these files via PowerShell
+> `-replace` pipelines — use the Edit tool for HTML/README changes.
+>
+> Additionally, PS5.1 `Set-Content -Encoding utf8` writes a **BOM**, and a
+> BOM in `package.json` breaks Vite's PostCSS config search (`Unexpected
+> token '﻿' ... is not valid JSON`) which fails the tauri build. Use the
+> Edit tool for the version files too, or write BOM-less via
+> `[System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))`.
+
 ## Steps (in order)
 
 ### 1. Build the project

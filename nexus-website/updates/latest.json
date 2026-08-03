@@ -1,11 +1,11 @@
-﻿{
-    "version":  "0.5.1",
-    "notes":  "Retro Mode: a full DOS-era interface with BIOS boot, CRT effects, ANSI cover art, PC-speaker audio, keyboard-driven stats/queue/collections, and a WRAPPED.EXE year-in-review. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.1",
-    "pub_date":  "2026-08-03T13:38:41Z",
+{
+    "version":  "0.5.2",
+    "notes":  "Fixes Retro Mode\u0027s ANSI cover art showing NO SIGNAL in production builds. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.2",
+    "pub_date":  "2026-08-03T14:36:52Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1dRajgrZnRMcG1LdlRaT2dQN0VXYjREWGNOaUJaVGNDK2o3aEdDVE4yM25vb0x0WGdyZjdrVE1UTGdkNHpLT0tiS3JuMGZjK2tvTFpRWHZIS0lCQmc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NzY0MzAwCWZpbGU6TmV4dXNfMC41LjFfeDY0LXNldHVwLmV4ZQo3OXB3U3p6em4yWU9MV0c1dTFYeSsyR21PYmJBbERma2JGQWNVcTJhYzBzTW9JbFlneG5zT1FtR1RHWklvV2pqM1VNWkdnRUgvOWV1SFowdWFOTENCdz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.1_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FGSnV1d3VFQVEwOFFYOXR1NzNjV3VpckN2azFxMXNrT2ZvaGFSS01KdDRRSE5hWmRmMm00R3NhbUFwYTdMbEVCRGYzMEU2VkVFQm11SEZnR3kyQ0FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NzY3NzkzCWZpbGU6TmV4dXNfMC41LjJfeDY0LXNldHVwLmV4ZQo0NFNYczd6VlV6NUFJWWgvNXpsb2h6akErWlFmVFBnZGxlY0MwY3VVOC9KdDZlNGxlVnNoNVlGS1RkdUZWVUlGYnRrdExHRVBEY1VxNitRR0N2bG1DUT09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.2_x64-setup.exe"
                                          }
                   }
 }
