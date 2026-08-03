@@ -21,6 +21,8 @@ vi.mock("@/lib/tauri", async (importOriginal) => {
     ...actual,
     updateSessionNote: vi.fn(() => Promise.resolve()),
     getPlayQueue: vi.fn(() => Promise.resolve([])),
+    searchMetadata: vi.fn(() => Promise.resolve([])),
+    fetchMetadataWithIgdbId: vi.fn(() => Promise.resolve()),
     getSessionDistribution: vi.fn(() =>
       Promise.resolve({
         buckets: [
@@ -560,6 +562,36 @@ describe("RetroDetail", () => {
       }),
     );
     await waitFor(() => expect(screen.queryByTestId("retro-edit")).not.toBeInTheDocument());
+  });
+
+  it("M opens metadata search; Enter searches then applies the pick", async () => {
+    const { searchMetadata, fetchMetadataWithIgdbId } = await import("@/lib/tauri");
+    vi.mocked(searchMetadata).mockResolvedValue([
+      { id: 7, name: "Alpha Prime", coverUrl: null, releaseDate: 1262304000 },
+      { id: 9, name: "Alpha II", coverUrl: null, releaseDate: null },
+    ]);
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+
+    fireEvent.keyDown(document, { key: "m" });
+    expect(screen.getByTestId("retro-meta")).toBeInTheDocument();
+    expect((screen.getByTestId("retro-meta-input") as HTMLInputElement).value).toBe("Alpha");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(await screen.findByTestId("retro-meta-result-0")).toHaveTextContent("Alpha Prime");
+    expect(screen.getByTestId("retro-meta-result-0")).toHaveTextContent("2010");
+
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    fireEvent.keyDown(document, { key: "Enter" });
+    await waitFor(() => expect(fetchMetadataWithIgdbId).toHaveBeenCalledWith("a", 9, true));
+    await waitFor(() => expect(screen.queryByTestId("retro-meta")).not.toBeInTheDocument());
+  });
+
+  it("R refetches metadata via fetch_metadata", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    fireEvent.keyDown(document, { key: "r" });
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("fetch_metadata", { gameId: "a" }));
   });
 
   it("Esc goes back only when no modal is open", () => {

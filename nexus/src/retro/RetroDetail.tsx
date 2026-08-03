@@ -2,6 +2,8 @@ import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useGameStore, refreshGames, type Game, type GameStatus } from "@/stores/gameStore";
 import { usePerGameSessionStats } from "@/hooks/usePerGameSessionStats";
+import { useToastStore } from "@/stores/toastStore";
+import { searchMetadata, fetchMetadataWithIgdbId, type MetadataSearchResult } from "@/lib/tauri";
 import type { SessionRecord } from "@/types/analytics";
 import { RetroModal } from "./RetroModal";
 import { SOURCE_CODE, STATUS_CODE, STATUS_CYCLE, fmtHours, fmtDate, fmtDur, fmtStars } from "./format";
@@ -22,7 +24,8 @@ type Modal =
   | { type: "status"; sel: number }
   | { type: "rating"; sel: number }
   | { type: "session"; session: SessionRecord }
-  | { type: "edit" };
+  | { type: "edit" }
+  | { type: "meta" };
 
 interface FieldRow {
   label: string;
@@ -63,6 +66,77 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
     setEditExe(g.exePath ?? "");
     setModal({ type: "edit" });
   }, []);
+
+  const [metaQuery, setMetaQuery] = React.useState("");
+  const [metaResults, setMetaResults] = React.useState<MetadataSearchResult[]>([]);
+  const [metaSel, setMetaSel] = React.useState(0);
+  const [metaBusy, setMetaBusy] = React.useState(false);
+  const [metaError, setMetaError] = React.useState<string | null>(null);
+  const metaInputRef = React.useRef<HTMLInputElement>(null);
+
+  const openMeta = React.useCallback((g: Game) => {
+    setMetaQuery(g.name);
+    setMetaResults([]);
+    setMetaSel(0);
+    setMetaError(null);
+    setModal({ type: "meta" });
+  }, []);
+
+  const runMetaSearch = React.useCallback(async () => {
+    const q = metaQuery.trim();
+    if (!q) return;
+    setMetaBusy(true);
+    setMetaError(null);
+    try {
+      const list = await searchMetadata(q);
+      setMetaResults(list);
+      setMetaSel(0);
+      if (list.length === 0) setMetaError("NO RESULTS - TRY ANOTHER QUERY");
+    } catch (err) {
+      setMetaError(err instanceof Error ? err.message : "SEARCH FAILED");
+      setMetaResults([]);
+    } finally {
+      setMetaBusy(false);
+    }
+  }, [metaQuery]);
+
+  const applyMeta = React.useCallback(
+    async (item: MetadataSearchResult) => {
+      setMetaBusy(true);
+      setMetaError(null);
+      try {
+        await fetchMetadataWithIgdbId(gameId, item.id, true);
+        await refreshGames();
+        useToastStore.getState().addToast({ type: "success", message: `Metadata applied: ${item.name}` });
+        setModal(null);
+      } catch (err) {
+        setMetaError(err instanceof Error ? err.message : "FAILED TO APPLY METADATA");
+      } finally {
+        setMetaBusy(false);
+      }
+    },
+    [gameId],
+  );
+
+  const refetchMeta = React.useCallback(
+    async (g: Game) => {
+      const toastId = useToastStore.getState().addToast({
+        type: "info",
+        message: `Refetching metadata for ${g.name}...`,
+        duration: 0,
+      });
+      try {
+        await invoke("fetch_metadata", { gameId: g.id });
+        await refreshGames();
+        useToastStore.getState().removeToast(toastId);
+        useToastStore.getState().addToast({ type: "success", message: `Metadata refreshed: ${g.name}` });
+      } catch {
+        useToastStore.getState().removeToast(toastId);
+        useToastStore.getState().addToast({ type: "error", message: `Metadata refetch failed: ${g.name}` });
+      }
+    },
+    [],
+  );
 
   const saveEdit = React.useCallback(async () => {
     const name = editName.trim();
@@ -197,6 +271,18 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
             }
             break;
           }
+          case "meta": {
+            if (e.key === "Escape") { e.preventDefault(); if (!metaBusy) setModal(null); }
+            else if (metaBusy) { /* ignore keys while a request is in flight */ }
+            else if (e.key === "ArrowDown") { e.preventDefault(); setMetaSel((s) => Math.min(metaResults.length - 1, s + 1)); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setMetaSel((s) => Math.max(0, s - 1)); }
+            else if (e.key === "Enter") {
+              e.preventDefault();
+              if (metaResults.length > 0 && metaResults[metaSel]) applyMeta(metaResults[metaSel]);
+              else runMetaSearch();
+            }
+            break;
+          }
         }
         return;
       }
@@ -223,6 +309,16 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
         case "E":
           e.preventDefault();
           openEdit(game);
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          openMeta(game);
+          break;
+        case "r":
+        case "R":
+          e.preventDefault();
+          refetchMeta(game);
           break;
         case "+":
         case "=":
@@ -282,6 +378,7 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
   }, [
     enabled, game, gameId, modal, section, rowSel, sessSel, sessions,
     infoRows, metaRows, isPlaying, cycleSection, openStatusModal, openEdit, saveEdit, scrollSession,
+    openMeta, refetchMeta, runMetaSearch, applyMeta, metaBusy, metaResults, metaSel,
     onBack, onLaunch, onStop, onSetStatus, onSetRating,
   ]);
 
@@ -458,6 +555,60 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
                 aria-label="Executable path"
               />
             </div>
+          </div>
+        </RetroModal>
+      )}
+
+      {modal?.type === "meta" && (
+        <RetroModal
+          title="SEARCH METADATA (IGDB)"
+          footer={metaResults.length > 0 ? "ARROWS=SELECT | ENTER=APPLY | ESC=CANCEL" : "ENTER=SEARCH | ESC=CANCEL"}
+        >
+          <div data-testid="retro-meta" style={{ minWidth: "52ch" }}>
+            <div style={{ display: "flex" }}>
+              <span style={{ width: "8ch" }}>FIND :</span>
+              <input
+                ref={metaInputRef}
+                data-testid="retro-meta-input"
+                className="retro-input"
+                style={{ flex: 1 }}
+                autoFocus
+                value={metaQuery}
+                onChange={(e) => {
+                  setMetaQuery(e.target.value);
+                  setMetaResults([]);
+                  setMetaError(null);
+                }}
+                onBlur={() => { if (modal?.type === "meta") metaInputRef.current?.focus(); }}
+                aria-label="Metadata search query"
+              />
+            </div>
+            <div style={{ borderTop: "1px solid #000", margin: "2px 0" }} />
+            {metaBusy ? (
+              <div className="retro-blink">WORKING...</div>
+            ) : metaError ? (
+              <div data-testid="retro-meta-error">{metaError}</div>
+            ) : metaResults.length === 0 ? (
+              <div>TYPE QUERY, PRESS ENTER TO SEARCH</div>
+            ) : (
+              <div className="retro-scroll" style={{ maxHeight: "12em" }}>
+                {metaResults.map((item, i) => (
+                  <div
+                    key={item.id}
+                    data-testid={`retro-meta-result-${i}`}
+                    className={i === metaSel ? "retro-row retro-row-selected" : "retro-row"}
+                    style={{ padding: 0 }}
+                    onMouseDown={() => setMetaSel(i)}
+                    onDoubleClick={() => applyMeta(item)}
+                  >
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</span>
+                    <span style={{ width: "6ch", textAlign: "right" }}>
+                      {item.releaseDate != null ? new Date(item.releaseDate * 1000).getFullYear() : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </RetroModal>
       )}
