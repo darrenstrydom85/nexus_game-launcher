@@ -15,6 +15,7 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { beep, floppySeek } from "./beep";
 import { RetroBoot } from "./RetroBoot";
 import { RetroScreensaver } from "./RetroScreensaver";
+import { RetroFireworks } from "./RetroFireworks";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import type { LaunchResult } from "@/lib/launcher";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
@@ -101,6 +102,7 @@ export function RetroApp({
   const [saverActive, setSaverActive] = React.useState(false);
   const [launchError, setLaunchError] = React.useState<{ game: Game; message: string } | null>(null);
   const [randomGame, setRandomGame] = React.useState<Game | null>(null);
+  const [fireworks, setFireworks] = React.useState(false);
   const retroCrt = useSettingsStore((s) => s.retroCrt);
 
   const pickRandom = React.useCallback((): Game | null => {
@@ -150,6 +152,29 @@ export function RetroApp({
 
   // PC-speaker key beeps: one listener, independent of the key handlers.
   const soundsEnabled = useSettingsStore((s) => s.retroSounds);
+
+  // Konami code in the library: up up down down left right left right B A.
+  // Passive listener — never consumes keys, just watches the tail.
+  const konamiRef = React.useRef<string[]>([]);
+  const screenName = screen.name;
+  React.useEffect(() => {
+    const SEQ = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
+    const h = (e: KeyboardEvent) => {
+      if (screenName !== "library" || !booted) return;
+      const buf = konamiRef.current;
+      buf.push(e.key.toLowerCase());
+      if (buf.length > SEQ.length) buf.shift();
+      if (buf.length === SEQ.length && buf.every((k, i) => k === SEQ[i])) {
+        konamiRef.current = [];
+        if (useSettingsStore.getState().retroSounds) {
+          beep(523, 80); setTimeout(() => beep(659, 80), 90); setTimeout(() => beep(784, 120), 180);
+        }
+        setFireworks(true);
+      }
+    };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [screenName, booted]);
 
   // Floppy-seek grind when a source rescan kicks off.
   const prevSyncingRef = React.useRef(isSyncing);
@@ -503,6 +528,7 @@ export function RetroApp({
         <RetroSessionNote />
         <RetroUpdatePrompt />
         {saverActive && <RetroScreensaver />}
+        {fireworks && <RetroFireworks onDone={() => setFireworks(false)} />}
       </div>
     </div>
   );

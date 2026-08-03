@@ -391,6 +391,22 @@ describe("RetroApp shell", () => {
     }
   });
 
+  it("Konami code in the library triggers fireworks; any key ends them", () => {
+    render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    skipBoot();
+    const seq = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+    for (const key of seq) fireEvent.keyDown(screen.getByTestId("retro-search"), { key });
+    expect(screen.getByTestId("retro-fireworks")).toHaveTextContent("CHEAT ACTIVATED");
+
+    fireEvent.keyDown(document, { key: "x" });
+    expect(screen.queryByTestId("retro-fireworks")).not.toBeInTheDocument();
+  });
+
   it("applies the CRT effect class when enabled", () => {
     useSettingsStore.setState({ retroCrt: true });
     const { container } = render(
