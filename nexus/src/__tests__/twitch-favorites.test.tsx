@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import { TwitchPanel } from "@/components/Twitch/TwitchPanel";
 import { StreamCard } from "@/components/Twitch/StreamCard";
-import { OfflineChannelRow } from "@/components/Twitch/OfflineChannelRow";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { useGameStore } from "@/stores/gameStore";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -158,7 +163,10 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     await waitFor(() => {
       expect(screen.getByText("Live Now")).toBeInTheDocument();
     });
-    const starButton = screen.getByRole("button", {
+    // The favorite star appears both on the rail row and the grid card; scope
+    // to the sidebar to act on a single, unambiguous control.
+    const sidebar = within(screen.getByTestId("twitch-sidebar"));
+    const starButton = sidebar.getByRole("button", {
       name: /Add Streamer1 to favorites/i,
     });
     expect(starButton).toHaveAttribute("aria-pressed", "false");
@@ -171,7 +179,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /Remove Streamer1 from favorites/i }),
+        sidebar.getByRole("button", {
+          name: /Remove Streamer1 from favorites/i,
+        }),
       ).toHaveAttribute("aria-pressed", "true");
     });
   });
@@ -214,11 +224,19 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     await waitFor(() => {
       expect(screen.getByText("Live Now")).toBeInTheDocument();
     });
-    expect(screen.getByText("Streamer1")).toBeInTheDocument();
+    // Streamer names render across the sidebar and the main pane.
+    expect(screen.getAllByText("Streamer1").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Other Game").length).toBeGreaterThan(0);
+    // The favorite star lives on each channel row in the sidebar; scope there
+    // to avoid colliding with the StreamCard star in the main grid.
+    const sidebar = within(screen.getByTestId("twitch-sidebar"));
     // Favorited streamer has Remove button (aria-pressed true), non-favorited has Add button
-    expect(screen.getByRole("button", { name: /Remove Streamer1 from favorites/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Add Streamer3 to favorites/i })).toHaveAttribute("aria-pressed", "false");
+    expect(
+      sidebar.getByRole("button", { name: /Remove Streamer1 from favorites/i }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      sidebar.getByRole("button", { name: /Add Streamer3 to favorites/i }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 
   it("favorited offline channels sort to top", async () => {
@@ -251,24 +269,21 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
       return Promise.resolve({});
     });
     renderWithTooltip(<TwitchPanel />);
-    await waitFor(() => {
-      expect(screen.getByText("Offline")).toBeInTheDocument();
+    const offlineButton = await screen.findByRole("button", {
+      name: /offline/i,
     });
-    const offlineButton = screen.getByRole("button", { name: /offline/i });
     fireEvent.click(offlineButton);
     await waitFor(() => {
       expect(screen.getByText("Alpha")).toBeInTheDocument();
       expect(screen.getByText("Beta")).toBeInTheDocument();
     });
-    const rows = screen.getAllByRole("link");
-    const alphaRow = rows.find((r) => r.textContent?.includes("Alpha"));
-    const betaRow = rows.find((r) => r.textContent?.includes("Beta"));
-    expect(alphaRow).toBeDefined();
-    expect(betaRow).toBeDefined();
-    const container = offlineButton.closest("section");
-    const text = container?.textContent ?? "";
+    // Favorited (Alpha) sorts above non-favorited (Beta) within the rail.
+    const sidebar = screen.getByTestId("twitch-sidebar");
+    const text = sidebar.textContent ?? "";
     const alphaIdx = text.indexOf("Alpha");
     const betaIdx = text.indexOf("Beta");
+    expect(alphaIdx).toBeGreaterThanOrEqual(0);
+    expect(betaIdx).toBeGreaterThanOrEqual(0);
     expect(alphaIdx).toBeLessThan(betaIdx);
   });
 
@@ -327,10 +342,9 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
       return Promise.resolve({});
     });
     renderWithTooltip(<TwitchPanel />);
-    await waitFor(() => {
-      expect(screen.getByText("Offline")).toBeInTheDocument();
+    const offlineButton = await screen.findByRole("button", {
+      name: /offline/i,
     });
-    const offlineButton = screen.getByRole("button", { name: /offline/i });
     fireEvent.click(offlineButton);
     await waitFor(() => {
       expect(screen.getByText("User20")).toBeInTheDocument();
@@ -374,7 +388,8 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
     await waitFor(() => {
       expect(screen.getByText("Live Now")).toBeInTheDocument();
     });
-    const star = screen.getByRole("button", {
+    const sidebar = within(screen.getByTestId("twitch-sidebar"));
+    const star = sidebar.getByRole("button", {
       name: /Remove Streamer1 from favorites/i,
     });
     expect(star).toHaveAttribute("aria-pressed", "true");
@@ -382,28 +397,52 @@ describe("Story 19.7: Streamer Favorites & Pinning", () => {
   });
 });
 
-describe("Story 19.7: OfflineChannelRow favorites", () => {
-  it("shows Add to favorites when not favorited", () => {
-    const ch = mockChannelOffline({ displayName: "OfflineUser", isFavorite: false });
-    renderWithTooltip(
-      <OfflineChannelRow channel={ch} onToggleFavorite={vi.fn()} />,
-    );
-    const addButton = screen.getByRole("button", {
+describe("Story 19.7: TwitchChannelRow favorites (sidebar)", () => {
+  it("shows Add to favorites when not favorited", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token" || cmd === "twitch_auth_status") {
+        return Promise.resolve({ authenticated: true });
+      }
+      if (cmd === "get_twitch_followed_channels") {
+        return Promise.resolve({
+          data: [mockChannelOffline({ displayName: "OfflineUser", isFavorite: false })],
+          stale: false,
+          cachedAt: null,
+        });
+      }
+      return Promise.resolve({});
+    });
+    renderWithTooltip(<TwitchPanel />);
+    const offlineButton = await screen.findByRole("button", {
+      name: /offline/i,
+    });
+    fireEvent.click(offlineButton);
+    const addButton = await screen.findByRole("button", {
       name: /Add OfflineUser to favorites/i,
     });
     expect(addButton).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("shows Remove from favorites when favorited", () => {
-    const ch = mockChannelOffline({ displayName: "OfflineUser" });
-    renderWithTooltip(
-      <OfflineChannelRow
-        channel={ch}
-        isFavorite={true}
-        onToggleFavorite={vi.fn()}
-      />,
-    );
-    const removeButton = screen.getByRole("button", {
+  it("shows Remove from favorites when favorited", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "validate_twitch_token" || cmd === "twitch_auth_status") {
+        return Promise.resolve({ authenticated: true });
+      }
+      if (cmd === "get_twitch_followed_channels") {
+        return Promise.resolve({
+          data: [mockChannelOffline({ displayName: "OfflineUser", isFavorite: true })],
+          stale: false,
+          cachedAt: null,
+        });
+      }
+      return Promise.resolve({});
+    });
+    renderWithTooltip(<TwitchPanel />);
+    const offlineButton = await screen.findByRole("button", {
+      name: /offline/i,
+    });
+    fireEvent.click(offlineButton);
+    const removeButton = await screen.findByRole("button", {
       name: /Remove OfflineUser from favorites/i,
     });
     expect(removeButton).toHaveAttribute("aria-pressed", "true");

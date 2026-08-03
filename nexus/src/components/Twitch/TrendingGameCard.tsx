@@ -12,9 +12,16 @@ const TWITCH_DIRECTORY_BASE = "https://twitch.tv/directory/game/";
 export interface TrendingGameCardProps {
   game: TrendingLibraryGame;
   className?: string;
+  /** When true, the card fills its container (for grid layouts) instead of
+   *  the fixed 80px poster width used in the horizontal rail. */
+  fluid?: boolean;
 }
 
-export function TrendingGameCard({ game, className }: TrendingGameCardProps) {
+export function TrendingGameCard({
+  game,
+  className,
+  fluid = false,
+}: TrendingGameCardProps) {
   const setDetailOverlayGameId = useUiStore((s) => s.setDetailOverlayGameId);
   const games = useGameStore((s) => s.games);
   const libraryGame = React.useMemo(
@@ -50,7 +57,8 @@ export function TrendingGameCard({ game, className }: TrendingGameCardProps) {
     <article
       role="listitem"
       className={cn(
-        "flex w-[80px] shrink-0 cursor-pointer flex-col overflow-hidden rounded-md border border-border bg-card transition-[transform,box-shadow] duration-200 hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+        "flex cursor-pointer flex-col overflow-hidden rounded-md border border-border bg-card transition-[transform,box-shadow] duration-200 hover:ring-1 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+        fluid ? "w-full" : "w-[80px] shrink-0",
         className,
       )}
       style={{ scrollSnapAlign: "start" }}
@@ -61,7 +69,7 @@ export function TrendingGameCard({ game, className }: TrendingGameCardProps) {
       <div className="relative w-full shrink-0 overflow-hidden rounded-t-md bg-muted">
         <div
           className="relative w-full bg-muted"
-          style={{ aspectRatio: "2/3", width: 80 }}
+          style={fluid ? { aspectRatio: "2/3" } : { aspectRatio: "2/3", width: 80 }}
         >
           {coverUrl ? (
             <img
@@ -98,19 +106,30 @@ export function TrendingGameCard({ game, className }: TrendingGameCardProps) {
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-0.5 p-1.5">
+      <div className={cn("flex flex-col gap-0.5", fluid ? "p-2.5" : "p-1.5")}>
         <p
-          className="truncate text-[11px] font-medium leading-tight text-foreground"
+          className={cn(
+            "truncate font-medium leading-tight text-foreground",
+            fluid ? "text-sm" : "text-[11px]",
+          )}
           title={game.gameName}
         >
           {game.gameName}
         </p>
         <p
-          className="text-[11px] tabular-nums text-muted-foreground"
+          className={cn(
+            "tabular-nums text-muted-foreground",
+            fluid ? "text-xs" : "text-[11px]",
+          )}
           aria-label={`${formatViewerCount(game.twitchViewerCount)} viewers`}
         >
           {formatViewerCount(game.twitchViewerCount)} viewers
         </p>
+        {fluid && (
+          <p className="text-xs tabular-nums text-muted-foreground">
+            {formatViewerCount(game.twitchStreamCount)} live
+          </p>
+        )}
       </div>
     </article>
   );
