@@ -136,24 +136,24 @@
 
   <div class="wrap hero-wrap">
     <p class="boot">
-      <span data-boot="&gt; NEXUS.LOG — 32 RELEASES ARCHIVED — OK"></span>
+      <span data-boot="&gt; NEXUS.LOG — 33 RELEASES ARCHIVED — OK"></span>
       <span class="caret" aria-hidden="true"></span>
     </p>
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty-two releases and counting — what's new, what's improved, and what
+      Thirty-three releases and counting — what's new, what's improved, and what
       got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.5.1_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_0.5.2_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.5.1
+        Download v0.5.2
       </a>
-      <a href="#v0.5.1" class="btn btn--ghost">
+      <a href="#v0.5.2" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.5.1
+        Latest · v0.5.2
       </a>
     </div>
   </div>
@@ -169,7 +169,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.5.1">
+          <a class="changelog-rail-link is-latest" href="#v0.5.2">
+            <span class="changelog-rail-version">v0.5.2</span>
+            <span class="changelog-rail-date">Aug 3</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.1">
             <span class="changelog-rail-version">v0.5.1</span>
             <span class="changelog-rail-date">Aug 3</span>
           </a>
@@ -305,11 +309,36 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.5.1 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.5.1">
+            <!-- ── v0.5.2 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.5.2">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.2</h2>
+                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A quick patch for Retro Mode's ANSI cover art. Production
+                  builds were blocking the dither pipeline's image loading, so
+                  covers showed a NO SIGNAL card instead of art — dev builds
+                  were unaffected, which is how it slipped through. Covers now
+                  render correctly in the released app.
+                </p>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>ANSI cover art</strong> &mdash; The dithered cover pipeline now loads images correctly in production builds; covers no longer fall back to NO SIGNAL.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.1 ── -->
+            <article class="changelog-entry" id="v0.5.1">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.1</h2>
-                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
