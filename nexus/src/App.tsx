@@ -623,23 +623,17 @@ function MainApp() {
   const retroMode = useSettingsStore((s) => s.retroMode);
   if (retroMode) {
     return (
-      <>
-        <RetroApp
-          onExit={() => useSettingsStore.getState().setRetroMode(false)}
-          onLaunch={(game) => { launch(game); }}
-          onStop={handleStopActiveGame}
-          onResync={handleResync}
-          isSyncing={isSyncing}
-          onSetStatus={handleLibrarySetStatus}
-          onSetRating={handleLibrarySetRating}
-          onProcessSelected={handleProcessSelected}
-          onCancelProcessPicker={handleProcessPickerCancel}
-        />
-        {/* Modern-styled overlays kept for function over vibe (launch errors,
-            session notes). Retro-skin them in a later phase. */}
-        <SessionNotePromptWrapper />
-        <ToastNotifications />
-      </>
+      <RetroApp
+        onExit={() => useSettingsStore.getState().setRetroMode(false)}
+        onLaunch={(game) => { launch(game); }}
+        onStop={handleStopActiveGame}
+        onResync={handleResync}
+        isSyncing={isSyncing}
+        onSetStatus={handleLibrarySetStatus}
+        onSetRating={handleLibrarySetRating}
+        onProcessSelected={handleProcessSelected}
+        onCancelProcessPicker={handleProcessPickerCancel}
+      />
     );
   }
 

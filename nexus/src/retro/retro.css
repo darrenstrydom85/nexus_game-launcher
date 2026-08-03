@@ -226,6 +226,37 @@
   color: var(--vga-white);
 }
 
+/* ── Toasts ─────────────────────────────────────────────── */
+
+.retro-toast-stack {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.retro-toast {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  border: 2px solid var(--vga-black);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 0 8px;
+  max-width: 60ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.retro-toast-action {
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
 /* ── Inputs ─────────────────────────────────────────────── */
 
 .retro-input {

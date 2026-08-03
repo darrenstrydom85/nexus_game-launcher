@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RetroLibrary } from "@/retro/RetroLibrary";
 import { RetroApp } from "@/retro/RetroApp";
 import { RetroDetail } from "@/retro/RetroDetail";
+import { RetroToasts } from "@/retro/RetroToasts";
+import { RetroSessionNote } from "@/retro/RetroSessionNote";
 import { AppearanceSettings } from "@/components/Settings/AppearanceSettings";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useToastStore } from "@/stores/toastStore";
+import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { fmtStars, fmtDate, fmtClock, fmtDur } from "@/retro/format";
 import { hexToHsl, retroPalette } from "@/retro/palette";
 
@@ -14,6 +18,7 @@ vi.mock("@/lib/tauri", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/tauri")>();
   return {
     ...actual,
+    updateSessionNote: vi.fn(() => Promise.resolve()),
     getPerGameSessionStats: vi.fn(() =>
       Promise.resolve({
         sessions: [
@@ -361,6 +366,63 @@ describe("RetroDetail", () => {
     expect(onBack).not.toHaveBeenCalled();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("RetroToasts", () => {
+  beforeEach(() => {
+    useToastStore.getState().clearToasts();
+  });
+
+  it("renders tagged toasts; click dismisses; action fires", () => {
+    const action = vi.fn();
+    render(<RetroToasts />);
+    act(() => {
+      useToastStore.getState().addToast({ type: "error", message: "launch failed", duration: 0 });
+      useToastStore.getState().addToast({
+        type: "warning",
+        message: "3 games missing",
+        duration: 0,
+        action: { label: "Review", onClick: action },
+      });
+    });
+
+    expect(screen.getByTestId("retro-toast-error")).toHaveTextContent("[ERR] launch failed");
+    fireEvent.click(screen.getByTestId("retro-toast-action"));
+    expect(action).toHaveBeenCalled();
+    expect(screen.queryByTestId("retro-toast-warning")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("retro-toast-error"));
+    expect(useToastStore.getState().toasts).toHaveLength(0);
+  });
+});
+
+describe("RetroSessionNote", () => {
+  it("prompts on queued session; Enter saves note and dequeues", async () => {
+    useSettingsStore.setState({ sessionNotePromptEnabled: true, sessionNotePromptTimeout: 0 });
+    render(<RetroSessionNote />);
+    act(() => {
+      useSessionNoteStore.getState().enqueue({ sessionId: "s9", gameName: "Alpha", durationS: 3600 });
+    });
+
+    expect(screen.getByTestId("retro-session-note")).toHaveTextContent("Alpha");
+    const input = screen.getByTestId("retro-session-note-input");
+    fireEvent.change(input, { target: { value: "beat the boss" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    const { updateSessionNote } = await import("@/lib/tauri");
+    await waitFor(() => expect(updateSessionNote).toHaveBeenCalledWith("s9", "beat the boss"));
+    expect(useSessionNoteStore.getState().queue).toHaveLength(0);
+  });
+
+  it("Esc skips without saving", () => {
+    useSettingsStore.setState({ sessionNotePromptEnabled: true, sessionNotePromptTimeout: 0 });
+    render(<RetroSessionNote />);
+    act(() => {
+      useSessionNoteStore.getState().enqueue({ sessionId: "s10", gameName: "Beta", durationS: 60 });
+    });
+    fireEvent.keyDown(screen.getByTestId("retro-session-note-input"), { key: "Escape" });
+    expect(useSessionNoteStore.getState().queue).toHaveLength(0);
   });
 });
 
