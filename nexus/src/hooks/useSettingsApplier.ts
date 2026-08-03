@@ -3,6 +3,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useUiStore, type ViewMode, type SortField } from "@/stores/uiStore";
 import { applyThemeClassToDocument, resolveEffectiveTheme } from "@/lib/theme";
 import { applyAccentOnly, applyCustomTheme, clearCustomTheme } from "@/lib/themeApply";
+import { pushEmbedTheme } from "@/lib/embedTheme";
 
 /**
  * Subscribes to settingsStore and applies visual/UI preferences to the DOM
@@ -32,6 +33,9 @@ export function useSettingsApplier() {
         clearCustomTheme();
         applyAccentOnly(accentColor);
       }
+      // Mirror the freshly-applied theme into spawned Twitch windows so any
+      // pop-out / clip opened afterwards matches the current colors.
+      pushEmbedTheme();
     };
     apply();
     if (theme !== "system") return;

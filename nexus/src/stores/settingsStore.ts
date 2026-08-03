@@ -83,6 +83,16 @@ export interface SettingsState {
    * calendar-style "~N days" figure on the game detail page. Default 1.5.
    */
   hltbHoursPerDay: number;
+  /** Old-school DOS text-mode UI (nexus-old-school). Same data, different shell. */
+  retroMode: boolean;
+  /** Retro mode theme preset id (see RETRO_THEMES). Independent of the modern theme. */
+  retroTheme: string;
+  /** Retro mode: PC-speaker key beeps. Default on. */
+  retroSounds: boolean;
+  /** Retro mode: CRT flicker + phosphor glow. Default off. */
+  retroCrt: boolean;
+  /** Retro mode: ANSI-dithered cover art in the title view. Default off (pure text). */
+  retroCoverArt: boolean;
   _hydrated: boolean;
 }
 
@@ -132,6 +142,11 @@ export interface SettingsActions {
   setAchievementSoundsEnabled: (value: boolean) => void;
   setRetirementCeremonyEnabled: (value: boolean) => void;
   setHltbHoursPerDay: (value: number) => void;
+  setRetroMode: (value: boolean) => void;
+  setRetroTheme: (id: string) => void;
+  setRetroSounds: (value: boolean) => void;
+  setRetroCrt: (value: boolean) => void;
+  setRetroCoverArt: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -193,6 +208,11 @@ const initialState: SettingsState = {
   achievementSoundsEnabled: true,
   retirementCeremonyEnabled: true,
   hltbHoursPerDay: 1.5,
+  retroMode: false,
+  retroTheme: "classic",
+  retroSounds: true,
+  retroCrt: false,
+  retroCoverArt: false,
   _hydrated: false,
 };
 
@@ -316,6 +336,21 @@ export const useSettingsStore = create<SettingsStore>()(
               if (Number.isFinite(n) && n > 0) {
                 patch.hltbHoursPerDay = clampHltbHoursPerDay(n);
               }
+            }
+            if (settings.retro_mode !== undefined) {
+              patch.retroMode = settings.retro_mode === "true";
+            }
+            if (settings.retro_theme) {
+              patch.retroTheme = settings.retro_theme;
+            }
+            if (settings.retro_sounds !== undefined) {
+              patch.retroSounds = settings.retro_sounds === "true";
+            }
+            if (settings.retro_crt !== undefined) {
+              patch.retroCrt = settings.retro_crt === "true";
+            }
+            if (settings.retro_cover_art !== undefined) {
+              patch.retroCoverArt = settings.retro_cover_art === "true";
             }
 
             set(patch, false, "loadFromBackend");
@@ -542,8 +577,39 @@ export const useSettingsStore = create<SettingsStore>()(
           persistSetting("hltb_hours_per_day", String(clamped));
           set({ hltbHoursPerDay: clamped }, false, "setHltbHoursPerDay");
         },
+        setRetroMode: (value) => {
+          persistSetting("retro_mode", String(value));
+          set({ retroMode: value }, false, "setRetroMode");
+        },
+        setRetroTheme: (id) => {
+          persistSetting("retro_theme", id);
+          set({ retroTheme: id }, false, "setRetroTheme");
+        },
+        setRetroSounds: (value) => {
+          persistSetting("retro_sounds", String(value));
+          set({ retroSounds: value }, false, "setRetroSounds");
+        },
+        setRetroCrt: (value) => {
+          persistSetting("retro_crt", String(value));
+          set({ retroCrt: value }, false, "setRetroCrt");
+        },
+        setRetroCoverArt: (value) => {
+          persistSetting("retro_cover_art", String(value));
+          set({ retroCoverArt: value }, false, "setRetroCoverArt");
+        },
       }),
-      { name: "nexus-settings" },
+      {
+        name: "nexus-settings",
+        version: 1,
+        // v0 -> v1: retroSounds default flipped to on. Earlier builds
+        // persisted the old `false` default even when the user never chose
+        // it, so migrate it to the new default once.
+        migrate: (persisted, version) => {
+          const state = persisted as Partial<SettingsState>;
+          if (version === 0) state.retroSounds = true;
+          return state as SettingsState & SettingsActions;
+        },
+      },
     ),
     { name: "SettingsStore", enabled: import.meta.env.DEV },
   ),

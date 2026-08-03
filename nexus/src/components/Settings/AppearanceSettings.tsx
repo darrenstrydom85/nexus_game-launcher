@@ -24,6 +24,8 @@ export function AppearanceSettings() {
   const setXpNotifications = useSettingsStore((s) => s.setXpNotificationsEnabled);
   const milestoneNotifications = useSettingsStore((s) => s.milestoneNotificationsEnabled);
   const setMilestoneNotifications = useSettingsStore((s) => s.setMilestoneNotificationsEnabled);
+  const retroMode = useSettingsStore((s) => s.retroMode);
+  const setRetroMode = useSettingsStore((s) => s.setRetroMode);
 
   return (
     <section data-testid="appearance-settings">
@@ -93,6 +95,21 @@ export function AppearanceSettings() {
             className="size-4 rounded border-border"
           />
         </label>
+
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-foreground">Old-School Mode (DOS)</span>
+          <input
+            data-testid="pref-retro-mode"
+            type="checkbox"
+            checked={retroMode}
+            onChange={() => setRetroMode(!retroMode)}
+            className="size-4 rounded border-border"
+            aria-describedby="retro-mode-desc"
+          />
+        </label>
+        <p id="retro-mode-desc" className="text-xs text-muted-foreground">
+          Text-mode launcher straight out of 1992. Same library, same data — press F9 inside to find your way back.
+        </p>
 
         <div className="flex flex-col gap-2 rounded-lg border border-border/60 p-3">
           <label className="flex items-center justify-between">

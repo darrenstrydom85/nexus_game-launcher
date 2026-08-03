@@ -1,0 +1,317 @@
+/*
+ * nexus-old-school — DOS text-mode skin.
+ * VGA 16-color palette, VT323 bitmap-style font, box-drawing chrome.
+ * Deliberately NOT Tailwind: plain CSS keeps the retro tree independent
+ * of the modern theme system.
+ */
+
+:root {
+  --vga-black: #000000;
+  --vga-blue: #0000aa;
+  --vga-green: #00aa00;
+  --vga-cyan: #00aaaa;
+  --vga-red: #aa0000;
+  --vga-magenta: #aa00aa;
+  --vga-brown: #aa5500;
+  --vga-lgray: #aaaaaa;
+  --vga-dgray: #555555;
+  --vga-bblue: #5555ff;
+  --vga-bgreen: #55ff55;
+  --vga-bcyan: #55ffff;
+  --vga-bred: #ff5555;
+  --vga-bmagenta: #ff55ff;
+  --vga-yellow: #ffff55;
+  --vga-white: #ffffff;
+}
+
+.retro-root {
+  font-family: "VT323", "IBM Plex Mono", monospace;
+  font-size: 20px;
+  line-height: 1.15;
+  background: var(--vga-black);
+  color: var(--vga-lgray);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.retro-screen {
+  background: var(--vga-blue);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 2px 4px;
+}
+
+/* Subtle CRT scanlines over everything */
+.retro-scanlines {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.12) 0px,
+    rgba(0, 0, 0, 0.12) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ── Panels ─────────────────────────────────────────────── */
+
+.retro-panel {
+  border: 3px double var(--vga-bcyan);
+  padding: 2px 8px;
+  color: var(--vga-bcyan);
+}
+
+.retro-panel-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--vga-bcyan);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Tab-focused section: bright border + inverse header, Turbo Vision style */
+.retro-panel-focused {
+  border-color: var(--vga-white);
+}
+
+.retro-panel-focused > .retro-panel-header {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+}
+
+.retro-panel-title {
+  color: var(--vga-white);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.retro-label {
+  color: var(--vga-bcyan);
+}
+
+.retro-value {
+  color: var(--vga-white);
+}
+
+.retro-dim {
+  color: var(--vga-lgray);
+}
+
+.retro-accent {
+  color: var(--vga-yellow);
+}
+
+.retro-good {
+  color: var(--vga-bgreen);
+}
+
+.retro-bad {
+  color: var(--vga-bred);
+}
+
+/* ── Rows / lists ───────────────────────────────────────── */
+
+.retro-row {
+  display: flex;
+  gap: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0 4px;
+  color: var(--vga-lgray);
+}
+
+.retro-row-selected {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+}
+
+.retro-row-selected .retro-value,
+.retro-row-selected .retro-label,
+.retro-row-selected .retro-dim,
+.retro-row-selected .retro-accent,
+.retro-row-selected .retro-good,
+.retro-row-selected .retro-bad {
+  color: var(--vga-black);
+}
+
+.retro-th {
+  color: var(--vga-bcyan);
+  border-bottom: 1px solid var(--vga-bcyan);
+  padding: 0 4px;
+  display: flex;
+  white-space: nowrap;
+}
+
+/* ── Bars ───────────────────────────────────────────────── */
+
+.retro-titlebar {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  padding: 0 8px;
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.retro-fkey-bar {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  padding: 0 8px;
+  display: flex;
+  gap: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.retro-fkey-bar b,
+.retro-titlebar b {
+  font-weight: normal;
+  color: var(--vga-white);
+  background: var(--vga-black);
+  padding: 0 4px;
+}
+
+.retro-statusline {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  padding: 0 8px;
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap;
+}
+
+/* ── Popups (the teal "customer not on file" style box) ─── */
+
+.retro-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.retro-popup {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  border: 3px double var(--vga-black);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.6);
+  padding: 4px 12px;
+  min-width: 40ch;
+  max-width: 80ch;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-transform: uppercase;
+  font-family: inherit;
+}
+
+.retro-popup .retro-row-selected {
+  background: var(--vga-black);
+  color: var(--vga-bcyan);
+}
+
+.retro-popup .retro-row-selected .retro-value {
+  color: var(--vga-white);
+}
+
+/* ── Toasts ─────────────────────────────────────────────── */
+
+.retro-toast-stack {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.retro-toast {
+  background: var(--vga-cyan);
+  color: var(--vga-black);
+  border: 2px solid var(--vga-black);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 0 8px;
+  max-width: 60ch;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.retro-toast-action {
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+/* ── Inputs ─────────────────────────────────────────────── */
+
+.retro-input {
+  font-family: inherit;
+  font-size: inherit;
+  background: var(--vga-black);
+  color: var(--vga-white);
+  border: none;
+  outline: none;
+  padding: 0 4px;
+  text-transform: uppercase;
+  caret-color: var(--vga-white);
+}
+
+.retro-input::placeholder {
+  color: var(--vga-dgray);
+}
+
+/* ── CRT extras (optional, SETUP toggle) ────────────────── */
+
+@keyframes retro-flicker {
+  0% { opacity: 1; }
+  50% { opacity: 0.965; }
+  100% { opacity: 1; }
+}
+
+.retro-crt {
+  animation: retro-flicker 0.15s infinite;
+}
+
+.retro-crt .retro-screen *,
+.retro-crt .retro-titlebar,
+.retro-crt .retro-statusline,
+.retro-crt .retro-fkey-bar {
+  text-shadow: 0 0 3px currentColor;
+}
+
+/* ── Cursor blink ───────────────────────────────────────── */
+
+@keyframes retro-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.retro-blink {
+  animation: retro-blink 1s steps(1) infinite;
+}
+
+/* ── Scrollable regions: hide scrollbars, keyboard drives ── */
+
+.retro-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.retro-scroll::-webkit-scrollbar {
+  display: none;
+}
