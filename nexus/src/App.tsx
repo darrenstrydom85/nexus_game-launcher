@@ -633,7 +633,7 @@ function MainApp() {
     return (
       <RetroApp
         onExit={() => useSettingsStore.getState().setRetroMode(false)}
-        onLaunch={(game) => { launch(game); }}
+        onLaunch={launchGame}
         onStop={handleStopActiveGame}
         onResync={handleResync}
         isSyncing={isSyncing}

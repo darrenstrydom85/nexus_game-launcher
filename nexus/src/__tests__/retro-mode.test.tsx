@@ -305,6 +305,28 @@ describe("RetroApp shell", () => {
     useSettingsStore.setState({ retroTheme: "classic" });
   });
 
+  it("failed launch shows Abort/Retry/Fail prompt; R retries, A closes", async () => {
+    const onLaunch = vi.fn(() =>
+      Promise.resolve({ sessionId: "s", gameId: "a", status: "failed" as const, error: "exe missing" }),
+    );
+    render(
+      <RetroApp
+        onExit={noop} onLaunch={onLaunch} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    skipBoot();
+    fireEvent.keyDown(screen.getByTestId("retro-search"), { key: "F8" });
+    await waitFor(() => expect(screen.getByTestId("retro-launch-error")).toHaveTextContent("CANNOT RUN: Alpha"));
+
+    fireEvent.keyDown(document, { key: "r" });
+    await waitFor(() => expect(onLaunch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByTestId("retro-launch-error")).toBeInTheDocument());
+
+    fireEvent.keyDown(document, { key: "a" });
+    expect(screen.queryByTestId("retro-launch-error")).not.toBeInTheDocument();
+  });
+
   it("applies the CRT effect class when enabled", () => {
     useSettingsStore.setState({ retroCrt: true });
     const { container } = render(

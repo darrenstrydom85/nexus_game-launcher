@@ -14,6 +14,8 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { beep } from "./beep";
 import { RetroBoot } from "./RetroBoot";
 import { RetroScreensaver } from "./RetroScreensaver";
+import { buildLaunchErrorInfo } from "@/lib/launch-errors";
+import type { LaunchResult } from "@/lib/launcher";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
@@ -23,7 +25,8 @@ import { fmtClock } from "./format";
 
 export interface RetroAppProps {
   onExit: () => void;
-  onLaunch: (game: Game) => void;
+  /** Raw launch from useLaunchLifecycle — RetroApp surfaces failures itself. */
+  onLaunch: (game: Game) => Promise<LaunchResult> | void;
   onStop: () => void;
   onResync: () => void;
   isSyncing: boolean;
@@ -84,7 +87,22 @@ export function RetroApp({
   const [helpOpen, setHelpOpen] = React.useState(false);
   const [booted, setBooted] = React.useState(false);
   const [saverActive, setSaverActive] = React.useState(false);
+  const [launchError, setLaunchError] = React.useState<{ game: Game; message: string } | null>(null);
   const retroCrt = useSettingsStore((s) => s.retroCrt);
+
+  // Launch failures surface as an authentic DOS critical-error prompt
+  // instead of a toast (the modern toast wrapper is bypassed in retro).
+  const handleLaunch = React.useCallback(
+    async (game: Game) => {
+      const result = await onLaunch(game);
+      if (result && result.status === "failed" && result.error) {
+        const info = buildLaunchErrorInfo(result.error, game.name);
+        if (useSettingsStore.getState().retroSounds) beep(200, 150);
+        setLaunchError({ game, message: info.message });
+      }
+    },
+    [onLaunch],
+  );
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
   const gameCount = useGameStore((s) => s.games.length);
@@ -137,7 +155,8 @@ export function RetroApp({
   const updateOpen = updateAvailable && !updateDismissed;
 
   const keysEnabled =
-    booted && !saverActive && !showProcessPicker && themePicker == null && !noteOpen && !updateOpen && !helpOpen;
+    booted && !saverActive && !showProcessPicker && themePicker == null &&
+    !noteOpen && !updateOpen && !helpOpen && launchError == null;
 
   // Screensaver: 5 min idle -> bouncing logo; any input wakes (and is swallowed).
   const lastActivityRef = React.useRef(Date.now());
@@ -178,6 +197,21 @@ export function RetroApp({
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (showProcessPicker || noteOpen || updateOpen) return;
+
+      // Abort, Retry, Fail? prompt owns the keyboard while open.
+      if (launchError) {
+        const key = e.key.toLowerCase();
+        if (key === "a" || e.key === "Escape" || key === "f") {
+          e.preventDefault();
+          setLaunchError(null);
+        } else if (key === "r") {
+          e.preventDefault();
+          const { game } = launchError;
+          setLaunchError(null);
+          handleLaunch(game);
+        }
+        return;
+      }
 
       // Help popup: any of Esc/F1/Enter closes it.
       if (helpOpen) {
@@ -227,7 +261,7 @@ export function RetroApp({
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, themePicker, isSyncing, onResync]);
+  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, launchError, handleLaunch, themePicker, isSyncing, onResync]);
 
   const elapsedS = activeSession
     ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
@@ -252,7 +286,7 @@ export function RetroApp({
             <RetroLibrary
               enabled={keysEnabled}
               onOpenDetail={(g) => setScreen({ name: "detail", gameId: g.id })}
-              onLaunch={onLaunch}
+              onLaunch={handleLaunch}
             />
           )}
           {booted && screen.name === "detail" && (
@@ -260,7 +294,7 @@ export function RetroApp({
               gameId={screen.gameId}
               enabled={keysEnabled}
               onBack={() => setScreen({ name: "library" })}
-              onLaunch={onLaunch}
+              onLaunch={handleLaunch}
               onStop={onStop}
               onSetStatus={onSetStatus}
               onSetRating={onSetRating}
@@ -306,6 +340,15 @@ export function RetroApp({
         </div>
 
         <div className="retro-scanlines" />
+
+        {launchError && (
+          <RetroModal title="SYSTEM ERROR" footer={<span className="retro-blink">ABORT, RETRY, FAIL?</span>}>
+            <div data-testid="retro-launch-error">
+              <div>CANNOT RUN: {launchError.game.name}</div>
+              <div style={{ margin: "4px 0" }}>{launchError.message}</div>
+            </div>
+          </RetroModal>
+        )}
 
         {helpOpen && (
           <RetroModal title="HELP - KEY REFERENCE" footer="ESC=CLOSE">

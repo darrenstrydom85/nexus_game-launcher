@@ -14,7 +14,7 @@ export interface RetroModalProps {
   /** Selectable rows. Omit for free-form body via children. */
   items?: RetroModalItem[];
   selected?: number;
-  footer: string;
+  footer: React.ReactNode;
   children?: React.ReactNode;
   onItemClick?: (index: number) => void;
 }
