@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useGameStore } from "@/stores/gameStore";
 import { getSystemHardware, type HardwareInfo } from "@/lib/tauri";
+import { NEXUS_LOGO } from "./logo";
 
 /** Cached across mounts so re-entering retro doesn't re-run wmic. */
 let cachedHardware: HardwareInfo | null = null;
@@ -29,7 +30,6 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
 
   const lines = React.useMemo(
     () => [
-      "NEXUS PERSONAL GAME SYSTEM",
       "BIOS V2.11  (C) 1992 NEXUS MICROSYSTEMS INC.",
       "",
       `MAIN PROCESSOR : ${cpu}`,
@@ -57,7 +57,8 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
 
   React.useEffect(() => {
     if (shown >= lines.length) {
-      const t = setTimeout(finish, 500);
+      // Let the finished POST sit on screen a moment before the app loads.
+      const t = setTimeout(finish, 2500);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 120 + Math.random() * 200);
@@ -84,6 +85,9 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
       data-testid="retro-boot"
       style={{ flex: 1, background: "var(--vga-black)", color: "var(--vga-lgray)", padding: "8px 12px" }}
     >
+      <div style={{ color: "var(--vga-bcyan)", whiteSpace: "pre", lineHeight: 1.05, marginBottom: 8 }}>
+        {NEXUS_LOGO.join("\n")}
+      </div>
       {lines.slice(0, shown).map((line, i) => (
         <div key={i} style={{ whiteSpace: "pre" }}>
           {line || " "}

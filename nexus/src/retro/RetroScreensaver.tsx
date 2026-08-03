@@ -1,14 +1,8 @@
 import * as React from "react";
 
-const COLORS = ["#55ffff", "#55ff55", "#ffff55", "#ff55ff", "#ff5555", "#5555ff", "#ffffff"];
+import { NEXUS_LOGO } from "./logo";
 
-const LOGO = [
-  "███  █ ████ █   █ █ █ ████",
-  "█  █ █ █     █ █  █ █ █",
-  "█  █ █ ███    █   █ █ ████",
-  "█  █ █ █     █ █  █ █    █",
-  "█  █ █ ████ █   █ ███ ████",
-];
+const COLORS = ["#55ffff", "#55ff55", "#ffff55", "#ff55ff", "#ff5555", "#5555ff", "#ffffff"];
 
 /**
  * DVD-logo style bouncing NEXUS wordmark. Purely visual; the owner
@@ -61,7 +55,7 @@ export function RetroScreensaver() {
           fontSize: 14,
         }}
       >
-        {LOGO.join("\n")}
+        {NEXUS_LOGO.join("\n")}
       </div>
     </div>
   );
