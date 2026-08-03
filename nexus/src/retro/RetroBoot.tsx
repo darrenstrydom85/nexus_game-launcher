@@ -48,6 +48,7 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
 
   const [shown, setShown] = React.useState(0);
   const doneRef = React.useRef(false);
+  const complete = shown >= lines.length;
 
   const finish = React.useCallback(() => {
     if (doneRef.current) return;
@@ -56,29 +57,34 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
   }, [onDone]);
 
   React.useEffect(() => {
-    if (shown >= lines.length) {
-      // Let the finished POST sit on screen a moment before the app loads.
-      const t = setTimeout(finish, 2500);
-      return () => clearTimeout(t);
-    }
+    if (complete) return; // wait for Enter
     const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 120 + Math.random() * 200);
     return () => clearTimeout(t);
-  }, [shown, lines.length, finish]);
+  }, [shown, complete]);
 
-  // Any key or click skips. Capture phase so the key never reaches the app.
+  // During the reveal any key/click fast-forwards to the full POST; once
+  // complete, Enter (or a click) proceeds. Capture phase so keys never
+  // reach the app underneath.
   React.useEffect(() => {
-    const skip = (e: Event) => {
+    const onKey = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      finish();
+      if (!complete) setShown(lines.length);
+      else if (e.key === "Enter") finish();
     };
-    document.addEventListener("keydown", skip, true);
-    document.addEventListener("mousedown", skip, true);
+    const onMouse = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!complete) setShown(lines.length);
+      else finish();
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onMouse, true);
     return () => {
-      document.removeEventListener("keydown", skip, true);
-      document.removeEventListener("mousedown", skip, true);
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onMouse, true);
     };
-  }, [finish]);
+  }, [complete, lines.length, finish]);
 
   return (
     <div
@@ -93,7 +99,13 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
           {line || " "}
         </div>
       ))}
-      <span className="retro-blink">█</span>
+      {complete ? (
+        <div className="retro-accent retro-blink" style={{ marginTop: 12 }} data-testid="retro-boot-proceed">
+          PRESS ENTER TO PROCEED
+        </div>
+      ) : (
+        <span className="retro-blink">█</span>
+      )}
     </div>
   );
 }

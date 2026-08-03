@@ -105,9 +105,10 @@ function makeGame(overrides: Partial<Game> = {}): Game {
 
 const noop = () => {};
 
-/** RetroApp shows the BIOS boot screen first; any key skips it. */
+/** RetroApp boots first: any key fast-forwards the POST, Enter proceeds. */
 function skipBoot() {
   fireEvent.keyDown(document, { key: "F13" });
+  fireEvent.keyDown(document, { key: "Enter" });
 }
 
 describe("retro format helpers", () => {
@@ -243,7 +244,11 @@ describe("RetroApp shell", () => {
       />,
     );
     expect(screen.getByTestId("retro-boot")).toBeInTheDocument();
-    skipBoot();
+    fireEvent.keyDown(document, { key: "F13" });
+    expect(screen.getByTestId("retro-boot-proceed")).toHaveTextContent("PRESS ENTER TO PROCEED");
+    fireEvent.keyDown(document, { key: "F13" });
+    expect(screen.getByTestId("retro-boot")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Enter" });
     expect(screen.queryByTestId("retro-boot")).not.toBeInTheDocument();
 
     expect(screen.getByTestId("retro-app")).toBeInTheDocument();
