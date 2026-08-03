@@ -1,0 +1,236 @@
+import * as React from "react";
+import "@fontsource/vt323";
+import "./retro.css";
+import { Titlebar } from "@/components/shared/Titlebar";
+import { useGameStore, type Game, type GameStatus } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { retroPalette, retroThemeById, RETRO_THEMES } from "./palette";
+import { RetroModal } from "./RetroModal";
+import { RetroLibrary } from "./RetroLibrary";
+import { RetroDetail } from "./RetroDetail";
+import { RetroSettings } from "./RetroSettings";
+import { RetroProcessPicker } from "./RetroProcessPicker";
+import { fmtClock } from "./format";
+
+export interface RetroAppProps {
+  onExit: () => void;
+  onLaunch: (game: Game) => void;
+  onStop: () => void;
+  onResync: () => void;
+  isSyncing: boolean;
+  onSetStatus: (gameId: string, status: GameStatus) => void;
+  onSetRating: (gameId: string, rating: number | null) => void;
+  onProcessSelected: (exeName: string, pid: number) => void;
+  onCancelProcessPicker: () => void;
+}
+
+type Screen =
+  | { name: "library" }
+  | { name: "detail"; gameId: string }
+  | { name: "settings" };
+
+const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
+  library: [
+    { key: "ENTER", label: "View" },
+    { key: "F2", label: "Theme" },
+    { key: "F3", label: "Sort" },
+    { key: "F5", label: "Rescan" },
+    { key: "F8", label: "Run" },
+    { key: "F9", label: "Setup" },
+  ],
+  detail: [
+    { key: "TAB", label: "Section" },
+    { key: "ENTER", label: "Open" },
+    { key: "F7", label: "Status" },
+    { key: "F8", label: "Run/Stop" },
+    { key: "ESC", label: "Back" },
+  ],
+  settings: [
+    { key: "ENTER", label: "Toggle" },
+    { key: "F2", label: "Theme" },
+    { key: "ESC", label: "Back" },
+  ],
+};
+
+export function RetroApp({
+  onExit,
+  onLaunch,
+  onStop,
+  onResync,
+  isSyncing,
+  onSetStatus,
+  onSetRating,
+  onProcessSelected,
+  onCancelProcessPicker,
+}: RetroAppProps) {
+  const [screen, setScreen] = React.useState<Screen>({ name: "library" });
+  const activeSession = useGameStore((s) => s.activeSession);
+  const showProcessPicker = useGameStore((s) => s.showProcessPicker);
+  const gameCount = useGameStore((s) => s.games.length);
+
+  // Retro theme: own preset, independent of the modern theme. "app" preset
+  // mirrors the modern accent. F2 opens the picker; arrow moves live-preview.
+  const accentColor = useSettingsStore((s) => s.accentColor);
+  const retroTheme = useSettingsStore((s) => s.retroTheme);
+  const [themePicker, setThemePicker] = React.useState<number | null>(null);
+
+  const themeVars = React.useMemo(() => {
+    const def = themePicker != null ? RETRO_THEMES[themePicker] : retroThemeById(retroTheme);
+    if (!def.accent) return undefined;
+    const pal = retroPalette(def.accent === "app" ? accentColor : def.accent);
+    if (!pal) return undefined;
+    return {
+      "--vga-blue": pal.screen,
+      "--vga-cyan": pal.bar,
+      "--vga-bcyan": pal.bright,
+    } as React.CSSProperties;
+  }, [themePicker, retroTheme, accentColor]);
+
+  // 1s tick drives the clock and the "now playing" elapsed counter.
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const keysEnabled = !showProcessPicker && themePicker == null;
+
+  // Screen-global keys. Everything screen-specific lives in the screens.
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (showProcessPicker) return;
+
+      // Theme picker modal owns the keyboard while open.
+      if (themePicker != null) {
+        if (e.key === "Escape") { e.preventDefault(); setThemePicker(null); }
+        else if (e.key === "ArrowDown") { e.preventDefault(); setThemePicker(Math.min(RETRO_THEMES.length - 1, themePicker + 1)); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); setThemePicker(Math.max(0, themePicker - 1)); }
+        else if (e.key === "Enter") {
+          e.preventDefault();
+          useSettingsStore.getState().setRetroTheme(RETRO_THEMES[themePicker].id);
+          setThemePicker(null);
+        } else {
+          const idx = "ABCDEFGHI".indexOf(e.key.toUpperCase());
+          if (idx >= 0 && idx < RETRO_THEMES.length) {
+            e.preventDefault();
+            useSettingsStore.getState().setRetroTheme(RETRO_THEMES[idx].id);
+            setThemePicker(null);
+          }
+        }
+        return;
+      }
+
+      if (e.key === "F9") {
+        e.preventDefault();
+        setScreen((s) => (s.name === "settings" ? { name: "library" } : { name: "settings" }));
+      } else if (e.key === "F5") {
+        e.preventDefault();
+        if (!isSyncing) onResync();
+      } else if (e.key === "F2") {
+        e.preventDefault();
+        setThemePicker(Math.max(0, RETRO_THEMES.findIndex((t) => t.id === useSettingsStore.getState().retroTheme)));
+      }
+    };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [showProcessPicker, themePicker, isSyncing, onResync]);
+
+  const elapsedS = activeSession
+    ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
+    : 0;
+
+  const d = new Date(now);
+  const dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear() % 100).padStart(2, "0")}`;
+  const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }} data-testid="retro-app">
+      <Titlebar />
+      <div className="retro-root" style={{ flex: 1, minHeight: 0, ...themeVars }}>
+        <div className="retro-titlebar">
+          <span>NEXUS TR5 - GAME LIBRARY/LAUNCH/TRACK/SETUP</span>
+          <span>{dateStr} {timeStr}</span>
+        </div>
+
+        <div className="retro-screen">
+          {screen.name === "library" && (
+            <RetroLibrary
+              enabled={keysEnabled}
+              onOpenDetail={(g) => setScreen({ name: "detail", gameId: g.id })}
+              onLaunch={onLaunch}
+            />
+          )}
+          {screen.name === "detail" && (
+            <RetroDetail
+              gameId={screen.gameId}
+              enabled={keysEnabled}
+              onBack={() => setScreen({ name: "library" })}
+              onLaunch={onLaunch}
+              onStop={onStop}
+              onSetStatus={onSetStatus}
+              onSetRating={onSetRating}
+            />
+          )}
+          {screen.name === "settings" && (
+            <RetroSettings
+              enabled={keysEnabled}
+              onBack={() => setScreen({ name: "library" })}
+              onExit={onExit}
+            />
+          )}
+        </div>
+
+        <div className="retro-statusline">
+          <span data-testid="retro-status-left">
+            {isSyncing ? "SCANNING SOURCES..." : `READY - ${gameCount} TITLES ON FILE`}
+          </span>
+          <span data-testid="retro-status-right">
+            {activeSession ? (
+              <>
+                RUN: {activeSession.gameName} {fmtClock(elapsedS)}
+                {!activeSession.processDetected && " (NO PROCESS)"}
+              </>
+            ) : (
+              "NO GAME RUNNING"
+            )}
+          </span>
+        </div>
+
+        <div className="retro-fkey-bar">
+          {FKEYS[screen.name].map((f) => (
+            <span key={f.key}>
+              <b>{f.key}</b> {f.label}
+            </span>
+          ))}
+        </div>
+
+        <div className="retro-scanlines" />
+
+        {themePicker != null && (
+          <RetroModal
+            title="SELECT THEME"
+            items={RETRO_THEMES.map((t, i) => ({
+              label: t.label,
+              hotkey: "ABCDEFGHI"[i],
+              current: t.id === retroTheme,
+            }))}
+            selected={themePicker}
+            footer="A-I/ENTER=SET | ESC=CANCEL"
+            onItemClick={(i) => {
+              useSettingsStore.getState().setRetroTheme(RETRO_THEMES[i].id);
+              setThemePicker(null);
+            }}
+          />
+        )}
+
+        {showProcessPicker && (
+          <RetroProcessPicker
+            gameName={activeSession?.gameName ?? ""}
+            onProcessSelected={onProcessSelected}
+            onCancel={onCancelProcessPicker}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

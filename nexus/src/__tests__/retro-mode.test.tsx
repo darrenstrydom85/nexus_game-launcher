@@ -1,0 +1,377 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { RetroLibrary } from "@/retro/RetroLibrary";
+import { RetroApp } from "@/retro/RetroApp";
+import { RetroDetail } from "@/retro/RetroDetail";
+import { AppearanceSettings } from "@/components/Settings/AppearanceSettings";
+import { useGameStore, type Game } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { fmtStars, fmtDate, fmtClock, fmtDur } from "@/retro/format";
+import { hexToHsl, retroPalette } from "@/retro/palette";
+
+vi.mock("@/lib/tauri", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/tauri")>();
+  return {
+    ...actual,
+    getPerGameSessionStats: vi.fn(() =>
+      Promise.resolve({
+        sessions: [
+          {
+            id: "s1",
+            startedAt: "2026-08-01T10:00:00Z",
+            endedAt: "2026-08-01T11:30:00Z",
+            durationS: 5400,
+            trackingMethod: "process",
+            note: "good run",
+          },
+        ],
+        distribution: { buckets: [] },
+        playTimeByMonth: [],
+        playTimeByDayOfWeek: [],
+        averageGapDays: 0,
+      }),
+    ),
+  };
+});
+
+function makeGame(overrides: Partial<Game> = {}): Game {
+  return {
+    id: "g1",
+    name: "Doom",
+    source: "steam",
+    folderPath: null,
+    exePath: null,
+    exeName: null,
+    launchUrl: null,
+    igdbId: null,
+    steamgridId: null,
+    description: null,
+    coverUrl: null,
+    heroUrl: null,
+    logoUrl: null,
+    iconUrl: null,
+    customCover: null,
+    customHero: null,
+    potentialExeNames: null,
+    genres: [],
+    releaseDate: null,
+    criticScore: null,
+    criticScoreCount: null,
+    communityScore: null,
+    communityScoreCount: null,
+    trailerUrl: null,
+    status: "unset",
+    rating: null,
+    totalPlayTimeS: 0,
+    lastPlayedAt: null,
+    playCount: 0,
+    addedAt: "2026-01-01T00:00:00Z",
+    isHidden: false,
+    hltbMainH: null,
+    hltbMainExtraH: null,
+    hltbCompletionistH: null,
+    hltbId: null,
+    hltbFetchedAt: null,
+    notes: null,
+    progress: null,
+    milestonesJson: null,
+    completed: false,
+    ...overrides,
+  };
+}
+
+const noop = () => {};
+
+describe("retro format helpers", () => {
+  it("formats stars, dates, clocks, durations", () => {
+    expect(fmtStars(3)).toBe("***..");
+    expect(fmtStars(null)).toBe(".....");
+    expect(fmtDate(null)).toBe("--/--/--");
+    expect(fmtDate("2026-08-03T10:00:00Z")).toMatch(/^\d{2}\/\d{2}\/26$/);
+    expect(fmtClock(3661)).toBe("01:01:01");
+    expect(fmtDur(59 * 60)).toBe("59M");
+    expect(fmtDur(3600 + 5 * 60)).toBe("1H 05M");
+  });
+});
+
+describe("retro palette", () => {
+  it("converts hex to hsl", () => {
+    expect(hexToHsl("#0000AA")).toEqual({ h: 240, s: 100, l: 33 });
+    expect(hexToHsl("#808080")).toEqual({ h: 0, s: 0, l: 50 });
+    expect(hexToHsl("not-a-color")).toBeNull();
+  });
+
+  it("derives a single-hue DOS scheme from the accent", () => {
+    expect(retroPalette("#00AA00")).toEqual({
+      screen: "hsl(120, 100%, 30%)",
+      bar: "hsl(120, 100%, 38%)",
+      bright: "hsl(120, 100%, 72%)",
+    });
+    expect(retroPalette("garbage")).toBeNull();
+  });
+});
+
+describe("RetroLibrary", () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      games: [
+        makeGame({ id: "a", name: "Alpha" }),
+        makeGame({ id: "b", name: "Beta" }),
+        makeGame({ id: "c", name: "Gamma" }),
+        makeGame({ id: "hidden", name: "Hidden", isHidden: true }),
+        makeGame({ id: "gone", name: "Gone", status: "removed" }),
+      ],
+      activeSession: null,
+      showProcessPicker: false,
+    });
+    useSettingsStore.setState({ hiddenGameIds: [] });
+  });
+
+  it("lists visible games sorted by name, hides hidden/archived", () => {
+    render(<RetroLibrary enabled onOpenDetail={noop} onLaunch={noop} />);
+    expect(screen.getByTestId("retro-title-count")).toHaveTextContent("3");
+    expect(screen.getByTestId("retro-library-row-0")).toHaveTextContent("Alpha");
+    expect(screen.getByTestId("retro-library-row-2")).toHaveTextContent("Gamma");
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gone")).not.toBeInTheDocument();
+  });
+
+  it("arrow keys move selection, Enter opens detail, F8 launches", () => {
+    const onOpenDetail = vi.fn();
+    const onLaunch = vi.fn();
+    render(<RetroLibrary enabled onOpenDetail={onOpenDetail} onLaunch={onLaunch} />);
+    const input = screen.getByTestId("retro-search");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(screen.getByTestId("retro-library-row-1")).toHaveClass("retro-row-selected");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onOpenDetail).toHaveBeenCalledWith(expect.objectContaining({ name: "Beta" }));
+
+    fireEvent.keyDown(input, { key: "F8" });
+    expect(onLaunch).toHaveBeenCalledWith(expect.objectContaining({ name: "Beta" }));
+  });
+
+  it("typing filters the list", async () => {
+    const user = userEvent.setup();
+    render(<RetroLibrary enabled onOpenDetail={noop} onLaunch={noop} />);
+    await user.type(screen.getByTestId("retro-search"), "gam");
+    expect(screen.getByTestId("retro-title-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("retro-library-row-0")).toHaveTextContent("Gamma");
+  });
+});
+
+describe("RetroApp shell", () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      games: [makeGame({ id: "a", name: "Alpha" })],
+      activeSession: null,
+      showProcessPicker: false,
+    });
+    useSettingsStore.setState({ hiddenGameIds: [] });
+  });
+
+  it("renders header, status line, and F-key bar; F9 opens setup", () => {
+    render(
+      <RetroApp
+        onExit={noop}
+        onLaunch={noop}
+        onStop={noop}
+        onResync={noop}
+        isSyncing={false}
+        onSetStatus={noop}
+        onSetRating={noop}
+        onProcessSelected={noop}
+        onCancelProcessPicker={noop}
+      />,
+    );
+    expect(screen.getByTestId("retro-app")).toBeInTheDocument();
+    expect(screen.getByTestId("retro-status-left")).toHaveTextContent("1 TITLES ON FILE");
+    expect(screen.getByTestId("retro-status-right")).toHaveTextContent("NO GAME RUNNING");
+
+    fireEvent.keyDown(document, { key: "F9" });
+    expect(screen.getByTestId("retro-settings")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByTestId("retro-library-list")).toBeInTheDocument();
+  });
+
+  it("applies the retro theme preset palette, independent of the app accent", () => {
+    useSettingsStore.setState({ retroTheme: "green", accentColor: "#7600da" });
+    const { container, unmount } = render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    const root = container.querySelector<HTMLElement>(".retro-root")!;
+    expect(root.style.getPropertyValue("--vga-blue")).toBe("hsl(120, 100%, 30%)");
+    unmount();
+
+    useSettingsStore.setState({ retroTheme: "classic" });
+    const { container: c2 } = render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    expect(c2.querySelector<HTMLElement>(".retro-root")!.style.getPropertyValue("--vga-blue")).toBe("");
+  });
+
+  it("F2 opens the theme picker; arrows live-preview; Enter persists", () => {
+    useSettingsStore.setState({ retroTheme: "classic" });
+    const { container } = render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    fireEvent.keyDown(document, { key: "F2" });
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("SELECT THEME");
+
+    const root = container.querySelector<HTMLElement>(".retro-root")!;
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(root.style.getPropertyValue("--vga-blue")).toBe("hsl(120, 100%, 30%)");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
+    expect(useSettingsStore.getState().retroTheme).toBe("green");
+
+    fireEvent.keyDown(document, { key: "F2" });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(useSettingsStore.getState().retroTheme).toBe("green");
+    useSettingsStore.setState({ retroTheme: "classic" });
+  });
+
+  it("shows running game with elapsed time in the status line", () => {
+    useGameStore.setState({
+      activeSession: {
+        sessionId: "s1",
+        gameId: "a",
+        gameName: "Alpha",
+        coverUrl: null,
+        heroUrl: null,
+        startedAt: new Date(Date.now() - 61_000).toISOString(),
+        dominantColor: "#000",
+        pid: 123,
+        exeName: "alpha.exe",
+        folderPath: null,
+        potentialExeNames: null,
+        processDetected: true,
+        hasDbSession: true,
+      },
+    });
+    render(
+      <RetroApp
+        onExit={noop}
+        onLaunch={noop}
+        onStop={noop}
+        onResync={noop}
+        isSyncing={false}
+        onSetStatus={noop}
+        onSetRating={noop}
+        onProcessSelected={noop}
+        onCancelProcessPicker={noop}
+      />,
+    );
+    expect(screen.getByTestId("retro-status-right")).toHaveTextContent(/RUN: Alpha 00:01:0\d/);
+  });
+});
+
+describe("RetroDetail", () => {
+  const detailProps = {
+    gameId: "a",
+    enabled: true,
+    onBack: noop,
+    onLaunch: noop,
+    onStop: noop,
+  };
+
+  beforeEach(() => {
+    useGameStore.setState({
+      games: [
+        makeGame({
+          id: "a",
+          name: "Alpha",
+          status: "backlog",
+          rating: 2,
+          description: "A game about shooting demons.",
+        }),
+      ],
+      activeSession: null,
+      showProcessPicker: false,
+    });
+  });
+
+  it("Tab cycles section focus", () => {
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    expect(screen.getByTestId("retro-detail-info")).toHaveClass("retro-panel-focused");
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(screen.getByTestId("retro-detail-meta")).toHaveClass("retro-panel-focused");
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(screen.getByTestId("retro-detail-desc")).toHaveClass("retro-panel-focused");
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(screen.getByTestId("retro-detail-sessions")).toHaveClass("retro-panel-focused");
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(screen.getByTestId("retro-detail-desc")).toHaveClass("retro-panel-focused");
+  });
+
+  it("F7 opens status modal; letter hotkey sets status", () => {
+    const onSetStatus = vi.fn();
+    render(<RetroDetail {...detailProps} onSetStatus={onSetStatus} onSetRating={noop} />);
+    fireEvent.keyDown(document, { key: "F7" });
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("SET STATUS");
+    fireEvent.keyDown(document, { key: "d" });
+    expect(onSetStatus).toHaveBeenCalledWith("a", "completed");
+    expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
+  });
+
+  it("Enter on RATING row opens rating modal; digit sets rating", () => {
+    const onSetRating = vi.fn();
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={onSetRating} />);
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("RATE TITLE");
+    fireEvent.keyDown(document, { key: "4" });
+    expect(onSetRating).toHaveBeenCalledWith("a", 4);
+    expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
+  });
+
+  it("Enter on a session row opens the session pseudo-modal", async () => {
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    await screen.findByTestId("retro-session-row-0");
+    fireEvent.keyDown(document, { key: "Tab" });
+    fireEvent.keyDown(document, { key: "Tab" });
+    fireEvent.keyDown(document, { key: "Tab" });
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("SESSION DETAIL");
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("good run");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
+  });
+
+  it("Esc goes back only when no modal is open", () => {
+    const onBack = vi.fn();
+    render(<RetroDetail {...detailProps} onBack={onBack} onSetStatus={noop} onSetRating={noop} />);
+    fireEvent.keyDown(document, { key: "F7" });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onBack).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("retro mode setting", () => {
+  it("AppearanceSettings toggle flips retroMode in the store", () => {
+    useSettingsStore.setState({ retroMode: false });
+    render(<AppearanceSettings />);
+    const checkbox = screen.getByTestId("pref-retro-mode");
+    expect(checkbox).not.toBeChecked();
+    fireEvent.click(checkbox);
+    expect(useSettingsStore.getState().retroMode).toBe(true);
+    useSettingsStore.getState().setRetroMode(false);
+  });
+});

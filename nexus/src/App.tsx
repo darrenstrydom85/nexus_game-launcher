@@ -71,6 +71,7 @@ import { useXpStore } from "@/stores/xpStore";
 import { LevelUpToast } from "@/components/Xp/LevelUpToast";
 import { useCeremonyStore } from "@/stores/ceremonyStore";
 import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
+import { RetroApp } from "@/retro/RetroApp";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -615,6 +616,32 @@ function MainApp() {
     const active = collections.find((c) => c.id === activeCollectionId);
     return active && !active.isSmart ? active.name : null;
   }, [collections, activeCollectionId]);
+
+  // Old-school DOS mode: same stores, same handlers, different component tree.
+  // All the effects above (settings load, sync, launch lifecycle, health check)
+  // keep running — only the rendered shell changes.
+  const retroMode = useSettingsStore((s) => s.retroMode);
+  if (retroMode) {
+    return (
+      <>
+        <RetroApp
+          onExit={() => useSettingsStore.getState().setRetroMode(false)}
+          onLaunch={(game) => { launch(game); }}
+          onStop={handleStopActiveGame}
+          onResync={handleResync}
+          isSyncing={isSyncing}
+          onSetStatus={handleLibrarySetStatus}
+          onSetRating={handleLibrarySetRating}
+          onProcessSelected={handleProcessSelected}
+          onCancelProcessPicker={handleProcessPickerCancel}
+        />
+        {/* Modern-styled overlays kept for function over vibe (launch errors,
+            session notes). Retro-skin them in a later phase. */}
+        <SessionNotePromptWrapper />
+        <ToastNotifications />
+      </>
+    );
+  }
 
   return (
     <AppShell

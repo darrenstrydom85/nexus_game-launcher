@@ -83,6 +83,10 @@ export interface SettingsState {
    * calendar-style "~N days" figure on the game detail page. Default 1.5.
    */
   hltbHoursPerDay: number;
+  /** Old-school DOS text-mode UI (nexus-old-school). Same data, different shell. */
+  retroMode: boolean;
+  /** Retro mode theme preset id (see RETRO_THEMES). Independent of the modern theme. */
+  retroTheme: string;
   _hydrated: boolean;
 }
 
@@ -132,6 +136,8 @@ export interface SettingsActions {
   setAchievementSoundsEnabled: (value: boolean) => void;
   setRetirementCeremonyEnabled: (value: boolean) => void;
   setHltbHoursPerDay: (value: number) => void;
+  setRetroMode: (value: boolean) => void;
+  setRetroTheme: (id: string) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -193,6 +199,8 @@ const initialState: SettingsState = {
   achievementSoundsEnabled: true,
   retirementCeremonyEnabled: true,
   hltbHoursPerDay: 1.5,
+  retroMode: false,
+  retroTheme: "classic",
   _hydrated: false,
 };
 
@@ -316,6 +324,12 @@ export const useSettingsStore = create<SettingsStore>()(
               if (Number.isFinite(n) && n > 0) {
                 patch.hltbHoursPerDay = clampHltbHoursPerDay(n);
               }
+            }
+            if (settings.retro_mode !== undefined) {
+              patch.retroMode = settings.retro_mode === "true";
+            }
+            if (settings.retro_theme) {
+              patch.retroTheme = settings.retro_theme;
             }
 
             set(patch, false, "loadFromBackend");
@@ -541,6 +555,14 @@ export const useSettingsStore = create<SettingsStore>()(
           const clamped = clampHltbHoursPerDay(value);
           persistSetting("hltb_hours_per_day", String(clamped));
           set({ hltbHoursPerDay: clamped }, false, "setHltbHoursPerDay");
+        },
+        setRetroMode: (value) => {
+          persistSetting("retro_mode", String(value));
+          set({ retroMode: value }, false, "setRetroMode");
+        },
+        setRetroTheme: (id) => {
+          persistSetting("retro_theme", id);
+          set({ retroTheme: id }, false, "setRetroTheme");
         },
       }),
       { name: "nexus-settings" },
