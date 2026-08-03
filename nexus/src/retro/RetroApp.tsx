@@ -37,6 +37,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
     { key: "ENTER", label: "View" },
     { key: "F2", label: "Theme" },
     { key: "F3", label: "Sort" },
+    { key: "F4", label: "Coll" },
     { key: "F5", label: "Rescan" },
     { key: "F8", label: "Run" },
     { key: "F9", label: "Setup" },

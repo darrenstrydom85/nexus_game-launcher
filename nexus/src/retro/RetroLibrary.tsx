@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useCollectionStore } from "@/stores/collectionStore";
+import { RetroModal } from "./RetroModal";
 import { SOURCE_CODE, STATUS_CODE, fmtHours, fmtDate, fmtStars } from "./format";
 
 const SORTS: { label: string; cmp: (a: Game, b: Game) => number }[] = [
@@ -20,20 +22,31 @@ export interface RetroLibraryProps {
 export function RetroLibrary({ enabled, onOpenDetail, onLaunch }: RetroLibraryProps) {
   const games = useGameStore((s) => s.games);
   const hiddenIds = useSettingsStore((s) => s.hiddenGameIds);
+  const collections = useCollectionStore((s) => s.collections);
   const [query, setQuery] = React.useState("");
   const [sortIdx, setSortIdx] = React.useState(0);
   const [sel, setSel] = React.useState(0);
+  const [collFilter, setCollFilter] = React.useState<string | null>(null);
+  const [collPicker, setCollPicker] = React.useState<number | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
+
+  const activeCollection = React.useMemo(
+    () => collections.find((c) => c.id === collFilter) ?? null,
+    [collections, collFilter],
+  );
 
   const visible = React.useMemo(() => {
     const base = games.filter(
       (g) => !g.isHidden && !hiddenIds.includes(g.id) && g.status !== "removed",
     );
+    const inColl = activeCollection
+      ? base.filter((g) => activeCollection.gameIds.includes(g.id))
+      : base;
     const q = query.trim().toLowerCase();
-    const filtered = q ? base.filter((g) => g.name.toLowerCase().includes(q)) : base;
+    const filtered = q ? inColl.filter((g) => g.name.toLowerCase().includes(q)) : inColl;
     return [...filtered].sort(SORTS[sortIdx].cmp);
-  }, [games, hiddenIds, query, sortIdx]);
+  }, [games, hiddenIds, activeCollection, query, sortIdx]);
 
   React.useEffect(() => {
     setSel((s) => Math.min(s, Math.max(0, visible.length - 1)));
@@ -63,6 +76,22 @@ export function RetroLibrary({ enabled, onOpenDetail, onLaunch }: RetroLibraryPr
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!enabled) return;
+
+    // Collection picker pseudo-modal owns the keys while open.
+    if (collPicker != null) {
+      const count = collections.length + 1; // + "ALL TITLES"
+      if (e.key === "Escape") { e.preventDefault(); setCollPicker(null); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); setCollPicker(Math.min(count - 1, collPicker + 1)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setCollPicker(Math.max(0, collPicker - 1)); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        setCollFilter(collPicker === 0 ? null : collections[collPicker - 1].id);
+        setSel(0);
+        setCollPicker(null);
+      }
+      return;
+    }
+
     switch (e.key) {
       case "ArrowDown": e.preventDefault(); move(1); break;
       case "ArrowUp": e.preventDefault(); move(-1); break;
@@ -82,6 +111,10 @@ export function RetroLibrary({ enabled, onOpenDetail, onLaunch }: RetroLibraryPr
         e.preventDefault();
         setSortIdx((i) => (i + 1) % SORTS.length);
         break;
+      case "F4":
+        e.preventDefault();
+        setCollPicker(collFilter ? collections.findIndex((c) => c.id === collFilter) + 1 : 0);
+        break;
     }
   };
 
@@ -96,12 +129,19 @@ export function RetroLibrary({ enabled, onOpenDetail, onLaunch }: RetroLibraryPr
           style={{ width: "30ch" }}
           autoFocus
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { if (collPicker == null) setQuery(e.target.value); }}
           onKeyDown={handleKeyDown}
           onBlur={() => { if (enabled) inputRef.current?.focus(); }}
           aria-label="Find game"
         />
         <span style={{ flex: 1 }} />
+        {activeCollection && (
+          <>
+            <span className="retro-label">COLL:&nbsp;</span>
+            <span className="retro-accent" data-testid="retro-coll-filter">{activeCollection.name}</span>
+            <span className="retro-dim">&nbsp;|&nbsp;</span>
+          </>
+        )}
         <span className="retro-label">SORT:&nbsp;</span>
         <span className="retro-value">{SORTS[sortIdx].label}</span>
         <span className="retro-dim">&nbsp;|&nbsp;</span>
@@ -149,6 +189,27 @@ export function RetroLibrary({ enabled, onOpenDetail, onLaunch }: RetroLibraryPr
           ))
         )}
       </div>
+
+      {collPicker != null && (
+        <RetroModal
+          title="FILTER BY COLLECTION"
+          items={[
+            { label: "ALL TITLES", current: collFilter === null },
+            ...collections.map((c) => ({
+              label: c.name,
+              value: String(c.gameIds.length),
+              current: c.id === collFilter,
+            })),
+          ]}
+          selected={collPicker}
+          footer="ENTER=FILTER | ESC=CANCEL"
+          onItemClick={(i) => {
+            setCollFilter(i === 0 ? null : collections[i - 1].id);
+            setSel(0);
+            setCollPicker(null);
+          }}
+        />
+      )}
     </div>
   );
 }

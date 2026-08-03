@@ -158,6 +158,28 @@ describe("RetroLibrary", () => {
     expect(onLaunch).toHaveBeenCalledWith(expect.objectContaining({ name: "Beta" }));
   });
 
+  it("F4 opens collection picker; Enter applies the filter", async () => {
+    const { useCollectionStore } = await import("@/stores/collectionStore");
+    useCollectionStore.setState({
+      collections: [
+        { id: "c1", name: "Shooters", icon: "", color: null, sortOrder: 0, isSmart: false, rulesJson: null, gameIds: ["b"] },
+      ],
+    });
+    render(<RetroLibrary enabled onOpenDetail={noop} onLaunch={noop} />);
+    const input = screen.getByTestId("retro-search");
+
+    fireEvent.keyDown(input, { key: "F4" });
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("FILTER BY COLLECTION");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
+    expect(screen.getByTestId("retro-coll-filter")).toHaveTextContent("Shooters");
+    expect(screen.getByTestId("retro-title-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("retro-library-row-0")).toHaveTextContent("Beta");
+    useCollectionStore.setState({ collections: [] });
+  });
+
   it("typing filters the list", async () => {
     const user = userEvent.setup();
     render(<RetroLibrary enabled onOpenDetail={noop} onLaunch={noop} />);
