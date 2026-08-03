@@ -23,6 +23,46 @@ vi.mock("@/lib/tauri", async (importOriginal) => {
     getPlayQueue: vi.fn(() => Promise.resolve([])),
     searchMetadata: vi.fn(() => Promise.resolve([])),
     fetchMetadataWithIgdbId: vi.fn(() => Promise.resolve()),
+    getAvailableWrappedPeriods: vi.fn(() =>
+      Promise.resolve({
+        yearsWithSessions: [2026],
+        thisMonthHasData: true,
+        lastMonthHasData: false,
+        thisYearHasData: true,
+        lastYearHasData: false,
+      }),
+    ),
+    getWrappedReport: vi.fn(() =>
+      Promise.resolve({
+        periodLabel: "2026",
+        totalPlayTimeS: 360000,
+        totalSessions: 42,
+        totalGamesPlayed: 9,
+        totalGamesInLibrary: 30,
+        newGamesAdded: 3,
+        newTitlesInPeriod: 3,
+        mostPlayedGame: { id: "a", name: "Alpha", coverUrl: null, heroUrl: null, logoUrl: null, playTimeS: 180000, sessionCount: 20, source: "steam" },
+        mostPlayedGenre: "Shooter",
+        topGames: [{ id: "a", name: "Alpha", coverUrl: null, heroUrl: null, logoUrl: null, playTimeS: 180000, sessionCount: 20, source: "steam" }],
+        genreBreakdown: [{ name: "Shooter", playTimeS: 180000, percent: 50 }],
+        genreTagline: "Locked in.",
+        platformBreakdown: [{ source: "steam", playTimeS: 360000, percent: 100 }],
+        longestSession: { gameId: "a", gameName: "Alpha", startedAt: "2026-03-01T20:00:00Z", durationS: 14400 },
+        longestStreakDays: 6,
+        busiestDay: "2026-03-01",
+        busiestDayPlayTimeS: 21600,
+        firstGamePlayed: null,
+        lastGamePlayed: null,
+        playTimeByMonth: [],
+        playTimeByDayOfWeek: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, playTimeS: day * 3600 })),
+        playTimeByHourOfDay: [],
+        funFacts: [{ kind: "marathons", value: 2, label: "2 marathon sessions over 4 hours" }],
+        comparisonPreviousPeriod: null,
+        moodTagline: "Night owl energy.",
+        hiddenGem: null,
+        trivia: ["You played most on Sundays."],
+      }),
+    ),
     getSessionDistribution: vi.fn(() =>
       Promise.resolve({
         buckets: [
@@ -666,6 +706,35 @@ describe("RetroStats", () => {
     expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("[*]");
     expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("First Blood");
     expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("10 PTS");
+  });
+});
+
+describe("RetroWrapped", () => {
+  it("picks a period, plays slides, Esc exits", async () => {
+    const { RetroWrapped } = await import("@/retro/RetroWrapped");
+    const onBack = vi.fn();
+    render(<RetroWrapped enabled onBack={onBack} />);
+
+    expect(await screen.findByTestId("retro-modal")).toHaveTextContent("SELECT PERIOD");
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("THIS YEAR (2026)");
+    fireEvent.keyDown(document, { key: "Enter" });
+
+    await waitFor(() => expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("WRAPPED.EXE"));
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("SLIDE 1/");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("100.0 HOURS");
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("42 SESSIONS ACROSS 9 TITLES");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("MOST PLAYED");
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("Alpha");
+
+    fireEvent.keyDown(document, { key: "Backspace" });
+    expect(screen.getByTestId("retro-wrapped")).toHaveTextContent("100.0 HOURS");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onBack).toHaveBeenCalled();
   });
 });
 

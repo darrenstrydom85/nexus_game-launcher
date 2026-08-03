@@ -10,6 +10,7 @@ import { RetroToasts } from "./RetroToasts";
 import { RetroSessionNote } from "./RetroSessionNote";
 import { RetroStats } from "./RetroStats";
 import { RetroQueue } from "./RetroQueue";
+import { RetroWrapped } from "./RetroWrapped";
 import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
 import { useUpdateStore } from "@/stores/updateStore";
 import { beep, floppySeek } from "./beep";
@@ -43,7 +44,8 @@ type Screen =
   | { name: "detail"; gameId: string }
   | { name: "settings" }
   | { name: "stats"; page: "lib" | "progress" }
-  | { name: "queue" };
+  | { name: "queue" }
+  | { name: "wrapped" };
 
 const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   library: [
@@ -75,8 +77,14 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   ],
   stats: [
     { key: "F6", label: "Page" },
+    { key: "W", label: "Wrapped" },
     { key: "F2", label: "Theme" },
     { key: "ESC", label: "Back" },
+  ],
+  wrapped: [
+    { key: "ENTER", label: "Next" },
+    { key: "BKSP", label: "Prev" },
+    { key: "ESC", label: "Exit" },
   ],
   queue: [
     { key: "ENTER", label: "Run" },
@@ -340,6 +348,9 @@ export function RetroApp({
       } else if (e.key === "F7" && screen.name !== "detail") {
         e.preventDefault();
         setScreen((s) => (s.name === "queue" ? { name: "library" } : { name: "queue" }));
+      } else if ((e.key === "w" || e.key === "W") && screen.name === "stats") {
+        e.preventDefault();
+        setScreen({ name: "wrapped" });
       }
     };
     document.addEventListener("keydown", h);
@@ -404,6 +415,12 @@ export function RetroApp({
               onLaunch={handleLaunch}
             />
           )}
+          {booted && screen.name === "wrapped" && (
+            <RetroWrapped
+              enabled={keysEnabled}
+              onBack={() => setScreen({ name: "stats", page: "lib" })}
+            />
+          )}
         </div>
 
         <div className="retro-statusline">
@@ -464,6 +481,7 @@ export function RetroApp({
                 ["F2", "THEME PICKER"],
                 ["F5", "RESCAN SOURCES"],
                 ["F6", "LIBRARY STATISTICS"],
+                ["W", "WRAPPED.EXE (ON STATS)"],
                 ["F7", "PLAY QUEUE"],
                 ["F9", "SETUP / EXIT RETRO"],
                 ["F10", "RANDOM PICK"],
