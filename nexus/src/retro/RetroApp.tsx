@@ -41,7 +41,7 @@ type Screen =
   | { name: "library" }
   | { name: "detail"; gameId: string }
   | { name: "settings" }
-  | { name: "stats" }
+  | { name: "stats"; page: "lib" | "progress" }
   | { name: "queue" };
 
 const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
@@ -72,6 +72,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
     { key: "ESC", label: "Back" },
   ],
   stats: [
+    { key: "F6", label: "Page" },
     { key: "F2", label: "Theme" },
     { key: "ESC", label: "Back" },
   ],
@@ -289,7 +290,13 @@ export function RetroApp({
         setThemePicker(Math.max(0, RETRO_THEMES.findIndex((t) => t.id === useSettingsStore.getState().retroTheme)));
       } else if (e.key === "F6") {
         e.preventDefault();
-        setScreen((s) => (s.name === "stats" ? { name: "library" } : { name: "stats" }));
+        setScreen((s) =>
+          s.name !== "stats"
+            ? { name: "stats", page: "lib" }
+            : s.page === "lib"
+              ? { name: "stats", page: "progress" }
+              : { name: "library" },
+        );
       } else if (e.key === "F1") {
         e.preventDefault();
         setHelpOpen(true);
@@ -353,6 +360,7 @@ export function RetroApp({
           {booted && screen.name === "stats" && (
             <RetroStats
               enabled={keysEnabled}
+              page={screen.page}
               onBack={() => setScreen({ name: "library" })}
             />
           )}

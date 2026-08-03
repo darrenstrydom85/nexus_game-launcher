@@ -547,7 +547,7 @@ describe("RetroStats", () => {
       activeSession: null,
     });
     const onBack = vi.fn();
-    render(<RetroStats enabled onBack={onBack} />);
+    render(<RetroStats enabled page="lib" onBack={onBack} />);
 
     const totals = screen.getByTestId("retro-stats-totals");
     expect(totals).toHaveTextContent("TITLES");
@@ -563,6 +563,40 @@ describe("RetroStats", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it("progress page shows XP, streak, and achievements from the stores", async () => {
+    const { useXpStore } = await import("@/stores/xpStore");
+    const { useStreakStore } = await import("@/stores/streakStore");
+    const { useAchievementStore } = await import("@/stores/achievementStore");
+    useXpStore.setState({
+      summary: {
+        totalXp: 1234, currentLevel: 7, currentLevelXp: 40, nextLevelXp: 100,
+        progressToNextLevel: 0.4, leveledUp: false, newLevel: null,
+      },
+    });
+    useStreakStore.setState({
+      streak: {
+        id: "s", currentStreak: 4, longestStreak: 12,
+        lastPlayDate: "2026-08-02", streakStartedAt: null, updatedAt: "2026-08-02",
+      },
+    });
+    useAchievementStore.setState({
+      statuses: [
+        { id: "ach1", name: "First Blood", description: "Play your first game", icon: "", category: "playtime" as never, rarity: "common" as never, points: 10, unlocked: true, unlockedAt: "2026-01-01", contextJson: null },
+        { id: "ach2", name: "Marathon", description: "Play 8 hours in a day", icon: "", category: "playtime" as never, rarity: "rare" as never, points: 50, unlocked: false, unlockedAt: null, contextJson: null },
+      ],
+    });
+
+    render(<RetroStats enabled page="progress" onBack={noop} />);
+    expect(screen.getByTestId("retro-progress-xp")).toHaveTextContent("LEVEL");
+    expect(screen.getByTestId("retro-progress-xp")).toHaveTextContent("7");
+    expect(screen.getByTestId("retro-progress-xp")).toHaveTextContent("40/100");
+    expect(screen.getByTestId("retro-progress-streak")).toHaveTextContent("4 DAYS");
+    expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("ACHIEVEMENTS (1/2)");
+    expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("[*]");
+    expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("First Blood");
+    expect(screen.getByTestId("retro-progress-achievements")).toHaveTextContent("10 PTS");
   });
 });
 
