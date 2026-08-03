@@ -72,6 +72,7 @@ import { LevelUpToast } from "@/components/Xp/LevelUpToast";
 import { useCeremonyStore } from "@/stores/ceremonyStore";
 import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
 import { RetroApp } from "@/retro/RetroApp";
+import { RetroExitScreen } from "@/retro/RetroExitScreen";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -629,6 +630,15 @@ function MainApp() {
   // All the effects above (settings load, sync, launch lifecycle, health check)
   // keep running — only the rendered shell changes.
   const retroMode = useSettingsStore((s) => s.retroMode);
+
+  // Leaving retro shows the amber shutdown screen for a beat first.
+  const [retroExiting, setRetroExiting] = React.useState(false);
+  const prevRetroRef = React.useRef(retroMode);
+  React.useEffect(() => {
+    if (prevRetroRef.current && !retroMode) setRetroExiting(true);
+    prevRetroRef.current = retroMode;
+  }, [retroMode]);
+
   if (retroMode) {
     return (
       <RetroApp
@@ -643,6 +653,10 @@ function MainApp() {
         onCancelProcessPicker={handleProcessPickerCancel}
       />
     );
+  }
+
+  if (retroExiting) {
+    return <RetroExitScreen onDone={() => setRetroExiting(false)} />;
   }
 
   return (

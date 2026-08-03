@@ -743,6 +743,29 @@ describe("RetroSettings", () => {
   });
 });
 
+describe("RetroExitScreen", () => {
+  it("shows the shutdown message; any key skips, else auto-dismisses", async () => {
+    const { RetroExitScreen } = await import("@/retro/RetroExitScreen");
+    const onDone = vi.fn();
+    render(<RetroExitScreen onDone={onDone} />);
+    expect(screen.getByTestId("retro-exit")).toHaveTextContent("IT IS NOW SAFE TO TURN OFF");
+    fireEvent.keyDown(document, { key: "x" });
+    expect(onDone).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers();
+    try {
+      const onDone2 = vi.fn();
+      render(<RetroExitScreen onDone={onDone2} />);
+      act(() => {
+        vi.advanceTimersByTime(1900);
+      });
+      expect(onDone2).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("retro mode setting", () => {
   it("persists the active view so launch restores it", () => {
     useSettingsStore.getState().setRetroMode(true);
