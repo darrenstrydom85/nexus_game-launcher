@@ -1,11 +1,11 @@
 {
-  "version": "0.5.0",
-  "notes": "Redesigned Twitch experience: a two-pane layout with a searchable channel rail, in-app stream previews and game details, a dedicated Trending tab, and pop-out viewing windows themed to match your app. See https://www.nexusgamelauncher.com/changelog.html",
-  "pub_date": "2026-06-18T21:07:03Z",
+  "version": "0.5.1",
+  "notes": "Retro Mode: a full DOS-era interface with BIOS boot, CRT effects, ANSI cover art, PC-speaker audio, keyboard-driven stats/queue/collections, and a WRAPPED.EXE year-in-review. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.1",
+  "pub_date": "2026-08-03T13:25:46Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1lnRkhpblBmZ084c2F4a2NDcGxVY1B1NHBkZUlLTkFoSEhjRFRLZXRlQ0lZc2Ftalk2S3RWRkJkWEkrcEFMMWlkTWhweFZLY1ZKcmYrVkd5UG0vVWdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxODE2NzgyCWZpbGU6TmV4dXNfMC41LjBfeDY0LXNldHVwLmV4ZQpVbTNINGtBVEZwOHlGb3VlaGFtdUlKOGw4Zm5LWTM4ajZWODVoYU9oZDlSaEw5SDFZMmxlUHFlTGJwRW1kYmE3MjUvNnZlSEI5WGs1TGRvR0oxVUNBZz09Cg==",
-      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.5.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1NrSFVHTHBMWlluWkpMMkpQYlBjZXZqMFZwaVJQUHpjZm5aOUhHRnY3bU5Ld1VhYkdEeE5haHRXTjlLa1dib1dJQitITHZJTndqNGJ3UHBFUjJ2M1FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NzYzNTIwCWZpbGU6TmV4dXNfMC41LjFfeDY0LXNldHVwLmV4ZQpWNVVTeE5FZk9WZUtTRjBodUFiNFB2dlRtRDZ2cVdqQjh5K0NmdFBJL2VmZml6WDJxcVNIcktNc2U3Y0dYemhlNHk5bW1RWWxiSThoeVJoUVV5NUxDZz09Cg==",
+      "url": "https://www.nexusgamelauncher.com/releases/Nexus_0.5.1_x64-setup.exe"
     }
   }
 }

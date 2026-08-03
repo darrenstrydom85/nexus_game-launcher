@@ -101,7 +101,7 @@
     <a class="brand" href="index.html">
       <svg class="ico ico-24" aria-hidden="true"><use href="#i-nexus"></use></svg>
       Nexus
-      <span class="brand-ver">v0.4.3 Beta</span>
+      <span class="brand-ver">v0.5.1 Beta</span>
     </a>
 
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
@@ -136,24 +136,24 @@
 
   <div class="wrap hero-wrap">
     <p class="boot">
-      <span data-boot="&gt; NEXUS.LOG — 30 RELEASES ARCHIVED — OK"></span>
+      <span data-boot="&gt; NEXUS.LOG — 32 RELEASES ARCHIVED — OK"></span>
       <span class="caret" aria-hidden="true"></span>
     </p>
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty releases and counting — what's new, what's improved, and what got
-      fixed in each version of Nexus.
+      Thirty-two releases and counting — what's new, what's improved, and what
+      got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.4.3_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_0.5.1_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.4.3
+        Download v0.5.1
       </a>
-      <a href="#v0.4.3" class="btn btn--ghost">
+      <a href="#v0.5.1" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.4.3
+        Latest · v0.5.1
       </a>
     </div>
   </div>
@@ -169,7 +169,15 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.4.3">
+          <a class="changelog-rail-link is-latest" href="#v0.5.1">
+            <span class="changelog-rail-version">v0.5.1</span>
+            <span class="changelog-rail-date">Aug 3</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.0">
+            <span class="changelog-rail-version">v0.5.0</span>
+            <span class="changelog-rail-date">Jun 18</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.4.3">
             <span class="changelog-rail-version">v0.4.3</span>
             <span class="changelog-rail-date">Jun 18</span>
           </a>
@@ -240,7 +248,9 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.4.3">v0.4.3 — Jun 18, 2026 (Latest)</option>
+              <option value="v0.5.1">v0.5.1 — Aug 3, 2026 (Latest)</option>
+              <option value="v0.5.0">v0.5.0 — Jun 18, 2026</option>
+              <option value="v0.4.3">v0.4.3 — Jun 18, 2026</option>
               <option value="v0.4.2">v0.4.2 — Jun 15, 2026</option>
               <option value="v0.4.1">v0.4.1 — Jun 15, 2026</option>
               <option value="v0.4.0">v0.4.0 — May 9, 2026</option>
@@ -295,11 +305,99 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.4.3 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.4.3">
+            <!-- ── v0.5.1 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.5.1">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.1</h2>
+                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  Nexus goes retro. Flip the new Retro Mode switch and your
+                  library becomes a DOS-era terminal — complete with a BIOS
+                  boot sequence, CRT scanlines, ANSI-dithered cover art, and
+                  PC-speaker beeps. Everything runs from the keyboard: stats,
+                  play queue, collections, a random picker, and a WRAPPED.EXE
+                  year-in-review slideshow.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><span class="bullet" aria-hidden="true"></span>Full DOS-style retro mode with BIOS boot, CRT effects &amp; PC-speaker audio</li>
+                  <li><span class="bullet" aria-hidden="true"></span>ANSI-dithered cover art, starfield &amp; matrix-rain screensavers, Konami surprise</li>
+                  <li><span class="bullet" aria-hidden="true"></span>WRAPPED.EXE year-in-review plus keyboard-driven stats, queue &amp; random picker</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Retro Mode</strong> &mdash; A full DOS-era interface for your library, with a prominent switch in the modern UI to jump between the two. Complete with retro-styled toasts, session note prompts, and an authentic BIOS boot with the NEXUS ASCII logo, boot chime, and floppy-seek sounds.</li>
+                    <li><strong>CRT vibe pack</strong> &mdash; Scanlines, screen effects, and screensavers (starfield and matrix rain), plus a shutdown screen when you leave retro mode.</li>
+                    <li><strong>ANSI cover art</strong> &mdash; Game covers rendered as ANSI-dithered terminal art in the detail view, with a SETUP toggle.</li>
+                    <li><strong>Keyboard everything</strong> &mdash; F1 help, F4 collections filter, F6 stats &amp; player progress, F7 play queue, F10 random picker, E edit title, R refetch metadata, M IGDB search.</li>
+                    <li><strong>WRAPPED.EXE</strong> &mdash; A year-in-review slideshow of your play history, retro style.</li>
+                    <li><strong>Abort, Retry, Fail?</strong> &mdash; Launch errors get the classic DOS prompt, and a certain 30-lives code triggers fireworks.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Update prompts in retro</strong> &mdash; In-app update notifications now appear inside retro mode too, and your chosen view persists between sessions.</li>
+                    <li><strong>PC-speaker audio</strong> &mdash; Key beeps and boot sounds are on by default, with readable ON/OFF states in retro setup.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.0 ── -->
+            <article class="changelog-entry" id="v0.5.0">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.0</h2>
+                <time class="changelog-entry-date" datetime="2026-06-18">Jun 18, 2026</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  The Twitch tab has been rebuilt from the ground up. A
+                  persistent, searchable channel rail now sits beside a tabbed
+                  main area, and selecting a channel opens an in-app preview
+                  with stream and game details instead of immediately launching
+                  a window. Pop-out viewing windows now match whichever theme
+                  you have selected.
+                </p>
+
+                <ul class="changelog-highlights" aria-label="Release highlights">
+                  <li><span class="bullet" aria-hidden="true"></span>Two-pane Twitch layout with a searchable channel rail</li>
+                  <li><span class="bullet" aria-hidden="true"></span>In-pane stream preview &amp; game details per channel</li>
+                  <li><span class="bullet" aria-hidden="true"></span>Themed pop-out stream &amp; clip windows</li>
+                </ul>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Channel rail</strong> &mdash; A persistent, searchable list of your followed channels (live and offline) sits alongside the main view, with favorites sorted to the top.</li>
+                    <li><strong>In-pane channel detail</strong> &mdash; Picking a channel opens a preview with the stream thumbnail, title, viewers, uptime, and game details — plus Watch and Open-on-Twitch actions — instead of jumping straight into a window.</li>
+                    <li><strong>Trending tab</strong> &mdash; "Trending in your library" is now its own tab with a poster grid and aggregate viewer &amp; live-stream stats.</li>
+                    <li><strong>Themed viewing windows</strong> &mdash; Pop-out stream and clip windows are styled to match your selected app theme.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Faster previews</strong> &mdash; The detail preview now shows a loading state while switching channels so the previous thumbnail no longer lingers.</li>
+                    <li><strong>Cleaner layout</strong> &mdash; Replaced the oversized featured banner with a focused, space-efficient two-pane design.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.4.3 ── -->
+            <article class="changelog-entry" id="v0.4.3">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.4.3</h2>
-                <time class="changelog-entry-date" datetime="2026-06-18">Jun 18, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-06-18">Jun 18, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
