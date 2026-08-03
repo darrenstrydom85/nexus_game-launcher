@@ -58,6 +58,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   detail: [
     { key: "TAB", label: "Section" },
     { key: "ENTER", label: "Open" },
+    { key: "E", label: "Edit" },
     { key: "F7", label: "Status" },
     { key: "F8", label: "Run/Stop" },
     { key: "ESC", label: "Back" },
@@ -416,6 +417,7 @@ export function RetroApp({
                 ["TITLE VIEW", ""],
                 ["TAB", "NEXT SECTION"],
                 ["ENTER", "OPEN FIELD / SESSION"],
+                ["E", "EDIT NAME / EXE PATH"],
                 ["F7", "SET STATUS"],
                 ["+ / -", "RATE"],
                 ["F8", "RUN / STOP"],

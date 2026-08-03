@@ -478,6 +478,27 @@ describe("RetroDetail", () => {
     expect(screen.queryByTestId("retro-modal")).not.toBeInTheDocument();
   });
 
+  it("E opens the edit popup; Enter saves name + exe via update_game", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    fireEvent.keyDown(document, { key: "e" });
+
+    const nameInput = screen.getByTestId("retro-edit-name") as HTMLInputElement;
+    expect(nameInput.value).toBe("Alpha");
+    fireEvent.change(nameInput, { target: { value: "Alpha Remastered" } });
+    fireEvent.change(screen.getByTestId("retro-edit-exe"), { target: { value: "C:\\games\\alpha.exe" } });
+    fireEvent.keyDown(document, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("update_game", {
+        id: "a",
+        fields: { name: "Alpha Remastered", exePath: "C:\\games\\alpha.exe" },
+      }),
+    );
+    await waitFor(() => expect(screen.queryByTestId("retro-edit")).not.toBeInTheDocument());
+  });
+
   it("Esc goes back only when no modal is open", () => {
     const onBack = vi.fn();
     render(<RetroDetail {...detailProps} onBack={onBack} onSetStatus={noop} onSetRating={noop} />);

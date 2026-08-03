@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useGameStore, type Game, type GameStatus } from "@/stores/gameStore";
+import { invoke } from "@tauri-apps/api/core";
+import { useGameStore, refreshGames, type Game, type GameStatus } from "@/stores/gameStore";
 import { usePerGameSessionStats } from "@/hooks/usePerGameSessionStats";
 import type { SessionRecord } from "@/types/analytics";
 import { RetroModal } from "./RetroModal";
@@ -20,7 +21,8 @@ type Section = "info" | "meta" | "desc" | "sessions";
 type Modal =
   | { type: "status"; sel: number }
   | { type: "rating"; sel: number }
-  | { type: "session"; session: SessionRecord };
+  | { type: "session"; session: SessionRecord }
+  | { type: "edit" };
 
 interface FieldRow {
   label: string;
@@ -49,8 +51,33 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
   const [rowSel, setRowSel] = React.useState(0);
   const [sessSel, setSessSel] = React.useState(0);
   const [modal, setModal] = React.useState<Modal | null>(null);
+  const [editName, setEditName] = React.useState("");
+  const [editExe, setEditExe] = React.useState("");
   const descRef = React.useRef<HTMLDivElement>(null);
   const sessListRef = React.useRef<HTMLDivElement>(null);
+  const editNameRef = React.useRef<HTMLInputElement>(null);
+  const editExeRef = React.useRef<HTMLInputElement>(null);
+
+  const openEdit = React.useCallback((g: Game) => {
+    setEditName(g.name);
+    setEditExe(g.exePath ?? "");
+    setModal({ type: "edit" });
+  }, []);
+
+  const saveEdit = React.useCallback(async () => {
+    const name = editName.trim();
+    if (!name) return;
+    try {
+      await invoke("update_game", {
+        id: gameId,
+        fields: { name, exePath: editExe.trim() || null },
+      });
+      await refreshGames();
+    } catch {
+      // best-effort, matches modern EditGameModal
+    }
+    setModal(null);
+  }, [gameId, editName, editExe]);
 
   React.useEffect(() => {
     fetch();
@@ -160,6 +187,16 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
             if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); setModal(null); }
             break;
           }
+          case "edit": {
+            if (e.key === "Escape") { e.preventDefault(); setModal(null); }
+            else if (e.key === "Enter") { e.preventDefault(); saveEdit(); }
+            else if (e.key === "Tab") {
+              e.preventDefault();
+              if (document.activeElement === editNameRef.current) editExeRef.current?.focus();
+              else editNameRef.current?.focus();
+            }
+            break;
+          }
         }
         return;
       }
@@ -181,6 +218,11 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
         case "F7":
           e.preventDefault();
           openStatusModal();
+          break;
+        case "e":
+        case "E":
+          e.preventDefault();
+          openEdit(game);
           break;
         case "+":
         case "=":
@@ -239,7 +281,7 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
     return () => document.removeEventListener("keydown", h);
   }, [
     enabled, game, gameId, modal, section, rowSel, sessSel, sessions,
-    infoRows, metaRows, isPlaying, cycleSection, openStatusModal, scrollSession,
+    infoRows, metaRows, isPlaying, cycleSection, openStatusModal, openEdit, saveEdit, scrollSession,
     onBack, onLaunch, onStop, onSetStatus, onSetRating,
   ]);
 
@@ -386,6 +428,38 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
           footer="0-5/ENTER=SET | ESC=CANCEL"
           onItemClick={(i) => { onSetRating(gameId, i === 0 ? null : i); setModal(null); }}
         />
+      )}
+
+      {modal?.type === "edit" && (
+        <RetroModal title="EDIT TITLE" footer="TAB=FIELD | ENTER=SAVE | ESC=CANCEL">
+          <div data-testid="retro-edit" style={{ minWidth: "50ch" }}>
+            <div style={{ display: "flex" }}>
+              <span style={{ width: "10ch" }}>NAME :</span>
+              <input
+                ref={editNameRef}
+                data-testid="retro-edit-name"
+                className="retro-input"
+                style={{ flex: 1 }}
+                autoFocus
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                aria-label="Game name"
+              />
+            </div>
+            <div style={{ display: "flex", marginTop: 4 }}>
+              <span style={{ width: "10ch" }}>EXE :</span>
+              <input
+                ref={editExeRef}
+                data-testid="retro-edit-exe"
+                className="retro-input"
+                style={{ flex: 1, textTransform: "none" }}
+                value={editExe}
+                onChange={(e) => setEditExe(e.target.value)}
+                aria-label="Executable path"
+              />
+            </div>
+          </div>
+        </RetroModal>
       )}
 
       {modal?.type === "session" && (
