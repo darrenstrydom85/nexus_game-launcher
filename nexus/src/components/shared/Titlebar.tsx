@@ -2,12 +2,14 @@ import * as React from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import {
   Minus,
   Square,
   Copy,
   X,
   Search,
+  Terminal,
 } from "lucide-react";
 import nexusLogo20 from "@/assets/nexus-logo-20.png";
 
@@ -20,6 +22,8 @@ export function Titlebar() {
   const appWindowRef = React.useRef(getAppWindow());
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);
   const setActiveNav = useUiStore((s) => s.setActiveNav);
+  const retroMode = useSettingsStore((s) => s.retroMode);
+  const setRetroMode = useSettingsStore((s) => s.setRetroMode);
 
   React.useEffect(() => {
     const appWindow = appWindowRef.current;
@@ -90,6 +94,23 @@ export function Titlebar() {
 
       {/* Right: Search + Window Controls */}
       <div className="flex items-center titlebar-no-drag">
+
+        <button
+          data-testid="titlebar-retro"
+          className={cn(
+            "flex h-10 items-center justify-center gap-1.5 px-3",
+            "text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+            retroMode && "text-primary",
+          )}
+          aria-label={retroMode ? "Exit Retro Mode" : "Switch to Retro Mode"}
+          title={retroMode ? "Exit Retro Mode" : "Switch to Retro Mode"}
+          onClick={() => setRetroMode(!retroMode)}
+        >
+          <Terminal className="size-4" />
+          <span className="hidden text-xs font-medium sm:inline">
+            {retroMode ? "Modern" : "Retro"}
+          </span>
+        </button>
 
         <button
           data-testid="titlebar-search"

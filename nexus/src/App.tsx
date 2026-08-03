@@ -845,6 +845,7 @@ function MainApp() {
           if (actionId === "action-settings") setSettingsOpen(true);
           else if (actionId === "action-random") setRandomPickerOpen(true);
           else if (actionId === "action-scan") handleResync();
+          else if (actionId === "action-retro") useSettingsStore.getState().setRetroMode(true);
         }}
       />
       <HealthCheckModal

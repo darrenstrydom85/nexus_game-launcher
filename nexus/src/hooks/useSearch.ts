@@ -40,6 +40,7 @@ const ACTIONS: ActionItem[] = [
   { id: "action-random", name: "Random Game", icon: "🎲" },
   { id: "action-scan", name: "Scan for Games", icon: "🔍" },
   { id: "action-view-queue", name: "View Play Queue", icon: "📋" },
+  { id: "action-retro", name: "Switch to Retro Mode", icon: "🖥️" },
 ];
 
 export function useSearch(query: string): {

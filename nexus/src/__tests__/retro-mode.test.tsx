@@ -427,6 +427,18 @@ describe("RetroSessionNote", () => {
 });
 
 describe("retro mode setting", () => {
+  it("titlebar button toggles retro mode", async () => {
+    const { Titlebar } = await import("@/components/shared/Titlebar");
+    useSettingsStore.setState({ retroMode: false });
+    render(<Titlebar />);
+    const btn = screen.getByTestId("titlebar-retro");
+    expect(btn).toHaveTextContent("Retro");
+    fireEvent.click(btn);
+    expect(useSettingsStore.getState().retroMode).toBe(true);
+    expect(btn).toHaveTextContent("Modern");
+    useSettingsStore.setState({ retroMode: false });
+  });
+
   it("AppearanceSettings toggle flips retroMode in the store", () => {
     useSettingsStore.setState({ retroMode: false });
     render(<AppearanceSettings />);
