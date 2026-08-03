@@ -57,10 +57,14 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
   }, [onDone]);
 
   React.useEffect(() => {
-    if (complete) return; // wait for Enter
+    if (complete) {
+      // Wait for Enter, but don't block forever — auto-proceed after 5s.
+      const t = setTimeout(finish, 5000);
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 120 + Math.random() * 200);
     return () => clearTimeout(t);
-  }, [shown, complete]);
+  }, [shown, complete, finish]);
 
   // During the reveal any key/click fast-forwards to the full POST; once
   // complete, Enter (or a click) proceeds. Capture phase so keys never
