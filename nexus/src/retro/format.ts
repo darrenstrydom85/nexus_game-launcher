@@ -66,3 +66,10 @@ export function fmtStars(rating: number | null): string {
   const r = rating ?? 0;
   return "*".repeat(r).padEnd(5, ".");
 }
+
+/** ASCII bar chart segment: value 5 of max 10, width 10 -> "#####.....". */
+export function fmtBar(value: number, max: number, width: number): string {
+  if (max <= 0 || value <= 0) return ".".repeat(width);
+  const filled = Math.max(1, Math.round((value / max) * width));
+  return "#".repeat(Math.min(width, filled)).padEnd(width, ".");
+}

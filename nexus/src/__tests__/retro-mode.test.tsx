@@ -11,7 +11,8 @@ import { useGameStore, type Game } from "@/stores/gameStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
-import { fmtStars, fmtDate, fmtClock, fmtDur } from "@/retro/format";
+import { fmtStars, fmtDate, fmtClock, fmtDur, fmtBar } from "@/retro/format";
+import { RetroStats } from "@/retro/RetroStats";
 import { hexToHsl, retroPalette } from "@/retro/palette";
 
 vi.mock("@/lib/tauri", async (importOriginal) => {
@@ -19,6 +20,21 @@ vi.mock("@/lib/tauri", async (importOriginal) => {
   return {
     ...actual,
     updateSessionNote: vi.fn(() => Promise.resolve()),
+    getSessionDistribution: vi.fn(() =>
+      Promise.resolve({
+        buckets: [
+          { label: "15-30M", minS: 900, maxS: 1800, count: 3, totalPlayTimeS: 4500 },
+          { label: "30-60M", minS: 1800, maxS: 3600, count: 1, totalPlayTimeS: 2000 },
+        ],
+        totalSessions: 4,
+        meanDurationS: 1625,
+        medianDurationS: 1500,
+        p75DurationS: 1700,
+        p95DurationS: 1900,
+        shortestSessionS: 900,
+        longestSessionS: 2000,
+      }),
+    ),
     getPerGameSessionStats: vi.fn(() =>
       Promise.resolve({
         sessions: [
@@ -97,6 +113,13 @@ describe("retro format helpers", () => {
     expect(fmtClock(3661)).toBe("01:01:01");
     expect(fmtDur(59 * 60)).toBe("59M");
     expect(fmtDur(3600 + 5 * 60)).toBe("1H 05M");
+  });
+
+  it("renders ASCII bars", () => {
+    expect(fmtBar(5, 10, 10)).toBe("#####.....");
+    expect(fmtBar(0, 10, 4)).toBe("....");
+    expect(fmtBar(10, 10, 6)).toBe("######");
+    expect(fmtBar(1, 1000, 10)).toBe("#.........");
   });
 });
 
@@ -388,6 +411,36 @@ describe("RetroDetail", () => {
     expect(onBack).not.toHaveBeenCalled();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("RetroStats", () => {
+  it("shows totals, top-10 bars, and the session histogram; Esc goes back", async () => {
+    useGameStore.setState({
+      games: [
+        makeGame({ id: "a", name: "Alpha", totalPlayTimeS: 7200, playCount: 3, status: "completed" }),
+        makeGame({ id: "b", name: "Beta", totalPlayTimeS: 3600, playCount: 1, status: "playing" }),
+        makeGame({ id: "gone", name: "Gone", status: "removed", totalPlayTimeS: 99999 }),
+      ],
+      activeSession: null,
+    });
+    const onBack = vi.fn();
+    render(<RetroStats enabled onBack={onBack} />);
+
+    const totals = screen.getByTestId("retro-stats-totals");
+    expect(totals).toHaveTextContent("TITLES");
+    expect(totals).toHaveTextContent("2");
+    expect(totals).toHaveTextContent("3.0");
+
+    expect(screen.getByTestId("retro-stats-top-0")).toHaveTextContent("Alpha");
+    expect(screen.getByTestId("retro-stats-top-0")).toHaveTextContent("#");
+
+    await waitFor(() =>
+      expect(screen.getByTestId("retro-stats-histogram")).toHaveTextContent("15-30M"),
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onBack).toHaveBeenCalled();
   });
 });
 

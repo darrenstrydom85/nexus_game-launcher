@@ -8,6 +8,7 @@ import { retroPalette, retroThemeById, RETRO_THEMES } from "./palette";
 import { RetroModal } from "./RetroModal";
 import { RetroToasts } from "./RetroToasts";
 import { RetroSessionNote } from "./RetroSessionNote";
+import { RetroStats } from "./RetroStats";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
@@ -30,7 +31,8 @@ export interface RetroAppProps {
 type Screen =
   | { name: "library" }
   | { name: "detail"; gameId: string }
-  | { name: "settings" };
+  | { name: "settings" }
+  | { name: "stats" };
 
 const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   library: [
@@ -39,6 +41,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
     { key: "F3", label: "Sort" },
     { key: "F4", label: "Coll" },
     { key: "F5", label: "Rescan" },
+    { key: "F6", label: "Stats" },
     { key: "F8", label: "Run" },
     { key: "F9", label: "Setup" },
   ],
@@ -51,6 +54,10 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   ],
   settings: [
     { key: "ENTER", label: "Toggle" },
+    { key: "F2", label: "Theme" },
+    { key: "ESC", label: "Back" },
+  ],
+  stats: [
     { key: "F2", label: "Theme" },
     { key: "ESC", label: "Back" },
   ],
@@ -137,6 +144,9 @@ export function RetroApp({
       } else if (e.key === "F2") {
         e.preventDefault();
         setThemePicker(Math.max(0, RETRO_THEMES.findIndex((t) => t.id === useSettingsStore.getState().retroTheme)));
+      } else if (e.key === "F6") {
+        e.preventDefault();
+        setScreen((s) => (s.name === "stats" ? { name: "library" } : { name: "stats" }));
       }
     };
     document.addEventListener("keydown", h);
@@ -184,6 +194,12 @@ export function RetroApp({
               enabled={keysEnabled}
               onBack={() => setScreen({ name: "library" })}
               onExit={onExit}
+            />
+          )}
+          {screen.name === "stats" && (
+            <RetroStats
+              enabled={keysEnabled}
+              onBack={() => setScreen({ name: "library" })}
             />
           )}
         </div>
