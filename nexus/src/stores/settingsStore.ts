@@ -91,6 +91,8 @@ export interface SettingsState {
   retroSounds: boolean;
   /** Retro mode: CRT flicker + phosphor glow. Default off. */
   retroCrt: boolean;
+  /** Retro mode: ANSI-dithered cover art in the title view. Default off (pure text). */
+  retroCoverArt: boolean;
   _hydrated: boolean;
 }
 
@@ -144,6 +146,7 @@ export interface SettingsActions {
   setRetroTheme: (id: string) => void;
   setRetroSounds: (value: boolean) => void;
   setRetroCrt: (value: boolean) => void;
+  setRetroCoverArt: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -209,6 +212,7 @@ const initialState: SettingsState = {
   retroTheme: "classic",
   retroSounds: true,
   retroCrt: false,
+  retroCoverArt: false,
   _hydrated: false,
 };
 
@@ -344,6 +348,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retro_crt !== undefined) {
               patch.retroCrt = settings.retro_crt === "true";
+            }
+            if (settings.retro_cover_art !== undefined) {
+              patch.retroCoverArt = settings.retro_cover_art === "true";
             }
 
             set(patch, false, "loadFromBackend");
@@ -585,6 +592,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetroCrt: (value) => {
           persistSetting("retro_crt", String(value));
           set({ retroCrt: value }, false, "setRetroCrt");
+        },
+        setRetroCoverArt: (value) => {
+          persistSetting("retro_cover_art", String(value));
+          set({ retroCoverArt: value }, false, "setRetroCoverArt");
         },
       }),
       {

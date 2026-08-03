@@ -14,6 +14,7 @@ import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { fmtStars, fmtDate, fmtClock, fmtDur, fmtBar } from "@/retro/format";
 import { RetroStats } from "@/retro/RetroStats";
 import { hexToHsl, retroPalette } from "@/retro/palette";
+import { nearestVga, ditherCell } from "@/retro/dither";
 
 vi.mock("@/lib/tauri", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/tauri")>();
@@ -169,6 +170,24 @@ describe("retro format helpers", () => {
     expect(fmtBar(0, 10, 4)).toBe("....");
     expect(fmtBar(10, 10, 6)).toBe("######");
     expect(fmtBar(1, 1000, 10)).toBe("#.........");
+  });
+});
+
+describe("retro dither", () => {
+  it("maps colors to the nearest VGA-16 entry", () => {
+    expect(nearestVga(0, 0, 0)).toBe("#000000");
+    expect(nearestVga(250, 250, 250)).toBe("#ffffff");
+    expect(nearestVga(170, 0, 0)).toBe("#aa0000");
+    expect(nearestVga(80, 250, 80)).toBe("#55ff55");
+  });
+
+  it("ditherCell stays within the palette", () => {
+    const allowed = new Set(["#aa0000", "#ff5555", "#aa5500", "#000000", "#555555"]);
+    for (let x = 0; x < 4; x++) {
+      for (let y = 0; y < 4; y++) {
+        expect(allowed.has(ditherCell(190, 40, 30, x, y))).toBe(true);
+      }
+    }
   });
 });
 
@@ -632,6 +651,20 @@ describe("RetroDetail", () => {
     render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
     fireEvent.keyDown(document, { key: "r" });
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("fetch_metadata", { gameId: "a" }));
+  });
+
+  it("shows the ANSI cover panel only when the setting is on", () => {
+    useSettingsStore.setState({ retroCoverArt: false });
+    const { unmount } = render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    expect(screen.queryByTestId("retro-cover")).not.toBeInTheDocument();
+    unmount();
+
+    useSettingsStore.setState({ retroCoverArt: true });
+    render(<RetroDetail {...detailProps} onSetStatus={noop} onSetRating={noop} />);
+    // No coverUrl in the fixture -> fallback card.
+    expect(screen.getByTestId("retro-cover")).toBeInTheDocument();
+    expect(screen.getByTestId("retro-cover-fallback")).toHaveTextContent("NO SIGNAL");
+    useSettingsStore.setState({ retroCoverArt: false });
   });
 
   it("Esc goes back only when no modal is open", () => {

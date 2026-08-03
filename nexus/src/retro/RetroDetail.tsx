@@ -6,6 +6,8 @@ import { useToastStore } from "@/stores/toastStore";
 import { searchMetadata, fetchMetadataWithIgdbId, type MetadataSearchResult } from "@/lib/tauri";
 import type { SessionRecord } from "@/types/analytics";
 import { RetroModal } from "./RetroModal";
+import { RetroCover } from "./RetroCover";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { SOURCE_CODE, STATUS_CODE, STATUS_CYCLE, fmtHours, fmtDate, fmtDur, fmtStars } from "./format";
 
 export interface RetroDetailProps {
@@ -48,6 +50,7 @@ const RATING_ITEMS = [
 export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetStatus, onSetRating }: RetroDetailProps) {
   const game = useGameStore((s) => s.games.find((g) => g.id === gameId));
   const activeSession = useGameStore((s) => s.activeSession);
+  const coverArtEnabled = useSettingsStore((s) => s.retroCoverArt);
   const { stats, isLoading, fetch } = usePerGameSessionStats(gameId);
 
   const [section, setSection] = React.useState<Section>("info");
@@ -434,6 +437,7 @@ export function RetroDetail({ gameId, enabled, onBack, onLaunch, onStop, onSetSt
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
+        {coverArtEnabled && <RetroCover url={game.coverUrl} name={game.name} />}
         {renderFieldPanel("info", "INFO", infoRows)}
         {renderFieldPanel("meta", "META", metaRows)}
       </div>

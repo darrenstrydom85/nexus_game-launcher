@@ -29,6 +29,11 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
         run: () => settings.setRetroCrt(!settings.retroCrt),
       },
       {
+        label: "COVER ART (ANSI DITHER)",
+        value: settings.retroCoverArt ? "ON" : "OFF",
+        run: () => settings.setRetroCoverArt(!settings.retroCoverArt),
+      },
+      {
         label: "DESKTOP NOTIFICATIONS",
         value: settings.enableNotifications ? "ON" : "OFF",
         run: () => settings.setEnableNotifications(!settings.enableNotifications),
