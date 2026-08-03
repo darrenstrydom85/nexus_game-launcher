@@ -9,6 +9,8 @@ import { RetroModal } from "./RetroModal";
 import { RetroToasts } from "./RetroToasts";
 import { RetroSessionNote } from "./RetroSessionNote";
 import { RetroStats } from "./RetroStats";
+import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
+import { useUpdateStore } from "@/stores/updateStore";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
@@ -108,12 +110,16 @@ export function RetroApp({
   const notePromptEnabled = useSettingsStore((s) => s.sessionNotePromptEnabled);
   const noteOpen = notePromptEnabled && noteQueueLength > 0;
 
-  const keysEnabled = !showProcessPicker && themePicker == null && !noteOpen;
+  const updateAvailable = useUpdateStore((s) => s.updateAvailable);
+  const updateDismissed = useUpdateStore((s) => s.popupDismissed);
+  const updateOpen = updateAvailable && !updateDismissed;
+
+  const keysEnabled = !showProcessPicker && themePicker == null && !noteOpen && !updateOpen;
 
   // Screen-global keys. Everything screen-specific lives in the screens.
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (showProcessPicker || noteOpen) return;
+      if (showProcessPicker || noteOpen || updateOpen) return;
 
       // Theme picker modal owns the keyboard while open.
       if (themePicker != null) {
@@ -151,7 +157,7 @@ export function RetroApp({
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showProcessPicker, noteOpen, themePicker, isSyncing, onResync]);
+  }, [showProcessPicker, noteOpen, updateOpen, themePicker, isSyncing, onResync]);
 
   const elapsedS = activeSession
     ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
@@ -257,6 +263,7 @@ export function RetroApp({
 
         <RetroToasts />
         <RetroSessionNote />
+        <RetroUpdatePrompt />
       </div>
     </div>
   );

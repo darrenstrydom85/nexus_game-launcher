@@ -501,7 +501,63 @@ describe("RetroSessionNote", () => {
   });
 });
 
+describe("RetroUpdatePrompt", () => {
+  it("shows when update available; Enter installs; Esc dismisses", async () => {
+    const { RetroUpdatePrompt } = await import("@/retro/RetroUpdatePrompt");
+    const { useUpdateStore } = await import("@/stores/updateStore");
+    const downloadAndInstall = vi.fn();
+    useUpdateStore.setState({
+      updateAvailable: true,
+      popupDismissed: false,
+      latestVersion: "0.5.0",
+      phase: "available",
+      downloadAndInstall,
+    });
+    render(<RetroUpdatePrompt />);
+    expect(screen.getByTestId("retro-update-prompt")).toHaveTextContent("0.5.0");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(downloadAndInstall).toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(useUpdateStore.getState().popupDismissed).toBe(true);
+    expect(screen.queryByTestId("retro-update-prompt")).not.toBeInTheDocument();
+    useUpdateStore.setState({ updateAvailable: false, latestVersion: null, phase: "idle", popupDismissed: false });
+  });
+
+  it("shows download progress and ready state", async () => {
+    const { RetroUpdatePrompt } = await import("@/retro/RetroUpdatePrompt");
+    const { useUpdateStore } = await import("@/stores/updateStore");
+    useUpdateStore.setState({
+      updateAvailable: true,
+      popupDismissed: false,
+      latestVersion: "0.5.0",
+      phase: "downloading",
+      downloadedBytes: 5 * 1024 * 1024,
+      totalBytes: 10 * 1024 * 1024,
+    });
+    const { rerender } = render(<RetroUpdatePrompt />);
+    expect(screen.getByTestId("retro-update-progress")).toHaveTextContent("5.0/10.0 MB");
+
+    act(() => {
+      useUpdateStore.setState({ phase: "ready" });
+    });
+    rerender(<RetroUpdatePrompt />);
+    expect(screen.getByTestId("retro-modal")).toHaveTextContent("RESTART TO APPLY");
+    useUpdateStore.setState({ updateAvailable: false, latestVersion: null, phase: "idle" });
+  });
+});
+
 describe("retro mode setting", () => {
+  it("persists the active view so launch restores it", () => {
+    useSettingsStore.getState().setRetroMode(true);
+    const persisted = JSON.parse(localStorage.getItem("nexus-settings") ?? "{}");
+    expect(persisted.state.retroMode).toBe(true);
+    useSettingsStore.getState().setRetroMode(false);
+    const persisted2 = JSON.parse(localStorage.getItem("nexus-settings") ?? "{}");
+    expect(persisted2.state.retroMode).toBe(false);
+  });
+
   it("titlebar button toggles retro mode", async () => {
     const { Titlebar } = await import("@/components/shared/Titlebar");
     useSettingsStore.setState({ retroMode: false });

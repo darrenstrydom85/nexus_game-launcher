@@ -315,8 +315,16 @@ function MainApp() {
           type: "info",
           message: "An update is available.",
           action: {
-            label: "Open Settings",
-            onClick: () => setSettingsOpen(true),
+            label: useSettingsStore.getState().retroMode ? "View" : "Open Settings",
+            onClick: () => {
+              // In retro mode the update lives in a DOS popup, not the settings
+              // sheet — clear the dismissal so RetroUpdatePrompt reappears.
+              if (useSettingsStore.getState().retroMode) {
+                useUpdateStore.setState({ popupDismissed: false });
+              } else {
+                setSettingsOpen(true);
+              }
+            },
           },
         });
       });
