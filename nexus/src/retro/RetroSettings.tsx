@@ -24,6 +24,11 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
         run: () => settings.setRetroSounds(!settings.retroSounds),
       },
       {
+        label: "CRT GLOW + FLICKER",
+        value: settings.retroCrt ? "Y" : "N",
+        run: () => settings.setRetroCrt(!settings.retroCrt),
+      },
+      {
         label: "DESKTOP NOTIFICATIONS",
         value: settings.enableNotifications ? "Y" : "N",
         run: () => settings.setEnableNotifications(!settings.enableNotifications),

@@ -12,6 +12,8 @@ import { RetroStats } from "./RetroStats";
 import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
 import { useUpdateStore } from "@/stores/updateStore";
 import { beep } from "./beep";
+import { RetroBoot } from "./RetroBoot";
+import { RetroScreensaver } from "./RetroScreensaver";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
@@ -80,6 +82,9 @@ export function RetroApp({
 }: RetroAppProps) {
   const [screen, setScreen] = React.useState<Screen>({ name: "library" });
   const [helpOpen, setHelpOpen] = React.useState(false);
+  const [booted, setBooted] = React.useState(false);
+  const [saverActive, setSaverActive] = React.useState(false);
+  const retroCrt = useSettingsStore((s) => s.retroCrt);
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
   const gameCount = useGameStore((s) => s.games.length);
@@ -131,7 +136,43 @@ export function RetroApp({
   const updateDismissed = useUpdateStore((s) => s.popupDismissed);
   const updateOpen = updateAvailable && !updateDismissed;
 
-  const keysEnabled = !showProcessPicker && themePicker == null && !noteOpen && !updateOpen && !helpOpen;
+  const keysEnabled =
+    booted && !saverActive && !showProcessPicker && themePicker == null && !noteOpen && !updateOpen && !helpOpen;
+
+  // Screensaver: 5 min idle -> bouncing logo; any input wakes (and is swallowed).
+  const lastActivityRef = React.useRef(Date.now());
+  React.useEffect(() => {
+    const touch = () => { lastActivityRef.current = Date.now(); };
+    document.addEventListener("keydown", touch);
+    document.addEventListener("mousemove", touch);
+    document.addEventListener("mousedown", touch);
+    const id = setInterval(() => {
+      if (Date.now() - lastActivityRef.current > 5 * 60 * 1000) setSaverActive(true);
+    }, 10_000);
+    return () => {
+      document.removeEventListener("keydown", touch);
+      document.removeEventListener("mousemove", touch);
+      document.removeEventListener("mousedown", touch);
+      clearInterval(id);
+    };
+  }, []);
+  React.useEffect(() => {
+    if (!saverActive) return;
+    const wake = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      lastActivityRef.current = Date.now();
+      setSaverActive(false);
+    };
+    document.addEventListener("keydown", wake, true);
+    document.addEventListener("mousedown", wake, true);
+    document.addEventListener("mousemove", wake, true);
+    return () => {
+      document.removeEventListener("keydown", wake, true);
+      document.removeEventListener("mousedown", wake, true);
+      document.removeEventListener("mousemove", wake, true);
+    };
+  }, [saverActive]);
 
   // Screen-global keys. Everything screen-specific lives in the screens.
   React.useEffect(() => {
@@ -199,21 +240,22 @@ export function RetroApp({
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }} data-testid="retro-app">
       <Titlebar />
-      <div className="retro-root" style={{ flex: 1, minHeight: 0, ...themeVars }}>
+      <div className={retroCrt ? "retro-root retro-crt" : "retro-root"} style={{ flex: 1, minHeight: 0, ...themeVars }}>
         <div className="retro-titlebar">
           <span>NEXUS TR5 - GAME LIBRARY/LAUNCH/TRACK/SETUP</span>
           <span>{dateStr} {timeStr}</span>
         </div>
 
         <div className="retro-screen">
-          {screen.name === "library" && (
+          {!booted && <RetroBoot onDone={() => setBooted(true)} />}
+          {booted && screen.name === "library" && (
             <RetroLibrary
               enabled={keysEnabled}
               onOpenDetail={(g) => setScreen({ name: "detail", gameId: g.id })}
               onLaunch={onLaunch}
             />
           )}
-          {screen.name === "detail" && (
+          {booted && screen.name === "detail" && (
             <RetroDetail
               gameId={screen.gameId}
               enabled={keysEnabled}
@@ -224,14 +266,14 @@ export function RetroApp({
               onSetRating={onSetRating}
             />
           )}
-          {screen.name === "settings" && (
+          {booted && screen.name === "settings" && (
             <RetroSettings
               enabled={keysEnabled}
               onBack={() => setScreen({ name: "library" })}
               onExit={onExit}
             />
           )}
-          {screen.name === "stats" && (
+          {booted && screen.name === "stats" && (
             <RetroStats
               enabled={keysEnabled}
               onBack={() => setScreen({ name: "library" })}
@@ -335,6 +377,7 @@ export function RetroApp({
         <RetroToasts />
         <RetroSessionNote />
         <RetroUpdatePrompt />
+        {saverActive && <RetroScreensaver />}
       </div>
     </div>
   );

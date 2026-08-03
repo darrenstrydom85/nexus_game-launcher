@@ -275,6 +275,25 @@
   color: var(--vga-dgray);
 }
 
+/* ── CRT extras (optional, SETUP toggle) ────────────────── */
+
+@keyframes retro-flicker {
+  0% { opacity: 1; }
+  50% { opacity: 0.965; }
+  100% { opacity: 1; }
+}
+
+.retro-crt {
+  animation: retro-flicker 0.15s infinite;
+}
+
+.retro-crt .retro-screen *,
+.retro-crt .retro-titlebar,
+.retro-crt .retro-statusline,
+.retro-crt .retro-fkey-bar {
+  text-shadow: 0 0 3px currentColor;
+}
+
 /* ── Cursor blink ───────────────────────────────────────── */
 
 @keyframes retro-blink {

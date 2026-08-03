@@ -104,6 +104,11 @@ function makeGame(overrides: Partial<Game> = {}): Game {
 
 const noop = () => {};
 
+/** RetroApp shows the BIOS boot screen first; any key skips it. */
+function skipBoot() {
+  fireEvent.keyDown(document, { key: "F13" });
+}
+
 describe("retro format helpers", () => {
   it("formats stars, dates, clocks, durations", () => {
     expect(fmtStars(3)).toBe("***..");
@@ -236,6 +241,10 @@ describe("RetroApp shell", () => {
         onCancelProcessPicker={noop}
       />,
     );
+    expect(screen.getByTestId("retro-boot")).toBeInTheDocument();
+    skipBoot();
+    expect(screen.queryByTestId("retro-boot")).not.toBeInTheDocument();
+
     expect(screen.getByTestId("retro-app")).toBeInTheDocument();
     expect(screen.getByTestId("retro-status-left")).toHaveTextContent("1 TITLES ON FILE");
     expect(screen.getByTestId("retro-status-right")).toHaveTextContent("NO GAME RUNNING");
@@ -277,6 +286,7 @@ describe("RetroApp shell", () => {
         onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
       />,
     );
+    skipBoot();
     fireEvent.keyDown(document, { key: "F2" });
     expect(screen.getByTestId("retro-modal")).toHaveTextContent("SELECT THEME");
 
@@ -295,6 +305,18 @@ describe("RetroApp shell", () => {
     useSettingsStore.setState({ retroTheme: "classic" });
   });
 
+  it("applies the CRT effect class when enabled", () => {
+    useSettingsStore.setState({ retroCrt: true });
+    const { container } = render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    expect(container.querySelector(".retro-root")).toHaveClass("retro-crt");
+    useSettingsStore.setState({ retroCrt: false });
+  });
+
   it("F1 opens the help popup; Esc closes it", () => {
     render(
       <RetroApp
@@ -302,6 +324,7 @@ describe("RetroApp shell", () => {
         onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
       />,
     );
+    skipBoot();
     fireEvent.keyDown(document, { key: "F1" });
     expect(screen.getByTestId("retro-help")).toHaveTextContent("FILTER BY COLLECTION");
     fireEvent.keyDown(document, { key: "Escape" });

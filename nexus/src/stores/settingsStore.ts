@@ -89,6 +89,8 @@ export interface SettingsState {
   retroTheme: string;
   /** Retro mode: PC-speaker key beeps. Default off. */
   retroSounds: boolean;
+  /** Retro mode: CRT flicker + phosphor glow. Default off. */
+  retroCrt: boolean;
   _hydrated: boolean;
 }
 
@@ -141,6 +143,7 @@ export interface SettingsActions {
   setRetroMode: (value: boolean) => void;
   setRetroTheme: (id: string) => void;
   setRetroSounds: (value: boolean) => void;
+  setRetroCrt: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -205,6 +208,7 @@ const initialState: SettingsState = {
   retroMode: false,
   retroTheme: "classic",
   retroSounds: false,
+  retroCrt: false,
   _hydrated: false,
 };
 
@@ -337,6 +341,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retro_sounds !== undefined) {
               patch.retroSounds = settings.retro_sounds === "true";
+            }
+            if (settings.retro_crt !== undefined) {
+              patch.retroCrt = settings.retro_crt === "true";
             }
 
             set(patch, false, "loadFromBackend");
@@ -574,6 +581,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetroSounds: (value) => {
           persistSetting("retro_sounds", String(value));
           set({ retroSounds: value }, false, "setRetroSounds");
+        },
+        setRetroCrt: (value) => {
+          persistSetting("retro_crt", String(value));
+          set({ retroCrt: value }, false, "setRetroCrt");
         },
       }),
       { name: "nexus-settings" },
