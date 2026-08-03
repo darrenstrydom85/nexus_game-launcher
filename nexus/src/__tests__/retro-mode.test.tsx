@@ -295,6 +295,19 @@ describe("RetroApp shell", () => {
     useSettingsStore.setState({ retroTheme: "classic" });
   });
 
+  it("F1 opens the help popup; Esc closes it", () => {
+    render(
+      <RetroApp
+        onExit={noop} onLaunch={noop} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    fireEvent.keyDown(document, { key: "F1" });
+    expect(screen.getByTestId("retro-help")).toHaveTextContent("FILTER BY COLLECTION");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("retro-help")).not.toBeInTheDocument();
+  });
+
   it("shows running game with elapsed time in the status line", () => {
     useGameStore.setState({
       activeSession: {

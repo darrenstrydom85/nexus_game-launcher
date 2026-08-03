@@ -11,6 +11,7 @@ import { RetroSessionNote } from "./RetroSessionNote";
 import { RetroStats } from "./RetroStats";
 import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
 import { useUpdateStore } from "@/stores/updateStore";
+import { beep } from "./beep";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
 import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
@@ -38,6 +39,7 @@ type Screen =
 
 const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   library: [
+    { key: "F1", label: "Help" },
     { key: "ENTER", label: "View" },
     { key: "F2", label: "Theme" },
     { key: "F3", label: "Sort" },
@@ -77,6 +79,7 @@ export function RetroApp({
   onCancelProcessPicker,
 }: RetroAppProps) {
   const [screen, setScreen] = React.useState<Screen>({ name: "library" });
+  const [helpOpen, setHelpOpen] = React.useState(false);
   const activeSession = useGameStore((s) => s.activeSession);
   const showProcessPicker = useGameStore((s) => s.showProcessPicker);
   const gameCount = useGameStore((s) => s.games.length);
@@ -99,6 +102,20 @@ export function RetroApp({
     } as React.CSSProperties;
   }, [themePicker, retroTheme, accentColor]);
 
+  // PC-speaker key beeps: one listener, independent of the key handlers.
+  const soundsEnabled = useSettingsStore((s) => s.retroSounds);
+  React.useEffect(() => {
+    if (!soundsEnabled) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Enter") beep(1100, 35);
+      else if (e.key === "Escape") beep(500, 35);
+      else if (/^F\d{1,2}$/.test(e.key)) beep(880, 30);
+      else if (e.key.startsWith("Arrow") || e.key === "Tab") beep(700, 15);
+    };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [soundsEnabled]);
+
   // 1s tick drives the clock and the "now playing" elapsed counter.
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
@@ -114,12 +131,21 @@ export function RetroApp({
   const updateDismissed = useUpdateStore((s) => s.popupDismissed);
   const updateOpen = updateAvailable && !updateDismissed;
 
-  const keysEnabled = !showProcessPicker && themePicker == null && !noteOpen && !updateOpen;
+  const keysEnabled = !showProcessPicker && themePicker == null && !noteOpen && !updateOpen && !helpOpen;
 
   // Screen-global keys. Everything screen-specific lives in the screens.
   React.useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (showProcessPicker || noteOpen || updateOpen) return;
+
+      // Help popup: any of Esc/F1/Enter closes it.
+      if (helpOpen) {
+        if (e.key === "Escape" || e.key === "F1" || e.key === "Enter") {
+          e.preventDefault();
+          setHelpOpen(false);
+        }
+        return;
+      }
 
       // Theme picker modal owns the keyboard while open.
       if (themePicker != null) {
@@ -153,11 +179,14 @@ export function RetroApp({
       } else if (e.key === "F6") {
         e.preventDefault();
         setScreen((s) => (s.name === "stats" ? { name: "library" } : { name: "stats" }));
+      } else if (e.key === "F1") {
+        e.preventDefault();
+        setHelpOpen(true);
       }
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showProcessPicker, noteOpen, updateOpen, themePicker, isSyncing, onResync]);
+  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, themePicker, isSyncing, onResync]);
 
   const elapsedS = activeSession
     ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
@@ -235,6 +264,48 @@ export function RetroApp({
         </div>
 
         <div className="retro-scanlines" />
+
+        {helpOpen && (
+          <RetroModal title="HELP - KEY REFERENCE" footer="ESC=CLOSE">
+            <div data-testid="retro-help">
+              {[
+                ["GLOBAL", ""],
+                ["F1", "THIS HELP"],
+                ["F2", "THEME PICKER"],
+                ["F5", "RESCAN SOURCES"],
+                ["F6", "LIBRARY STATISTICS"],
+                ["F9", "SETUP / EXIT RETRO"],
+                ["", ""],
+                ["LIBRARY", ""],
+                ["TYPE", "FIND TITLE"],
+                ["ARROWS", "MOVE SELECTION"],
+                ["ENTER", "VIEW TITLE"],
+                ["F3", "CYCLE SORT"],
+                ["F4", "FILTER BY COLLECTION"],
+                ["F8", "RUN SELECTED TITLE"],
+                ["", ""],
+                ["TITLE VIEW", ""],
+                ["TAB", "NEXT SECTION"],
+                ["ENTER", "OPEN FIELD / SESSION"],
+                ["F7", "SET STATUS"],
+                ["+ / -", "RATE"],
+                ["F8", "RUN / STOP"],
+                ["ESC", "BACK / CLOSE POPUP"],
+              ].map(([k, desc], i) =>
+                desc === "" ? (
+                  <div key={i} className="retro-row" style={{ padding: 0 }}>
+                    <span style={{ textDecoration: k ? "underline" : "none" }}>{k || " "}</span>
+                  </div>
+                ) : (
+                  <div key={i} className="retro-row" style={{ padding: 0 }}>
+                    <span style={{ width: "12ch" }}>{k}</span>
+                    <span>{desc}</span>
+                  </div>
+                ),
+              )}
+            </div>
+          </RetroModal>
+        )}
 
         {themePicker != null && (
           <RetroModal

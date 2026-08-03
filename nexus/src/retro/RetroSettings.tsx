@@ -19,6 +19,11 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
         run: onExit,
       },
       {
+        label: "KEY BEEPS (PC SPEAKER)",
+        value: settings.retroSounds ? "Y" : "N",
+        run: () => settings.setRetroSounds(!settings.retroSounds),
+      },
+      {
         label: "DESKTOP NOTIFICATIONS",
         value: settings.enableNotifications ? "Y" : "N",
         run: () => settings.setEnableNotifications(!settings.enableNotifications),

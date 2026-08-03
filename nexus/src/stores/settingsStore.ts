@@ -87,6 +87,8 @@ export interface SettingsState {
   retroMode: boolean;
   /** Retro mode theme preset id (see RETRO_THEMES). Independent of the modern theme. */
   retroTheme: string;
+  /** Retro mode: PC-speaker key beeps. Default off. */
+  retroSounds: boolean;
   _hydrated: boolean;
 }
 
@@ -138,6 +140,7 @@ export interface SettingsActions {
   setHltbHoursPerDay: (value: number) => void;
   setRetroMode: (value: boolean) => void;
   setRetroTheme: (id: string) => void;
+  setRetroSounds: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -201,6 +204,7 @@ const initialState: SettingsState = {
   hltbHoursPerDay: 1.5,
   retroMode: false,
   retroTheme: "classic",
+  retroSounds: false,
   _hydrated: false,
 };
 
@@ -330,6 +334,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
+            }
+            if (settings.retro_sounds !== undefined) {
+              patch.retroSounds = settings.retro_sounds === "true";
             }
 
             set(patch, false, "loadFromBackend");
@@ -563,6 +570,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);
           set({ retroTheme: id }, false, "setRetroTheme");
+        },
+        setRetroSounds: (value) => {
+          persistSetting("retro_sounds", String(value));
+          set({ retroSounds: value }, false, "setRetroSounds");
         },
       }),
       { name: "nexus-settings" },
