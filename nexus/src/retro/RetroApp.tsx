@@ -21,7 +21,7 @@ import { RetroLibrary } from "./RetroLibrary";
 import { RetroDetail } from "./RetroDetail";
 import { RetroSettings } from "./RetroSettings";
 import { RetroProcessPicker } from "./RetroProcessPicker";
-import { fmtClock } from "./format";
+import { fmtClock, fmtHours, SOURCE_CODE, STATUS_CODE } from "./format";
 
 export interface RetroAppProps {
   onExit: () => void;
@@ -53,6 +53,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
     { key: "F6", label: "Stats" },
     { key: "F8", label: "Run" },
     { key: "F9", label: "Setup" },
+    { key: "F10", label: "Random" },
   ],
   detail: [
     { key: "TAB", label: "Section" },
@@ -88,7 +89,18 @@ export function RetroApp({
   const [booted, setBooted] = React.useState(false);
   const [saverActive, setSaverActive] = React.useState(false);
   const [launchError, setLaunchError] = React.useState<{ game: Game; message: string } | null>(null);
+  const [randomGame, setRandomGame] = React.useState<Game | null>(null);
   const retroCrt = useSettingsStore((s) => s.retroCrt);
+
+  const pickRandom = React.useCallback((): Game | null => {
+    const { games } = useGameStore.getState();
+    const hidden = useSettingsStore.getState().hiddenGameIds;
+    const eligible = games.filter(
+      (g) => !g.isHidden && !hidden.includes(g.id) && g.status !== "removed",
+    );
+    if (eligible.length === 0) return null;
+    return eligible[Math.floor(Math.random() * eligible.length)];
+  }, []);
 
   // Launch failures surface as an authentic DOS critical-error prompt
   // instead of a toast (the modern toast wrapper is bypassed in retro).
@@ -156,7 +168,7 @@ export function RetroApp({
 
   const keysEnabled =
     booted && !saverActive && !showProcessPicker && themePicker == null &&
-    !noteOpen && !updateOpen && !helpOpen && launchError == null;
+    !noteOpen && !updateOpen && !helpOpen && launchError == null && randomGame == null;
 
   // Screensaver: 5 min idle -> bouncing logo; any input wakes (and is swallowed).
   const lastActivityRef = React.useRef(Date.now());
@@ -213,6 +225,20 @@ export function RetroApp({
         return;
       }
 
+      // Random picker popup.
+      if (randomGame) {
+        const key = e.key.toLowerCase();
+        if (e.key === "Escape") { e.preventDefault(); setRandomGame(null); }
+        else if (key === "r") { e.preventDefault(); setRandomGame(pickRandom()); }
+        else if (e.key === "Enter" || e.key === "F8") {
+          e.preventDefault();
+          const g = randomGame;
+          setRandomGame(null);
+          handleLaunch(g);
+        }
+        return;
+      }
+
       // Help popup: any of Esc/F1/Enter closes it.
       if (helpOpen) {
         if (e.key === "Escape" || e.key === "F1" || e.key === "Enter") {
@@ -257,11 +283,15 @@ export function RetroApp({
       } else if (e.key === "F1") {
         e.preventDefault();
         setHelpOpen(true);
+      } else if (e.key === "F10") {
+        e.preventDefault();
+        const g = pickRandom();
+        if (g) setRandomGame(g);
       }
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, launchError, handleLaunch, themePicker, isSyncing, onResync]);
+  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, launchError, randomGame, pickRandom, handleLaunch, themePicker, isSyncing, onResync]);
 
   const elapsedS = activeSession
     ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
@@ -340,6 +370,20 @@ export function RetroApp({
         </div>
 
         <div className="retro-scanlines" />
+
+        {randomGame && (
+          <RetroModal
+            title="RANDOM PICK"
+            footer="ENTER=RUN | R=REROLL | ESC=CANCEL"
+          >
+            <div data-testid="retro-random" style={{ textAlign: "center", padding: "8px 0" }}>
+              <div style={{ fontSize: "1.4em" }}>{randomGame.name}</div>
+              <div style={{ marginTop: 4 }}>
+                {SOURCE_CODE[randomGame.source]} | {STATUS_CODE[randomGame.status]} | {fmtHours(randomGame.totalPlayTimeS)} HRS
+              </div>
+            </div>
+          </RetroModal>
+        )}
 
         {launchError && (
           <RetroModal title="SYSTEM ERROR" footer={<span className="retro-blink">ABORT, RETRY, FAIL?</span>}>

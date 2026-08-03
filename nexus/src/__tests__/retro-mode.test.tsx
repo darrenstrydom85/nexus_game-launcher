@@ -327,6 +327,23 @@ describe("RetroApp shell", () => {
     expect(screen.queryByTestId("retro-launch-error")).not.toBeInTheDocument();
   });
 
+  it("F10 opens the random picker; Enter launches the shown game", async () => {
+    const onLaunch = vi.fn(() => Promise.resolve({ sessionId: "s", gameId: "a", status: "launched" as const }));
+    render(
+      <RetroApp
+        onExit={noop} onLaunch={onLaunch} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    skipBoot();
+    fireEvent.keyDown(document, { key: "F10" });
+    expect(screen.getByTestId("retro-random")).toHaveTextContent("Alpha");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(screen.queryByTestId("retro-random")).not.toBeInTheDocument();
+    await waitFor(() => expect(onLaunch).toHaveBeenCalledWith(expect.objectContaining({ name: "Alpha" })));
+  });
+
   it("applies the CRT effect class when enabled", () => {
     useSettingsStore.setState({ retroCrt: true });
     const { container } = render(
