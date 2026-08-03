@@ -20,37 +20,37 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
       },
       {
         label: "KEY BEEPS (PC SPEAKER)",
-        value: settings.retroSounds ? "Y" : "N",
+        value: settings.retroSounds ? "ON" : "OFF",
         run: () => settings.setRetroSounds(!settings.retroSounds),
       },
       {
         label: "CRT GLOW + FLICKER",
-        value: settings.retroCrt ? "Y" : "N",
+        value: settings.retroCrt ? "ON" : "OFF",
         run: () => settings.setRetroCrt(!settings.retroCrt),
       },
       {
         label: "DESKTOP NOTIFICATIONS",
-        value: settings.enableNotifications ? "Y" : "N",
+        value: settings.enableNotifications ? "ON" : "OFF",
         run: () => settings.setEnableNotifications(!settings.enableNotifications),
       },
       {
         label: "AUTO STATUS TRANSITIONS",
-        value: settings.autoStatusTransitions ? "Y" : "N",
+        value: settings.autoStatusTransitions ? "ON" : "OFF",
         run: () => settings.setAutoStatusTransitions(!settings.autoStatusTransitions),
       },
       {
         label: "SESSION NOTE PROMPT",
-        value: settings.sessionNotePromptEnabled ? "Y" : "N",
+        value: settings.sessionNotePromptEnabled ? "ON" : "OFF",
         run: () => settings.setSessionNotePromptEnabled(!settings.sessionNotePromptEnabled),
       },
       {
         label: "ASK BEFORE CLOSE",
-        value: settings.askBeforeClose ? "Y" : "N",
+        value: settings.askBeforeClose ? "ON" : "OFF",
         run: () => settings.setAskBeforeClose(!settings.askBeforeClose),
       },
       {
         label: "AUTO LIBRARY HEALTH CHECK",
-        value: settings.autoHealthCheck ? "Y" : "N",
+        value: settings.autoHealthCheck ? "ON" : "OFF",
         run: () => settings.setAutoHealthCheck(!settings.autoHealthCheck),
       },
     ],
@@ -75,7 +75,7 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }} data-testid="retro-settings">
       <div className="retro-panel" style={{ flex: 1 }}>
-        <div className="retro-panel-title">SETUP(Y/N)</div>
+        <div className="retro-panel-title">SETUP</div>
         <div style={{ height: 8 }} />
         {rows.map((row, i) => (
           <div
@@ -85,11 +85,23 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
             onMouseDown={() => setSel(i)}
             onDoubleClick={() => row.run()}
           >
-            <span style={{ width: "3ch" }}>{String.fromCharCode(65 + i)} -</span>
-            <span style={{ flex: 1 }}>{row.label}</span>
-            <span className="retro-value" style={{ width: "3ch", textAlign: "right" }}>
-              {row.value ?? ""}
+            <span style={{ width: "4ch", flexShrink: 0 }}>{String.fromCharCode(65 + i)} -</span>
+            <span style={{ flexShrink: 0 }}>{row.label}</span>
+            <span
+              className="retro-dim"
+              style={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", margin: "0 1ch" }}
+              aria-hidden
+            >
+              {".".repeat(120)}
             </span>
+            {row.value !== null && (
+              <span
+                className={row.value === "ON" ? "retro-good" : "retro-bad"}
+                style={{ width: "5ch", textAlign: "right", flexShrink: 0 }}
+              >
+                {row.value}
+              </span>
+            )}
           </div>
         ))}
         <div style={{ height: 12 }} />

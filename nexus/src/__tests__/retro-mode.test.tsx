@@ -704,6 +704,24 @@ describe("RetroUpdatePrompt", () => {
   });
 });
 
+describe("RetroSettings", () => {
+  it("shows ON/OFF states and toggles with Enter", async () => {
+    const { RetroSettings } = await import("@/retro/RetroSettings");
+    useSettingsStore.setState({ retroSounds: false });
+    render(<RetroSettings enabled onBack={noop} onExit={noop} />);
+
+    const beepsRow = screen.getByTestId("retro-settings-row-1");
+    expect(beepsRow).toHaveTextContent("KEY BEEPS");
+    expect(beepsRow).toHaveTextContent("OFF");
+
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(useSettingsStore.getState().retroSounds).toBe(true);
+    expect(screen.getByTestId("retro-settings-row-1")).toHaveTextContent("ON");
+    useSettingsStore.setState({ retroSounds: false });
+  });
+});
+
 describe("retro mode setting", () => {
   it("persists the active view so launch restores it", () => {
     useSettingsStore.getState().setRetroMode(true);
