@@ -375,6 +375,22 @@ describe("RetroApp shell", () => {
     vi.mocked(getPlayQueue).mockResolvedValue([]);
   });
 
+  it("boot auto-proceeds 5s after the POST completes", async () => {
+    vi.useFakeTimers();
+    try {
+      const { RetroBoot } = await import("@/retro/RetroBoot");
+      const onDone = vi.fn();
+      render(<RetroBoot onDone={onDone} />);
+      fireEvent.keyDown(document, { key: "x" });
+      act(() => {
+        vi.advanceTimersByTime(5100);
+      });
+      expect(onDone).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("applies the CRT effect class when enabled", () => {
     useSettingsStore.setState({ retroCrt: true });
     const { container } = render(

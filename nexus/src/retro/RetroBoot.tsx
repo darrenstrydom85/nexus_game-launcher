@@ -56,15 +56,21 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
     onDone();
   }, [onDone]);
 
+  // RetroApp re-renders every second (status clock), giving `finish` a new
+  // identity each tick — keyed into the effect it would reset the 5s timer
+  // forever. Route through a ref so timers depend only on reveal state.
+  const finishRef = React.useRef(finish);
+  finishRef.current = finish;
+
   React.useEffect(() => {
     if (complete) {
       // Wait for Enter, but don't block forever — auto-proceed after 5s.
-      const t = setTimeout(finish, 5000);
+      const t = setTimeout(() => finishRef.current(), 5000);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 120 + Math.random() * 200);
     return () => clearTimeout(t);
-  }, [shown, complete, finish]);
+  }, [shown, complete]);
 
   // During the reveal any key/click fast-forwards to the full POST; once
   // complete, Enter (or a click) proceeds. Capture phase so keys never
@@ -74,13 +80,13 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
       e.preventDefault();
       e.stopPropagation();
       if (!complete) setShown(lines.length);
-      else if (e.key === "Enter") finish();
+      else if (e.key === "Enter") finishRef.current();
     };
     const onMouse = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       if (!complete) setShown(lines.length);
-      else finish();
+      else finishRef.current();
     };
     document.addEventListener("keydown", onKey, true);
     document.addEventListener("mousedown", onMouse, true);
@@ -88,7 +94,7 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
       document.removeEventListener("keydown", onKey, true);
       document.removeEventListener("mousedown", onMouse, true);
     };
-  }, [complete, lines.length, finish]);
+  }, [complete, lines.length]);
 
   return (
     <div
