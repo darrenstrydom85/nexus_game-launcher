@@ -45,9 +45,15 @@ export function nearestVga(r: number, g: number, b: number): string {
   return best;
 }
 
+/**
+ * Dither strength: total spread of the Bayer threshold in channel units.
+ * 48 looked like TV static at 16 colors; 18 just breaks up banding.
+ */
+const DITHER_SPREAD = 18;
+
 /** Quantize one cell with a Bayer 4x4 threshold offset for the dither look. */
 export function ditherCell(r: number, g: number, b: number, x: number, y: number): string {
-  const offset = (BAYER4[y % 4][x % 4] / 16 - 0.5) * 48;
+  const offset = (BAYER4[y % 4][x % 4] / 16 - 0.5) * DITHER_SPREAD;
   const clamp = (v: number) => Math.max(0, Math.min(255, v + offset));
   return nearestVga(clamp(r), clamp(g), clamp(b));
 }
