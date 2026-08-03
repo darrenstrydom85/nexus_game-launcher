@@ -743,6 +743,17 @@ describe("RetroSettings", () => {
   });
 });
 
+describe("RetroScreensaver", () => {
+  it("renders each variant without crashing", async () => {
+    const { RetroScreensaver } = await import("@/retro/RetroScreensaver");
+    for (const variant of ["logo", "starfield", "matrix"] as const) {
+      const { unmount } = render(<RetroScreensaver variant={variant} />);
+      expect(screen.getByTestId("retro-screensaver")).toBeInTheDocument();
+      unmount();
+    }
+  });
+});
+
 describe("RetroExitScreen", () => {
   it("shows the shutdown message; any key skips, else auto-dismisses", async () => {
     const { RetroExitScreen } = await import("@/retro/RetroExitScreen");
