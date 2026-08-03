@@ -12,7 +12,7 @@ import { RetroStats } from "./RetroStats";
 import { RetroQueue } from "./RetroQueue";
 import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
 import { useUpdateStore } from "@/stores/updateStore";
-import { beep } from "./beep";
+import { beep, floppySeek } from "./beep";
 import { RetroBoot } from "./RetroBoot";
 import { RetroScreensaver } from "./RetroScreensaver";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
@@ -150,6 +150,13 @@ export function RetroApp({
 
   // PC-speaker key beeps: one listener, independent of the key handlers.
   const soundsEnabled = useSettingsStore((s) => s.retroSounds);
+
+  // Floppy-seek grind when a source rescan kicks off.
+  const prevSyncingRef = React.useRef(isSyncing);
+  React.useEffect(() => {
+    if (isSyncing && !prevSyncingRef.current && soundsEnabled) floppySeek();
+    prevSyncingRef.current = isSyncing;
+  }, [isSyncing, soundsEnabled]);
   React.useEffect(() => {
     if (!soundsEnabled) return;
     const h = (e: KeyboardEvent) => {

@@ -1,7 +1,9 @@
 import * as React from "react";
 import { useGameStore } from "@/stores/gameStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { getSystemHardware, type HardwareInfo } from "@/lib/tauri";
 import { NEXUS_LOGO } from "./logo";
+import { chime } from "./beep";
 
 /** Cached across mounts so re-entering retro doesn't re-run wmic. */
 let cachedHardware: HardwareInfo | null = null;
@@ -64,6 +66,7 @@ export function RetroBoot({ onDone }: { onDone: () => void }) {
 
   React.useEffect(() => {
     if (complete) {
+      if (useSettingsStore.getState().retroSounds) chime();
       // Wait for Enter, but don't block forever — auto-proceed after 5s.
       const t = setTimeout(() => finishRef.current(), 5000);
       return () => clearTimeout(t);

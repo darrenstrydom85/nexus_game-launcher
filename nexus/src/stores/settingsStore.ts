@@ -87,7 +87,7 @@ export interface SettingsState {
   retroMode: boolean;
   /** Retro mode theme preset id (see RETRO_THEMES). Independent of the modern theme. */
   retroTheme: string;
-  /** Retro mode: PC-speaker key beeps. Default off. */
+  /** Retro mode: PC-speaker key beeps. Default on. */
   retroSounds: boolean;
   /** Retro mode: CRT flicker + phosphor glow. Default off. */
   retroCrt: boolean;
@@ -207,7 +207,7 @@ const initialState: SettingsState = {
   hltbHoursPerDay: 1.5,
   retroMode: false,
   retroTheme: "classic",
-  retroSounds: false,
+  retroSounds: true,
   retroCrt: false,
   _hydrated: false,
 };
@@ -587,7 +587,18 @@ export const useSettingsStore = create<SettingsStore>()(
           set({ retroCrt: value }, false, "setRetroCrt");
         },
       }),
-      { name: "nexus-settings" },
+      {
+        name: "nexus-settings",
+        version: 1,
+        // v0 -> v1: retroSounds default flipped to on. Earlier builds
+        // persisted the old `false` default even when the user never chose
+        // it, so migrate it to the new default once.
+        migrate: (persisted, version) => {
+          const state = persisted as Partial<SettingsState>;
+          if (version === 0) state.retroSounds = true;
+          return state as SettingsState & SettingsActions;
+        },
+      },
     ),
     { name: "SettingsStore", enabled: import.meta.env.DEV },
   ),
