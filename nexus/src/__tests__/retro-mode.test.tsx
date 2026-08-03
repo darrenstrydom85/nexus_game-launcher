@@ -20,6 +20,7 @@ vi.mock("@/lib/tauri", async (importOriginal) => {
   return {
     ...actual,
     updateSessionNote: vi.fn(() => Promise.resolve()),
+    getPlayQueue: vi.fn(() => Promise.resolve([])),
     getSessionDistribution: vi.fn(() =>
       Promise.resolve({
         buckets: [
@@ -342,6 +343,31 @@ describe("RetroApp shell", () => {
     fireEvent.keyDown(document, { key: "Enter" });
     expect(screen.queryByTestId("retro-random")).not.toBeInTheDocument();
     await waitFor(() => expect(onLaunch).toHaveBeenCalledWith(expect.objectContaining({ name: "Alpha" })));
+  });
+
+  it("F7 opens the play queue; Enter runs the selected entry", async () => {
+    const { getPlayQueue } = await import("@/lib/tauri");
+    vi.mocked(getPlayQueue).mockResolvedValue([
+      { id: "q1", gameId: "a", position: 0, addedAt: "2026-08-01T00:00:00Z", name: "Alpha", coverUrl: null, customCover: null, status: "backlog", source: "steam" },
+    ]);
+    const onLaunch = vi.fn(() => Promise.resolve({ sessionId: "s", gameId: "a", status: "launched" as const }));
+    render(
+      <RetroApp
+        onExit={noop} onLaunch={onLaunch} onStop={noop} onResync={noop} isSyncing={false}
+        onSetStatus={noop} onSetRating={noop} onProcessSelected={noop} onCancelProcessPicker={noop}
+      />,
+    );
+    skipBoot();
+    fireEvent.keyDown(document, { key: "F7" });
+    expect(await screen.findByTestId("retro-queue-row-0")).toHaveTextContent("Alpha");
+    expect(screen.getByTestId("retro-queue")).toHaveTextContent("PLAY QUEUE (1)");
+
+    fireEvent.keyDown(document, { key: "Enter" });
+    await waitFor(() => expect(onLaunch).toHaveBeenCalledWith(expect.objectContaining({ id: "a" })));
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByTestId("retro-library-list")).toBeInTheDocument();
+    vi.mocked(getPlayQueue).mockResolvedValue([]);
   });
 
   it("applies the CRT effect class when enabled", () => {

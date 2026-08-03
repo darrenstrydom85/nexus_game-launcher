@@ -9,6 +9,7 @@ import { RetroModal } from "./RetroModal";
 import { RetroToasts } from "./RetroToasts";
 import { RetroSessionNote } from "./RetroSessionNote";
 import { RetroStats } from "./RetroStats";
+import { RetroQueue } from "./RetroQueue";
 import { RetroUpdatePrompt } from "./RetroUpdatePrompt";
 import { useUpdateStore } from "@/stores/updateStore";
 import { beep } from "./beep";
@@ -40,7 +41,8 @@ type Screen =
   | { name: "library" }
   | { name: "detail"; gameId: string }
   | { name: "settings" }
-  | { name: "stats" };
+  | { name: "stats" }
+  | { name: "queue" };
 
 const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   library: [
@@ -51,6 +53,7 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
     { key: "F4", label: "Coll" },
     { key: "F5", label: "Rescan" },
     { key: "F6", label: "Stats" },
+    { key: "F7", label: "Queue" },
     { key: "F8", label: "Run" },
     { key: "F9", label: "Setup" },
     { key: "F10", label: "Random" },
@@ -70,6 +73,12 @@ const FKEYS: Record<Screen["name"], { key: string; label: string }[]> = {
   ],
   stats: [
     { key: "F2", label: "Theme" },
+    { key: "ESC", label: "Back" },
+  ],
+  queue: [
+    { key: "ENTER", label: "Run" },
+    { key: "+/-", label: "Move" },
+    { key: "DEL", label: "Remove" },
     { key: "ESC", label: "Back" },
   ],
 };
@@ -288,11 +297,14 @@ export function RetroApp({
         e.preventDefault();
         const g = pickRandom();
         if (g) setRandomGame(g);
+      } else if (e.key === "F7" && screen.name !== "detail") {
+        e.preventDefault();
+        setScreen((s) => (s.name === "queue" ? { name: "library" } : { name: "queue" }));
       }
     };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, launchError, randomGame, pickRandom, handleLaunch, themePicker, isSyncing, onResync]);
+  }, [showProcessPicker, noteOpen, updateOpen, helpOpen, launchError, randomGame, pickRandom, handleLaunch, themePicker, isSyncing, onResync, screen.name]);
 
   const elapsedS = activeSession
     ? Math.floor((now - new Date(activeSession.startedAt).getTime()) / 1000)
@@ -342,6 +354,13 @@ export function RetroApp({
             <RetroStats
               enabled={keysEnabled}
               onBack={() => setScreen({ name: "library" })}
+            />
+          )}
+          {booted && screen.name === "queue" && (
+            <RetroQueue
+              enabled={keysEnabled}
+              onBack={() => setScreen({ name: "library" })}
+              onLaunch={handleLaunch}
             />
           )}
         </div>
@@ -404,7 +423,9 @@ export function RetroApp({
                 ["F2", "THEME PICKER"],
                 ["F5", "RESCAN SOURCES"],
                 ["F6", "LIBRARY STATISTICS"],
+                ["F7", "PLAY QUEUE"],
                 ["F9", "SETUP / EXIT RETRO"],
+                ["F10", "RANDOM PICK"],
                 ["", ""],
                 ["LIBRARY", ""],
                 ["TYPE", "FIND TITLE"],
