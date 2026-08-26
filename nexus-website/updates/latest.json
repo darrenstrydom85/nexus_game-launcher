@@ -1,11 +1,11 @@
 {
-    "version":  "0.5.2",
-    "notes":  "Fixes Retro Mode\u0027s ANSI cover art showing NO SIGNAL in production builds. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.2",
-    "pub_date":  "2026-08-03T14:36:52Z",
+    "version":  "0.5.3",
+    "notes":  "Restores HowLongToBeat lookups after HLTB moved its search API, and makes the client re-discover the path on its own if it moves again. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.3",
+    "pub_date":  "2026-08-26T17:21:05Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FGSnV1d3VFQVEwOFFYOXR1NzNjV3VpckN2azFxMXNrT2ZvaGFSS01KdDRRSE5hWmRmMm00R3NhbUFwYTdMbEVCRGYzMEU2VkVFQm11SEZnR3kyQ0FzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NzY3NzkzCWZpbGU6TmV4dXNfMC41LjJfeDY0LXNldHVwLmV4ZQo0NFNYczd6VlV6NUFJWWgvNXpsb2h6akErWlFmVFBnZGxlY0MwY3VVOC9KdDZlNGxlVnNoNVlGS1RkdUZWVUlGYnRrdExHRVBEY1VxNitRR0N2bG1DUT09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.2_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FvSi8wVHFkaVEyQVhES25LYmdjWEkrcWZreS8zR1UzVGFpU3hCVmlmTHdxSG5UUE1TbE9IL2gzaGtkalZWVjlxT2NOa0w5RXA4amZGcTJSSCt5bXdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3NzY0ODQyCWZpbGU6TmV4dXNfMC41LjNfeDY0LXNldHVwLmV4ZQozMjg1TFVkam5DVGFqNWFiZU9TWWZvb01xUDZyTzJsV1pEWVJXLzN2OW9PYjRoS1lMMklwNzFuRk1oK1BZMnJ0R01wL1NDK2hSSGJLYnEzM3B1ODZBdz09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.3_x64-setup.exe"
                                          }
                   }
 }

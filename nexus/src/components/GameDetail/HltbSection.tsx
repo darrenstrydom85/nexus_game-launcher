@@ -93,9 +93,7 @@ export function HltbSection({ game }: HltbSectionProps) {
           return;
         }
 
-        const best = results.reduce((a, b) =>
-          b.similarity > a.similarity ? b : a,
-        );
+        const best = results[0];
 
         await saveHltbData(
           game.id,

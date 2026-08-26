@@ -1,10 +1,13 @@
 import { fetch } from "@tauri-apps/plugin-http";
 
 const BASE_URL = "https://howlongtobeat.com/";
-// HLTB periodically rotates this path (previously "api/find", now "api/bleed"
-// as of May 2026). If searches start 404ing, inspect
-// https://howlongtobeat.com/_next/static/chunks/*.js for the current path.
-const SEARCH_PATH = "api/bleed";
+// HLTB rotates this path every few months (api/find → api/bleed → api/search/site
+// between Apr and Aug 2026). When init 404s we re-discover it from the site's
+// Next.js chunks, which reference it as `/api/<path>/init?t=${Date.now()}`.
+let searchPath = "api/search/site";
+// Discovery pulls ~600 KB of chunks; don't repeat it on every search when it finds nothing.
+let lastDiscoveryAt = 0;
+const DISCOVERY_COOLDOWN_MS = 10 * 60 * 1000;
 
 export interface HltbSearchResult {
   id: number;
@@ -12,7 +15,6 @@ export interface HltbSearchResult {
   gameplayMain: number;
   gameplayMainExtra: number;
   gameplayCompletionist: number;
-  similarity: number;
 }
 
 interface HltbApiGame {
@@ -21,7 +23,6 @@ interface HltbApiGame {
   comp_main: number;
   comp_plus: number;
   comp_100: number;
-  similarity: number;
 }
 
 interface AuthSession {
@@ -38,20 +39,50 @@ function invalidateSession(): void {
   cachedSession = null;
 }
 
+async function discoverSearchPath(signal?: AbortSignal): Promise<string | null> {
+  const home = await fetch(BASE_URL, { method: "GET", signal });
+  if (!home.ok) return null;
+
+  const chunks = new Set(
+    (await home.text()).match(/\/_next\/static\/chunks\/[^"']+\.js/g) ?? [],
+  );
+  for (const chunk of chunks) {
+    const resp = await fetch(`${BASE_URL}${chunk.slice(1)}`, { method: "GET", signal });
+    if (!resp.ok) continue;
+    const m = /\/api\/([a-zA-Z0-9_/-]+)\/init\?t=/.exec(await resp.text());
+    if (m) return `api/${m[1]}`;
+  }
+  return null;
+}
+
+function fetchInit(signal?: AbortSignal): Promise<Response> {
+  const url = `${BASE_URL}${searchPath}/init?t=${Date.now()}`;
+  console.log("[HLTB] fetching session from:", url);
+  return fetch(url, {
+    method: "GET",
+    headers: {
+      Referer: `${BASE_URL}`,
+      Origin: BASE_URL,
+    },
+    signal,
+  });
+}
+
 async function getSession(signal?: AbortSignal): Promise<AuthSession | null> {
   if (cachedSession && Date.now() < cachedSession.expiresAt) return cachedSession;
 
   try {
-    const url = `${BASE_URL}${SEARCH_PATH}/init?t=${Date.now()}`;
-    console.log("[HLTB] fetching session from:", url);
-    const resp = await fetch(url, {
-      method: "GET",
-      headers: {
-        Referer: `${BASE_URL}`,
-        Origin: BASE_URL,
-      },
-      signal,
-    });
+    let resp = await fetchInit(signal);
+
+    if (resp.status === 404 && Date.now() - lastDiscoveryAt > DISCOVERY_COOLDOWN_MS) {
+      lastDiscoveryAt = Date.now();
+      const discovered = await discoverSearchPath(signal);
+      if (discovered && discovered !== searchPath) {
+        console.warn("[HLTB] search path moved:", searchPath, "->", discovered);
+        searchPath = discovered;
+        resp = await fetchInit(signal);
+      }
+    }
 
     if (!resp.ok) {
       console.warn("[HLTB] session init failed:", resp.status);
@@ -139,7 +170,6 @@ function parseResults(json: unknown): HltbSearchResult[] {
     gameplayMain: secondsToHours(g.comp_main),
     gameplayMainExtra: secondsToHours(g.comp_plus),
     gameplayCompletionist: secondsToHours(g.comp_100),
-    similarity: g.similarity ?? 0,
   }));
 }
 
@@ -148,7 +178,7 @@ async function doSearch(
   session: AuthSession,
   signal?: AbortSignal,
 ): Promise<Response> {
-  const searchUrl = `${BASE_URL}${SEARCH_PATH}`;
+  const searchUrl = `${BASE_URL}${searchPath}`;
   console.log("[HLTB] POST", searchUrl, "query:", query);
 
   return fetch(searchUrl, {
@@ -169,9 +199,11 @@ async function doSearch(
 
 /**
  * Search HLTB via their unofficial API.
- * Obtains a session (token + fingerprint pair) from `${SEARCH_PATH}/init`,
- * then POSTs to `${SEARCH_PATH}` with the required auth headers and payload field.
- * On 403, invalidates the session and retries once with a fresh session.
+ * Obtains a session (token + fingerprint pair) from `${searchPath}/init`,
+ * then POSTs to `${searchPath}` with the required auth headers and payload field.
+ * On 403 (token expired) or 404 (path rotated under a warm session) it refreshes
+ * the session — which re-runs path discovery — and retries once.
+ * Results come back in HLTB's own ranking (exact name matches first).
  */
 export async function searchHltb(
   query: string,
@@ -186,8 +218,8 @@ export async function searchHltb(
 
   let response = await doSearch(query, session, signal);
 
-  if (response.status === 403) {
-    console.warn("[HLTB] got 403 — refreshing session and retrying");
+  if (response.status === 403 || response.status === 404) {
+    console.warn(`[HLTB] got ${response.status} — refreshing session and retrying`);
     invalidateSession();
     session = await getSession(signal);
     if (signal?.aborted) return [];

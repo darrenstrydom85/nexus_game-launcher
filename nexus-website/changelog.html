@@ -142,18 +142,18 @@
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty-three releases and counting — what's new, what's improved, and what
+      Thirty-four releases and counting — what's new, what's improved, and what
       got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.5.2_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_0.5.3_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.5.2
+        Download v0.5.3
       </a>
-      <a href="#v0.5.2" class="btn btn--ghost">
+      <a href="#v0.5.3" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.5.2
+        Latest · v0.5.3
       </a>
     </div>
   </div>
@@ -169,7 +169,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.5.2">
+          <a class="changelog-rail-link is-latest" href="#v0.5.3">
+            <span class="changelog-rail-version">v0.5.3</span>
+            <span class="changelog-rail-date">Aug 26</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.2">
             <span class="changelog-rail-version">v0.5.2</span>
             <span class="changelog-rail-date">Aug 3</span>
           </a>
@@ -309,11 +313,37 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.5.2 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.5.2">
+            <!-- ── v0.5.3 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.5.3">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.3</h2>
+                <time class="changelog-entry-date" datetime="2026-08-26">Aug 26, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  HowLongToBeat is back. HLTB moved its search API again, which
+                  silently broke completion-time lookups for every game &mdash;
+                  the third move this year. Nexus now follows the new endpoint
+                  and, if HLTB moves it again, finds the new path on its own at
+                  runtime instead of waiting for an app update.
+                </p>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HowLongToBeat lookups</strong> &mdash; Automatic and manual HLTB searches work again after the site relocated its search API.</li>
+                    <li><strong>Self-healing HLTB client</strong> &mdash; When HLTB moves the endpoint, Nexus re-discovers the path from the site itself, so future rotations shouldn't need a release.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.2 ── -->
+            <article class="changelog-entry" id="v0.5.2">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.2</h2>
-                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-08-03">Aug 3, 2026</time>
               </div>
 
               <div class="changelog-entry-body">

@@ -407,7 +407,6 @@ describe("HltbSection — re-fetch button", () => {
         gameplayMain: 20,
         gameplayMainExtra: 40,
         gameplayCompletionist: 80,
-        similarity: 1,
       },
     ]);
 
@@ -481,7 +480,6 @@ describe("HltbSection — manual search", () => {
         gameplayMain: 26,
         gameplayMainExtra: 45,
         gameplayCompletionist: 72,
-        similarity: 1,
       },
     ]);
 
@@ -527,7 +525,6 @@ describe("HltbSection — manual search", () => {
         gameplayMain: 26,
         gameplayMainExtra: 45,
         gameplayCompletionist: 72,
-        similarity: 1,
       },
     ]);
 
@@ -567,7 +564,6 @@ describe("HltbSection — manual search", () => {
         gameplayMain: 26,
         gameplayMainExtra: 45,
         gameplayCompletionist: 72,
-        similarity: 1,
       },
     ]);
 
