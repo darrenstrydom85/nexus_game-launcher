@@ -43,7 +43,6 @@ use commands::{
         restore_backup, run_backup, set_backup_frequency, set_backup_retention,
     },
     ceremony::get_game_ceremony_data,
-    clipboard::write_image_to_clipboard,
     collections::{
         add_to_collection, create_collection, delete_collection, evaluate_smart_collection,
         get_collections_with_game_ids,
@@ -476,7 +475,6 @@ pub fn run() {
             clear_twitch_cache,
             check_connectivity,
             fetch_known_issues,
-            write_image_to_clipboard,
             confirm_app_close,
             hide_main_window,
             show_main_window,

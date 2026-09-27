@@ -2,7 +2,6 @@ import * as React from "react";
 import { toPng } from "html-to-image";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import { invoke } from "@tauri-apps/api/core";
 import { Download, Copy, FileText, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToastStore } from "@/stores/toastStore";
@@ -10,6 +9,11 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { CertificateCard } from "./CertificateCard";
 import type { GameCeremonyData, MasteryTierValue } from "@/lib/tauri";
 import { formatDuration } from "@/lib/time";
+
+/** Decode a `data:image/png;base64,...` URL. (`fetch(dataUrl)` is blocked by the CSP.) */
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  return Uint8Array.from(atob(dataUrl.split(",")[1]), (c) => c.charCodeAt(0));
+}
 
 // ── Plain-text formatter ────────────────────────────────────────────────────
 
@@ -193,14 +197,7 @@ export function CertificateShareModal({ data, onClose }: CertificateShareModalPr
       });
       if (!savePath) return;
 
-      const base64 = dataUrl.split(",")[1];
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      await writeFile(savePath, bytes);
+      await writeFile(savePath, dataUrlToBytes(dataUrl));
       addToast({ type: "success", message: "Certificate saved!" });
     } catch {
       addToast({ type: "error", message: "Failed to save certificate." });
@@ -210,8 +207,8 @@ export function CertificateShareModal({ data, onClose }: CertificateShareModalPr
   async function handleCopyImage() {
     if (!dataUrl) return;
     try {
-      const base64 = dataUrl.split(",")[1];
-      await invoke("write_image_to_clipboard", { base64Png: base64 });
+      const png = new Blob([dataUrlToBytes(dataUrl)], { type: "image/png" });
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
       addToast({ type: "success", message: "Certificate copied to clipboard!" });
     } catch {
       addToast({ type: "error", message: "Failed to copy image to clipboard." });

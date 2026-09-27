@@ -102,7 +102,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   `masteryStore.getByGameId`. (~110)
 - [x] **D11 duplicate helpers** — hours formatter ×7, relative-time ×4, bytes ×3, URL normaliser ×4
   (use `lib/url.resolveUrl`), Rust `now_secs()` ×5, date helpers in `watch_history.rs` / `wrapped.rs`. (~150)
-- [ ] **D12 clipboard via Rust** — `navigator.clipboard.write(ClipboardItem)` works in WebView2. Delete
+- [x] **D12 clipboard via Rust** — `navigator.clipboard.write(ClipboardItem)` works in WebView2. Delete
   `commands/clipboard.rs`, `arboard`, `png`. (~57, −2 deps)
 - [x] **D13 small cuts** — hand-rolled base64 in `metadata/placeholders.rs` (use `base64` crate);
   `check_twitch_api_available` duplicates `connectivity::check_online`; `is_cached_online` unused;
