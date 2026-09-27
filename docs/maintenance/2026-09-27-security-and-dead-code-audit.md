@@ -65,7 +65,8 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   Fix: deny-list secret/token keys in `get_setting`/`get_settings`/`set_setting` (use `get_key_status` for "is it set"),
   and blank token rows in the `VACUUM INTO` copy before upload.
 - [x] **S18 stale build outputs held the JSONBIN keys** — deleted the 40 `target/*/build/Nexus-*` dirs (17 had the keys;
-  `cargo clean -p Nexus` would have wiped 66 GiB). Still to do by hand: rotate/delete the JSONBIN keys if that service is dead.
+  `cargo clean -p Nexus` would have wiped 66 GiB). JSONBIN retired (version check + known issues moved to the
+  website); keys removed from `.env` 2026-09-27. Revoke them in the JSONBIN dashboard.
 
 ## P3 — dead code (biggest cut first)
 
