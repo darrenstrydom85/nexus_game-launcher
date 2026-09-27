@@ -121,31 +121,67 @@ export function GameDetailOverlay({ children }: GameDetailOverlayProps) {
                 <div className="h-full w-full bg-gradient-to-br from-primary/20 to-background" />
               )}
 
-              {/* Gradient fade */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+              {/* Scrims (Backdrop voice) */}
+              <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-background/10 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-transparent" />
 
               {/* Hero overlay info */}
-              <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 p-6">
-                {game.logoUrl ? (
-                  <img
-                    src={game.logoUrl}
-                    alt={game.name}
-                    className="max-h-20 object-contain drop-shadow-lg"
-                  />
-                ) : (
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-8 px-10 pb-7">
+                <div className="flex min-w-0 flex-col gap-2">
+                  <p
+                    data-testid="detail-overlay-source"
+                    className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+                  >
+                    {[
+                      SOURCE_LABELS[game.source],
+                      game.genres.slice(0, 3).join(", ") || null,
+                      game.releaseDate ? new Date(game.releaseDate).getFullYear() : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                   <h1
                     data-testid="detail-overlay-title"
-                    className="text-4xl font-bold tracking-tight text-white drop-shadow-lg"
+                    className="font-display truncate text-[68px] font-bold uppercase leading-[0.95] tracking-tight text-foreground drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]"
                   >
                     {game.name}
                   </h1>
-                )}
-                <span
-                  data-testid="detail-overlay-source"
-                  className="mb-1 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm"
-                >
-                  {SOURCE_LABELS[game.source]}
-                </span>
+                </div>
+                <div className="flex shrink-0 gap-9 pb-2 text-right">
+                  <div>
+                    <p className="font-display text-3xl font-bold leading-none text-foreground">
+                      {game.totalPlayTimeS > 0
+                        ? `${Math.floor(game.totalPlayTimeS / 3600)}:${String(Math.floor((game.totalPlayTimeS % 3600) / 60)).padStart(2, "0")}`
+                        : "0:00"}
+                    </p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Hours</p>
+                  </div>
+                  <div>
+                    <p className="font-display text-3xl font-bold leading-none text-foreground">
+                      {game.playCount}
+                    </p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Sessions</p>
+                  </div>
+                  {game.criticScore != null && game.criticScore > 0 && (
+                    <div>
+                      <p className="font-display text-3xl font-bold leading-none text-foreground">
+                        {Math.round(game.criticScore)}
+                      </p>
+                      <p className="mt-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Critic</p>
+                    </div>
+                  )}
+                  {game.progress != null && game.progress > 0 && (
+                    <div>
+                      <p
+                        className="font-display text-3xl font-bold leading-none"
+                        style={{ color: "var(--game-accent, var(--primary))" }}
+                      >
+                        {game.progress}%
+                      </p>
+                      <p className="mt-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Complete</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

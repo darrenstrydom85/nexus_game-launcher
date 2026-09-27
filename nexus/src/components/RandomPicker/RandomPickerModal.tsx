@@ -111,10 +111,10 @@ export function RandomPickerModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-background/85 backdrop-blur-md" onClick={onClose} />
           <motion.div
             data-testid="picker-panel"
-            className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-6 rounded-2xl border border-border bg-card p-8"
+            className="relative z-10 flex w-full max-w-3xl flex-col items-center gap-6 p-8"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}

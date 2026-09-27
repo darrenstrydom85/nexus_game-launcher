@@ -547,6 +547,32 @@
     display: none;
 }
 
+/* All Games grid, mockup-aligned: dense bare covers on the 40px gutter, and
+   the grid's toolbar controls become quiet tracked-caps chrome. Column
+   template is inline on the shared GameGrid, hence !important. */
+.experience-backdrop [data-testid="game-grid-cards"] {
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)) !important;
+    gap: 14px;
+    padding: 0 40px 28px 40px;
+}
+.experience-backdrop [data-testid="game-grid-toolbar"] {
+    padding: 2px 40px 0 40px;
+}
+.experience-backdrop [data-testid="game-list-rows"] {
+    padding-left: 40px;
+    padding-right: 40px;
+}
+.experience-backdrop [data-testid="sort-dropdown-trigger"] {
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted-foreground);
+}
+
 /* Game detail: section headers speak the shelf voice; the info strip sits
    flush under the hero instead of floating as a card. */
 .experience-backdrop [data-testid="detail-content"] h3 {

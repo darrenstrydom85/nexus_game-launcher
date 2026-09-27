@@ -10,9 +10,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useSyncStore } from "@/stores/syncStore";
 import type { Game, GameSource } from "@/stores/gameStore";
 import { BackdropHero } from "./BackdropHero";
-import { Shelf, ShelfCover } from "./Shelf";
+import { Shelf, ShelfCover, GridCover } from "./Shelf";
 import { GameGrid } from "@/components/Library/GameGrid";
-import { GameCard } from "@/components/GameCard";
 import { SkeletonCard } from "@/components/Library/SkeletonCard";
 import { SyncProgressBanner } from "@/components/Library/SyncProgressBanner";
 import { SyncActivityDot } from "@/components/Library/SyncActivityDot";
@@ -50,6 +49,26 @@ export function BackdropLibrary({
   const queueEntries = useQueueStore((s) => s.entries);
   const continuePlayingEnabled = useSettingsStore((s) => s.continuePlayingEnabled);
   const continuePlayingMax = useSettingsStore((s) => s.continuePlayingMax);
+
+  // Quick status pills on the All Games shelf (mockup: All / Playing / Backlog)
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "playing" | "backlog" | "completed">("all");
+  const statusFiltered = React.useMemo(
+    () =>
+      statusFilter === "all"
+        ? filteredGames
+        : filteredGames.filter((g) =>
+            statusFilter === "completed" ? g.completed : g.status === statusFilter,
+          ),
+    [filteredGames, statusFilter],
+  );
+  const statusCounts = React.useMemo(
+    () => ({
+      playing: filteredGames.filter((g) => g.status === "playing").length,
+      backlog: filteredGames.filter((g) => g.status === "backlog").length,
+      completed: filteredGames.filter((g) => g.completed).length,
+    }),
+    [filteredGames],
+  );
 
   const startedAt = useSyncStore((s) => s.startedAt);
   const [syncBannerDismissed, setSyncBannerDismissed] = React.useState(false);
@@ -149,9 +168,38 @@ export function BackdropLibrary({
 
         <Shelf
           title={heading}
-          count={filteredGames.length}
+          count={statusFiltered.length}
           testid="backdrop-all-games"
           className="mt-2"
+          afterTitle={
+            <div className="flex items-center gap-1.5" data-testid="status-pills">
+              {([
+                ["all", "All", filteredGames.length],
+                ["playing", "Playing", statusCounts.playing],
+                ["backlog", "Backlog", statusCounts.backlog],
+                ["completed", "Done", statusCounts.completed],
+              ] as const).map(([value, label, count]) =>
+                value === "all" || count > 0 ? (
+                  <button
+                    key={value}
+                    data-testid={`status-pill-${value}`}
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-[10px] transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      statusFilter === value
+                        ? "bg-foreground font-semibold text-background"
+                        : "border border-foreground/15 text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => setStatusFilter(value)}
+                    aria-pressed={statusFilter === value}
+                  >
+                    {label}
+                    {value !== "all" && <span className="ml-1 opacity-70">{count}</span>}
+                  </button>
+                ) : null,
+              )}
+            </div>
+          }
           trailing={
             <div className="flex items-center gap-2">
               {syncResult && !isSyncing && (
@@ -186,7 +234,7 @@ export function BackdropLibrary({
           }
         >
           <GameGrid
-            games={filteredGames}
+            games={statusFiltered}
             totalCount={games.length}
             isFiltered={isFiltered}
             heading={heading}
@@ -201,7 +249,9 @@ export function BackdropLibrary({
             onGameClick={openDetails}
             onPlay={onPlay}
             {...contextMenuHandlers}
-            renderCard={(game) => <GameCard game={game} />}
+            renderCard={(game) => (
+              <GridCover game={game} onClick={() => openDetails(game.id)} />
+            )}
           />
         </Shelf>
       </div>

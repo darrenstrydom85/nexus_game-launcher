@@ -323,6 +323,23 @@ export function TwitchPanel() {
   return (
     <TooltipProvider>
       <Shell>
+        {/* Backdrop page header */}
+        <div
+          className="flex items-end justify-between px-6 pb-1 pt-6"
+          style={{
+            background:
+              "radial-gradient(700px 300px at 75% -30%, rgba(169,112,255,0.14), transparent 60%)",
+          }}
+        >
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              Followed channels
+            </p>
+            <h1 className="font-display text-[44px] font-bold uppercase leading-[0.95] tracking-tight text-foreground">
+              Twitch
+            </h1>
+          </div>
+        </div>
         {/* Stale bar (Story 19.11: role and aria-live for a11y) */}
         {stale && cachedAt != null && (
           <div
@@ -391,7 +408,7 @@ export function TwitchPanel() {
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2
                       id="live-now-heading"
-                      className="flex items-center gap-3 font-display text-[32px] font-bold uppercase leading-none tracking-tight text-foreground"
+                      className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground"
                     >
                       <span
                         className={`size-2 rounded-full bg-destructive ${!reduceMotion ? "animate-play-pulse" : ""}`}
