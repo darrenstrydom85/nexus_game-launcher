@@ -550,17 +550,20 @@
 /* All Games grid, mockup-aligned: dense bare covers on the 40px gutter, and
    the grid's toolbar controls become quiet tracked-caps chrome. Column
    template is inline on the shared GameGrid, hence !important. */
+/* GameGrid is nested inside the Shelf, which already provides the 40px
+   gutter — zero the grid's own horizontal padding so columns align with
+   the shelf header. */
 .experience-backdrop [data-testid="game-grid-cards"] {
     grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)) !important;
     gap: 14px;
-    padding: 0 40px 28px 40px;
+    padding: 0 0 28px 0;
 }
 .experience-backdrop [data-testid="game-grid-toolbar"] {
-    padding: 2px 40px 0 40px;
+    padding: 2px 0 0 0;
 }
 .experience-backdrop [data-testid="game-list-rows"] {
-    padding-left: 40px;
-    padding-right: 40px;
+    padding-left: 0;
+    padding-right: 0;
 }
 .experience-backdrop [data-testid="sort-dropdown-trigger"] {
     background: transparent;
