@@ -81,7 +81,7 @@ export function ShelfCover({ game, selected, onClick, size = "md" }: ShelfCoverP
           {game.name.slice(0, 2).toUpperCase()}
         </span>
       )}
-      <span className="absolute inset-x-0 bottom-0 line-clamp-1 bg-gradient-to-t from-black/85 to-transparent px-2 pb-1.5 pt-6 text-[9px] font-medium uppercase tracking-[0.1em] text-white/90">
+      <span className="absolute inset-x-0 bottom-0 block truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-1.5 pt-6 text-[9px] font-medium uppercase tracking-[0.1em] text-white/90">
         {game.name}
       </span>
     </button>
@@ -135,7 +135,7 @@ export function GridCover({ game, onClick }: { game: Game; onClick?: () => void 
         />
       )}
       <span className="absolute inset-x-0 bottom-0 flex flex-col bg-gradient-to-t from-black/90 to-transparent px-2.5 pb-2 pt-8 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
-        <span className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.1em] text-white">
+        <span className="block truncate text-[10px] font-medium uppercase tracking-[0.1em] text-white">
           {game.name}
         </span>
         {game.totalPlayTimeS > 0 && (
