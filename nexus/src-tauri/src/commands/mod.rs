@@ -5,7 +5,6 @@ pub mod ceremony;
 pub mod clipboard;
 pub mod collections;
 pub mod database;
-pub mod dedup;
 pub mod error;
 pub mod events;
 pub mod export;

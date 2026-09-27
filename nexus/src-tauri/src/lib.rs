@@ -1,6 +1,5 @@
 mod commands;
 pub mod db;
-pub mod dedup;
 pub mod gdrive;
 pub mod metadata;
 pub mod models;
@@ -54,10 +53,6 @@ use commands::{
         clear_play_history, debug_wrapped_sessions, get_db_status, open_data_folder,
         relink_play_sessions, reset_all,
         reset_keep_keys, reset_library_keep_stats,
-    },
-    dedup::{
-        find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
-        update_duplicate_resolution,
     },
     events::emit_test_event,
     export::export_stats_zip,
@@ -470,11 +465,6 @@ pub fn run() {
             remove_watched_folder,
             scan_sources,
             detect_launchers,
-            find_duplicates,
-            get_duplicate_groups,
-            get_game_sources,
-            resolve_duplicate_group,
-            update_duplicate_resolution,
             verify_steamgrid_key,
             verify_igdb_keys,
             fetch_metadata,

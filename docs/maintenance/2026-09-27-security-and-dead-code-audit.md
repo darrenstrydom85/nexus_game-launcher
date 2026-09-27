@@ -73,7 +73,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
 - [x] **D1 folder watcher never starts** — nothing calls `start_folder_watchers`, no listener for
   `watcher-game-detected`. Delete `sources/watcher.rs`, the 4 watcher commands + helpers in `commands/sources.rs`,
   `notify`, `notify-debouncer-mini`. **Product check first:** `settingsStore.autoScan` hints auto-scan was planned. (~700)
-- [ ] **D2 dedup feature unwired** — nothing imports `components/dedup`. Delete it, `dedupStore`, wrappers in
+- [x] **D2 dedup feature unwired** — nothing imports `components/dedup`. Delete it, `dedupStore`, wrappers in
   `lib/tauri.ts:300-332`, and the Rust dedup commands. (~500)
 - [ ] **D3 dead Rust commands (never invoked)** — `debug_wrapped_sessions` (+`WrappedDiagnostics`),
   `get_twitch_live_streams`, `get_collections`, `get_collection_games`, `reorder_collections`, `search_games`,
