@@ -226,8 +226,7 @@ fn build_cumulative_context(
             &format!("SELECT COUNT(*) FROM play_sessions WHERE {SESSION_FILTER} AND id <= ?1"),
             params![session.id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let game_session_count: i64 = conn
         .query_row(
@@ -236,8 +235,7 @@ fn build_cumulative_context(
             ),
             params![session.game_id, session.id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let distinct_games_played: i64 = conn
         .query_row(
@@ -246,8 +244,7 @@ fn build_cumulative_context(
             ),
             params![session.id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let is_first_game_session = game_session_count == 1;
 
@@ -341,10 +338,7 @@ pub fn check_session_milestones(
     db: State<'_, DbState>,
     session_id: String,
 ) -> Result<Vec<SessionMilestone>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let session = load_session(&conn, &session_id)?;
     evaluate_session(&conn, &session)
@@ -355,10 +349,7 @@ pub fn evaluate_milestones_batch(
     db: State<'_, DbState>,
     session_ids: Vec<String>,
 ) -> Result<Vec<(String, Vec<SessionMilestone>)>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut results = Vec::new();
     for sid in &session_ids {

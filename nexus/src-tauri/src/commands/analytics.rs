@@ -115,20 +115,15 @@ fn fetch_durations(
     };
 
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
 
     let durations: Vec<i64> = match scope {
         SessionScope::Library => stmt
-            .query_map([], |row| row.get(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<_, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?,
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<_, _>>()?,
         SessionScope::Game(game_id) | SessionScope::Source(game_id) => stmt
-            .query_map(params![game_id], |row| row.get(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<_, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?,
+            .query_map(params![game_id], |row| row.get(0))?
+            .collect::<Result<_, _>>()?,
     };
 
     Ok(durations)
@@ -145,14 +140,11 @@ fn compute_average_gap_days(
             "SELECT started_at FROM play_sessions \
              WHERE game_id = ?1 AND ended_at IS NOT NULL AND duration_s >= ?2 \
              ORDER BY started_at ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let timestamps: Vec<String> = stmt
-        .query_map(params![game_id, MIN_SESSION_DURATION_S], |row| row.get(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<_, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![game_id, MIN_SESSION_DURATION_S], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
 
     if timestamps.len() < 2 {
         return Ok(0.0);
@@ -181,10 +173,7 @@ pub fn get_session_distribution(
     db: State<'_, DbState>,
     scope: SessionScope,
 ) -> Result<SessionDistribution, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let durations = fetch_durations(&conn, &scope)?;
     Ok(build_distribution(&durations))
@@ -198,10 +187,7 @@ pub fn get_per_game_session_stats(
     game_id: String,
     limit: Option<i64>,
 ) -> Result<PerGameSessionStats, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let page_limit = limit.unwrap_or(50).min(200).max(1);
 
@@ -213,8 +199,7 @@ pub fn get_per_game_session_stats(
              WHERE game_id = ?1 AND ended_at IS NOT NULL \
              ORDER BY started_at DESC \
              LIMIT ?2",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let sessions: Vec<SessionRecord> = stmt
         .query_map(params![game_id, page_limit], |row| {
@@ -226,10 +211,8 @@ pub fn get_per_game_session_stats(
                 tracking_method: row.get("tracking")?,
                 note: row.get("note")?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<_, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<_, _>>()?;
 
     // ── Distribution ──────────────────────────────────────────────────
     let durations = fetch_durations(&conn, &SessionScope::Game(game_id.clone()))?;
@@ -248,14 +231,11 @@ pub fn get_per_game_session_stats(
                AND started_at >= datetime('now', '-12 months') \
              GROUP BY month \
              ORDER BY month ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let month_rows: Vec<(u8, i64)> = month_stmt
-        .query_map(params![game_id], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<_, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![game_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<Result<_, _>>()?;
 
     // Ensure all 12 months are present (fill missing with 0).
     let play_time_by_month: Vec<MonthBucket> = {
@@ -294,14 +274,11 @@ pub fn get_per_game_session_stats(
              FROM play_sessions \
              WHERE game_id = ?1 AND ended_at IS NOT NULL \
              GROUP BY sqlite_dow",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let dow_rows: Vec<(u8, i64)> = dow_stmt
-        .query_map(params![game_id], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<_, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![game_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<Result<_, _>>()?;
 
     // Build 7-entry array (0=Mon..6=Sun), fill missing with 0.
     let play_time_by_day_of_week: Vec<DayBucket> = {

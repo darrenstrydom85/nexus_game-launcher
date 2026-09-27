@@ -23,10 +23,7 @@ pub fn create_session(
     db: State<'_, DbState>,
     game_id: String,
 ) -> Result<PlaySession, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) = conn
         .query_row(
@@ -47,16 +44,14 @@ pub fn create_session(
     conn.execute(
         "INSERT INTO play_sessions (id, game_id, started_at, tracking, game_source, game_source_id, game_name) VALUES (?1, ?2, ?3, 'auto', ?4, ?5, ?6)",
         params![id, game_id, started_at, game_source, game_source_id, game_name],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let session = conn
         .query_row(
             "SELECT * FROM play_sessions WHERE id = ?1",
             params![id],
             PlaySession::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(session)
 }
@@ -67,10 +62,7 @@ pub fn end_session(
     session_id: String,
     ended_at: String,
 ) -> Result<PlaySession, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let (game_id, started_at): (String, String) = conn
         .query_row(
@@ -90,32 +82,27 @@ pub fn end_session(
     let duration_s = (end_epoch - start_epoch).max(0);
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     tx.execute(
         "UPDATE play_sessions SET ended_at = ?1, duration_s = ?2 WHERE id = ?3",
         params![ended_at, duration_s, session_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let now = now_iso();
     tx.execute(
         "UPDATE games SET total_play_time = total_play_time + ?1, last_played = ?2, play_count = play_count + 1, updated_at = ?3 WHERE id = ?4",
         params![duration_s, ended_at, now, game_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     let session = conn
         .query_row(
             "SELECT * FROM play_sessions WHERE id = ?1",
             params![session_id],
             PlaySession::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let prev_streak: i64 = conn
         .query_row(
@@ -194,10 +181,7 @@ pub fn end_session(
 
 #[tauri::command]
 pub fn get_play_stats(db: State<'_, DbState>, game_id: String) -> Result<PlayStats, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let stats = conn
         .query_row(
@@ -222,8 +206,7 @@ pub fn get_play_stats(db: State<'_, DbState>, game_id: String) -> Result<PlaySta
                     first_played: row.get("first_played")?,
                 })
             },
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(stats)
 }
@@ -239,10 +222,7 @@ pub fn get_activity_data(
     db: State<'_, DbState>,
     params: ActivityParams,
 ) -> Result<Vec<ActivityBucket>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let date_format = match params.period.as_str() {
         "daily" => "%Y-%m-%d",
@@ -267,8 +247,7 @@ pub fn get_activity_data(
     );
 
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
 
     let buckets = stmt
         .query_map([], |row| {
@@ -277,44 +256,36 @@ pub fn get_activity_data(
                 total_time: row.get("total_time")?,
                 session_count: row.get("session_count")?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(buckets)
 }
 
 #[tauri::command]
 pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let total_play_time_s: i64 = conn
         .query_row(
             "SELECT COALESCE(SUM(total_play_time), 0) FROM games WHERE is_hidden = 0",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let games_played: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM games WHERE play_count > 0 AND is_hidden = 0",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let games_unplayed: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM games WHERE play_count = 0 AND is_hidden = 0",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // Use the smart JOIN to find the most-played game so that sessions from
     // removed-and-re-added games are merged under the current game entry.
@@ -329,8 +300,7 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
              LIMIT 1"
         );
         conn.query_row(&sql, [], |row| row.get(0))
-            .optional()
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            .optional()?
     };
 
     let week_start = {
@@ -383,8 +353,7 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
             "SELECT COALESCE(SUM(duration_s), 0) FROM play_sessions WHERE ended_at IS NOT NULL AND started_at >= ?1",
             params![week_start_iso],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(LibraryStatsData {
         total_play_time_s,
@@ -397,10 +366,7 @@ pub fn get_library_stats(db: State<'_, DbState>) -> Result<LibraryStatsData, Com
 
 #[tauri::command]
 pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     // Aggregate from play_sessions using the smart JOIN so that sessions belonging
     // to removed-and-re-added games (different UUID, same name/source_id) are merged
@@ -416,8 +382,7 @@ pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, Comman
     );
 
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
 
     let entries = stmt
         .query_map([], |row| {
@@ -427,10 +392,8 @@ pub fn get_top_games(db: State<'_, DbState>) -> Result<Vec<TopGameEntry>, Comman
                 cover_url: row.get("cover_url")?,
                 total_play_time_s: row.get("total_play_time_s")?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(entries)
 }
@@ -441,18 +404,14 @@ pub fn update_session_note(
     session_id: String,
     note: Option<String>,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let exists: bool = conn
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM play_sessions WHERE id = ?1)",
             params![session_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !exists {
         return Err(CommandError::NotFound(format!("session {session_id}")));
@@ -461,18 +420,14 @@ pub fn update_session_note(
     conn.execute(
         "UPDATE play_sessions SET note = ?1 WHERE id = ?2",
         params![note, session_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let sql = format!(
         "SELECT ps.id,
@@ -486,8 +441,7 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
     );
 
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
 
     let entries = stmt
         .query_map([], |row| {
@@ -500,10 +454,8 @@ pub fn get_all_sessions(db: State<'_, DbState>) -> Result<Vec<SessionEntry>, Com
                 duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
                 note: row.get("note")?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(entries)
 }
@@ -527,10 +479,7 @@ pub fn count_short_sessions(
     db: State<'_, DbState>,
     threshold_secs: i64,
 ) -> Result<ShortSessionsCount, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let (sessions_count, games_affected): (i64, i64) = conn
         .query_row(
@@ -538,8 +487,7 @@ pub fn count_short_sessions(
              WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
             params![threshold_secs],
             |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(ShortSessionsCount {
         sessions_count,
@@ -552,27 +500,20 @@ pub fn bulk_delete_short_sessions(
     db: State<'_, DbState>,
     threshold_secs: i64,
 ) -> Result<BulkDeleteResult, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     let mut stmt = tx
         .prepare(
             "SELECT DISTINCT game_id FROM play_sessions
              WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let affected_game_ids: Vec<String> = stmt
-        .query_map(params![threshold_secs], |row| row.get(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![threshold_secs], |row| row.get(0))?
+        .collect::<Result<Vec<_>, _>>()?;
     drop(stmt);
 
     let sessions_removed = tx
@@ -580,8 +521,7 @@ pub fn bulk_delete_short_sessions(
             "DELETE FROM play_sessions
              WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
             params![threshold_secs],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+        )? as i64;
 
     let now = now_iso();
     for game_id in &affected_game_ids {
@@ -593,12 +533,10 @@ pub fn bulk_delete_short_sessions(
                 updated_at = ?2
              WHERE id = ?1",
             params![game_id, now],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     }
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(BulkDeleteResult {
         sessions_removed,
@@ -954,10 +892,7 @@ mod tests {
     // ── Test helpers: non-Tauri wrappers ──
 
     fn create_session_inner(state: &DbState, game_id: String) -> Result<PlaySession, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let (game_name, game_source, game_source_id): (String, Option<String>, Option<String>) =
             conn.query_row(
@@ -978,15 +913,14 @@ mod tests {
         conn.execute(
             "INSERT INTO play_sessions (id, game_id, started_at, tracking, game_source, game_source_id, game_name) VALUES (?1, ?2, ?3, 'auto', ?4, ?5, ?6)",
             params![id, game_id, started_at, game_source, game_source_id, game_name],
-        ).map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let session = conn
             .query_row(
                 "SELECT * FROM play_sessions WHERE id = ?1",
                 params![id],
                 PlaySession::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         Ok(session)
     }
 
@@ -995,10 +929,7 @@ mod tests {
         session_id: String,
         ended_at: String,
     ) -> Result<PlaySession, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let (game_id, started_at): (String, String) = conn
             .query_row(
@@ -1018,39 +949,32 @@ mod tests {
         let duration_s = (end_epoch - start_epoch).max(0);
 
         let tx = conn
-            .unchecked_transaction()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .unchecked_transaction()?;
 
         tx.execute(
             "UPDATE play_sessions SET ended_at = ?1, duration_s = ?2 WHERE id = ?3",
             params![ended_at, duration_s, session_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let now = now_iso();
         tx.execute(
             "UPDATE games SET total_play_time = total_play_time + ?1, last_played = ?2, play_count = play_count + 1, updated_at = ?3 WHERE id = ?4",
             params![duration_s, ended_at, now, game_id],
-        ).map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
-        tx.commit()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        tx.commit()?;
 
         let session = conn
             .query_row(
                 "SELECT * FROM play_sessions WHERE id = ?1",
                 params![session_id],
                 PlaySession::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         Ok(session)
     }
 
     fn get_play_stats_inner(state: &DbState, game_id: String) -> Result<PlayStats, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let stats = conn
             .query_row(
                 "SELECT
@@ -1074,8 +998,7 @@ mod tests {
                         first_played: row.get("first_played")?,
                     })
                 },
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         Ok(stats)
     }
 
@@ -1083,10 +1006,7 @@ mod tests {
         state: &DbState,
         params: ActivityParams,
     ) -> Result<Vec<ActivityBucket>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let date_format = match params.period.as_str() {
             "daily" => "%Y-%m-%d",
@@ -1111,8 +1031,7 @@ mod tests {
         );
 
         let mut stmt = conn
-            .prepare(&sql)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare(&sql)?;
         let buckets = stmt
             .query_map([], |row| {
                 Ok(ActivityBucket {
@@ -1120,10 +1039,8 @@ mod tests {
                     total_time: row.get("total_time")?,
                     session_count: row.get("session_count")?,
                 })
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(buckets)
     }
 
@@ -1158,10 +1075,7 @@ mod tests {
     }
 
     fn get_all_sessions_inner(state: &DbState) -> Result<Vec<SessionEntry>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let sql = format!(
             "SELECT ps.id,
                     COALESCE(g.id, ps.game_id) as game_id,
@@ -1173,8 +1087,7 @@ mod tests {
              ORDER BY ps.started_at DESC"
         );
         let mut stmt = conn
-            .prepare(&sql)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare(&sql)?;
         let entries = stmt
             .query_map([], |row| {
                 Ok(SessionEntry {
@@ -1186,18 +1099,13 @@ mod tests {
                     duration_s: row.get::<_, Option<i64>>("duration_s")?.unwrap_or(0),
                     note: row.get("note")?,
                 })
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(entries)
     }
 
     fn get_top_games_inner(state: &DbState) -> Result<Vec<TopGameEntry>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let sql = format!(
             "SELECT g.id, g.name, g.cover_url, SUM(ps.duration_s) as total_play_time_s
              FROM play_sessions ps
@@ -1208,8 +1116,7 @@ mod tests {
              LIMIT 10"
         );
         let mut stmt = conn
-            .prepare(&sql)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare(&sql)?;
         let entries = stmt
             .query_map([], |row| {
                 Ok(TopGameEntry {
@@ -1218,10 +1125,8 @@ mod tests {
                     cover_url: row.get("cover_url")?,
                     total_play_time_s: row.get("total_play_time_s")?,
                 })
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(entries)
     }
 
@@ -1406,18 +1311,14 @@ mod tests {
         session_id: String,
         note: Option<String>,
     ) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let exists: bool = conn
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM play_sessions WHERE id = ?1)",
                 params![session_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if !exists {
             return Err(CommandError::NotFound(format!("session {session_id}")));
@@ -1426,8 +1327,7 @@ mod tests {
         conn.execute(
             "UPDATE play_sessions SET note = ?1 WHERE id = ?2",
             params![note, session_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         Ok(())
     }
@@ -1528,18 +1428,14 @@ mod tests {
         state: &DbState,
         threshold_secs: i64,
     ) -> Result<ShortSessionsCount, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let (sessions_count, games_affected): (i64, i64) = conn
             .query_row(
                 "SELECT COUNT(*), COUNT(DISTINCT game_id) FROM play_sessions
                  WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
                 params![threshold_secs],
                 |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         Ok(ShortSessionsCount {
             sessions_count,
             games_affected,
@@ -1550,25 +1446,18 @@ mod tests {
         state: &DbState,
         threshold_secs: i64,
     ) -> Result<BulkDeleteResult, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let tx = conn
-            .unchecked_transaction()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .unchecked_transaction()?;
 
         let mut stmt = tx
             .prepare(
                 "SELECT DISTINCT game_id FROM play_sessions
                  WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         let affected_game_ids: Vec<String> = stmt
-            .query_map(params![threshold_secs], |row| row.get(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map(params![threshold_secs], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
         drop(stmt);
 
         let sessions_removed =
@@ -1576,8 +1465,7 @@ mod tests {
                 "DELETE FROM play_sessions
                  WHERE duration_s IS NOT NULL AND duration_s < ?1 AND ended_at IS NOT NULL",
                 params![threshold_secs],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+            )? as i64;
 
         let now = now_iso();
         for game_id in &affected_game_ids {
@@ -1589,12 +1477,10 @@ mod tests {
                     updated_at = ?2
                  WHERE id = ?1",
                 params![game_id, now],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         }
 
-        tx.commit()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        tx.commit()?;
         Ok(BulkDeleteResult {
             sessions_removed,
             games_affected: affected_game_ids.len() as i64,

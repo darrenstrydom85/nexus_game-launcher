@@ -218,10 +218,7 @@ impl TwitchTokenManager {
             .app
             .try_state::<DbState>()
             .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         Ok(TokenState {
             access_token: tokens::load_access_token(&conn)?,
             refresh_token: tokens::load_refresh_token(&conn)?,
@@ -246,10 +243,7 @@ impl TwitchTokenManager {
                 .app
                 .try_state::<DbState>()
                 .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             tokens::store_tokens(
                 &conn,
                 &access_token,
@@ -396,10 +390,7 @@ impl TwitchTokenManager {
                 .app
                 .try_state::<DbState>()
                 .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             tokens::set_setting_raw(&conn, keys::TWITCH_DISPLAY_NAME, &user.display_name)?;
             if let Some(url) = user.profile_image_url.as_deref() {
                 tokens::set_setting_raw(&conn, keys::TWITCH_PROFILE_IMAGE_URL, url)?;
@@ -425,10 +416,7 @@ impl TwitchTokenManager {
                 .app
                 .try_state::<DbState>()
                 .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             tokens::set_setting_raw(
                 &conn,
                 keys::TWITCH_TOKEN_EXPIRES_AT,
@@ -453,10 +441,7 @@ impl TwitchTokenManager {
                 .app
                 .try_state::<DbState>()
                 .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             cache::clear_twitch_cache(&conn)?;
         }
         self.emit_authenticated(false, None, None);
@@ -470,10 +455,7 @@ impl TwitchTokenManager {
                 .app
                 .try_state::<DbState>()
                 .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             tokens::clear_all(&conn)?;
         }
         {
@@ -495,10 +477,7 @@ impl TwitchTokenManager {
             .app
             .try_state::<DbState>()
             .ok_or_else(|| CommandError::Database("DbState not registered".to_string()))?;
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let enc_access = tokens::encrypt(access_token)?;
         let enc_refresh = tokens::encrypt(refresh_token)?;
         tokens::set_setting_raw(&conn, keys::TWITCH_ACCESS_TOKEN, &enc_access)?;

@@ -11,10 +11,7 @@ pub fn get_mastery_tier(
     db: State<'_, DbState>,
     game_id: String,
 ) -> Result<GameMasteryTier, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let total_play_time: i64 = conn
         .query_row(
@@ -36,24 +33,18 @@ pub fn get_mastery_tier(
 pub fn get_mastery_tiers_bulk(
     db: State<'_, DbState>,
 ) -> Result<Vec<GameMasteryTier>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
-        .prepare("SELECT id, total_play_time FROM games WHERE total_play_time > 0")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT id, total_play_time FROM games WHERE total_play_time > 0")?;
 
     let tiers = stmt
         .query_map([], |row| {
             let id: String = row.get(0)?;
             let play_time: i64 = row.get(1)?;
             Ok(build_game_mastery_tier(id, play_time))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(tiers)
 }

@@ -30,6 +30,12 @@ pub enum CommandError {
     Unknown(String),
 }
 
+impl From<rusqlite::Error> for CommandError {
+    fn from(e: rusqlite::Error) -> Self {
+        CommandError::Database(e.to_string())
+    }
+}
+
 #[derive(Serialize)]
 #[serde(tag = "kind", content = "message")]
 #[serde(rename_all = "camelCase")]

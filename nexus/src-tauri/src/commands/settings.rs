@@ -9,10 +9,7 @@ use crate::models::settings::{SettingsMap, WatchedFolder};
 
 #[tauri::command]
 pub fn get_setting(db: State<'_, DbState>, key: String) -> Result<Option<String>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let result = conn.query_row(
         "SELECT value FROM settings WHERE key = ?1",
@@ -29,30 +26,22 @@ pub fn get_setting(db: State<'_, DbState>, key: String) -> Result<Option<String>
 
 #[tauri::command]
 pub fn set_setting(db: State<'_, DbState>, key: String, value: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute(
         "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
         params![key, value],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_settings(db: State<'_, DbState>) -> Result<SettingsMap, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
-        .prepare("SELECT key, value FROM settings")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT key, value FROM settings")?;
 
     let rows = stmt
         .query_map([], |row| {
@@ -60,12 +49,11 @@ pub fn get_settings(db: State<'_, DbState>) -> Result<SettingsMap, CommandError>
                 row.get::<_, String>("key")?,
                 row.get::<_, Option<String>>("value")?,
             ))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
 
     let mut map = SettingsMap::new();
     for row in rows {
-        let (k, v) = row.map_err(|e| CommandError::Database(e.to_string()))?;
+        let (k, v) = row?;
         map.insert(k, v);
     }
 
@@ -74,20 +62,14 @@ pub fn get_settings(db: State<'_, DbState>) -> Result<SettingsMap, CommandError>
 
 #[tauri::command]
 pub fn get_watched_folders(db: State<'_, DbState>) -> Result<Vec<WatchedFolder>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
-        .prepare("SELECT * FROM watched_folders ORDER BY added_at ASC")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT * FROM watched_folders ORDER BY added_at ASC")?;
 
     let folders = stmt
-        .query_map([], WatchedFolder::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map([], WatchedFolder::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(folders)
 }
@@ -99,10 +81,7 @@ pub fn add_watched_folder(
     label: Option<String>,
     auto_scan: Option<bool>,
 ) -> Result<WatchedFolder, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let id = Uuid::new_v4().to_string();
     let now = now_iso();
@@ -111,30 +90,24 @@ pub fn add_watched_folder(
     conn.execute(
         "INSERT INTO watched_folders (id, path, label, auto_scan, added_at) VALUES (?1, ?2, ?3, ?4, ?5)",
         params![id, path, label, auto_scan_val, now],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let folder = conn
         .query_row(
             "SELECT * FROM watched_folders WHERE id = ?1",
             params![id],
             WatchedFolder::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(folder)
 }
 
 #[tauri::command]
 pub fn remove_watched_folder(db: State<'_, DbState>, id: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let changes = conn
-        .execute("DELETE FROM watched_folders WHERE id = ?1", params![id])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .execute("DELETE FROM watched_folders WHERE id = ?1", params![id])?;
 
     if changes == 0 {
         return Err(CommandError::NotFound(format!("watched folder {id}")));
@@ -156,10 +129,7 @@ mod tests {
     // ── Test helpers: non-Tauri wrappers ──
 
     fn get_setting_inner(state: &DbState, key: String) -> Result<Option<String>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let result = conn.query_row(
             "SELECT value FROM settings WHERE key = ?1",
@@ -175,29 +145,21 @@ mod tests {
     }
 
     fn set_setting_inner(state: &DbState, key: String, value: String) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
             params![key, value],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         Ok(())
     }
 
     fn get_settings_inner(state: &DbState) -> Result<SettingsMap, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let mut stmt = conn
-            .prepare("SELECT key, value FROM settings")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare("SELECT key, value FROM settings")?;
 
         let rows = stmt
             .query_map([], |row| {
@@ -205,12 +167,11 @@ mod tests {
                     row.get::<_, String>("key")?,
                     row.get::<_, Option<String>>("value")?,
                 ))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?;
 
         let mut map = SettingsMap::new();
         for row in rows {
-            let (k, v) = row.map_err(|e| CommandError::Database(e.to_string()))?;
+            let (k, v) = row?;
             map.insert(k, v);
         }
 
@@ -218,20 +179,14 @@ mod tests {
     }
 
     fn get_watched_folders_inner(state: &DbState) -> Result<Vec<WatchedFolder>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let mut stmt = conn
-            .prepare("SELECT * FROM watched_folders ORDER BY added_at ASC")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare("SELECT * FROM watched_folders ORDER BY added_at ASC")?;
 
         let folders = stmt
-            .query_map([], WatchedFolder::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map([], WatchedFolder::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(folders)
     }
@@ -242,10 +197,7 @@ mod tests {
         label: Option<String>,
         auto_scan: Option<bool>,
     ) -> Result<WatchedFolder, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let id = Uuid::new_v4().to_string();
         let now = now_iso();
@@ -254,29 +206,23 @@ mod tests {
         conn.execute(
             "INSERT INTO watched_folders (id, path, label, auto_scan, added_at) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![id, path, label, auto_scan_val, now],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let folder = conn
             .query_row(
                 "SELECT * FROM watched_folders WHERE id = ?1",
                 params![id],
                 WatchedFolder::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         Ok(folder)
     }
 
     fn remove_watched_folder_inner(state: &DbState, id: String) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let changes = conn
-            .execute("DELETE FROM watched_folders WHERE id = ?1", params![id])
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .execute("DELETE FROM watched_folders WHERE id = ?1", params![id])?;
 
         if changes == 0 {
             return Err(CommandError::NotFound(format!("watched folder {id}")));

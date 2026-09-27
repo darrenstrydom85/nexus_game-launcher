@@ -19,10 +19,7 @@ const STREAK_GRACE_DAYS: i64 = 1;
 
 #[tauri::command]
 pub fn get_streak(db: State<'_, DbState>) -> Result<StreakSnapshot, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.query_row(
         "SELECT id, current_streak, longest_streak, last_play_date, streak_started_at, updated_at
@@ -40,10 +37,7 @@ pub fn get_streak(db: State<'_, DbState>) -> Result<StreakSnapshot, CommandError
 
 #[tauri::command]
 pub fn recalculate_streak(db: State<'_, DbState>) -> Result<StreakSnapshot, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let snapshot = recalculate_streak_inner(&conn)?;
     Ok(snapshot)
@@ -58,12 +52,9 @@ pub fn recalculate_streak_inner(
         .prepare(&format!(
             "SELECT DISTINCT date(started_at) as d FROM play_sessions
              WHERE {SESSION_FILTER} ORDER BY d DESC"
-        ))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ))?
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let today = today_date();
     let today_epoch = date_only_to_start_epoch_secs(&today).unwrap_or(0);
@@ -96,8 +87,7 @@ pub fn recalculate_streak_inner(
             streak_started_at,
             now,
         ],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     conn.query_row(
         "SELECT id, current_streak, longest_streak, last_play_date, streak_started_at, updated_at

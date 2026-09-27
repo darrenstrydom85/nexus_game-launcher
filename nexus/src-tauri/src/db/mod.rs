@@ -3,7 +3,9 @@ pub mod migrations;
 use rusqlite::Connection;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
+
+use crate::commands::error::CommandError;
 
 pub struct DbState {
     pub conn: Mutex<Connection>,
@@ -11,6 +13,13 @@ pub struct DbState {
 }
 
 impl DbState {
+    /// Lock the connection for a command; a poisoned mutex becomes `CommandError::Database`.
+    pub fn conn(&self) -> Result<MutexGuard<'_, Connection>, CommandError> {
+        self.conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))
+    }
+
     /// Replace the live database file with a new one and reopen the connection.
     /// Used by the restore-from-backup flow: the caller downloads a backup to
     /// `source_path`, then this method atomically swaps it into `self.db_path`,

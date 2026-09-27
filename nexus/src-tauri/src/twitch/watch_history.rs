@@ -47,8 +47,7 @@ pub fn start_session(
             nexus_game_id,
             now_secs(),
         ],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(conn.last_insert_rowid())
 }
 
@@ -66,8 +65,7 @@ pub fn end_session(
          SET ended_at = ?1, duration_secs = ?2
          WHERE id = ?3",
         params![now_secs(), clamped, session_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 
@@ -119,8 +117,7 @@ pub fn aggregate_for_period(
              WHERE started_at >= ?1 AND started_at < ?2",
             params![from_secs, to_secs],
             |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let mut by_channel_stmt = conn
         .prepare(
@@ -133,8 +130,7 @@ pub fn aggregate_for_period(
              GROUP BY channel_login
              ORDER BY total DESC
              LIMIT ?3",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let top_channels = by_channel_stmt
         .query_map(params![from_secs, to_secs, top_n as i64], |row| {
             Ok(WatchByChannel {
@@ -143,8 +139,7 @@ pub fn aggregate_for_period(
                 total_secs: row.get(2)?,
                 session_count: row.get(3)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        })?
         .filter_map(|r| r.ok())
         .collect::<Vec<_>>();
 
@@ -161,8 +156,7 @@ pub fn aggregate_for_period(
              GROUP BY COALESCE(twitch_game_id, nexus_game_id)
              ORDER BY total DESC
              LIMIT ?3",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let top_games = by_game_stmt
         .query_map(params![from_secs, to_secs, top_n as i64], |row| {
             Ok(WatchByGame {
@@ -172,8 +166,7 @@ pub fn aggregate_for_period(
                 total_secs: row.get(3)?,
                 session_count: row.get(4)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        })?
         .filter_map(|r| r.ok())
         .collect::<Vec<_>>();
 

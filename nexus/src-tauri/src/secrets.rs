@@ -121,14 +121,12 @@ pub fn set_setting_raw(
     conn.execute(
         "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
         params![key, value],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 
 pub fn delete_setting(conn: &rusqlite::Connection, key: &str) -> Result<(), CommandError> {
-    conn.execute("DELETE FROM settings WHERE key = ?1", params![key])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    conn.execute("DELETE FROM settings WHERE key = ?1", params![key])?;
     Ok(())
 }
 

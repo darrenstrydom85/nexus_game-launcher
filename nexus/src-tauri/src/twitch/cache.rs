@@ -77,8 +77,7 @@ pub fn cache_followed_channels(
                profile_image_url = excluded.profile_image_url,
                is_favorite = twitch_followed_channels.is_favorite,
                cached_at = excluded.cached_at",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     for c in channels {
         stmt.execute(params![
@@ -88,8 +87,7 @@ pub fn cache_followed_channels(
             c.profile_image_url,
             if c.is_favorite { 1i32 } else { 0i32 },
             cached_at,
-        ])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ])?;
     }
     Ok(())
 }
@@ -102,8 +100,7 @@ pub fn get_cached_followed_channels(
         .prepare(
             "SELECT channel_id, login, display_name, profile_image_url, is_favorite, cached_at
              FROM twitch_followed_channels ORDER BY display_name",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let rows = stmt
         .query_map([], |row| {
             Ok(CachedChannel {
@@ -114,8 +111,7 @@ pub fn get_cached_followed_channels(
                 is_favorite: row.get::<_, i64>(4)? != 0,
                 cached_at: row.get(5)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| CommandError::Database(e.to_string()))
 }
@@ -129,8 +125,7 @@ pub fn set_channel_favorite(
     conn.execute(
         "UPDATE twitch_followed_channels SET is_favorite = ?1 WHERE channel_id = ?2",
         params![if is_favorite { 1i32 } else { 0i32 }, channel_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 
@@ -139,15 +134,13 @@ pub fn cache_live_streams(
     conn: &rusqlite::Connection,
     streams: &[CachedStream],
 ) -> Result<(), CommandError> {
-    conn.execute("DELETE FROM twitch_stream_cache", [])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    conn.execute("DELETE FROM twitch_stream_cache", [])?;
     let cached_at = now_epoch_secs();
     let mut stmt = conn
         .prepare(
             "INSERT INTO twitch_stream_cache (channel_id, title, game_name, game_id, viewer_count, thumbnail_url, started_at, cached_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     for s in streams {
         stmt.execute(params![
@@ -159,8 +152,7 @@ pub fn cache_live_streams(
             s.thumbnail_url,
             s.started_at,
             cached_at,
-        ])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ])?;
     }
     Ok(())
 }
@@ -173,8 +165,7 @@ pub fn get_cached_live_streams(
         .prepare(
             "SELECT channel_id, title, game_name, game_id, viewer_count, thumbnail_url, started_at, cached_at
              FROM twitch_stream_cache",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let rows = stmt
         .query_map([], |row| {
             Ok(CachedStream {
@@ -187,8 +178,7 @@ pub fn get_cached_live_streams(
                 started_at: row.get(6)?,
                 cached_at: row.get(7)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| CommandError::Database(e.to_string()))
 }
@@ -209,8 +199,7 @@ pub fn cache_game_mapping(
            twitch_game_name = excluded.twitch_game_name,
            cached_at = excluded.cached_at",
         params![game_name, twitch_game_id, twitch_game_name, cached_at],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 
@@ -224,8 +213,7 @@ pub fn get_cached_game_mapping(
         .prepare(
             "SELECT game_name, twitch_game_id, twitch_game_name, cached_at
              FROM twitch_game_cache WHERE game_name = ?1",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let row = stmt
         .query_row(params![game_name], |row| {
             Ok(CachedGameMapping {
@@ -235,8 +223,7 @@ pub fn get_cached_game_mapping(
                 cached_at: row.get(3)?,
             })
         })
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     let mapping = match row {
         Some(m) => m,
@@ -254,15 +241,13 @@ pub fn cache_trending_library(
     conn: &rusqlite::Connection,
     entries: &[CachedTrendingEntry],
 ) -> Result<(), CommandError> {
-    conn.execute("DELETE FROM twitch_trending_library_cache", [])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    conn.execute("DELETE FROM twitch_trending_library_cache", [])?;
     let cached_at = now_epoch_secs();
     let mut stmt = conn
         .prepare(
             "INSERT INTO twitch_trending_library_cache (game_id, game_name, twitch_game_name, twitch_game_id, twitch_viewer_count, twitch_stream_count, twitch_rank, cached_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     for e in entries {
         stmt.execute(params![
@@ -274,8 +259,7 @@ pub fn cache_trending_library(
             e.twitch_stream_count,
             e.twitch_rank,
             cached_at,
-        ])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ])?;
     }
     Ok(())
 }
@@ -288,8 +272,7 @@ pub fn get_cached_trending_library(
         .prepare(
             "SELECT game_id, game_name, twitch_game_name, twitch_game_id, twitch_viewer_count, twitch_stream_count, twitch_rank, cached_at
              FROM twitch_trending_library_cache ORDER BY twitch_rank",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let rows = stmt
         .query_map([], |row| {
             Ok(CachedTrendingEntry {
@@ -302,11 +285,9 @@ pub fn get_cached_trending_library(
                 twitch_rank: row.get(6)?,
                 cached_at: row.get(7)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     let list: Vec<CachedTrendingEntry> = rows
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .collect::<Result<Vec<_>, _>>()?;
     let now = now_epoch_secs();
     if let Some(first) = list.first() {
         if now - first.cached_at > TRENDING_CACHE_TTL_SECS {
@@ -324,8 +305,7 @@ pub fn clear_twitch_cache(conn: &rusqlite::Connection) -> Result<(), CommandErro
          DELETE FROM twitch_game_cache;
          DELETE FROM twitch_trending_library_cache;
          DELETE FROM twitch_clips_cache;",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 
@@ -357,8 +337,7 @@ pub fn get_cached_clips_payload(
             params![twitch_game_id, period_days as i64],
             |r| Ok((r.get(0)?, r.get(1)?)),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
     Ok(row)
 }
 
@@ -380,8 +359,7 @@ pub fn store_clips_payload(
            fetched_at = excluded.fetched_at,
            payload    = excluded.payload",
         params![twitch_game_id, period_days as i64, now_secs(), payload],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
     Ok(())
 }
 

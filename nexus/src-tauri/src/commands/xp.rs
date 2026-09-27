@@ -21,10 +21,7 @@ fn get_total_xp(conn: &Connection) -> Result<i64, CommandError> {
 
 #[tauri::command]
 pub fn get_xp_summary(db: State<'_, DbState>) -> Result<XpSummary, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let total_xp = get_total_xp(&conn)?;
     Ok(build_xp_summary(total_xp))
@@ -35,10 +32,7 @@ pub fn get_xp_history(
     db: State<'_, DbState>,
     limit: Option<i64>,
 ) -> Result<Vec<XpEvent>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     get_xp_history_inner(&conn, limit)
 }
@@ -52,24 +46,18 @@ fn get_xp_history_inner(
         .prepare(
             "SELECT id, source, source_id, xp_amount, description, created_at
              FROM xp_events ORDER BY created_at DESC, rowid DESC LIMIT ?1",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let events = stmt
-        .query_map(params![limit], XpEvent::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![limit], XpEvent::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(events)
 }
 
 #[tauri::command]
 pub fn get_xp_breakdown(db: State<'_, DbState>) -> Result<Vec<XpBreakdownRow>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     get_xp_breakdown_inner(&conn)
 }
@@ -79,8 +67,7 @@ fn get_xp_breakdown_inner(conn: &Connection) -> Result<Vec<XpBreakdownRow>, Comm
         .prepare(
             "SELECT source, SUM(xp_amount) as total_xp, COUNT(*) as event_count
              FROM xp_events GROUP BY source ORDER BY total_xp DESC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let rows = stmt
         .query_map([], |row| {
@@ -89,10 +76,8 @@ fn get_xp_breakdown_inner(conn: &Connection) -> Result<Vec<XpBreakdownRow>, Comm
                 total_xp: row.get(1)?,
                 event_count: row.get(2)?,
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(rows)
 }
@@ -107,10 +92,7 @@ pub fn award_xp(
     xp_amount: i64,
     description: String,
 ) -> Result<XpSummary, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     award_xp_inner(
         &conn,
@@ -138,8 +120,7 @@ pub fn award_xp_inner(
                 "SELECT COUNT(*) > 0 FROM xp_events WHERE source = ?1 AND source_id = ?2",
                 params![source, sid],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if exists {
             return Ok(build_xp_summary(old_total));
@@ -153,8 +134,7 @@ pub fn award_xp_inner(
         "INSERT INTO xp_events (id, source, source_id, xp_amount, description, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![id, source, source_id, xp_amount, description, now],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let new_total = get_total_xp(conn)?;
     let (new_level, current_level_xp, next_level_xp, progress) = calculate_level(new_total);
@@ -178,8 +158,7 @@ pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
         .prepare(
             "SELECT id, game_id, duration_s FROM play_sessions
              WHERE ended_at IS NOT NULL AND duration_s >= 30",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let sessions: Vec<(String, String, i64)> = stmt
         .query_map([], |row| {
@@ -188,20 +167,16 @@ pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
                 row.get::<_, String>(1)?,
                 row.get::<_, i64>(2)?,
             ))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let game_names: std::collections::HashMap<String, String> = {
         let mut stmt = conn
-            .prepare("SELECT id, name FROM games")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare("SELECT id, name FROM games")?;
         let rows: Vec<(String, String)> = stmt
             .query_map([], |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            })?
             .filter_map(|r| r.ok())
             .collect();
         rows.into_iter().collect()
@@ -238,12 +213,9 @@ pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
 
     // Game completion XP: 100 XP per completed game
     let completed_games: Vec<(String, String)> = conn
-        .prepare("SELECT id, name FROM games WHERE completed = 1")
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT id, name FROM games WHERE completed = 1")?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<Result<Vec<_>, _>>()?;
 
     for (game_id, game_name) in &completed_games {
         let desc = format!("Completed {game_name} (+100 XP)");
@@ -258,12 +230,9 @@ pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
 
     // Achievement XP: points value per unlocked achievement
     let unlocked_achievements: Vec<(String,)> = conn
-        .prepare("SELECT id FROM achievements")
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map([], |row| Ok((row.get(0)?,)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT id FROM achievements")?
+        .query_map([], |row| Ok((row.get(0)?,)))?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let definitions = super::achievements::ACHIEVEMENT_DEFINITIONS;
     for (ach_id,) in &unlocked_achievements {

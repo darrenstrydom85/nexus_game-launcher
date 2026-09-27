@@ -88,7 +88,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
 - [x] **D5 zero-ref frontend** — `hooks/useWatchSession.ts`, `shared/DynamicBackground.tsx`,
   `shared/ManualTrackingToast.tsx`, `Library/LazyImage.tsx`, `assets/react.svg`, `assets/nexus-logo-32.png`,
   `assets/hardware/*.png`. (~260)
-- [ ] **D6 `CommandError` boilerplate** — 448× `map_err(Database)` + 213× lock-poisoned `map_err`.
+- [x] **D6 `CommandError` boilerplate** — 448× `map_err(Database)` + 213× lock-poisoned `map_err`.
   `impl From<rusqlite::Error>` + `DbState::conn()` helper, use `?`. (~650)
 - [ ] **D7 duplicated OAuth plumbing** — `gdrive/{auth,tokens}.rs` vs `twitch/{auth,tokens}.rs` near-identical.
   Token half done with S9 (`src/secrets.rs`); `auth.rs` (PKCE, callback server, error parsing) remains.

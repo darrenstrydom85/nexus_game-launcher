@@ -18,10 +18,7 @@ pub struct VerifyKeyResult {
 #[tauri::command]
 pub async fn verify_steamgrid_key(db: State<'_, DbState>) -> Result<VerifyKeyResult, CommandError> {
     let api_key = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
 
         get_setting(&conn, keys::STEAMGRID_API_KEY)
     };
@@ -49,10 +46,7 @@ pub async fn verify_steamgrid_key(db: State<'_, DbState>) -> Result<VerifyKeyRes
 #[tauri::command]
 pub async fn verify_igdb_keys(db: State<'_, DbState>) -> Result<VerifyKeyResult, CommandError> {
     let (client_id, client_secret) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
 
         let id = get_setting(&conn, keys::IGDB_CLIENT_ID);
         let secret = get_setting(&conn, keys::IGDB_CLIENT_SECRET);
@@ -68,10 +62,7 @@ pub async fn verify_igdb_keys(db: State<'_, DbState>) -> Result<VerifyKeyResult,
     match client.verify_keys().await {
         Ok(true) => {
             if let Some((token, expires)) = client.get_cached_token_info() {
-                let conn = db
-                    .conn
-                    .lock()
-                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let conn = db.conn()?;
                 let _ = conn.execute(
                     "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
                     params![keys::IGDB_ACCESS_TOKEN, token],
@@ -128,10 +119,7 @@ pub async fn search_metadata(
     }
 
     let (client_id, client_secret) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let id = get_setting(&conn, keys::IGDB_CLIENT_ID);
         let secret = get_setting(&conn, keys::IGDB_CLIENT_SECRET);
         match (id, secret) {
@@ -141,10 +129,7 @@ pub async fn search_metadata(
     };
 
     let cached_token = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let token = get_setting(&conn, keys::IGDB_ACCESS_TOKEN);
         let expires =
             get_setting(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
@@ -228,10 +213,7 @@ pub async fn search_steamgrid_artwork(
     }
 
     let api_key = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         get_setting(&conn, keys::STEAMGRID_API_KEY)
     };
 
@@ -278,21 +260,16 @@ pub async fn fetch_all_metadata(
     app_handle: tauri::AppHandle,
 ) -> Result<usize, CommandError> {
     let game_ids = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let mut stmt = conn
             .prepare(
                 "SELECT id FROM games \
                  WHERE (description IS NULL OR cover_url IS NULL) \
                  AND (is_hidden = 0 OR is_hidden IS NULL) \
                  AND (status IS NULL OR status != 'removed')",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         let ids: Vec<String> = stmt
-            .query_map([], |row| row.get(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            .query_map([], |row| row.get(0))?
             .filter_map(|r| r.ok())
             .collect();
         ids
@@ -353,10 +330,7 @@ pub async fn run_score_backfill(
     app_handle: tauri::AppHandle,
 ) -> Result<usize, CommandError> {
     let games_needing_backfill = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         crate::metadata::pipeline::find_games_needing_score_backfill(&conn)
     };
 
@@ -389,10 +363,7 @@ pub fn save_hltb_data(
     main_extra_h: Option<f64>,
     completionist_h: Option<f64>,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let fetched_at = super::utils::now_iso();
 
@@ -407,25 +378,20 @@ pub fn save_hltb_data(
             fetched_at,
             game_id
         ],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn clear_hltb_data(db: State<'_, DbState>, game_id: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute(
         "UPDATE games SET hltb_id = NULL, hltb_main_h = NULL, hltb_main_extra_h = NULL, \
          hltb_completionist_h = NULL, hltb_fetched_at = NULL WHERE id = ?1",
         params![game_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -467,10 +433,7 @@ mod tests {
         main_extra_h: Option<f64>,
         completionist_h: Option<f64>,
     ) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let fetched_at = super::super::utils::now_iso();
         conn.execute(
             "UPDATE games SET hltb_id = ?1, hltb_main_h = ?2, hltb_main_extra_h = ?3, \
@@ -483,22 +446,17 @@ mod tests {
                 fetched_at,
                 game_id
             ],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
         Ok(())
     }
 
     fn clear_hltb_data_inner(state: &DbState, game_id: String) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         conn.execute(
             "UPDATE games SET hltb_id = NULL, hltb_main_h = NULL, hltb_main_extra_h = NULL, \
              hltb_completionist_h = NULL, hltb_fetched_at = NULL WHERE id = ?1",
             params![game_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
         Ok(())
     }
 

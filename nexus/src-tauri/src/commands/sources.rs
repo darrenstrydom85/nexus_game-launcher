@@ -30,10 +30,7 @@ pub struct SourceScanError {
 /// Load `source_{id}_path_override` from settings and apply it to the scanner.
 fn load_override_for_source(db: &DbState, source: &mut dyn GameSource) -> Result<(), CommandError> {
     let key = format!("source_{}_path_override", source.id());
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let result = conn.query_row(
         "SELECT value FROM settings WHERE key = ?1",
@@ -55,21 +52,16 @@ fn load_override_for_source(db: &DbState, source: &mut dyn GameSource) -> Result
 
 /// Load watched folder paths from the database.
 fn load_watched_folders(db: &DbState) -> Result<Vec<std::path::PathBuf>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
-        .prepare("SELECT path FROM watched_folders")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT path FROM watched_folders")?;
 
     let paths = stmt
         .query_map([], |row| {
             let path: String = row.get(0)?;
             Ok(std::path::PathBuf::from(path))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        })?
         .filter_map(|r| r.ok())
         .collect();
 

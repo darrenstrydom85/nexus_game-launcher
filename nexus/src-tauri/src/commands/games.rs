@@ -22,10 +22,7 @@ pub fn get_games(
     db: State<'_, DbState>,
     params: GetGamesParams,
 ) -> Result<Vec<Game>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let sort_column = match params.sort_by.as_deref() {
         Some("name") => "name",
@@ -47,14 +44,11 @@ pub fn get_games(
     let sql = format!("SELECT * FROM games ORDER BY {sort_column} {sort_direction}");
 
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
 
     let games = stmt
-        .query_map([], Game::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map([], Game::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(games)
 }
@@ -121,10 +115,7 @@ pub fn update_game(
     id: String,
     fields: UpdateGameFields,
 ) -> Result<Game, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     // Verify game exists
     let exists: bool = conn
@@ -132,8 +123,7 @@ pub fn update_game(
             "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
             params![id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !exists {
         return Err(CommandError::NotFound(format!("game {id}")));
@@ -232,16 +222,14 @@ pub fn update_game(
 
     let params_refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|v| v.as_ref()).collect();
 
-    conn.execute(&sql, params_refs.as_slice())
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    conn.execute(&sql, params_refs.as_slice())?;
 
     let game = conn
         .query_row(
             "SELECT * FROM games WHERE id = ?1",
             params![id],
             Game::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // XP award for game completion — fire-and-forget
     if let Some(ref status) = fields.status {
@@ -264,17 +252,13 @@ pub fn update_game(
 #[tauri::command]
 pub fn open_game_folder(db: State<'_, DbState>, id: String) -> Result<(), CommandError> {
     let folder: Option<String> = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         conn.query_row(
             "SELECT folder_path FROM games WHERE id = ?1",
             params![id],
             |r| r.get(0),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .optional()?
         .flatten()
     };
     let folder = folder.ok_or_else(|| CommandError::NotFound(format!("folder for game {id}")))?;
@@ -330,10 +314,7 @@ pub(crate) fn confirm_games_impl(
     db: &DbState,
     detected_games: Vec<DetectedGame>,
 ) -> Result<Vec<Game>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     for g in &detected_games {
         GameSource::from_str(&g.source).map_err(CommandError::Parse)?;
@@ -359,8 +340,7 @@ pub(crate) fn confirm_games_impl(
     let mut results = Vec::with_capacity(detected_games.len());
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     for g in &detected_games {
         // Derive potential exe names from folder_path if not already provided.
@@ -380,16 +360,14 @@ pub(crate) fn confirm_games_impl(
                 params![g.source, sid],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
-            .optional()
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            .optional()?
         } else if let Some(ref fp) = g.folder_path {
             tx.query_row(
                 "SELECT id, potential_exe_names FROM games WHERE folder_path = ?1 LIMIT 1",
                 params![fp],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
-            .optional()
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            .optional()?
         } else {
             None
         };
@@ -429,8 +407,7 @@ pub(crate) fn confirm_games_impl(
                     now,
                     id,
                 ],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
             id.clone()
         } else {
             // Insert new game (normalize title so TM/(R)/® etc. are never stored).
@@ -458,8 +435,7 @@ pub(crate) fn confirm_games_impl(
                     is_hidden,
                     now,
                 ],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
             id
         };
 
@@ -468,8 +444,7 @@ pub(crate) fn confirm_games_impl(
                 "SELECT * FROM games WHERE id = ?1",
                 params![game_id],
                 Game::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         results.push(game);
     }
@@ -480,8 +455,7 @@ pub(crate) fn confirm_games_impl(
         let mut sel = tx
             .prepare(
                 "SELECT id, source_id, folder_path FROM games WHERE source = ?1 AND status != 'removed'",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         let rows = sel
             .query_map(params![source], |row| {
                 Ok((
@@ -489,8 +463,7 @@ pub(crate) fn confirm_games_impl(
                     row.get::<_, Option<String>>(1)?,
                     row.get::<_, Option<String>>(2)?,
                 ))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
+            })?
             .filter_map(|r| r.ok());
         for (id, source_id, folder_path) in rows {
             let key = (
@@ -501,14 +474,12 @@ pub(crate) fn confirm_games_impl(
                 tx.execute(
                     "UPDATE games SET status = 'removed', updated_at = ?1 WHERE id = ?2",
                     params![now, id],
-                )
-                .map_err(|e| CommandError::Database(e.to_string()))?;
+                )?;
             }
         }
     }
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(results)
 }
@@ -1036,10 +1007,7 @@ mod tests {
     // ── Test helpers: non-Tauri wrappers ──
 
     fn get_games_inner(state: &DbState, params: GetGamesParams) -> Result<Vec<Game>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let sort_column = match params.sort_by.as_deref() {
             Some("name") => "name",
@@ -1057,13 +1025,10 @@ mod tests {
 
         let sql = format!("SELECT * FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY {sort_column} {sort_direction}");
         let mut stmt = conn
-            .prepare(&sql)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare(&sql)?;
         let games = stmt
-            .query_map([], Game::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map([], Game::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(games)
     }
 
@@ -1072,18 +1037,14 @@ mod tests {
         id: String,
         fields: UpdateGameFields,
     ) -> Result<Game, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let exists: bool = conn
             .query_row(
                 "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
                 params![id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         if !exists {
             return Err(CommandError::NotFound(format!("game {id}")));
         }
@@ -1168,31 +1129,25 @@ mod tests {
         let sql = format!("UPDATE games SET {} WHERE id = ?", set_clauses.join(", "));
         let params_refs: Vec<&dyn rusqlite::types::ToSql> =
             values.iter().map(|v| v.as_ref()).collect();
-        conn.execute(&sql, params_refs.as_slice())
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        conn.execute(&sql, params_refs.as_slice())?;
 
         let game = conn
             .query_row(
                 "SELECT * FROM games WHERE id = ?1",
                 params![id],
                 Game::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         Ok(game)
     }
 
     fn delete_game_inner(state: &DbState, id: String) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
         let now = now_iso();
         let rows = conn
             .execute(
                 "UPDATE games SET is_hidden = 1, updated_at = ?1 WHERE id = ?2",
                 params![now, id],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
         if rows == 0 {
             return Err(CommandError::NotFound(format!("game {id}")));
         }
