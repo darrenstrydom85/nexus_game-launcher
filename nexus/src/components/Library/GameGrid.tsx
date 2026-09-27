@@ -285,13 +285,26 @@ export function GameGrid({
       {/* List view */}
       {viewMode === "list" && (
         <div data-testid="game-list-rows" className="flex flex-col px-6 pb-6">
+          {/* Column header */}
+          <div
+            className="flex items-center gap-4 border-b border-foreground/10 px-3 pb-2 text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70"
+            aria-hidden
+          >
+            <span className="w-7 shrink-0" />
+            <span className="w-8 shrink-0" />
+            <span className="flex-1">Name</span>
+            <span className="w-24">Source</span>
+            <span className="w-24 text-right tabular-nums">Playtime</span>
+            <span className="w-28 pl-5">Status</span>
+            <span className="w-12 text-right">Rating</span>
+          </div>
           {sortedGames.map((game) => (
             <div
               key={game.id}
               data-testid={`game-list-row-${game.id}`}
               className={cn(
-                "group flex items-center gap-4 border-b border-border px-3 py-2",
-                "cursor-pointer hover:bg-accent/50 transition-colors",
+                "group flex items-center gap-4 border-b border-foreground/[0.06] px-3 py-2",
+                "cursor-pointer transition-colors hover:bg-foreground/[0.04]",
               )}
               onClick={() => onGameClick?.(game.id)}
               onContextMenu={(e) => openContextMenu(e, game)}
@@ -307,7 +320,7 @@ export function GameGrid({
               <button
                 data-testid={`game-list-play-${game.id}`}
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full",
+                  "flex size-7 shrink-0 items-center justify-center rounded-md",
                   "bg-primary text-primary-foreground opacity-0 transition-opacity",
                   "group-hover:opacity-100 hover:bg-primary/90",
                 )}
@@ -317,9 +330,9 @@ export function GameGrid({
                 }}
                 aria-label={`Play ${game.name}`}
               >
-                <Play className="size-3.5 fill-current" />
+                <Play className="size-3 fill-current" />
               </button>
-              <div className="size-10 shrink-0 overflow-hidden rounded">
+              <div className="h-12 w-8 shrink-0 overflow-hidden rounded-sm bg-card">
                 {game.coverUrl ? (
                   <img
                     src={game.coverUrl}
@@ -330,21 +343,34 @@ export function GameGrid({
                   <div className="h-full w-full bg-secondary" />
                 )}
               </div>
-              <span className="flex-1 truncate text-sm font-medium text-foreground">
+              <span className="flex-1 truncate text-[13px] text-foreground">
                 {game.name}
               </span>
-              <span className="w-20 text-xs text-muted-foreground capitalize">
+              <span className="w-24 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                 {game.source}
               </span>
-              <span className="w-20 text-xs text-muted-foreground">
+              <span className="w-24 text-right text-xs tabular-nums text-foreground/80">
                 {game.totalPlayTimeS > 0
                   ? formatPlayTime(game.totalPlayTimeS)
                   : "—"}
               </span>
-              <span className="w-20 text-xs text-muted-foreground capitalize">
+              <span className="flex w-28 items-center gap-1.5 pl-5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                {game.status !== "unset" && (
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      game.status === "playing" && "bg-success",
+                      game.status === "completed" && "bg-primary",
+                      game.status === "backlog" && "bg-warning",
+                      game.status === "dropped" && "bg-destructive",
+                      game.status === "wishlist" && "bg-info",
+                    )}
+                    aria-hidden
+                  />
+                )}
                 {game.status === "unset" ? "—" : game.status}
               </span>
-              <span className="w-12 text-xs text-muted-foreground">
+              <span className="w-12 text-right text-xs tabular-nums text-muted-foreground">
                 {game.rating ? `${game.rating}/5` : "—"}
               </span>
             </div>
