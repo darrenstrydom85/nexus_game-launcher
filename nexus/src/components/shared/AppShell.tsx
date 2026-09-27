@@ -15,7 +15,7 @@ const SIDEBAR_COLLAPSED = 64;
 const BP_COMPACT = 1000;
 const BP_MINIMAL = 800;
 
-interface AppShellProps {
+export interface AppShellProps {
   children: React.ReactNode;
   onSettingsClick?: () => void;
   onAddCollection?: () => void;

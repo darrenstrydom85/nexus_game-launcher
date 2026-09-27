@@ -72,6 +72,10 @@ import { useCeremonyStore } from "@/stores/ceremonyStore";
 import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
 import { RetroApp } from "@/retro/RetroApp";
 import { RetroExitScreen } from "@/retro/RetroExitScreen";
+import { BackdropShell } from "@/components/Backdrop/BackdropShell";
+import { BackdropLibrary } from "@/components/Backdrop/BackdropLibrary";
+import { ChannelShell } from "@/components/Channel/ChannelShell";
+import { ChannelLibrary } from "@/components/Channel/ChannelLibrary";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -630,6 +634,13 @@ function MainApp() {
   // keep running — only the rendered shell changes.
   const retroMode = useSettingsStore((s) => s.retroMode);
 
+  // Modern shell variant (Current / Backdrop / Channel). Retro wins over this.
+  // Experiences are presentation wrappers: same nav ids, same handlers, and
+  // every modal/toast below stays mounted once regardless of the shell.
+  const experience = useSettingsStore((s) => s.experience);
+  const Shell =
+    experience === "backdrop" ? BackdropShell : experience === "channel" ? ChannelShell : AppShell;
+
   // Leaving retro shows the amber shutdown screen for a beat first.
   const [retroExiting, setRetroExiting] = React.useState(false);
   const prevRetroRef = React.useRef(retroMode);
@@ -658,8 +669,29 @@ function MainApp() {
     return <RetroExitScreen onDone={() => setRetroExiting(false)} />;
   }
 
+  // One props object shared by every experience's library view, so the three
+  // shells can never drift apart on behavior.
+  const libraryViewProps = {
+    onPlay: (game: Game) => launch(game),
+    onSettingsClick: () => setSettingsOpen(true),
+    onResync: handleResync,
+    isSyncing,
+    syncResult,
+    onEdit: handleLibraryEditGame,
+    onRefetchMetadata: handleLibraryRefetchMetadata,
+    onSearchMetadata: handleLibrarySearchMetadata,
+    onHide: handleLibraryHideGame,
+    onOpenFolder: handleLibraryOpenFolder,
+    onSetStatus: handleLibrarySetStatus,
+    onSetRating: handleLibrarySetRating,
+    onAddToCollection: handleLibraryAddToCollection,
+    onRemoveFromCollection: handleRemoveFromCollection,
+    activeCollectionName: activeManualCollectionName,
+    collections: collectionLabels,
+  };
+
   return (
-    <AppShell
+    <Shell
       onSettingsClick={() => setSettingsOpen(true)}
       onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
       onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
@@ -692,25 +724,12 @@ function MainApp() {
         <CompletedView />
       ) : activeNav === "archive" ? (
         <ArchiveView />
+      ) : experience === "backdrop" ? (
+        <BackdropLibrary {...libraryViewProps} />
+      ) : experience === "channel" ? (
+        <ChannelLibrary {...libraryViewProps} />
       ) : (
-        <LibraryView
-          onPlay={(game) => launch(game)}
-          onSettingsClick={() => setSettingsOpen(true)}
-          onResync={handleResync}
-          isSyncing={isSyncing}
-          syncResult={syncResult}
-          onEdit={handleLibraryEditGame}
-          onRefetchMetadata={handleLibraryRefetchMetadata}
-          onSearchMetadata={handleLibrarySearchMetadata}
-          onHide={handleLibraryHideGame}
-          onOpenFolder={handleLibraryOpenFolder}
-          onSetStatus={handleLibrarySetStatus}
-          onSetRating={handleLibrarySetRating}
-          onAddToCollection={handleLibraryAddToCollection}
-          onRemoveFromCollection={handleRemoveFromCollection}
-          activeCollectionName={activeManualCollectionName}
-          collections={collectionLabels}
-        />
+        <LibraryView {...libraryViewProps} />
       )}
       <GameDetailOverlay>
         {(game) => {
@@ -967,7 +986,7 @@ function MainApp() {
           setEditCollectionTarget(null);
         }}
       />
-    </AppShell>
+    </Shell>
   );
 }
 

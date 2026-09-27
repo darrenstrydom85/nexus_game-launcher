@@ -36,6 +36,7 @@ export interface UiState {
 }
 
 export interface UiActions {
+  setSelectedGameId: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
   setSidebarOpen: (open: boolean) => void;
   setSidebarVisible: (visible: boolean) => void;
@@ -75,6 +76,8 @@ export const useUiStore = create<UiStore>()(
   devtools(
     (set) => ({
       ...initialState,
+      setSelectedGameId: (id) =>
+        set({ selectedGameId: id }, false, "setSelectedGameId"),
       setViewMode: (mode) => set({ viewMode: mode }, false, "setViewMode"),
       setSidebarOpen: (open) =>
         set({ sidebarOpen: open }, false, "setSidebarOpen"),

@@ -15,6 +15,14 @@ export interface ApiKeys {
 
 export type { ThemeMode };
 
+/** Modern shell variants. Retro is a separate flag (`retroMode`) checked before this. */
+export const EXPERIENCE_MODES = ["current", "backdrop", "channel"] as const;
+export type ExperienceMode = (typeof EXPERIENCE_MODES)[number];
+
+function isExperienceMode(value: string): value is ExperienceMode {
+  return (EXPERIENCE_MODES as readonly string[]).includes(value);
+}
+
 export interface WatchedFolder {
   id: string;
   path: string;
@@ -79,6 +87,12 @@ export interface SettingsState {
   hltbHoursPerDay: number;
   /** Old-school DOS text-mode UI (nexus-old-school). Same data, different shell. */
   retroMode: boolean;
+  /**
+   * Which modern shell renders the app: "current" (sidebar), "backdrop"
+   * (cinematic art-first) or "channel" (console dashboard). Retro is separate
+   * and checked first. Same data and handlers, different presentation tree.
+   */
+  experience: ExperienceMode;
   /** Retro mode theme preset id (see RETRO_THEMES). Independent of the modern theme. */
   retroTheme: string;
   /** Retro mode: PC-speaker key beeps. Default on. */
@@ -130,6 +144,7 @@ export interface SettingsActions {
   setRetirementCeremonyEnabled: (value: boolean) => void;
   setHltbHoursPerDay: (value: number) => void;
   setRetroMode: (value: boolean) => void;
+  setExperience: (value: ExperienceMode) => void;
   setRetroTheme: (id: string) => void;
   setRetroSounds: (value: boolean) => void;
   setRetroCrt: (value: boolean) => void;
@@ -192,6 +207,7 @@ const initialState: SettingsState = {
   retirementCeremonyEnabled: true,
   hltbHoursPerDay: 1.5,
   retroMode: false,
+  experience: "current",
   retroTheme: "classic",
   retroSounds: true,
   retroCrt: false,
@@ -322,6 +338,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retro_mode !== undefined) {
               patch.retroMode = settings.retro_mode === "true";
+            }
+            if (settings.experience && isExperienceMode(settings.experience)) {
+              patch.experience = settings.experience;
             }
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
@@ -537,6 +556,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetroMode: (value) => {
           persistSetting("retro_mode", String(value));
           set({ retroMode: value }, false, "setRetroMode");
+        },
+        setExperience: (value) => {
+          persistSetting("experience", value);
+          set({ experience: value }, false, "setExperience");
         },
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);

@@ -509,6 +509,44 @@
   animation: achievement-highlight 1s ease-out 1;
 }
 
+/* ---------------------------------------------------------------------------
+   Experience shells (Backdrop / Channel)
+   `--game-accent` is set at runtime on the shell root from the selected
+   game's art (useGameAccent); every use falls back to the theme --primary so
+   ThemeStudio remains authoritative when no art is available.
+--------------------------------------------------------------------------- */
+.experience-backdrop {
+    --font-display: "Barlow Condensed", var(--font-sans);
+}
+.experience-channel {
+    --font-display: "Space Grotesk", var(--font-sans);
+}
+
+/* Backdrop: the hero is the interface — taller stage, cinematic display type.
+   Height is inline on the shared HeroSection, so the scope override needs
+   !important; this is the one sanctioned use. */
+.experience-backdrop [data-testid="hero-section"] {
+    height: clamp(380px, 56vh, 620px) !important;
+}
+.experience-backdrop [data-testid="hero-game-name"] {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    line-height: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+.experience-backdrop [data-testid="hero-overlay"] {
+    padding: 2.5rem;
+}
+.experience-backdrop [data-testid="hero-play-button"] {
+    background: var(--game-accent, var(--primary));
+}
+
+/* Channel: grotesk display voice for headings inside the shell. */
+.experience-channel [data-testid="channel-selected-info"] h1 {
+    font-family: var(--font-display);
+}
+
 /* Titlebar drag regions */
 .titlebar-drag-region {
     -webkit-app-region: drag;
