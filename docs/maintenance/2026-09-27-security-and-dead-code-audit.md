@@ -64,8 +64,8 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   (App.tsx:984-986 reads the secrets just to check they're set); cloud backup uploads the whole DB unscrubbed.
   Fix: deny-list secret/token keys in `get_setting`/`get_settings`/`set_setting` (use `get_key_status` for "is it set"),
   and blank token rows in the `VACUUM INTO` copy before upload.
-- [ ] **S18 stale build outputs hold the JSONBIN keys** — ~10 `target/debug/build/Nexus-*/output` files from before S15.
-  `cargo clean -p Nexus` and rotate/delete the JSONBIN keys if that service is dead.
+- [x] **S18 stale build outputs held the JSONBIN keys** — deleted the 40 `target/*/build/Nexus-*` dirs (17 had the keys;
+  `cargo clean -p Nexus` would have wiped 66 GiB). Still to do by hand: rotate/delete the JSONBIN keys if that service is dead.
 
 ## P3 — dead code (biggest cut first)
 
