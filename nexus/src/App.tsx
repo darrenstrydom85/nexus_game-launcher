@@ -76,6 +76,7 @@ import { BackdropShell } from "@/components/Backdrop/BackdropShell";
 import { BackdropLibrary } from "@/components/Backdrop/BackdropLibrary";
 import { ChannelShell } from "@/components/Channel/ChannelShell";
 import { ChannelLibrary } from "@/components/Channel/ChannelLibrary";
+import { ChannelStats } from "@/components/Channel/ChannelStats";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -717,9 +718,15 @@ function MainApp() {
       ) : activeNav === "twitch" ? (
         <TwitchPanel />
       ) : activeNav === "stats" ? (
-        <LibraryStats
-          onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
-        />
+        experience === "channel" ? (
+          <ChannelStats
+            onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
+          />
+        ) : (
+          <LibraryStats
+            onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
+          />
+        )
       ) : activeNav === "completed" ? (
         <CompletedView />
       ) : activeNav === "archive" ? (

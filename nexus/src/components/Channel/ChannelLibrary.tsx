@@ -11,6 +11,7 @@ import type { Game, GameSource } from "@/stores/gameStore";
 import { GameGrid } from "@/components/Library/GameGrid";
 import { GameCard } from "@/components/GameCard";
 import { ContinuePlayingRow } from "@/components/Library/ContinuePlayingRow";
+import { TileRow } from "@/components/experience/TileRow";
 import { SkeletonCard } from "@/components/Library/SkeletonCard";
 import { buildHeading, type LibraryViewProps } from "@/components/Library/LibraryView";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -238,39 +239,13 @@ export function ChannelLibrary(props: LibraryViewProps) {
         )}
 
         {/* Queue row */}
-        {queueGames.length > 0 && (
-          <section className="flex flex-col gap-3 px-6 pt-4" data-testid="channel-queue-row">
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Queue · {queueGames.length}
-            </h2>
-            <div className="scrollbar-hide flex gap-3 overflow-x-auto">
-              {queueGames.map((game) => (
-                <button
-                  key={game.id}
-                  className="relative h-[84px] w-[150px] shrink-0 overflow-hidden rounded-lg bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => openDetails(game.id)}
-                  aria-label={game.name}
-                >
-                  {(game.heroUrl ?? game.coverUrl) ? (
-                    <img
-                      src={(game.heroUrl ?? game.coverUrl)!}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      draggable={false}
-                    />
-                  ) : (
-                    <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-muted-foreground">
-                      {game.name.slice(0, 2).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-5 text-left text-[9px] font-medium uppercase tracking-wider text-white">
-                    {game.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+        <TileRow
+          title="Queue"
+          count={queueGames.length}
+          games={queueGames}
+          onTileClick={openDetails}
+          testid="channel-queue-row"
+        />
 
         {/* Full grid with every filter/context-menu behavior */}
         <GameGrid

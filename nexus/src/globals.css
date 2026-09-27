@@ -542,9 +542,43 @@
     background: var(--game-accent, var(--primary));
 }
 
-/* Channel: grotesk display voice for headings inside the shell. */
-.experience-channel [data-testid="channel-selected-info"] h1 {
+/* Backdrop: game-detail takeover — taller hero, cinematic display title.
+   Heights are utility classes on the shared overlay, hence !important. */
+.experience-backdrop [data-testid="detail-overlay-hero"] {
+    height: 54% !important;
+}
+.experience-backdrop [data-testid="detail-overlay-title"] {
     font-family: var(--font-display);
+    font-size: 4rem;
+    line-height: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+
+/* Backdrop: view headings speak the display voice. */
+.experience-backdrop [data-testid="library-stats"] h2.text-2xl,
+.experience-backdrop [data-testid="achievements-view"] h2.text-2xl {
+    font-family: var(--font-display);
+    font-size: 2.75rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+
+/* Channel: grotesk display voice for headings inside the shell. */
+.experience-channel [data-testid="channel-selected-info"] h1,
+.experience-channel [data-testid="channel-stats-header"] h1,
+.experience-channel [data-testid="detail-overlay-title"],
+.experience-channel [data-testid="library-stats"] h2.text-2xl,
+.experience-channel [data-testid="achievements-view"] h2.text-2xl {
+    font-family: var(--font-display);
+}
+.experience-channel [data-testid="detail-overlay-title"] {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.experience-channel [data-testid="detail-overlay-hero"] {
+    height: 45% !important;
 }
 
 /* Titlebar drag regions */
