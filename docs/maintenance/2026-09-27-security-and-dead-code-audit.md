@@ -53,8 +53,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   list (setting the field replaces it); `BlockInsecurePrivateNetworkRequests` is needed for the `localhost` Twitch embeds (af7f343).
 - [x] **S13 auth-failure logs print raw provider body** — log status + error code only.
   `src-tauri/src/twitch/auth.rs:285`, `src-tauri/src/gdrive/auth.rs:210`
-- [~] **S14 Google OAuth has no `state` param** — WON'T FIX: PKCE binds the code to this flow's verifier, so an injected
-  code fails the exchange. Comes free if D7 merges the auth modules (Twitch sends `state`).
+- [x] **S14 Google OAuth has no `state` param** — fixed for free by D7 (shared `oauth::authorize` sends and checks `state`).
 - [x] **S15 `build.rs` forwards every `.env` key** — only forward `NEXUS_TWITCH_*` / `NEXUS_GOOGLE_*`; drop dead JSONBIN keys.
 - [ ] **S16 CSP** — drop `connect-src http://localhost:* http://127.0.0.1:*` if the main window never fetches the embed server.
   Deferred: low value, and must be tested against Vite HMR in `tauri dev` first.
@@ -90,8 +89,8 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   `assets/hardware/*.png`. (~260)
 - [x] **D6 `CommandError` boilerplate** — 448× `map_err(Database)` + 213× lock-poisoned `map_err`.
   `impl From<rusqlite::Error>` + `DbState::conn()` helper, use `?`. (~650)
-- [ ] **D7 duplicated OAuth plumbing** — `gdrive/{auth,tokens}.rs` vs `twitch/{auth,tokens}.rs` near-identical.
-  Token half done with S9 (`src/secrets.rs`); `auth.rs` (PKCE, callback server, error parsing) remains.
+- [x] **D7 duplicated OAuth plumbing** — `gdrive/{auth,tokens}.rs` vs `twitch/{auth,tokens}.rs` near-identical.
+  Token half done with S9 (`src/secrets.rs`); auth half in `src/oauth.rs` (1143 -> 787 lines).
   One `oauth` module parameterised by provider + key file. Do alongside S8/S9. (~300)
 - [~] **D8 `commands/tests.rs`** — audit was wrong: its CommandError serialization tests cover kinds `error.rs` doesn't.
   Only the dead `ping`/stub tests were removed (with D3).
@@ -127,6 +126,9 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - D3-D5: 29 IPC commands removed in total (the 10 audited + 19 whose only callers were dead frontend code);
   `open_twitch_login` kept as a Rust fn (embed sign-in), just unregistered. Also dropped orphans: `aggregate_for_year`,
   `KeyAvailability`, `UnlockedAchievement`, `CollectionWithCount`.
+- D7 found: `parse_token_error` checks `msg.contains("invalid")` case-sensitively, so Twitch's capitalised
+  "Invalid refresh token" is classed `Api`, not `Auth`. Kept as-is in the refactor; check whether a revoked
+  Twitch refresh token should force re-login (lowercase the msg before matching).
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

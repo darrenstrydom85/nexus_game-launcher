@@ -3,6 +3,7 @@ pub mod db;
 pub mod gdrive;
 pub mod metadata;
 pub mod models;
+mod oauth;
 mod secrets;
 pub mod sources;
 pub mod twitch;
