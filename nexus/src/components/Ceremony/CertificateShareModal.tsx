@@ -9,6 +9,7 @@ import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { CertificateCard } from "./CertificateCard";
 import type { GameCeremonyData, MasteryTierValue } from "@/lib/tauri";
+import { formatDuration } from "@/lib/time";
 
 // ── Plain-text formatter ────────────────────────────────────────────────────
 
@@ -19,14 +20,6 @@ const TIER_LABELS: Record<Exclude<MasteryTierValue, "none">, string> = {
   platinum: "Platinum",
   diamond: "Diamond",
 };
-
-function formatHours(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -55,7 +48,7 @@ export function formatCertificateText(data: GameCeremonyData): string {
   const lines: string[] = [];
   lines.push(`🎮 ${data.gameName} — ${statusLabel}`);
   lines.push(
-    `⏱️ ${formatHours(data.totalPlayTimeS)} across ${data.totalSessions} session${
+    `⏱️ ${formatDuration(data.totalPlayTimeS)} across ${data.totalSessions} session${
       data.totalSessions !== 1 ? "s" : ""
     }`,
   );

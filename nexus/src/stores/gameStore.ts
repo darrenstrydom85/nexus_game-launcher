@@ -1,19 +1,8 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { useSettingsStore } from "./settingsStore";
-
-function normalizeImageUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("asset:")) {
-    return url;
-  }
-  try {
-    return convertFileSrc(url);
-  } catch {
-    return url;
-  }
-}
+import { resolveUrl } from "@/lib/url";
 
 export type GameSource =
   | "steam"
@@ -174,10 +163,10 @@ export const useGameStore = create<GameStore>()(
           customCover: g.customCover ?? null,
           customHero: g.customHero ?? null,
           potentialExeNames: g.potentialExeNames ?? null,
-          coverUrl: normalizeImageUrl(g.customCover ?? g.coverUrl),
-          heroUrl: normalizeImageUrl(g.customHero ?? g.heroUrl),
-          logoUrl: normalizeImageUrl(g.logoUrl),
-          iconUrl: normalizeImageUrl(g.iconUrl),
+          coverUrl: resolveUrl(g.customCover ?? g.coverUrl),
+          heroUrl: resolveUrl(g.customHero ?? g.heroUrl),
+          logoUrl: resolveUrl(g.logoUrl),
+          iconUrl: resolveUrl(g.iconUrl),
           totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
           lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
           playCount: g.playCount ?? 0,

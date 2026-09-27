@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { NowPlaying, formatTimer } from "@/components/shared/NowPlaying";
+import { NowPlaying } from "@/components/shared/NowPlaying";
+import { formatRunningTimer as formatTimer } from "@/lib/utils";
 import { useGameStore, type ActiveSession } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
 

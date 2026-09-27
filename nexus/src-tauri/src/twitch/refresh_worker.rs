@@ -11,13 +11,14 @@
 //! and cancels it on `logout` or auth-class refresh failure.
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use tokio::sync::Notify;
 use tokio::time::sleep;
 
 use crate::commands::error::CommandError;
 use crate::twitch::token_manager::{TwitchTokenManager, REFRESH_THRESHOLD_SECS};
+use crate::utils::now_secs;
 
 /// Smallest sleep between iterations. Prevents a hot loop if the clock or expiry is nonsense.
 const MIN_SLEEP_SECS: u64 = 30;
@@ -86,9 +87,3 @@ pub async fn run(mgr: TwitchTokenManager, wake: Arc<Notify>) {
     }
 }
 
-fn now_secs() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}

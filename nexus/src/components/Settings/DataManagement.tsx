@@ -4,6 +4,7 @@ import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
+import { formatBytes } from "@/lib/utils";
 
 interface CacheStats {
   totalBytes: number;
@@ -24,14 +25,6 @@ interface ShortSessionsCount {
 interface BulkDeleteResult {
   sessionsRemoved: number;
   gamesAffected: number;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 export function DataManagement() {

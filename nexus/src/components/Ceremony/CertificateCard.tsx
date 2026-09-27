@@ -9,6 +9,7 @@
 import * as React from "react";
 import nexusLogo from "@/assets/nexus-onboarding-logo.png";
 import type { GameCeremonyData, MasteryTierValue } from "@/lib/tauri";
+import { formatDuration } from "@/lib/time";
 
 // ── Design tokens (hardcoded for offline rendering) ─────────────────────────
 
@@ -57,14 +58,6 @@ const FONTS = {
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatHours(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
 
 function formatDate(iso: string): string {
   if (!iso) return "";
@@ -464,7 +457,7 @@ export const CertificateCard = React.forwardRef<HTMLDivElement, CertificateCardP
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              {formatHours(data.totalPlayTimeS)}
+              {formatDuration(data.totalPlayTimeS)}
             </div>
           </div>
 
@@ -477,7 +470,7 @@ export const CertificateCard = React.forwardRef<HTMLDivElement, CertificateCardP
             />
             <StatTile
               label="Longest"
-              value={formatHours(data.longestSessionS)}
+              value={formatDuration(data.longestSessionS)}
               colors={colors}
             />
             {activeTier && (

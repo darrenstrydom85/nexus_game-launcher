@@ -17,7 +17,6 @@
 
 use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
-use std::time::SystemTime;
 
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
@@ -30,6 +29,7 @@ use crate::models::settings::keys;
 use crate::twitch::auth::{self, TwitchUserInfo};
 use crate::twitch::cache;
 use crate::twitch::tokens;
+use crate::utils::now_secs;
 
 /// Refresh tokens this many seconds before they hard-expire.
 pub const REFRESH_THRESHOLD_SECS: i64 = 300;
@@ -566,12 +566,6 @@ fn ensure_authenticated(snap: &TokenState) -> Result<(), CommandError> {
     Ok(())
 }
 
-fn now_secs() -> i64 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
 
 #[cfg(test)]
 mod tests {

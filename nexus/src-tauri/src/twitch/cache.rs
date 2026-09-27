@@ -4,6 +4,7 @@ use rusqlite::{params, OptionalExtension};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::commands::error::CommandError;
+use crate::utils::now_secs;
 
 /// One row from `twitch_followed_channels`. Does not include live status; merge with stream cache in command layer.
 #[derive(Debug, Clone)]
@@ -315,12 +316,6 @@ pub fn clear_twitch_cache(conn: &rusqlite::Connection) -> Result<(), CommandErro
 
 const CLIPS_TTL_SECS: i64 = 6 * 60 * 60; // 6 hours
 
-fn now_secs() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
 
 /// Try to read a non-stale clips payload (returns `None` when the row is missing or older
 /// than `CLIPS_TTL_SECS`). The payload is the raw JSON returned by `serde_json::to_string`

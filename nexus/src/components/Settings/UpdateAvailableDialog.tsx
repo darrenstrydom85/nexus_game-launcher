@@ -1,16 +1,11 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
+import { formatBytes } from "@/lib/utils";
 
 export interface UpdateAvailableDialogProps {
   open: boolean;
   onClose: () => void;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes <= 0) return "0 MB";
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(1)} MB`;
 }
 
 export function UpdateAvailableDialog({ open, onClose }: UpdateAvailableDialogProps) {

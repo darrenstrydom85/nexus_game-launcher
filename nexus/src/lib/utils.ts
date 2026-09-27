@@ -17,8 +17,9 @@ export const DEFAULT_AVATAR =
  * Always shows hours and minutes when there is at least one hour; under an hour shows minutes only.
  */
 export function formatPlayTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds || 0;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }
@@ -75,3 +76,11 @@ export function formatViewerCount(n: number): string {
   return String(n);
 }
 
+/** "0 B", "512 B", "1.5 KB", "12.3 MB", "1.1 GB". */
+export function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, i);
+  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}

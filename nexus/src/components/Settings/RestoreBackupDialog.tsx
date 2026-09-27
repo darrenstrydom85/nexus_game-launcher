@@ -3,17 +3,12 @@ import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToastStore } from "@/stores/toastStore";
 import { listBackups, restoreBackup, type BackupEntry } from "@/lib/tauri";
+import { formatBytes } from "@/lib/utils";
 
 interface RestoreBackupDialogProps {
   open: boolean;
   onClose: () => void;
   onRestoreComplete: () => void;
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(iso: string): string {
@@ -144,7 +139,7 @@ export function RestoreBackupDialog({
                     {formatDate(entry.createdAt)}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {formatSize(entry.size)} · Schema v{entry.schemaVersion}
+                    {formatBytes(entry.size)} · Schema v{entry.schemaVersion}
                   </span>
                 </div>
                 {confirmId === entry.id ? (

@@ -12,17 +12,11 @@
 
 use rusqlite::{params, Connection};
 use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::commands::error::CommandError;
 use crate::commands::utils::{date_only_to_end_epoch_secs, date_only_to_start_epoch_secs};
+use crate::utils::now_secs;
 
-fn now_secs() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
 
 /// Insert a new watch session and return its rowid. `started_at` is recorded as the current
 /// unix timestamp regardless of caller-provided wallclock to avoid clock-skew confusion.

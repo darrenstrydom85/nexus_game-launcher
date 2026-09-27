@@ -226,7 +226,7 @@ pub async fn run_auth_flow(
     Ok(AuthFlowResult {
         access_token,
         refresh_token,
-        expires_at: oauth::now_secs() + expires_in,
+        expires_at: crate::utils::now_secs() + expires_in,
         user,
     })
 }

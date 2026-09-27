@@ -2,20 +2,10 @@ import { formatPlayTime } from "@/lib/utils";
 import { HardDriveDownload } from "lucide-react";
 import { useGameResolver } from "@/hooks/useGameResolver";
 import type { WrappedReport } from "@/types/wrapped";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { resolveUrl } from "@/lib/url";
 
 interface TopGameCardProps {
   report: WrappedReport;
-}
-
-function resolveUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  try {
-    return convertFileSrc(url);
-  } catch {
-    return url;
-  }
 }
 
 export function TopGameCard({ report }: TopGameCardProps) {

@@ -100,7 +100,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   `hiddenSmartCollections`, several setters), filterStore (`tagFilterMode` never set; `minRating`, `maxPlayTimeH`,
   `collectionId` only read by dead FilterBar), `achievementStore.newUnlockCount`, `toastStore.updateToast`,
   `masteryStore.getByGameId`. (~110)
-- [ ] **D11 duplicate helpers** — hours formatter ×7, relative-time ×4, bytes ×3, URL normaliser ×4
+- [x] **D11 duplicate helpers** — hours formatter ×7, relative-time ×4, bytes ×3, URL normaliser ×4
   (use `lib/url.resolveUrl`), Rust `now_secs()` ×5, date helpers in `watch_history.rs` / `wrapped.rs`. (~150)
 - [ ] **D12 clipboard via Rust** — `navigator.clipboard.write(ClipboardItem)` works in WebView2. Delete
   `commands/clipboard.rs`, `arboard`, `png`. (~57, −2 deps)
@@ -129,6 +129,8 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - D7 found: `parse_token_error` checks `msg.contains("invalid")` case-sensitively, so Twitch's capitalised
   "Invalid refresh token" is classed `Api`, not `Auth`. Kept as-is in the refactor; check whether a revoked
   Twitch refresh token should force re-login (lowercase the msg before matching).
+- D11: merged only byte-identical output. The 4 relative-time helpers were left alone: they print different
+  text ("5 min ago" / "5m ago" / "Just now" / months / locale date after 7d), so merging changes the UI.
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

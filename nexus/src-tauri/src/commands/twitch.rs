@@ -317,12 +317,6 @@ fn cached_at_now() -> i64 {
     now_secs()
 }
 
-fn now_secs() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
 
 fn fallback_trending_cache(
     cached: Vec<cache::CachedTrendingEntry>,
@@ -768,6 +762,7 @@ pub fn build_token_manager(app: AppHandle) -> Option<Arc<TwitchTokenManager>> {
 // ---------------------------------------------------------------------------
 
 use crate::twitch::watch_history;
+use crate::utils::now_secs;
 
 /// Aggregate Twitch watch history for an arbitrary inclusive date range
 /// (`YYYY-MM-DD` strings, UTC).

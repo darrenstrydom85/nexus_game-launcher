@@ -8,6 +8,7 @@
 import * as React from "react";
 import nexusLogo from "@/assets/nexus-onboarding-logo.png";
 import type { WrappedReport } from "@/types/wrapped";
+import { formatDuration } from "@/lib/time";
 
 // ── Design tokens (hardcoded for offline rendering) ─────────────────────────
 const BASE_COLORS = {
@@ -40,14 +41,6 @@ const FONTS = {
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatHours(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
 
 function formatDate(iso: string): string {
   try {
@@ -196,7 +189,7 @@ function GameRow({ rank, name, coverUrl: _coverUrl, playTimeS, colors }: GameRow
             marginTop: 4,
           }}
         >
-          {formatHours(playTimeS)}
+          {formatDuration(playTimeS)}
         </div>
       </div>
     </div>
@@ -458,7 +451,7 @@ export const WrappedShareCard = React.forwardRef<
             <HighlightTile
               emoji="🔥"
               label="Epic Binge"
-              value={`${formatHours(report.longestSession.durationS)} — ${report.longestSession.gameName}`}
+              value={`${formatDuration(report.longestSession.durationS)} — ${report.longestSession.gameName}`}
               colors={colors}
             />
           )}
@@ -487,7 +480,7 @@ export const WrappedShareCard = React.forwardRef<
               emoji="📅"
               label="Busiest Day"
               value={formatDate(report.busiestDay)}
-              sub={`${formatHours(report.busiestDayPlayTimeS)} played`}
+              sub={`${formatDuration(report.busiestDayPlayTimeS)} played`}
               colors={colors}
             />
           )}

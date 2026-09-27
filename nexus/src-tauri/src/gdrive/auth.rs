@@ -122,7 +122,7 @@ pub async fn run_auth_flow(
 
     let email = get_google_user_email(&access_token).await?;
     eprintln!("[Google-auth] auth complete for user: {email}");
-    Ok((access_token, refresh_token, oauth::now_secs() + expires_in, email))
+    Ok((access_token, refresh_token, crate::utils::now_secs() + expires_in, email))
 }
 
 #[cfg(test)]
