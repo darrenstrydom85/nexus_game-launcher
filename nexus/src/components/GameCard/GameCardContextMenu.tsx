@@ -127,15 +127,15 @@ export function GameCardContextMenu({
   }, [onClose]);
 
   const menuItemClass = cn(
-    "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
-    "text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer",
+    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] uppercase tracking-[0.08em]",
+    "cursor-pointer text-muted-foreground hover:bg-accent hover:text-foreground",
   );
 
   return (
     <div
       ref={menuRef}
       data-testid="game-context-menu"
-      className="fixed z-50 min-w-[200px] rounded-md border border-border bg-popover p-1 shadow-lg"
+      className="backdrop-menu fixed z-50 min-w-[210px] rounded-xl border p-1.5"
       style={{ left: adjustedPos.x, top: adjustedPos.y }}
       role="menu"
     >
@@ -184,7 +184,7 @@ export function GameCardContextMenu({
           <div
             data-testid="ctx-status-submenu"
             className={cn(
-              "absolute top-0 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              "absolute top-0 min-w-[140px] backdrop-menu rounded-xl border p-1.5",
               flipSub ? "right-full mr-1" : "left-full ml-1",
             )}
             role="menu"
@@ -226,7 +226,7 @@ export function GameCardContextMenu({
           <div
             data-testid="ctx-rating-submenu"
             className={cn(
-              "absolute top-0 min-w-[120px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              "absolute top-0 min-w-[120px] backdrop-menu rounded-xl border p-1.5",
               flipSub ? "right-full mr-1" : "left-full ml-1",
             )}
             role="menu"
@@ -280,7 +280,7 @@ export function GameCardContextMenu({
           <div
             data-testid="ctx-collection-submenu"
             className={cn(
-              "absolute top-0 min-w-[140px] rounded-md border border-border bg-popover p-1 shadow-lg",
+              "absolute top-0 min-w-[140px] backdrop-menu rounded-xl border p-1.5",
               flipSub ? "right-full mr-1" : "left-full ml-1",
             )}
             role="menu"
@@ -349,7 +349,7 @@ export function GameCardContextMenu({
             <div
               data-testid="ctx-tags-submenu"
               className={cn(
-                "absolute top-0 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-lg",
+                "absolute top-0 min-w-[160px] backdrop-menu rounded-xl border p-1.5",
                 flipSub ? "right-full mr-1" : "left-full ml-1",
               )}
               role="menu"
