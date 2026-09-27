@@ -282,10 +282,7 @@ async fn subscribe_followed(
         let db = app
             .try_state::<DbState>()
             .ok_or_else(|| CommandError::Database("DbState not registered".into()))?;
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         cache::get_cached_followed_channels(&conn)?
     };
 

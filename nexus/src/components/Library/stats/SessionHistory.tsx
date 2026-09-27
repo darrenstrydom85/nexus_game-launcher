@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatPlayTime } from "@/lib/utils";
 import { HardDriveDownload } from "lucide-react";
 import { useGameResolver } from "@/hooks/useGameResolver";
 import { InlineNoteEdit } from "@/components/Sessions/InlineNoteEdit";
@@ -10,13 +10,6 @@ const PAGE_SIZE = 20;
 interface SessionHistoryProps {
   sessions: SessionRecord[];
   onNoteUpdated?: (sessionId: string, note: string | null) => void;
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
 }
 
 function formatDate(iso: string): string {
@@ -85,7 +78,7 @@ export function SessionHistory({ sessions, onNoteUpdated }: SessionHistoryProps)
                     {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
                   </span>
                   <span className="text-right text-xs tabular-nums text-muted-foreground">
-                    {formatDuration(s.durationS)}
+                    {formatPlayTime(s.durationS)}
                   </span>
                 </div>
                 <div className="mt-1">

@@ -13,18 +13,14 @@ pub struct DbStatus {
 
 #[tauri::command]
 pub fn get_db_status(db: State<'_, DbState>) -> Result<DbStatus, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let version: u32 = conn
         .query_row(
             "SELECT COALESCE(MAX(version), 0) FROM schema_version",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(DbStatus {
         connected: true,
@@ -33,14 +29,21 @@ pub fn get_db_status(db: State<'_, DbState>) -> Result<DbStatus, CommandError> {
     })
 }
 
+/// Open the folder holding games.db in Explorer.
+#[tauri::command]
+pub fn open_data_folder(db: State<'_, DbState>) -> Result<(), CommandError> {
+    let dir = db
+        .db_path
+        .parent()
+        .ok_or_else(|| CommandError::NotFound("data folder".into()))?;
+    super::utils::open_dir(dir)
+}
+
 /// Wipes all user data from every table. The schema itself (including
 /// schema_version) is preserved so migrations don't re-run on next launch.
 #[tauri::command]
 pub fn reset_all(db: State<'_, DbState>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute_batch(
         "PRAGMA foreign_keys = OFF;
@@ -53,8 +56,7 @@ pub fn reset_all(db: State<'_, DbState>) -> Result<(), CommandError> {
          DELETE FROM watched_folders;
          DELETE FROM settings;
          PRAGMA foreign_keys = ON;",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -64,16 +66,12 @@ pub fn reset_all(db: State<'_, DbState>) -> Result<(), CommandError> {
 /// return to zero.
 #[tauri::command]
 pub fn clear_play_history(db: State<'_, DbState>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute_batch(
         "DELETE FROM play_sessions;
          UPDATE games SET total_play_time = 0, play_count = 0, last_played = NULL;",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -82,10 +80,7 @@ pub fn clear_play_history(db: State<'_, DbState>) -> Result<(), CommandError> {
 /// to re-enter their SteamGridDB / IGDB credentials after a reset.
 #[tauri::command]
 pub fn reset_keep_keys(db: State<'_, DbState>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute_batch(
         "PRAGMA foreign_keys = OFF;
@@ -99,8 +94,7 @@ pub fn reset_keep_keys(db: State<'_, DbState>) -> Result<(), CommandError> {
          DELETE FROM settings
            WHERE key NOT IN ('steamgrid_api_key', 'igdb_client_id', 'igdb_client_secret');
          PRAGMA foreign_keys = ON;",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -114,10 +108,7 @@ pub fn reset_library_keep_stats(db: State<'_, DbState>) -> Result<(), CommandErr
 }
 
 pub(crate) fn reset_library_keep_stats_impl(db: &DbState) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute_batch(
         "PRAGMA foreign_keys = OFF;
@@ -130,8 +121,7 @@ pub(crate) fn reset_library_keep_stats_impl(db: &DbState) -> Result<(), CommandE
          DELETE FROM settings
            WHERE key NOT IN ('steamgrid_api_key', 'igdb_client_id', 'igdb_client_secret');
          PRAGMA foreign_keys = ON;",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -152,14 +142,10 @@ pub fn relink_play_sessions(db: State<'_, DbState>) -> Result<RelinkResult, Comm
 }
 
 pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     // Re-point sessions whose game_id no longer exists in the games table
     // but whose (game_source, game_source_id) matches a newly imported game.
@@ -181,8 +167,7 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
                      AND g.source_id = play_sessions.game_source_id
                )",
             [],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+        )? as i64;
 
     // Fallback: match by (source, name) for standalone/manual games that lack a source_id.
     let relinked_by_name = tx
@@ -204,8 +189,7 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
                      AND g.name = play_sessions.game_name
                )",
             [],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))? as i64;
+        )? as i64;
 
     let relinked = relinked_by_source_id + relinked_by_name;
 
@@ -216,8 +200,7 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
              WHERE NOT EXISTS (SELECT 1 FROM games WHERE id = play_sessions.game_id)",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // Recompute denormalized stats on all games from their linked sessions.
     tx.execute_batch(
@@ -234,124 +217,11 @@ pub(crate) fn relink_play_sessions_impl(db: &DbState) -> Result<RelinkResult, Co
                 SELECT MAX(ps.ended_at) FROM play_sessions ps
                 WHERE ps.game_id = games.id AND ps.ended_at IS NOT NULL
             );",
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(RelinkResult { relinked, orphaned })
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WrappedDiagnostics {
-    pub total_sessions: i64,
-    pub sessions_with_valid_game_id: i64,
-    pub sessions_with_orphaned_game_id: i64,
-    pub sessions_with_source_metadata: i64,
-    pub sessions_resolvable_via_source: i64,
-    pub sample_orphaned: Vec<OrphanedSessionInfo>,
-    pub sample_valid: Vec<ValidSessionInfo>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OrphanedSessionInfo {
-    pub session_id: String,
-    pub game_id: String,
-    pub game_source: Option<String>,
-    pub game_source_id: Option<String>,
-    pub game_name: Option<String>,
-    pub duration_s: Option<i64>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ValidSessionInfo {
-    pub session_id: String,
-    pub game_id: String,
-    pub game_name: String,
-    pub game_genres: Option<String>,
-    pub duration_s: Option<i64>,
-}
-
-#[tauri::command]
-pub fn debug_wrapped_sessions(db: State<'_, DbState>) -> Result<WrappedDiagnostics, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let total_sessions: i64 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30",
-            [],
-            |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let sessions_with_valid_game_id: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id)",
-        [], |row| row.get(0),
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let sessions_with_orphaned_game_id: i64 = total_sessions - sessions_with_valid_game_id;
-
-    let sessions_with_source_metadata: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30 AND game_source IS NOT NULL AND game_source_id IS NOT NULL",
-        [], |row| row.get(0),
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let sessions_resolvable_via_source: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id) AND EXISTS (SELECT 1 FROM games g WHERE g.source = ps.game_source AND g.source_id = ps.game_source_id)",
-        [], |row| row.get(0),
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let mut stmt = conn.prepare(
-        "SELECT ps.id, ps.game_id, ps.game_source, ps.game_source_id, ps.game_name, ps.duration_s FROM play_sessions ps WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.id = ps.game_id) LIMIT 5",
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
-    let sample_orphaned: Vec<OrphanedSessionInfo> = stmt
-        .query_map([], |row| {
-            Ok(OrphanedSessionInfo {
-                session_id: row.get(0)?,
-                game_id: row.get(1)?,
-                game_source: row.get(2)?,
-                game_source_id: row.get(3)?,
-                game_name: row.get(4)?,
-                duration_s: row.get(5)?,
-            })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let mut stmt2 = conn.prepare(
-        "SELECT ps.id, ps.game_id, g.name, g.genres, ps.duration_s FROM play_sessions ps JOIN games g ON g.id = ps.game_id WHERE ps.ended_at IS NOT NULL AND ps.duration_s >= 30 ORDER BY ps.duration_s DESC LIMIT 5",
-    ).map_err(|e| CommandError::Database(e.to_string()))?;
-    let sample_valid: Vec<ValidSessionInfo> = stmt2
-        .query_map([], |row| {
-            Ok(ValidSessionInfo {
-                session_id: row.get(0)?,
-                game_id: row.get(1)?,
-                game_name: row.get(2)?,
-                game_genres: row.get(3)?,
-                duration_s: row.get(4)?,
-            })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(WrappedDiagnostics {
-        total_sessions,
-        sessions_with_valid_game_id,
-        sessions_with_orphaned_game_id,
-        sessions_with_source_metadata,
-        sessions_resolvable_via_source,
-        sample_orphaned,
-        sample_valid,
-    })
 }
 
 #[cfg(test)]

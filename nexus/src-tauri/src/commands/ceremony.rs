@@ -25,10 +25,7 @@ pub fn get_game_ceremony_data(
     db: State<'_, DbState>,
     game_id: String,
 ) -> Result<GameCeremonyData, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     get_game_ceremony_data_inner(&conn, &game_id)
 }
@@ -67,8 +64,7 @@ pub(crate) fn get_game_ceremony_data_inner(
                 ))
             },
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     let (
         name,
@@ -115,8 +111,7 @@ pub(crate) fn get_game_ceremony_data_inner(
                 ))
             },
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     let (
         total_play_time_s,
@@ -224,13 +219,10 @@ fn query_months(
          GROUP BY mo ORDER BY mo"
     );
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
     let rows: Vec<(String, i64)> = stmt
-        .query_map(params![game_id], |r| Ok((r.get(0)?, r.get(1)?)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<_, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map(params![game_id], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<Result<_, _>>()?;
 
     let (start_year, start_month) = parse_year_month(first_iso).unwrap_or((1970, 1));
     let (end_year, end_month) = parse_year_month(last_iso).unwrap_or((start_year, start_month));
@@ -274,16 +266,14 @@ fn query_day_of_week(conn: &rusqlite::Connection, game_id: &str) -> Result<Vec<i
          GROUP BY dow"
     );
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
     let mut buckets = vec![0i64; 7];
     let rows = stmt
         .query_map(params![game_id], |r| {
             Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     for row in rows {
-        let (dow, t) = row.map_err(|e| CommandError::Database(e.to_string()))?;
+        let (dow, t) = row?;
         if (0..7).contains(&dow) {
             buckets[dow as usize] = t;
         }
@@ -299,16 +289,14 @@ fn query_hour_of_day(conn: &rusqlite::Connection, game_id: &str) -> Result<Vec<i
          GROUP BY h"
     );
     let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare(&sql)?;
     let mut buckets = vec![0i64; 24];
     let rows = stmt
         .query_map(params![game_id], |r| {
             Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     for row in rows {
-        let (h, t) = row.map_err(|e| CommandError::Database(e.to_string()))?;
+        let (h, t) = row?;
         if (0..24).contains(&h) {
             buckets[h as usize] = t;
         }

@@ -66,19 +66,6 @@ fn check_network_available() -> Result<(), CommandError> {
     Ok(())
 }
 
-/// Check if Twitch API is reachable (for offline fallback). Uses TCP to api.twitch.tv:443.
-fn check_twitch_api_available() -> bool {
-    use std::net::ToSocketAddrs;
-    let addr = match ("api.twitch.tv", 443).to_socket_addrs() {
-        Ok(mut a) => match a.next() {
-            Some(addr) => addr,
-            None => return false,
-        },
-        Err(_) => return false,
-    };
-    std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(3)).is_ok()
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TwitchAuthStatus {
@@ -317,12 +304,6 @@ fn cached_at_now() -> i64 {
     now_secs()
 }
 
-fn now_secs() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
-}
 
 fn fallback_trending_cache(
     cached: Vec<cache::CachedTrendingEntry>,
@@ -402,16 +383,13 @@ pub async fn get_twitch_followed_channels(
     let (mut user_id, mut access_token) = mgr.get_valid_access_token().await?;
 
     let (cached_channels, cached_streams) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let ch = cache::get_cached_followed_channels(&conn)?;
         let st = cache::get_cached_live_streams(&conn)?;
         (ch, st)
     };
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let channels =
@@ -430,10 +408,7 @@ pub async fn get_twitch_followed_channels(
             };
         if !channels.is_empty() {
             {
-                let conn = db
-                    .conn
-                    .lock()
-                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let conn = db.conn()?;
                 cache::cache_followed_channels(&conn, &channels)?;
             }
             let user_ids: Vec<String> = channels.iter().map(|c| c.channel_id.clone()).collect();
@@ -441,18 +416,12 @@ pub async fn get_twitch_followed_channels(
                 .await
                 .unwrap_or_default();
             {
-                let conn = db
-                    .conn
-                    .lock()
-                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let conn = db.conn()?;
                 cache::cache_live_streams(&conn, &streams)?;
             }
             // Re-read channels from DB so is_favorite is preserved (Story 19.7)
             let channels_with_favorites = {
-                let conn = db
-                    .conn
-                    .lock()
-                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let conn = db.conn()?;
                 cache::get_cached_followed_channels(&conn)?
             };
             let merged = merge_channels_streams(channels_with_favorites, streams.clone());
@@ -482,96 +451,6 @@ pub async fn get_twitch_followed_channels(
     })
 }
 
-/// Get live streams for followed channels. Online: fetch and cache. Offline: return cache with stale: true.
-#[tauri::command]
-pub async fn get_twitch_live_streams(
-    app: AppHandle,
-    db: State<'_, DbState>,
-) -> Result<TwitchResponse<Vec<TwitchStream>>, CommandError> {
-    let mgr = manager(&app)?;
-    let (mut user_id, mut access_token) = mgr.get_valid_access_token().await?;
-
-    let (cached, cached_at_secs) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let c = cache::get_cached_live_streams(&conn)?;
-        let at = c.first().map(|s| s.cached_at);
-        (c, at)
-    };
-
-    if check_twitch_api_available() {
-        let client_id = twitch_client_id()?;
-        let http = reqwest::Client::new();
-        let channels =
-            match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
-                Ok(ch) => Some(ch),
-                Err(e) => match try_recover_auth_error(e, &mgr).await {
-                    Ok((new_uid, new_tok)) => {
-                        user_id = new_uid;
-                        access_token = new_tok;
-                        api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
-                            .await
-                            .ok()
-                    }
-                    Err(_) => None,
-                },
-            };
-        if let Some(chs) = channels {
-            let user_ids: Vec<String> = chs.iter().map(|c| c.channel_id.clone()).collect();
-            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids)
-                .await
-                .ok();
-            if let Some(streams) = streams {
-                {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-                    cache::cache_live_streams(&conn, &streams)?;
-                }
-                let out: Vec<TwitchStream> = streams
-                    .into_iter()
-                    .map(|s| TwitchStream {
-                        title: s.title,
-                        game_name: s.game_name,
-                        game_id: s.game_id,
-                        viewer_count: s.viewer_count,
-                        thumbnail_url: s.thumbnail_url,
-                        started_at: s.started_at,
-                    })
-                    .collect();
-                let _ = app.emit(
-                    "twitch-data-updated",
-                    serde_json::json!({ "channelCount": chs.len(), "liveCount": out.len(), "stale": false }),
-                );
-                return Ok(TwitchResponse {
-                    data: out,
-                    stale: false,
-                    cached_at: Some(cached_at_now()),
-                });
-            }
-        }
-    }
-
-    Ok(TwitchResponse {
-        data: cached
-            .into_iter()
-            .map(|s| TwitchStream {
-                title: s.title,
-                game_name: s.game_name,
-                game_id: s.game_id,
-                viewer_count: s.viewer_count,
-                thumbnail_url: s.thumbnail_url,
-                started_at: s.started_at,
-            })
-            .collect(),
-        stale: true,
-        cached_at: cached_at_secs,
-    })
-}
-
 /// Get top streams for a game/category by name. Resolves game name via Twitch API (or cache),
 /// then fetches streams.
 #[tauri::command]
@@ -595,16 +474,13 @@ pub async fn get_twitch_streams_by_game(
     let (_, mut access_token) = mgr.get_valid_access_token().await?;
 
     let (cached_mapping, cached_at_secs) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let m = cache::get_cached_game_mapping(&conn, game_name.trim())?;
         let at = m.as_ref().map(|x| x.cached_at);
         (m, at)
     };
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let game_id_opt = match &cached_mapping {
@@ -630,10 +506,7 @@ pub async fn get_twitch_streams_by_game(
                 .await
             {
                 Ok((streams, twitch_game_name)) => {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                    let conn = db.conn()?;
                     cache::cache_game_mapping(&conn, game_name.trim(), &twitch_id, &twitch_name)?;
                     drop(conn);
                     let out: Vec<TwitchStreamByGame> = streams
@@ -729,10 +602,7 @@ pub fn set_twitch_favorite(
     channel_id: String,
     is_favorite: bool,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     cache::set_channel_favorite(&conn, &channel_id, is_favorite)?;
     Ok(())
 }
@@ -747,15 +617,12 @@ pub async fn get_twitch_trending_library_games(
     let (_, mut access_token) = mgr.get_valid_access_token().await?;
 
     let cached = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         cache::get_cached_trending_library(&conn)?
     };
 
     // When online and cache is still valid (15 min TTL), return cache to avoid unnecessary API calls (rate limits).
-    if !cached.is_empty() && check_twitch_api_available() {
+    if !cached.is_empty() && crate::utils::connectivity::check_online() {
         let cached_at_secs = cached.first().map(|e| e.cached_at);
         let data = cached
             .iter()
@@ -775,7 +642,7 @@ pub async fn get_twitch_trending_library_games(
         });
     }
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let top_games = match api::fetch_top_games(&http, client_id, &access_token).await {
@@ -793,10 +660,7 @@ pub async fn get_twitch_trending_library_games(
         };
 
         let library = {
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             trending::load_library_games(&conn)?
         };
 
@@ -810,10 +674,7 @@ pub async fn get_twitch_trending_library_games(
         .await;
 
         {
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             cache::cache_trending_library(&conn, &entries)?;
         }
 
@@ -850,10 +711,7 @@ pub async fn twitch_auth_logout(app: AppHandle) -> Result<(), CommandError> {
 /// Clear Twitch cached data only (no disconnect).
 #[tauri::command]
 pub fn clear_twitch_cache(db: State<'_, DbState>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     cache::clear_twitch_cache(&conn)?;
     Ok(())
 }
@@ -891,74 +749,7 @@ pub fn build_token_manager(app: AppHandle) -> Option<Arc<TwitchTokenManager>> {
 // ---------------------------------------------------------------------------
 
 use crate::twitch::watch_history;
-
-/// Begin a watch session. Returns the new session id; pass it back to
-/// [`twitch_watch_session_end`] when the embed closes.
-#[tauri::command]
-pub fn twitch_watch_session_start(
-    db: State<'_, DbState>,
-    channel_login: String,
-    channel_display_name: Option<String>,
-    twitch_game_id: Option<String>,
-    twitch_game_name: Option<String>,
-    nexus_game_id: Option<String>,
-) -> Result<i64, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::start_session(
-        &conn,
-        &channel_login,
-        channel_display_name.as_deref(),
-        twitch_game_id.as_deref(),
-        twitch_game_name.as_deref(),
-        nexus_game_id.as_deref(),
-    )
-}
-
-/// End a watch session. `duration_secs` is the *effective* watch time tracked by the
-/// frontend (visibility-aware); `watch_history::end_session` clamps it to a 24h ceiling.
-#[tauri::command]
-pub fn twitch_watch_session_end(
-    db: State<'_, DbState>,
-    session_id: i64,
-    duration_secs: i64,
-) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::end_session(&conn, session_id, duration_secs)
-}
-
-/// Aggregate the last `period_days` of watch history for the Stats tile.
-#[tauri::command]
-pub fn get_twitch_watch_stats(
-    db: State<'_, DbState>,
-    period_days: i64,
-    top_n: Option<usize>,
-) -> Result<watch_history::WatchAggregate, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::aggregate_for_recent_days(&conn, period_days, top_n.unwrap_or(3))
-}
-
-/// Aggregate a calendar year (UTC) of watch history for Wrapped.
-#[tauri::command]
-pub fn get_twitch_watch_year(
-    db: State<'_, DbState>,
-    year: i32,
-    top_n: Option<usize>,
-) -> Result<watch_history::WatchAggregate, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::aggregate_for_year(&conn, year, top_n.unwrap_or(3))
-}
+use crate::utils::now_secs;
 
 /// Aggregate Twitch watch history for an arbitrary inclusive date range
 /// (`YYYY-MM-DD` strings, UTC).
@@ -974,10 +765,7 @@ pub fn get_twitch_watch_for_range(
     end_date: String,
     top_n: Option<usize>,
 ) -> Result<watch_history::WatchAggregate, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     watch_history::aggregate_for_iso_dates(&conn, &start_date, &end_date, top_n.unwrap_or(3))
 }
 
@@ -1416,18 +1204,6 @@ fn end_watch_session_for_label<R: tauri::Runtime>(app: &tauri::AppHandle<R>, lab
 /// replaces the default list — we have to opt back in to keep them.
 pub const NEXUS_WEBVIEW_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,BlockInsecurePrivateNetworkRequests --autoplay-policy=no-user-gesture-required";
 
-/// Return the base URL of the local Twitch embed server (e.g.
-/// `http://localhost:53127`). Frontend appends `/player?channel=...` or
-/// `/chat?channel=...` to construct iframe `src` URLs.
-///
-/// Returns an empty string if the server failed to start (the frontend then
-/// falls back to the direct twitch.tv embed URL — which works in `tauri dev`
-/// but not in packaged builds).
-#[tauri::command]
-pub fn get_twitch_embed_base_url(state: State<'_, TwitchEmbedBaseUrl>) -> String {
-    state.0.clone()
-}
-
 /// Stable label for the in-app Twitch login helper window.
 const TWITCH_LOGIN_LABEL: &str = "twitch-login";
 
@@ -1528,10 +1304,7 @@ pub async fn get_twitch_clips_for_game(
 
     // Resolve Twitch game id (cache first, network second).
     let cached_mapping = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         cache::get_cached_game_mapping(&conn, game_name.trim())?
     };
 
@@ -1562,10 +1335,7 @@ pub async fn get_twitch_clips_for_game(
                 };
             match resolved {
                 Some((id, name)) => {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                    let conn = db.conn()?;
                     cache::cache_game_mapping(&conn, game_name.trim(), &id, &name)?;
                     (id, name)
                 }
@@ -1584,10 +1354,7 @@ pub async fn get_twitch_clips_for_game(
 
     // Try fresh cache.
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         if let Some((payload, fetched_at)) =
             cache::get_cached_clips_payload(&conn, &twitch_game_id, CLIPS_PERIOD_DAYS)?
         {
@@ -1633,10 +1400,7 @@ pub async fn get_twitch_clips_for_game(
             }
             Err(_) => {
                 // Fall back to stale cache if any exists.
-                let conn = db
-                    .conn
-                    .lock()
-                    .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                let conn = db.conn()?;
                 if let Some((payload, fetched_at)) =
                     cache::get_cached_clips_payload(&conn, &twitch_game_id, CLIPS_PERIOD_DAYS)?
                 {
@@ -1657,10 +1421,7 @@ pub async fn get_twitch_clips_for_game(
 
     if !clips.is_empty() {
         if let Ok(payload) = serde_json::to_string(&clips) {
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = db.conn()?;
             let _ = cache::store_clips_payload(&conn, &twitch_game_id, CLIPS_PERIOD_DAYS, &payload);
         }
     }

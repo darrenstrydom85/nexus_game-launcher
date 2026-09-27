@@ -39,24 +39,6 @@ pub struct AchievementDefinition {
 
 // ── Unlocked record (from DB) ──────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UnlockedAchievement {
-    pub id: String,
-    pub unlocked_at: String,
-    pub context_json: Option<String>,
-}
-
-impl UnlockedAchievement {
-    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(UnlockedAchievement {
-            id: row.get("id")?,
-            unlocked_at: row.get("unlocked_at")?,
-            context_json: row.get("context_json")?,
-        })
-    }
-}
-
 // ── Merged view for the frontend ───────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

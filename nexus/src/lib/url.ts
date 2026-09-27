@@ -7,7 +7,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
  */
 export function resolveUrl(url: string | null): string | null {
   if (!url) return null;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
+  if (/^(https?:\/\/|data:|asset:)/.test(url)) return url;
   try {
     return convertFileSrc(url);
   } catch {

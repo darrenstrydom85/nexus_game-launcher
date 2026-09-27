@@ -2,24 +2,8 @@ import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Play, X } from "lucide-react";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { resolveUrl } from "@/lib/url";
 import type { PlayQueueEntry } from "@/lib/tauri";
-
-function normalizeUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("data:") ||
-    url.startsWith("asset:")
-  )
-    return url;
-  try {
-    return convertFileSrc(url);
-  } catch {
-    return url;
-  }
-}
 
 interface PlayQueueItemProps {
   entry: PlayQueueEntry;
@@ -50,7 +34,7 @@ export function PlayQueueItem({
     transition,
   };
 
-  const coverSrc = normalizeUrl(entry.customCover ?? entry.coverUrl);
+  const coverSrc = resolveUrl(entry.customCover ?? entry.coverUrl);
 
   return (
     <div

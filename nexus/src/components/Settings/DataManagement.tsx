@@ -2,9 +2,9 @@ import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
+import { formatBytes } from "@/lib/utils";
 
 interface CacheStats {
   totalBytes: number;
@@ -25,14 +25,6 @@ interface ShortSessionsCount {
 interface BulkDeleteResult {
   sessionsRemoved: number;
   gamesAffected: number;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 export function DataManagement() {
@@ -176,7 +168,7 @@ export function DataManagement() {
   const handleOpenDbFolder = React.useCallback(async () => {
     if (dbPath && dbPath !== "..." && dbPath !== "Unknown") {
       try {
-        await openPath(dbPath);
+        await invoke("open_data_folder");
       } catch {
         // best-effort
       }

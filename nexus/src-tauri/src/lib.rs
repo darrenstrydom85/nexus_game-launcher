@@ -1,9 +1,10 @@
 mod commands;
 pub mod db;
-pub mod dedup;
 pub mod gdrive;
 pub mod metadata;
 pub mod models;
+mod oauth;
+mod secrets;
 pub mod sources;
 pub mod twitch;
 mod utils;
@@ -34,33 +35,29 @@ pub static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
 
 use commands::{
     achievements::{
-        evaluate_achievements, get_achievement_definitions, get_achievement_status,
-        get_unlocked_achievements,
-    },
+        evaluate_achievements, get_achievement_status,
+        },
     analytics::{get_per_game_session_stats, get_session_distribution},
     backup::{
-        gdrive_auth_logout, gdrive_auth_start, gdrive_auth_status, get_backup_status, list_backups,
+        gdrive_auth_logout, gdrive_auth_start, get_backup_status, list_backups,
         restore_backup, run_backup, set_backup_frequency, set_backup_retention,
     },
     ceremony::get_game_ceremony_data,
-    clipboard::write_image_to_clipboard,
     collections::{
         add_to_collection, create_collection, delete_collection, evaluate_smart_collection,
-        get_collection_games, get_collections, get_collections_with_game_ids,
-        remove_from_collection, reorder_collections, update_collection,
+        get_collections_with_game_ids,
+        remove_from_collection, update_collection,
     },
     database::{
-        clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all,
+        clear_play_history, get_db_status, open_data_folder,
+        relink_play_sessions, reset_all,
         reset_keep_keys, reset_library_keep_stats,
     },
-    dedup::{
-        find_duplicates, get_duplicate_groups, get_game_sources, resolve_duplicate_group,
-        update_duplicate_resolution,
-    },
-    events::emit_test_event,
     export::export_stats_zip,
     fonts::list_system_fonts,
-    games::{confirm_games, delete_game, get_game, get_games, search_games, update_game},
+    games::{
+        confirm_games, get_games, open_game_folder, update_game,
+    },
     hardware::get_system_hardware,
     health::check_library_health,
     known_issues::fetch_known_issues,
@@ -69,14 +66,10 @@ use commands::{
     },
     mastery::{get_mastery_tier, get_mastery_tiers_bulk},
     metadata::{
-        apply_steamgrid_artwork, clear_cache, clear_hltb_data, fetch_all_metadata, fetch_artwork,
-        fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, get_key_status, get_metadata,
-        get_placeholder_cover, run_score_backfill, save_hltb_data, search_metadata,
+        apply_steamgrid_artwork, clear_cache, clear_hltb_data, fetch_all_metadata, fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, run_score_backfill, save_hltb_data, search_metadata,
         search_steamgrid_artwork, verify_igdb_keys, verify_steamgrid_key,
     },
     milestones::{check_session_milestones, evaluate_milestones_batch},
-    ping::ping,
-    playtime::get_playtime,
     queue::{
         add_to_play_queue, clear_play_queue, get_play_queue, remove_from_play_queue,
         reorder_play_queue,
@@ -84,35 +77,28 @@ use commands::{
     scanner::scan_directory,
     sessions::{
         bulk_delete_short_sessions, count_short_sessions, create_session, end_session,
-        get_activity_data, get_all_sessions, get_library_stats, get_orphaned_sessions,
-        get_play_sessions, get_play_stats, get_top_games, update_session_note,
+        get_activity_data, get_all_sessions, get_library_stats, get_play_stats, get_top_games, update_session_note,
     },
     settings::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
         set_setting,
     },
-    sources::{
-        detect_launchers, get_active_watchers, scan_sources, start_folder_watchers,
-        stop_folder_watcher, stop_folder_watchers,
-    },
+    sources::{detect_launchers, scan_sources},
     streak::{get_streak, recalculate_streak},
     tags::{
-        add_tag_to_game, create_tag, delete_tag, get_all_game_tag_ids, get_game_tags,
-        get_games_by_tag, get_tags, remove_tag_from_game, rename_tag, update_tag_color,
+        add_tag_to_game, create_tag, delete_tag, get_all_game_tag_ids, get_tags, remove_tag_from_game, rename_tag, update_tag_color,
     },
     twitch::{
         build_token_manager, check_connectivity, clear_twitch_cache, get_twitch_clips_for_game,
-        get_twitch_diagnostics, get_twitch_embed_base_url, get_twitch_followed_channels,
-        get_twitch_live_streams, get_twitch_streams_by_game, get_twitch_trending_library_games,
-        get_twitch_watch_for_range, get_twitch_watch_stats, get_twitch_watch_year,
-        open_twitch_login, popout_clip, popout_stream, set_twitch_embed_theme,
+        get_twitch_diagnostics, get_twitch_followed_channels,
+        get_twitch_streams_by_game, get_twitch_trending_library_games,
+        get_twitch_watch_for_range, popout_clip, popout_stream, set_twitch_embed_theme,
         set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
-        twitch_test_connection, twitch_watch_session_end, twitch_watch_session_start,
-        validate_twitch_token, TwitchEmbedBaseUrl, TwitchEmbedTheme,
+        twitch_test_connection, validate_twitch_token, TwitchEmbedBaseUrl, TwitchEmbedTheme,
     },
     window::{confirm_app_close, hide_main_window, show_main_window},
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
-    xp::{award_xp, backfill_xp_from_history, get_xp_breakdown, get_xp_history, get_xp_summary},
+    xp::{award_xp, get_xp_breakdown, get_xp_history, get_xp_summary},
 };
 
 /// Story 20.1: Read ask_before_close from settings. Default true (show dialog).
@@ -155,6 +141,26 @@ fn read_twitch_enabled<R: Runtime>(app: &tauri::AppHandle<R>) -> bool {
     match val {
         Ok(Some(v)) => v != "false",
         _ => true,
+    }
+}
+
+/// The asset protocol scope only covers the image cache (tauri.conf.json). Custom
+/// cover/hero art picked through the dialog is granted for that session by the
+/// dialog plugin; re-grant the saved picks on startup. Image extensions only, so
+/// a "cover" pointed at games.db or a token key file stays unreadable.
+fn allow_custom_images(app: &tauri::App, conn: &rusqlite::Connection) {
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT custom_cover FROM games WHERE custom_cover IS NOT NULL
+         UNION SELECT custom_hero FROM games WHERE custom_hero IS NOT NULL",
+    ) else {
+        return;
+    };
+    let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) else {
+        return;
+    };
+    let scope = app.asset_protocol_scope();
+    for path in rows.flatten().filter(|p| commands::utils::is_local_image(p)) {
+        let _ = scope.allow_file(&path);
     }
 }
 
@@ -266,14 +272,11 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let db_state = db::init().expect("failed to initialize database");
-    let folder_watcher = sources::watcher::FolderWatcher::new();
 
     tauri::Builder::default()
         .manage(db_state)
-        .manage(folder_watcher)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
@@ -356,6 +359,7 @@ pub fn run() {
 
             if let Some(db) = app.try_state::<DbState>() {
                 if let Ok(conn) = db.conn.lock() {
+                    allow_custom_images(app, &conn);
                     let _ = commands::streak::recalculate_streak_inner(&conn);
                     let _ = commands::achievements::evaluate_achievements_inner(&conn);
 
@@ -383,37 +387,29 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            ping,
             scan_directory,
             launch_game,
             stop_game,
             check_process_running,
             find_game_process,
             list_running_processes,
-            get_playtime,
-            get_metadata,
             get_db_status,
+            open_data_folder,
+            open_game_folder,
             reset_all,
             reset_keep_keys,
             clear_play_history,
             reset_library_keep_stats,
             relink_play_sessions,
-            debug_wrapped_sessions,
-            emit_test_event,
             export_stats_zip,
             list_system_fonts,
             get_games,
-            get_game,
-            search_games,
             update_game,
-            delete_game,
             confirm_games,
             create_session,
             end_session,
-            get_play_sessions,
             get_play_stats,
             get_activity_data,
-            get_orphaned_sessions,
             get_library_stats,
             get_top_games,
             get_all_sessions,
@@ -431,15 +427,12 @@ pub fn run() {
             get_mastery_tier,
             get_mastery_tiers_bulk,
             get_game_ceremony_data,
-            get_collections,
             get_collections_with_game_ids,
             create_collection,
             update_collection,
             delete_collection,
             add_to_collection,
             remove_from_collection,
-            reorder_collections,
-            get_collection_games,
             evaluate_smart_collection,
             get_setting,
             set_setting,
@@ -449,15 +442,6 @@ pub fn run() {
             remove_watched_folder,
             scan_sources,
             detect_launchers,
-            start_folder_watchers,
-            stop_folder_watchers,
-            stop_folder_watcher,
-            get_active_watchers,
-            find_duplicates,
-            get_duplicate_groups,
-            get_game_sources,
-            resolve_duplicate_group,
-            update_duplicate_resolution,
             verify_steamgrid_key,
             verify_igdb_keys,
             fetch_metadata,
@@ -465,12 +449,9 @@ pub fn run() {
             search_metadata,
             search_steamgrid_artwork,
             apply_steamgrid_artwork,
-            fetch_artwork,
             fetch_all_metadata,
-            get_key_status,
             get_cache_stats,
             clear_cache,
-            get_placeholder_cover,
             run_score_backfill,
             save_hltb_data,
             clear_hltb_data,
@@ -481,27 +462,19 @@ pub fn run() {
             twitch_auth_logout,
             validate_twitch_token,
             get_twitch_followed_channels,
-            get_twitch_live_streams,
             get_twitch_streams_by_game,
             get_twitch_trending_library_games,
             set_twitch_favorite,
-            twitch_watch_session_start,
-            twitch_watch_session_end,
-            get_twitch_watch_stats,
-            get_twitch_watch_year,
             get_twitch_watch_for_range,
             popout_stream,
             popout_clip,
-            open_twitch_login,
             set_twitch_embed_theme,
-            get_twitch_embed_base_url,
             get_twitch_clips_for_game,
             get_twitch_diagnostics,
             twitch_test_connection,
             clear_twitch_cache,
             check_connectivity,
             fetch_known_issues,
-            write_image_to_clipboard,
             confirm_app_close,
             hide_main_window,
             show_main_window,
@@ -517,11 +490,8 @@ pub fn run() {
             update_tag_color,
             add_tag_to_game,
             remove_tag_from_game,
-            get_game_tags,
-            get_games_by_tag,
             get_all_game_tag_ids,
             gdrive_auth_start,
-            gdrive_auth_status,
             gdrive_auth_logout,
             run_backup,
             list_backups,
@@ -529,16 +499,14 @@ pub fn run() {
             get_backup_status,
             set_backup_frequency,
             set_backup_retention,
-            get_achievement_definitions,
-            get_unlocked_achievements,
             get_achievement_status,
             evaluate_achievements,
             get_xp_summary,
             get_xp_history,
             get_xp_breakdown,
             award_xp,
-            backfill_xp_from_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+

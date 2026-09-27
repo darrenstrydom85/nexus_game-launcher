@@ -9,10 +9,7 @@ use crate::models::queue::PlayQueueEntry;
 
 #[tauri::command]
 pub fn get_play_queue(db: State<'_, DbState>) -> Result<Vec<PlayQueueEntry>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
         .prepare(
@@ -21,14 +18,11 @@ pub fn get_play_queue(db: State<'_, DbState>) -> Result<Vec<PlayQueueEntry>, Com
              FROM play_queue pq
              INNER JOIN games g ON g.id = pq.game_id
              ORDER BY pq.position ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let entries = stmt
-        .query_map([], PlayQueueEntry::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map([], PlayQueueEntry::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(entries)
 }
@@ -38,18 +32,14 @@ pub fn add_to_play_queue(
     db: State<'_, DbState>,
     game_id: String,
 ) -> Result<PlayQueueEntry, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let game_exists: bool = conn
         .query_row(
             "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
             params![game_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !game_exists {
         return Err(CommandError::NotFound(format!("game {game_id}")));
@@ -60,8 +50,7 @@ pub fn add_to_play_queue(
             "SELECT COUNT(*) > 0 FROM play_queue WHERE game_id = ?1",
             params![game_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if already_queued {
         return Err(CommandError::Database(format!(
@@ -74,8 +63,7 @@ pub fn add_to_play_queue(
             "SELECT COALESCE(MAX(position), -1) FROM play_queue",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let id = Uuid::new_v4().to_string();
     let now = now_iso();
@@ -84,8 +72,7 @@ pub fn add_to_play_queue(
     conn.execute(
         "INSERT INTO play_queue (id, game_id, position, added_at) VALUES (?1, ?2, ?3, ?4)",
         params![id, game_id, position, now],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let entry = conn
         .query_row(
@@ -96,18 +83,14 @@ pub fn add_to_play_queue(
              WHERE pq.id = ?1",
             params![id],
             PlayQueueEntry::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(entry)
 }
 
 #[tauri::command]
 pub fn remove_from_play_queue(db: State<'_, DbState>, game_id: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let position: Option<i64> = conn
         .query_row(
@@ -126,14 +109,12 @@ pub fn remove_from_play_queue(db: State<'_, DbState>, game_id: String) -> Result
     conn.execute(
         "DELETE FROM play_queue WHERE game_id = ?1",
         params![game_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     conn.execute(
         "UPDATE play_queue SET position = position - 1 WHERE position > ?1",
         params![removed_pos],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -143,43 +124,33 @@ pub fn reorder_play_queue(
     db: State<'_, DbState>,
     game_ids: Vec<String>,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     for (index, gid) in game_ids.iter().enumerate() {
         let rows = tx
             .execute(
                 "UPDATE play_queue SET position = ?1 WHERE game_id = ?2",
                 params![index as i64, gid],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if rows == 0 {
             return Err(CommandError::NotFound(format!("game {gid} not in queue")));
         }
     }
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn clear_play_queue(db: State<'_, DbState>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
-    conn.execute("DELETE FROM play_queue", [])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    conn.execute("DELETE FROM play_queue", [])?;
 
     Ok(())
 }
@@ -201,10 +172,7 @@ mod tests {
     }
 
     fn get_queue_inner(state: &DbState) -> Result<Vec<PlayQueueEntry>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let mut stmt = conn
             .prepare(
@@ -213,39 +181,31 @@ mod tests {
                  FROM play_queue pq
                  INNER JOIN games g ON g.id = pq.game_id
                  ORDER BY pq.position ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         let entries = stmt
-            .query_map([], PlayQueueEntry::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map([], PlayQueueEntry::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(entries)
     }
 
     fn add_inner(state: &DbState, game_id: &str) -> Result<PlayQueueEntry, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let max_pos: i64 = conn
             .query_row(
                 "SELECT COALESCE(MAX(position), -1) FROM play_queue",
                 [],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         let already_queued: bool = conn
             .query_row(
                 "SELECT COUNT(*) > 0 FROM play_queue WHERE game_id = ?1",
                 params![game_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if already_queued {
             return Err(CommandError::Database(format!(
@@ -260,8 +220,7 @@ mod tests {
         conn.execute(
             "INSERT INTO play_queue (id, game_id, position, added_at) VALUES (?1, ?2, ?3, ?4)",
             params![id, game_id, position, now],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let entry = conn
             .query_row(
@@ -272,17 +231,13 @@ mod tests {
                  WHERE pq.id = ?1",
                 params![id],
                 PlayQueueEntry::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         Ok(entry)
     }
 
     fn remove_inner(state: &DbState, game_id: &str) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let position: Option<i64> = conn
             .query_row(
@@ -301,55 +256,43 @@ mod tests {
         conn.execute(
             "DELETE FROM play_queue WHERE game_id = ?1",
             params![game_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         conn.execute(
             "UPDATE play_queue SET position = position - 1 WHERE position > ?1",
             params![removed_pos],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         Ok(())
     }
 
     fn reorder_inner(state: &DbState, game_ids: Vec<String>) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let tx = conn
-            .unchecked_transaction()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .unchecked_transaction()?;
 
         for (index, gid) in game_ids.iter().enumerate() {
             let rows = tx
                 .execute(
                     "UPDATE play_queue SET position = ?1 WHERE game_id = ?2",
                     params![index as i64, gid],
-                )
-                .map_err(|e| CommandError::Database(e.to_string()))?;
+                )?;
 
             if rows == 0 {
                 return Err(CommandError::NotFound(format!("game {gid} not in queue")));
             }
         }
 
-        tx.commit()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        tx.commit()?;
 
         Ok(())
     }
 
     fn clear_inner(state: &DbState) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
-        conn.execute("DELETE FROM play_queue", [])
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+        conn.execute("DELETE FROM play_queue", [])?;
 
         Ok(())
     }

@@ -12,7 +12,6 @@ export interface ApiKeys {
   igdbClientSecret: string;
 }
 
-export type FontSize = "small" | "medium" | "large";
 
 export type { ThemeMode };
 
@@ -20,17 +19,14 @@ export interface WatchedFolder {
   id: string;
   path: string;
   label: string | null;
-  autoScan: boolean;
   addedAt: string;
 }
 
 export interface SettingsState {
   apiKeys: ApiKeys;
   watchedFolders: WatchedFolder[];
-  minimizeToTray: boolean;
   /** Story 20.1: When true, show close-vs-minimize dialog on window close. Default true. */
   askBeforeClose: boolean;
-  launchAtStartup: boolean;
   enableNotifications: boolean;
   xpNotificationsEnabled: boolean;
   milestoneNotificationsEnabled: boolean;
@@ -46,9 +42,7 @@ export interface SettingsState {
   theme: ThemeMode;
   windowTransparency: boolean;
   enableAnimations: boolean;
-  fontSize: FontSize;
   reducedMotion: boolean;
-  hiddenSmartCollections: string[];
   hiddenGameIds: string[];
   removedGameIds: string[];
   defaultSort: string;
@@ -100,22 +94,16 @@ export interface SettingsActions {
   setApiKeys: (keys: Partial<ApiKeys>) => void;
   addWatchedFolder: (folder: WatchedFolder) => void;
   removeWatchedFolder: (id: string) => void;
-  setWatchedFolders: (folders: WatchedFolder[]) => void;
-  setMinimizeToTray: (value: boolean) => void;
   setAskBeforeClose: (value: boolean) => void;
-  setLaunchAtStartup: (value: boolean) => void;
   setEnableNotifications: (value: boolean) => void;
   setXpNotificationsEnabled: (value: boolean) => void;
   setMilestoneNotificationsEnabled: (value: boolean) => void;
   setAutoStatusTransitions: (value: boolean) => void;
-  setAccentColor: (color: string) => void;
   setCustomTheme: (theme: CustomTheme | null) => void;
   setTheme: (mode: ThemeMode) => void;
   setWindowTransparency: (value: boolean) => void;
   setEnableAnimations: (value: boolean) => void;
-  setFontSize: (size: FontSize) => void;
   setReducedMotion: (value: boolean) => void;
-  toggleHiddenSmartCollection: (id: string) => void;
   hideGame: (gameId: string) => void;
   unhideGame: (gameId: string) => void;
   setHiddenGameIds: (ids: string[]) => void;
@@ -123,7 +111,6 @@ export interface SettingsActions {
   setDefaultSort: (sort: string) => void;
   setDefaultView: (view: "grid" | "list") => void;
   setSourceEnabled: (sourceId: string, enabled: boolean) => void;
-  setSourcesEnabled: (sources: Record<string, boolean>) => void;
   setHealthCheckResult: (checkedAt: string, issueCount: number) => void;
   setHealthCheckSnoozed: (until: number | null) => void;
   setAutoHealthCheck: (value: boolean) => void;
@@ -169,9 +156,7 @@ const initialState: SettingsState = {
     igdbClientSecret: "",
   },
   watchedFolders: [],
-  minimizeToTray: false,
   askBeforeClose: true,
-  launchAtStartup: false,
   enableNotifications: true,
   xpNotificationsEnabled: true,
   milestoneNotificationsEnabled: true,
@@ -181,9 +166,7 @@ const initialState: SettingsState = {
   theme: "dark",
   windowTransparency: true,
   enableAnimations: true,
-  fontSize: "medium",
   reducedMotion: false,
-  hiddenSmartCollections: [],
   hiddenGameIds: [],
   removedGameIds: [],
   defaultSort: "name",
@@ -389,16 +372,10 @@ export const useSettingsStore = create<SettingsStore>()(
             false,
             "removeWatchedFolder",
           ),
-        setWatchedFolders: (folders) =>
-          set({ watchedFolders: folders }, false, "setWatchedFolders"),
-        setMinimizeToTray: (value) =>
-          set({ minimizeToTray: value }, false, "setMinimizeToTray"),
         setAskBeforeClose: (value) => {
           persistSetting("ask_before_close", String(value));
           set({ askBeforeClose: value }, false, "setAskBeforeClose");
         },
-        setLaunchAtStartup: (value) =>
-          set({ launchAtStartup: value }, false, "setLaunchAtStartup"),
         setEnableNotifications: (value) => {
           persistSetting("enable_notifications", String(value));
           set({ enableNotifications: value }, false, "setEnableNotifications");
@@ -414,10 +391,6 @@ export const useSettingsStore = create<SettingsStore>()(
         setAutoStatusTransitions: (value) => {
           persistSetting("auto_status_transitions", String(value));
           set({ autoStatusTransitions: value }, false, "setAutoStatusTransitions");
-        },
-        setAccentColor: (color) => {
-          persistSetting("theme_accent_color", color);
-          set({ accentColor: color }, false, "setAccentColor");
         },
         setCustomTheme: (theme) => {
           persistSetting("custom_theme", theme ? JSON.stringify(theme) : "");
@@ -445,22 +418,8 @@ export const useSettingsStore = create<SettingsStore>()(
           persistSetting("enable_animations", String(value));
           set({ enableAnimations: value }, false, "setEnableAnimations");
         },
-        setFontSize: (size) => {
-          persistSetting("font_size", size);
-          set({ fontSize: size }, false, "setFontSize");
-        },
         setReducedMotion: (value) =>
           set({ reducedMotion: value }, false, "setReducedMotion"),
-        toggleHiddenSmartCollection: (id) =>
-          set(
-            (state) => ({
-              hiddenSmartCollections: state.hiddenSmartCollections.includes(id)
-                ? state.hiddenSmartCollections.filter((x) => x !== id)
-                : [...state.hiddenSmartCollections, id],
-            }),
-            false,
-            "toggleHiddenSmartCollection",
-          ),
         hideGame: (gameId) =>
           set(
             (state) => ({
@@ -501,8 +460,6 @@ export const useSettingsStore = create<SettingsStore>()(
             "setSourceEnabled",
           );
         },
-        setSourcesEnabled: (sources) =>
-          set({ sourcesEnabled: sources }, false, "setSourcesEnabled"),
         setHealthCheckResult: (checkedAt, issueCount) =>
           set(
             { lastHealthCheckAt: checkedAt, healthCheckIssueCount: issueCount },

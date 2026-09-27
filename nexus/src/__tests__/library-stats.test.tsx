@@ -3,12 +3,12 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   LibraryStats,
-  formatHours,
   type PlayStats,
   type ActivityDataPoint,
   type TopGame,
   type SessionRecord,
 } from "@/components/Library/LibraryStats";
+import { formatPlayTime as formatHours } from "@/lib/utils";
 
 vi.mock("@/stores/settingsStore", () => ({
   useSettingsStore: (selector: (s: { accentColor: string }) => string) =>

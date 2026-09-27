@@ -74,7 +74,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -92,7 +91,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -109,7 +107,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -121,7 +118,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={[]}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -134,7 +130,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={true}
       />,
     );
@@ -148,7 +143,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -164,7 +158,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter="steam"
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -181,7 +174,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -196,7 +188,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
       />,
     );
@@ -211,7 +202,6 @@ describe("Story 25.1: ContinuePlayingRow", () => {
       <ContinuePlayingRow
         games={games}
         sourceFilter={null}
-        filterSources={[]}
         isCollectionActive={false}
         onPlay={onPlay}
         onGameClick={onGameClick}

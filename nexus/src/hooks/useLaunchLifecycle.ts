@@ -13,6 +13,7 @@ import { triggerMilestoneSound } from "@/components/Milestones/MilestoneToastSta
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useXpStore } from "@/stores/xpStore";
 import { awardXp } from "@/lib/tauri";
+import { formatPlayTime } from "@/lib/utils";
 
 const QUICK_EXIT_THRESHOLD_MS = 5000;
 const PROCESS_POLL_INTERVAL_MS = 5000;
@@ -48,13 +49,6 @@ export function buildUpdatedExeNames(current: string | null, newExe: string): st
     existing.push(newExe);
   }
   return existing.join(", ");
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
 }
 
 interface FoundProcess {
@@ -189,7 +183,7 @@ export function useLaunchLifecycle() {
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
         addToast({
           type: "success",
-          message: `Session ended — ${formatDuration(durationS)} played`,
+          message: `Session ended — ${formatPlayTime(durationS)} played`,
         });
 
         if (session.hasDbSession) {
@@ -292,7 +286,7 @@ export function useLaunchLifecycle() {
       if (elapsed >= QUICK_EXIT_THRESHOLD_MS) {
         addToast({
           type: "success",
-          message: `Session ended — ${formatDuration(event.durationS)} played`,
+          message: `Session ended — ${formatPlayTime(event.durationS)} played`,
         });
 
         if (session?.hasDbSession) {

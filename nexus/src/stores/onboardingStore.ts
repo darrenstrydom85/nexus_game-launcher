@@ -48,7 +48,6 @@ export interface OnboardingState {
 }
 
 export interface OnboardingActions {
-  setCurrentStep: (step: OnboardingStep) => void;
   goNext: () => void;
   goBack: () => void;
   goToStep: (step: OnboardingStep) => void;
@@ -85,8 +84,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
   devtools(
     (set, get) => ({
       ...initialState,
-      setCurrentStep: (step) =>
-        set({ currentStep: step }, false, "setCurrentStep"),
       goNext: () => {
         const { currentStep, completedSteps, skippedSteps } = get();
         const idx = STEP_ORDER.indexOf(currentStep);

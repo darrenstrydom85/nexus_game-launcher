@@ -141,87 +141,94 @@ pub fn launch_game(
     protocol: String,
     target: String,
 ) -> Result<LaunchResult, CommandError> {
-    match protocol.as_str() {
-        "direct_exe" => launch_direct_exe(&game_id, &target),
-        "steam_url" | "epic_url" | "gog_url" | "ubisoft_url" | "battlenet_url" | "xbox_shell" => {
-            launch_url(&game_id, &target)
-        }
-        _ => Err(CommandError::Unknown(format!(
-            "unsupported protocol: {protocol}"
-        ))),
-    }
-}
-
-fn launch_direct_exe(game_id: &str, exe_path: &str) -> Result<LaunchResult, CommandError> {
-    if exe_path.is_empty() {
-        return Ok(LaunchResult {
+    let outcome = match protocol.as_str() {
+        "direct_exe" => launch_direct_exe(&target),
+        p => match url_scheme_for(p) {
+            Some(scheme) => launch_url(scheme, &target),
+            None => {
+                return Err(CommandError::Unknown(format!(
+                    "unsupported protocol: {protocol}"
+                )))
+            }
+        },
+    };
+    Ok(match outcome {
+        // pid stays None: tracking uses folder/exe name polling, since launchers
+        // and stub exes often hand off to another process.
+        Ok(()) => LaunchResult {
+            session_id: uuid::Uuid::new_v4().to_string(),
+            game_id,
+            status: "launched".to_string(),
+            pid: None,
+            error: None,
+        },
+        Err(error) => LaunchResult {
             session_id: String::new(),
-            game_id: game_id.to_string(),
+            game_id,
             status: "failed".to_string(),
             pid: None,
-            error: Some("No executable path configured".to_string()),
-        });
+            error: Some(error),
+        },
+    })
+}
+
+/// URL prefix each protocol launch must start with. `target` comes from the
+/// webview, so anything else is refused rather than handed to the shell.
+fn url_scheme_for(protocol: &str) -> Option<&'static str> {
+    Some(match protocol {
+        "steam_url" => "steam://",
+        "epic_url" => "com.epicgames.launcher://",
+        "gog_url" => "goggalaxy://",
+        "ubisoft_url" => "uplay://",
+        "battlenet_url" => "battlenet://",
+        "xbox_shell" => "shell:AppsFolder\\",
+        _ => return None,
+    })
+}
+
+// No `cmd /C start`: cmd.exe re-parses its command line, so `&`, `|`, `%VAR%`
+// in a path or URL would run extra commands (and split Epic's `&silent=true`).
+fn launch_direct_exe(exe_path: &str) -> Result<(), String> {
+    if exe_path.is_empty() {
+        return Err("No executable path configured".to_string());
+    }
+    let path = std::path::Path::new(exe_path);
+    if !path.is_absolute() || !path.is_file() {
+        return Err(format!("Executable not found: {exe_path}"));
     }
 
-    let path = std::path::Path::new(exe_path);
-    let working_dir = path.parent();
-
-    // Use cmd /C start to launch the exe — this is the most reliable way on
-    // Windows, handling UAC, paths with spaces, and detaching from the parent.
-    let mut cmd = Command::new("cmd");
-    cmd.args(["/C", "start", "", exe_path]);
-    if let Some(dir) = working_dir {
+    let mut cmd = Command::new(path);
+    if let Some(dir) = path.parent() {
         cmd.current_dir(dir);
     }
-
-    #[cfg(target_os = "windows")]
-    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW — hide the transient cmd window
-
     match cmd.spawn() {
-        Ok(_child) => Ok(LaunchResult {
-            session_id: uuid::Uuid::new_v4().to_string(),
-            game_id: game_id.to_string(),
-            status: "launched".to_string(),
-            pid: None, // cmd exits immediately; tracking uses folder/exe name polling
-            error: None,
-        }),
-        Err(e) => Ok(LaunchResult {
-            session_id: String::new(),
-            game_id: game_id.to_string(),
-            status: "failed".to_string(),
-            pid: None,
-            error: Some(format!("Failed to launch: {e}")),
-        }),
+        Ok(_) => Ok(()),
+        // CreateProcess can't do UAC elevation (os error 740) or .lnk files;
+        // ShellExecute can.
+        // ponytail: ShellExecute fallback inherits Nexus's cwd, not the game dir.
+        Err(_) => tauri_plugin_opener::open_path(path, None::<&str>)
+            .map_err(|e| format!("Failed to launch: {e}")),
     }
 }
 
-fn launch_url(game_id: &str, url: &str) -> Result<LaunchResult, CommandError> {
-    let mut cmd = Command::new("cmd");
-    cmd.args(["/C", "start", "", url]);
-    #[cfg(target_os = "windows")]
-    cmd.creation_flags(0x08000000);
-    match cmd.spawn() {
-        Ok(_) => Ok(LaunchResult {
-            session_id: uuid::Uuid::new_v4().to_string(),
-            game_id: game_id.to_string(),
-            status: "launched".to_string(),
-            pid: None,
-            error: None,
-        }),
-        Err(e) => Ok(LaunchResult {
-            session_id: String::new(),
-            game_id: game_id.to_string(),
-            status: "failed".to_string(),
-            pid: None,
-            error: Some(format!("Failed to open URL: {e}")),
-        }),
+fn launch_url(scheme: &str, url: &str) -> Result<(), String> {
+    if !url.starts_with(scheme) {
+        return Err(format!("Refusing launch target, expected {scheme}..."));
     }
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| format!("Failed to open URL: {e}"))
 }
 
 // ── Process Management Commands ───────────────────────────────────
 
 #[tauri::command(async)]
 pub fn stop_game(pid: u32) -> Result<(), CommandError> {
+    // pid comes from the webview: never kill Nexus itself or a blocklisted
+    // system/shell process (explorer.exe etc.).
+    // ponytail: name check only, not "pid belongs to a tracked session" --
+    // sessions are tracked frontend-side, so Rust has nothing to check against.
+    if pid == std::process::id() || exe_name_of(pid).map_or(true, |n| is_blocked(&n)) {
+        return Err(CommandError::Permission(format!("refusing to stop pid {pid}")));
+    }
     #[cfg(target_os = "windows")]
     {
         let _ = Command::new("taskkill")
@@ -261,6 +268,18 @@ fn is_pid_alive(pid: u32) -> bool {
         }
         Err(_) => false,
     }
+}
+
+/// Image name for a pid, from `tasklist` CSV (`"game.exe","1234",...`).
+fn exe_name_of(pid: u32) -> Option<String> {
+    let out = Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/NH", "/FO", "CSV"])
+        .creation_flags(0x08000000)
+        .output()
+        .ok()?;
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let name = stdout.trim().strip_prefix('"')?.split('"').next()?;
+    Some(name.to_string())
 }
 
 fn is_exe_running(exe_name: &str) -> bool {
@@ -561,6 +580,25 @@ mod tests {
 
     fn make_entry(exe: &str, pid: u32, title: Option<&str>) -> (String, u32, Option<String>) {
         (exe.to_string(), pid, title.map(|t| t.to_string()))
+    }
+
+    #[test]
+    fn launch_rejects_unsafe_targets() {
+        // Wrong scheme for the protocol, or a shell command smuggled in as a URL.
+        assert!(launch_url("steam://", "com.epicgames.launcher://apps/x").is_err());
+        assert!(launch_url("steam://", "calc.exe & steam://run/1").is_err());
+        assert!(url_scheme_for("direct_exe").is_none());
+        assert!(url_scheme_for("bogus").is_none());
+        // Relative or missing exe paths never reach spawn.
+        assert!(launch_direct_exe("").is_err());
+        assert!(launch_direct_exe("a&calc.exe").is_err());
+        assert!(launch_direct_exe("C:\\definitely\\missing\\game.exe").is_err());
+    }
+
+    #[test]
+    fn stop_game_refuses_self_and_unknown_pids() {
+        assert!(stop_game(std::process::id()).is_err());
+        assert!(stop_game(u32::MAX - 3).is_err()); // no such process
     }
 
     #[test]

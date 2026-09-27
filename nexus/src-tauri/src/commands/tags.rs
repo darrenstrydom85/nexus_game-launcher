@@ -9,10 +9,7 @@ use crate::models::tag::{Tag, TagWithCount};
 
 #[tauri::command]
 pub fn get_tags(db: State<'_, DbState>) -> Result<Vec<TagWithCount>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
         .prepare(
@@ -21,14 +18,11 @@ pub fn get_tags(db: State<'_, DbState>) -> Result<Vec<TagWithCount>, CommandErro
              LEFT JOIN game_tags gt ON gt.tag_id = t.id
              GROUP BY t.id
              ORDER BY t.name ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     let tags = stmt
-        .query_map([], TagWithCount::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .query_map([], TagWithCount::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(tags)
 }
@@ -44,18 +38,14 @@ pub fn create_tag(
         return Err(CommandError::Parse("tag name cannot be empty".into()));
     }
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let exists: bool = conn
         .query_row(
             "SELECT COUNT(*) > 0 FROM tags WHERE name = ?1 COLLATE NOCASE",
             params![trimmed],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if exists {
         return Err(CommandError::Database(format!(
@@ -70,30 +60,24 @@ pub fn create_tag(
     conn.execute(
         "INSERT INTO tags (id, name, color, created_at) VALUES (?1, ?2, ?3, ?4)",
         params![id, trimmed, color, now],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let tag = conn
         .query_row(
             "SELECT * FROM tags WHERE id = ?1",
             params![id],
             Tag::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(tag)
 }
 
 #[tauri::command]
 pub fn delete_tag(db: State<'_, DbState>, tag_id: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let rows = conn
-        .execute("DELETE FROM tags WHERE id = ?1", params![tag_id])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
 
     if rows == 0 {
         return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -113,18 +97,14 @@ pub fn rename_tag(
         return Err(CommandError::Parse("tag name cannot be empty".into()));
     }
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let exists: bool = conn
         .query_row(
             "SELECT COUNT(*) > 0 FROM tags WHERE id = ?1",
             params![tag_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !exists {
         return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -135,8 +115,7 @@ pub fn rename_tag(
             "SELECT COUNT(*) > 0 FROM tags WHERE name = ?1 COLLATE NOCASE AND id != ?2",
             params![trimmed, tag_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if conflict {
         return Err(CommandError::Database(format!(
@@ -148,16 +127,14 @@ pub fn rename_tag(
     conn.execute(
         "UPDATE tags SET name = ?1 WHERE id = ?2",
         params![trimmed, tag_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     let tag = conn
         .query_row(
             "SELECT * FROM tags WHERE id = ?1",
             params![tag_id],
             Tag::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(tag)
 }
@@ -168,17 +145,13 @@ pub fn update_tag_color(
     tag_id: String,
     color: Option<String>,
 ) -> Result<Tag, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let rows = conn
         .execute(
             "UPDATE tags SET color = ?1 WHERE id = ?2",
             params![color, tag_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if rows == 0 {
         return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -189,8 +162,7 @@ pub fn update_tag_color(
             "SELECT * FROM tags WHERE id = ?1",
             params![tag_id],
             Tag::from_row,
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     Ok(tag)
 }
@@ -201,18 +173,14 @@ pub fn add_tag_to_game(
     game_id: String,
     tag_id: String,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let game_exists: bool = conn
         .query_row(
             "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
             params![game_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !game_exists {
         return Err(CommandError::NotFound(format!("game {game_id}")));
@@ -223,8 +191,7 @@ pub fn add_tag_to_game(
             "SELECT COUNT(*) > 0 FROM tags WHERE id = ?1",
             params![tag_id],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if !tag_exists {
         return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -233,8 +200,7 @@ pub fn add_tag_to_game(
     conn.execute(
         "INSERT OR IGNORE INTO game_tags (game_id, tag_id) VALUES (?1, ?2)",
         params![game_id, tag_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
@@ -245,86 +211,28 @@ pub fn remove_tag_from_game(
     game_id: String,
     tag_id: String,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     conn.execute(
         "DELETE FROM game_tags WHERE game_id = ?1 AND tag_id = ?2",
         params![game_id, tag_id],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
+    )?;
 
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_game_tags(db: State<'_, DbState>, game_id: String) -> Result<Vec<Tag>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT t.* FROM tags t
-             INNER JOIN game_tags gt ON gt.tag_id = t.id
-             WHERE gt.game_id = ?1
-             ORDER BY t.name ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let tags = stmt
-        .query_map(params![game_id], Tag::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(tags)
-}
-
-#[tauri::command]
-pub fn get_games_by_tag(
-    db: State<'_, DbState>,
-    tag_id: String,
-) -> Result<Vec<String>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT game_id FROM game_tags WHERE tag_id = ?1")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let game_ids = stmt
-        .query_map(params![tag_id], |row| row.get::<_, String>(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(game_ids)
-}
-
-#[tauri::command]
 pub fn get_all_game_tag_ids(db: State<'_, DbState>) -> Result<Vec<(String, String)>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut stmt = conn
-        .prepare("SELECT game_id, tag_id FROM game_tags")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .prepare("SELECT game_id, tag_id FROM game_tags")?;
 
     let pairs = stmt
         .query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(pairs)
 }
@@ -583,53 +491,12 @@ mod tests {
 
     // ── get_game_tags ──
 
-    #[test]
-    fn get_game_tags_returns_only_game_tags() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Game A");
-        insert_game(&conn, "g2", "Game B");
-        insert_tag(&conn, "t1", "RPG", None);
-        insert_tag(&conn, "t2", "FPS", None);
-        insert_tag(&conn, "t3", "Indie", None);
-        insert_game_tag(&conn, "g1", "t1");
-        insert_game_tag(&conn, "g1", "t3");
-        insert_game_tag(&conn, "g2", "t2");
-        drop(conn);
-
-        let tags = get_game_tags_inner(&state, "g1".into()).unwrap();
-        assert_eq!(tags.len(), 2);
-        let names: Vec<&str> = tags.iter().map(|t| t.name.as_str()).collect();
-        assert!(names.contains(&"Indie"));
-        assert!(names.contains(&"RPG"));
-    }
-
     // ── get_games_by_tag ──
-
-    #[test]
-    fn get_games_by_tag_returns_game_ids() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Game A");
-        insert_game(&conn, "g2", "Game B");
-        insert_tag(&conn, "t1", "RPG", None);
-        insert_game_tag(&conn, "g1", "t1");
-        insert_game_tag(&conn, "g2", "t1");
-        drop(conn);
-
-        let ids = get_games_by_tag_inner(&state, "t1".into()).unwrap();
-        assert_eq!(ids.len(), 2);
-        assert!(ids.contains(&"g1".to_string()));
-        assert!(ids.contains(&"g2".to_string()));
-    }
 
     // ── Test helpers: non-Tauri wrappers ──
 
     fn get_tags_inner(state: &DbState) -> Result<Vec<TagWithCount>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let mut stmt = conn
             .prepare(
@@ -638,14 +505,11 @@ mod tests {
                  LEFT JOIN game_tags gt ON gt.tag_id = t.id
                  GROUP BY t.id
                  ORDER BY t.name ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         let tags = stmt
-            .query_map([], TagWithCount::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map([], TagWithCount::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(tags)
     }
@@ -660,18 +524,14 @@ mod tests {
             return Err(CommandError::Parse("tag name cannot be empty".into()));
         }
 
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let exists: bool = conn
             .query_row(
                 "SELECT COUNT(*) > 0 FROM tags WHERE name = ?1 COLLATE NOCASE",
                 params![trimmed],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if exists {
             return Err(CommandError::Database(format!(
@@ -686,29 +546,23 @@ mod tests {
         conn.execute(
             "INSERT INTO tags (id, name, color, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![id, trimmed, color, now],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let tag = conn
             .query_row(
                 "SELECT * FROM tags WHERE id = ?1",
                 params![id],
                 Tag::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         Ok(tag)
     }
 
     fn delete_tag_inner(state: &DbState, tag_id: String) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let rows = conn
-            .execute("DELETE FROM tags WHERE id = ?1", params![tag_id])
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
 
         if rows == 0 {
             return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -727,18 +581,14 @@ mod tests {
             return Err(CommandError::Parse("tag name cannot be empty".into()));
         }
 
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let exists: bool = conn
             .query_row(
                 "SELECT COUNT(*) > 0 FROM tags WHERE id = ?1",
                 params![tag_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if !exists {
             return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -749,8 +599,7 @@ mod tests {
                 "SELECT COUNT(*) > 0 FROM tags WHERE name = ?1 COLLATE NOCASE AND id != ?2",
                 params![trimmed, tag_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if conflict {
             return Err(CommandError::Database(format!(
@@ -762,16 +611,14 @@ mod tests {
         conn.execute(
             "UPDATE tags SET name = ?1 WHERE id = ?2",
             params![trimmed, tag_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         let tag = conn
             .query_row(
                 "SELECT * FROM tags WHERE id = ?1",
                 params![tag_id],
                 Tag::from_row,
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         Ok(tag)
     }
@@ -781,18 +628,14 @@ mod tests {
         game_id: String,
         tag_id: String,
     ) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         let game_exists: bool = conn
             .query_row(
                 "SELECT COUNT(*) > 0 FROM games WHERE id = ?1",
                 params![game_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if !game_exists {
             return Err(CommandError::NotFound(format!("game {game_id}")));
@@ -803,8 +646,7 @@ mod tests {
                 "SELECT COUNT(*) > 0 FROM tags WHERE id = ?1",
                 params![tag_id],
                 |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         if !tag_exists {
             return Err(CommandError::NotFound(format!("tag {tag_id}")));
@@ -813,8 +655,7 @@ mod tests {
         conn.execute(
             "INSERT OR IGNORE INTO game_tags (game_id, tag_id) VALUES (?1, ?2)",
             params![game_id, tag_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         Ok(())
     }
@@ -824,63 +665,14 @@ mod tests {
         game_id: String,
         tag_id: String,
     ) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = state.conn()?;
 
         conn.execute(
             "DELETE FROM game_tags WHERE game_id = ?1 AND tag_id = ?2",
             params![game_id, tag_id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         Ok(())
     }
 
-    fn get_game_tags_inner(state: &DbState, game_id: String) -> Result<Vec<Tag>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT t.* FROM tags t
-                 INNER JOIN game_tags gt ON gt.tag_id = t.id
-                 WHERE gt.game_id = ?1
-                 ORDER BY t.name ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let tags = stmt
-            .query_map(params![game_id], Tag::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(tags)
-    }
-
-    fn get_games_by_tag_inner(
-        state: &DbState,
-        tag_id: String,
-    ) -> Result<Vec<String>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let mut stmt = conn
-            .prepare("SELECT game_id FROM game_tags WHERE tag_id = ?1")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let game_ids = stmt
-            .query_map(params![tag_id], |row| row.get::<_, String>(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(game_ids)
-    }
 }

@@ -9,7 +9,6 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 function getContinuePlayingGames(
   games: Game[],
   sourceFilter: GameSource | null,
-  filterSources: GameSource[],
   maxCards: number,
 ): Game[] {
   const now = Date.now();
@@ -25,9 +24,6 @@ function getContinuePlayingGames(
   if (sourceFilter) {
     candidates = candidates.filter((g) => g.source === sourceFilter);
   }
-  if (filterSources.length > 0) {
-    candidates = candidates.filter((g) => filterSources.includes(g.source));
-  }
 
   candidates.sort(
     (a, b) =>
@@ -40,7 +36,6 @@ function getContinuePlayingGames(
 interface ContinuePlayingRowProps {
   games: Game[];
   sourceFilter: GameSource | null;
-  filterSources: GameSource[];
   isCollectionActive: boolean;
   onPlay?: (game: Game) => void;
   onGameClick?: (gameId: string) => void;
@@ -49,7 +44,6 @@ interface ContinuePlayingRowProps {
 export function ContinuePlayingRow({
   games,
   sourceFilter,
-  filterSources,
   isCollectionActive,
   onPlay,
   onGameClick,
@@ -58,8 +52,8 @@ export function ContinuePlayingRow({
   const maxCards = useSettingsStore((s) => s.continuePlayingMax);
 
   const qualifying = React.useMemo(
-    () => getContinuePlayingGames(games, sourceFilter, filterSources, maxCards),
-    [games, sourceFilter, filterSources, maxCards],
+    () => getContinuePlayingGames(games, sourceFilter, maxCards),
+    [games, sourceFilter, maxCards],
   );
 
   const prefersReducedMotion = React.useMemo(() => {

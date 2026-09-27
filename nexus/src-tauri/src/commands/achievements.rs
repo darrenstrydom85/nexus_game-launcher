@@ -6,7 +6,7 @@ use tauri::State;
 use crate::db::DbState;
 use crate::models::achievement::{
     AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
-    NewlyUnlocked, UnlockedAchievement,
+    NewlyUnlocked,
 };
 
 use super::error::CommandError;
@@ -269,48 +269,15 @@ pub const ACHIEVEMENT_DEFINITIONS: &[AchievementDefinition] = &[
 // ── Commands ───────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn get_achievement_definitions() -> Vec<AchievementDefinition> {
-    ACHIEVEMENT_DEFINITIONS.to_vec()
-}
-
-#[tauri::command]
-pub fn get_unlocked_achievements(
-    db: State<'_, DbState>,
-) -> Result<Vec<UnlockedAchievement>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT id, unlocked_at, context_json FROM achievements ORDER BY unlocked_at DESC")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let rows = stmt
-        .query_map([], UnlockedAchievement::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let mut results = Vec::new();
-    for row in rows {
-        results.push(row.map_err(|e| CommandError::Database(e.to_string()))?);
-    }
-    Ok(results)
-}
-
-#[tauri::command]
 pub fn get_achievement_status(
     db: State<'_, DbState>,
 ) -> Result<Vec<AchievementStatus>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let mut unlocked_map = std::collections::HashMap::new();
     {
         let mut stmt = conn
-            .prepare("SELECT id, unlocked_at, context_json FROM achievements")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare("SELECT id, unlocked_at, context_json FROM achievements")?;
 
         let rows = stmt
             .query_map([], |row| {
@@ -319,11 +286,10 @@ pub fn get_achievement_status(
                     row.get::<_, String>("unlocked_at")?,
                     row.get::<_, Option<String>>("context_json")?,
                 ))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?;
 
         for row in rows {
-            let (id, at, ctx) = row.map_err(|e| CommandError::Database(e.to_string()))?;
+            let (id, at, ctx) = row?;
             unlocked_map.insert(id, (at, ctx));
         }
     }
@@ -636,11 +602,9 @@ fn build_context_num(key: &str, value: i64) -> String {
 pub fn evaluate_achievements_inner(conn: &Connection) -> Result<Vec<NewlyUnlocked>, CommandError> {
     let already_unlocked: HashSet<String> = {
         let mut stmt = conn
-            .prepare("SELECT id FROM achievements")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .prepare("SELECT id FROM achievements")?;
         let rows = stmt
-            .query_map([], |row| row.get::<_, String>(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            .query_map([], |row| row.get::<_, String>(0))?;
         rows.filter_map(|r| r.ok()).collect()
     };
 
@@ -784,16 +748,14 @@ pub fn evaluate_achievements_inner(conn: &Connection) -> Result<Vec<NewlyUnlocke
     // Always open a transaction to refresh context for already-unlocked achievements
     // and insert any new ones.
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     let mut result = Vec::with_capacity(newly_unlocked.len());
     for (def, unlocked_at, context) in &newly_unlocked {
         tx.execute(
             "INSERT OR IGNORE INTO achievements (id, unlocked_at, context_json) VALUES (?1, ?2, ?3)",
             params![def.id, unlocked_at, context],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
         result.push(NewlyUnlocked {
             id: def.id.to_string(),
@@ -837,22 +799,17 @@ pub fn evaluate_achievements_inner(conn: &Connection) -> Result<Vec<NewlyUnlocke
         tx.execute(
             "UPDATE achievements SET context_json = ?1 WHERE id = ?2",
             params![ctx, def.id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     }
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(result)
 }
 
 #[tauri::command]
 pub fn evaluate_achievements(db: State<'_, DbState>) -> Result<Vec<NewlyUnlocked>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     evaluate_achievements_inner(&conn)
 }

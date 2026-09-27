@@ -92,13 +92,11 @@ pub fn load_library_games(
     let mut stmt = conn
         .prepare(
             "SELECT id, name FROM games WHERE (status IS NULL OR status != 'removed') ORDER BY name",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
     let rows = stmt
         .query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| CommandError::Database(e.to_string()))
 }

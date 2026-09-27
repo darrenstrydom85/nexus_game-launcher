@@ -1,15 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::commands::error::CommandError;
-    use crate::commands::ping::ping;
     use serde_json::Value;
-
-    #[test]
-    fn ping_returns_pong() {
-        let response = ping().expect("ping should succeed");
-        assert_eq!(response.message, "pong");
-        assert!(response.timestamp > 0);
-    }
 
     #[test]
     fn command_error_io_serializes_to_tagged_json() {
@@ -95,29 +87,6 @@ mod tests {
     }
 
     #[test]
-    fn capabilities_include_filesystem_permissions() {
-        let caps = load_capabilities();
-        let ids = permission_ids(&caps);
-
-        let required_fs = [
-            "fs:allow-read-dir",
-            "fs:allow-read-file",
-            "fs:allow-write-file",
-            "fs:allow-write-text-file",
-            "fs:allow-mkdir",
-            "fs:allow-remove",
-            "fs:allow-rename",
-            "fs:allow-exists",
-        ];
-        for perm in &required_fs {
-            assert!(
-                ids.contains(&perm.to_string()),
-                "missing fs permission: {perm}"
-            );
-        }
-    }
-
-    #[test]
     fn filesystem_scopes_restricted_to_appdata_nexus() {
         let caps = load_capabilities();
         let perms = caps["permissions"].as_array().unwrap();
@@ -141,15 +110,6 @@ mod tests {
     }
 
     #[test]
-    fn capabilities_include_shell_open() {
-        let ids = permission_ids(&load_capabilities());
-        assert!(
-            ids.contains(&"shell:allow-open".to_string()),
-            "missing shell:allow-open"
-        );
-    }
-
-    #[test]
     fn capabilities_do_not_include_broad_shell_execute() {
         let caps = load_capabilities();
         let perms = caps["permissions"].as_array().unwrap();
@@ -162,52 +122,6 @@ mod tests {
                 assert_ne!(s, "shell:default", "shell:default is too broad");
             }
         }
-    }
-
-    #[test]
-    fn capabilities_include_process_default() {
-        let ids = permission_ids(&load_capabilities());
-        assert!(
-            ids.contains(&"process:default".to_string()),
-            "missing process:default"
-        );
-    }
-
-    #[test]
-    fn capabilities_include_http_with_scoped_urls() {
-        let caps = load_capabilities();
-        let perms = caps["permissions"].as_array().unwrap();
-
-        let http_perm = perms
-            .iter()
-            .find(|p| {
-                p.get("identifier")
-                    .and_then(|v| v.as_str())
-                    .map_or(false, |id| id.starts_with("http:"))
-            })
-            .expect("should have an http permission entry");
-
-        let allow = http_perm["allow"]
-            .as_array()
-            .expect("http perm should have allow array");
-        let urls: Vec<&str> = allow.iter().map(|a| a["url"].as_str().unwrap()).collect();
-
-        assert!(
-            urls.iter().any(|u| u.contains("steamgriddb.com")),
-            "missing steamgriddb.com scope"
-        );
-        assert!(
-            urls.iter().any(|u| u.contains("api.igdb.com")),
-            "missing api.igdb.com scope"
-        );
-        assert!(
-            urls.iter().any(|u| u.contains("id.twitch.tv")),
-            "missing id.twitch.tv scope"
-        );
-        assert!(
-            urls.iter().any(|u| u.contains("nexusgamelauncher.com")),
-            "missing nexusgamelauncher.com scope"
-        );
     }
 
     #[test]
@@ -268,15 +182,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn stub_commands_return_not_implemented() {
-        use crate::commands::playtime::get_playtime;
-        use crate::commands::scanner::scan_directory;
-
-        let scan_err = scan_directory("/tmp".into()).unwrap_err();
-        assert!(scan_err.to_string().contains("not yet implemented"));
-
-        let playtime_err = get_playtime("game-1".into()).unwrap_err();
-        assert!(playtime_err.to_string().contains("not yet implemented"));
-    }
 }

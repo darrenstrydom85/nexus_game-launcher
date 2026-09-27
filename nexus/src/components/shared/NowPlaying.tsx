@@ -6,7 +6,6 @@ import { useUiStore } from "@/stores/uiStore";
 import { Square, Info, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const formatTimer = formatRunningTimer;
 
 interface NowPlayingProps {
   onStop?: () => void;
@@ -114,7 +113,7 @@ export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingPro
                 data-testid="now-playing-timer"
                 className="shrink-0 font-mono text-sm tabular-nums text-foreground"
               >
-                {formatTimer(elapsed)}
+                {formatRunningTimer(elapsed)}
               </span>
 
               {!processDetected && (
@@ -209,7 +208,7 @@ export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingPro
                 data-testid="now-playing-timer"
                 className="font-mono text-lg tabular-nums text-foreground"
               >
-                {formatTimer(elapsed)}
+                {formatRunningTimer(elapsed)}
               </span>
 
               <div className="flex gap-2">
@@ -239,7 +238,7 @@ export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingPro
             /* Collapsed layout (64px sidebar) */
             <div
               className="flex flex-col items-center gap-1 p-2"
-              title={`${activeSession.gameName} — ${formatTimer(elapsed)}${!processDetected ? " (launching…)" : ""}`}
+              title={`${activeSession.gameName} — ${formatRunningTimer(elapsed)}${!processDetected ? " (launching…)" : ""}`}
             >
               {activeSession.coverUrl ? (
                 <div className="size-12 overflow-hidden rounded">
@@ -281,7 +280,7 @@ export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingPro
                 data-testid="now-playing-timer-compact"
                 className="font-mono text-[10px] tabular-nums text-muted-foreground"
               >
-                {formatTimer(elapsed)}
+                {formatRunningTimer(elapsed)}
               </span>
             </div>
           )}
@@ -291,4 +290,3 @@ export function NowPlaying({ onStop, onDetails, onForceIdentify }: NowPlayingPro
   );
 }
 
-export { formatTimer };

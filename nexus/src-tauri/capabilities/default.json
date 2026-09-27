@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window — grants filesystem, shell, process, and HTTP permissions with narrowly scoped access",
-  "windows": ["main"],
+  "description": "Capability for the main window — grants filesystem, process, and HTTP permissions with narrowly scoped access",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",
@@ -12,77 +14,60 @@
     "core:window:allow-set-focus",
     "core:event:default",
     "notification:default",
-    "opener:default",
-    {
-      "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "/**" }]
-    },
     {
       "identifier": "opener:allow-open-url",
       "allow": [
-        { "url": "https://id.twitch.tv/**" },
-        { "url": "https://www.twitch.tv/**" },
-        { "url": "https://accounts.google.com/**" }
+        {
+          "url": "https://twitch.tv/**"
+        },
+        {
+          "url": "https://www.twitch.tv/**"
+        },
+        {
+          "url": "https://howlongtobeat.com/**"
+        }
       ]
     },
-    "process:default",
+    "process:allow-restart",
     "updater:default",
-
-    {
-      "identifier": "fs:allow-read-dir",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
-    {
-      "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
     {
       "identifier": "fs:allow-read-text-file",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
+      "allow": [
+        {
+          "path": "$APPDATA/nexus/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-write-file",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
+      "allow": [
+        {
+          "path": "$APPDATA/nexus/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-write-text-file",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
+      "allow": [
+        {
+          "path": "$APPDATA/nexus/**"
+        }
+      ]
     },
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
-    {
-      "identifier": "fs:allow-remove",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
-    {
-      "identifier": "fs:allow-rename",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [{ "path": "$APPDATA/nexus/**" }]
-    },
-
-    "shell:allow-open",
     "dialog:allow-open",
     "dialog:allow-save",
-
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://www.steamgriddb.com/api/**" },
-        { "url": "https://cdn2.steamgriddb.com/**" },
-        { "url": "https://api.igdb.com/**" },
-        { "url": "https://api.twitch.tv/**" },
-        { "url": "https://id.twitch.tv/**" },
-        { "url": "https://images.igdb.com/**" },
-        { "url": "https://howlongtobeat.com/**" },
-        { "url": "https://www.nexusgamelauncher.com/**" },
-        { "url": "https://accounts.google.com/**" },
-        { "url": "https://oauth2.googleapis.com/**" },
-        { "url": "https://www.googleapis.com/**" }
+        {
+          "url": "https://howlongtobeat.com/**"
+        },
+        {
+          "url": "https://cdn2.steamgriddb.com/**"
+        },
+        {
+          "url": "https://images.igdb.com/**"
+        }
       ]
     }
   ]

@@ -30,39 +30,31 @@ pub enum CommandError {
     Unknown(String),
 }
 
-#[derive(Serialize)]
-#[serde(tag = "kind", content = "message")]
-#[serde(rename_all = "camelCase")]
-enum ErrorKind {
-    Io(String),
-    Database(String),
-    NotFound(String),
-    Parse(String),
-    Permission(String),
-    NetworkUnavailable(String),
-    Auth(String),
-    Api(String),
-    Unknown(String),
+impl From<rusqlite::Error> for CommandError {
+    fn from(e: rusqlite::Error) -> Self {
+        CommandError::Database(e.to_string())
+    }
 }
 
+/// Serialized for the frontend as `{ "kind": "<camelCase variant>", "message": "<Display>" }`.
 impl Serialize for CommandError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        let msg = self.to_string();
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
         let kind = match self {
-            Self::Io(_) => ErrorKind::Io(msg),
-            Self::Database(_) => ErrorKind::Database(msg),
-            Self::NotFound(_) => ErrorKind::NotFound(msg),
-            Self::Parse(_) => ErrorKind::Parse(msg),
-            Self::Permission(_) => ErrorKind::Permission(msg),
-            Self::NetworkUnavailable(_) => ErrorKind::NetworkUnavailable(msg),
-            Self::Auth(_) => ErrorKind::Auth(msg),
-            Self::Api(_) => ErrorKind::Api(msg),
-            Self::Unknown(_) => ErrorKind::Unknown(msg),
+            Self::Io(_) => "io",
+            Self::Database(_) => "database",
+            Self::NotFound(_) => "notFound",
+            Self::Parse(_) => "parse",
+            Self::Permission(_) => "permission",
+            Self::NetworkUnavailable(_) => "networkUnavailable",
+            Self::Auth(_) => "auth",
+            Self::Api(_) => "api",
+            Self::Unknown(_) => "unknown",
         };
-        kind.serialize(serializer)
+        let mut s = serializer.serialize_struct("CommandError", 2)?;
+        s.serialize_field("kind", kind)?;
+        s.serialize_field("message", &self.to_string())?;
+        s.end()
     }
 }
 

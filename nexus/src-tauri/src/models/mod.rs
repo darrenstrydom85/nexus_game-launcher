@@ -15,13 +15,13 @@ pub mod xp;
 
 pub use achievement::{
     AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
-    NewlyUnlocked, UnlockedAchievement,
+    NewlyUnlocked,
 };
 pub use analytics::{
     DistributionBucket, PerGameSessionStats, SessionDistribution, SessionRecord, SessionScope,
 };
 pub use ceremony::{GameCeremonyData, MonthPlayTime};
-pub use collection::{Collection, CollectionWithCount};
+pub use collection::Collection;
 pub use game::{Game, GameSource, GameStatus};
 pub use mastery::{GameMasteryTier, MasteryTier};
 pub use milestone::SessionMilestone;

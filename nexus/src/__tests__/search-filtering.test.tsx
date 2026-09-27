@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import { SearchCommand } from "@/components/Search/SearchCommand";
-import { FilterBar } from "@/components/Search/FilterBar";
-import { SmartCollections, SMART_COLLECTIONS } from "@/components/Search/SmartCollections";
 import { RandomPickerModal } from "@/components/RandomPicker/RandomPickerModal";
 import { PickerResult } from "@/components/RandomPicker/PickerResult";
 import { RouletteSpinner } from "@/components/RandomPicker/RouletteSpinner";
@@ -116,115 +114,6 @@ describe("Story 11.1: SearchCommand component", () => {
     render(<SearchCommand open onClose={() => {}} />);
     fireEvent.change(screen.getByTestId("search-input"), { target: { value: "test" } });
     expect(screen.getByTestId("search-clear")).toBeInTheDocument();
-  });
-});
-
-describe("Story 11.2: FilterBar", () => {
-  beforeEach(() => {
-    useGameStore.setState({ games });
-    useFilterStore.getState().clearAll();
-  });
-
-  it("renders the filter bar", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    expect(screen.getByTestId("filter-bar")).toBeInTheDocument();
-  });
-
-  it("has glassmorphism styling", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    expect(screen.getByTestId("filter-bar").className).toContain("glass-filter");
-  });
-
-  it("renders source pills", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    expect(screen.getByTestId("filter-source-steam")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-source-epic")).toBeInTheDocument();
-  });
-
-  it("renders status pills", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    expect(screen.getByTestId("filter-status-playing")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-status-completed")).toBeInTheDocument();
-  });
-
-  it("clicking source pill toggles filter", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    fireEvent.click(screen.getByTestId("filter-source-steam"));
-    expect(useFilterStore.getState().sources).toContain("steam");
-    fireEvent.click(screen.getByTestId("filter-source-steam"));
-    expect(useFilterStore.getState().sources).not.toContain("steam");
-  });
-
-  it("shows active filter chips", () => {
-    useFilterStore.getState().toggleSource("steam");
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    expect(screen.getByTestId("filter-chips")).toBeInTheDocument();
-  });
-
-  it("chip removal removes filter", () => {
-    useFilterStore.getState().toggleSource("steam");
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    fireEvent.click(screen.getByTestId("filter-chip-remove-source-steam"));
-    expect(useFilterStore.getState().sources).not.toContain("steam");
-  });
-
-  it("clear all removes all filters", () => {
-    useFilterStore.getState().toggleSource("steam");
-    useFilterStore.getState().toggleStatus("playing");
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    fireEvent.click(screen.getByTestId("filter-clear-all"));
-    expect(useFilterStore.getState().sources).toHaveLength(0);
-    expect(useFilterStore.getState().statuses).toHaveLength(0);
-  });
-
-  it("shows game count", () => {
-    render(<FilterBar totalCount={147} filteredCount={23} />);
-    expect(screen.getByTestId("filter-count")).toHaveTextContent("Showing 23 of 147 games");
-  });
-
-  it("genre dropdown opens on click", () => {
-    render(<FilterBar totalCount={100} filteredCount={50} />);
-    fireEvent.click(screen.getByTestId("filter-genre-trigger"));
-    expect(screen.getByTestId("filter-genre-dropdown")).toBeInTheDocument();
-  });
-});
-
-describe("Story 11.3: SmartCollections", () => {
-  beforeEach(() => {
-    useGameStore.setState({ games });
-    useFilterStore.getState().clearAll();
-  });
-
-  it("renders three smart collections", () => {
-    render(<SmartCollections />);
-    expect(screen.getByTestId("smart-collections")).toBeInTheDocument();
-    expect(screen.getByTestId("smart-playing")).toBeInTheDocument();
-    expect(screen.getByTestId("smart-backlog")).toBeInTheDocument();
-    expect(screen.getByTestId("smart-completed")).toBeInTheDocument();
-  });
-
-  it("shows correct count badges", () => {
-    render(<SmartCollections />);
-    expect(screen.getByTestId("smart-count-playing")).toHaveTextContent("1");
-    expect(screen.getByTestId("smart-count-completed")).toHaveTextContent("1");
-    expect(screen.getByTestId("smart-count-backlog")).toHaveTextContent("1");
-  });
-
-  it("click filters by status", () => {
-    render(<SmartCollections />);
-    fireEvent.click(screen.getByTestId("smart-playing"));
-    expect(useFilterStore.getState().statuses).toContain("playing");
-  });
-
-  it("can hide smart collections", () => {
-    render(<SmartCollections hiddenIds={["smart-backlog"]} />);
-    expect(screen.queryByTestId("smart-backlog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("smart-playing")).toBeInTheDocument();
-  });
-
-  it("cannot be deleted (no delete UI)", () => {
-    render(<SmartCollections />);
-    expect(SMART_COLLECTIONS).toHaveLength(3);
   });
 });
 
@@ -366,29 +255,20 @@ describe("filterStore", () => {
     useFilterStore.getState().clearAll();
   });
 
-  it("toggleSource adds and removes", () => {
-    useFilterStore.getState().toggleSource("steam");
-    expect(useFilterStore.getState().sources).toContain("steam");
-    useFilterStore.getState().toggleSource("steam");
-    expect(useFilterStore.getState().sources).not.toContain("steam");
+  it("toggleTag adds and removes", () => {
+    useFilterStore.getState().toggleTag("t1");
+    expect(useFilterStore.getState().tags).toEqual(["t1"]);
+    useFilterStore.getState().toggleTag("t1");
+    expect(useFilterStore.getState().tags).toEqual([]);
   });
 
-  it("hasActiveFilters returns true when filters set", () => {
-    expect(useFilterStore.getState().hasActiveFilters()).toBe(false);
-    useFilterStore.getState().toggleGenre("RPG");
-    expect(useFilterStore.getState().hasActiveFilters()).toBe(true);
-  });
-
-  it("clearAll resets everything", () => {
-    useFilterStore.getState().toggleSource("steam");
-    useFilterStore.getState().toggleStatus("playing");
-    useFilterStore.getState().toggleGenre("RPG");
-    useFilterStore.getState().setMinRating(3);
+  it("clearAll resets tags and critic score range", () => {
+    useFilterStore.getState().toggleTag("t1");
+    useFilterStore.getState().setCriticScoreRange(70, 90);
     useFilterStore.getState().clearAll();
     const s = useFilterStore.getState();
-    expect(s.sources).toHaveLength(0);
-    expect(s.statuses).toHaveLength(0);
-    expect(s.genres).toHaveLength(0);
-    expect(s.minRating).toBeNull();
+    expect(s.tags).toHaveLength(0);
+    expect(s.minCriticScore).toBe(0);
+    expect(s.maxCriticScore).toBe(100);
   });
 });

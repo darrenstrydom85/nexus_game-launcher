@@ -62,10 +62,7 @@ pub struct BackupStatus {
 /// Returns the current access token.
 async fn ensure_valid_token(db: &State<'_, DbState>) -> Result<String, CommandError> {
     let (refresh_token_opt, expires_at_opt) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let refresh = tokens::load_refresh_token(&conn)?;
         let expires = tokens::load_expires_at(&conn)?;
         (refresh, expires)
@@ -86,10 +83,7 @@ async fn ensure_valid_token(db: &State<'_, DbState>) -> Result<String, CommandEr
             match auth::refresh_access_token(client_id, client_secret, &refresh_token).await {
                 Ok((access_token, new_refresh, expires_in)) => {
                     let new_expires_at = now_secs + expires_in;
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                    let conn = db.conn()?;
                     let enc_access = tokens::encrypt(&access_token)?;
                     let enc_refresh = tokens::encrypt(&new_refresh)?;
                     tokens::set_setting_raw(&conn, keys::GDRIVE_ACCESS_TOKEN, &enc_access)?;
@@ -103,10 +97,7 @@ async fn ensure_valid_token(db: &State<'_, DbState>) -> Result<String, CommandEr
                 }
                 Err(e) => {
                     if matches!(e, CommandError::Auth(_)) {
-                        let conn = db
-                            .conn
-                            .lock()
-                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let conn = db.conn()?;
                         let _ = tokens::clear_all(&conn);
                         return Err(e);
                     }
@@ -119,10 +110,7 @@ async fn ensure_valid_token(db: &State<'_, DbState>) -> Result<String, CommandEr
         }
     }
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::load_access_token(&conn)?
         .ok_or_else(|| CommandError::Auth("Not connected to Google Drive".to_string()))
 }
@@ -133,10 +121,7 @@ async fn resolve_folder_id(
     access_token: &str,
 ) -> Result<String, CommandError> {
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         if let Some(id) = tokens::load_folder_id(&conn)? {
             return Ok(id);
         }
@@ -144,10 +129,7 @@ async fn resolve_folder_id(
 
     let folder_id = api::ensure_backup_folder(access_token).await?;
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::set_setting_raw(&conn, keys::GDRIVE_FOLDER_ID, &folder_id)?;
     Ok(folder_id)
 }
@@ -169,10 +151,7 @@ pub async fn gdrive_auth_start(
     let (access_token, refresh_token, expires_at, email) =
         auth::run_auth_flow(client_id, client_secret, open_url).await?;
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::store_tokens(&conn, &access_token, &refresh_token, expires_at, &email)?;
     drop(conn);
 
@@ -191,30 +170,11 @@ pub async fn gdrive_auth_start(
 }
 
 #[tauri::command]
-pub async fn gdrive_auth_status(db: State<'_, DbState>) -> Result<GDriveAuthStatus, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    let email = tokens::load_user_email(&conn)?;
-    let expires_at = tokens::load_expires_at(&conn)?;
-    let has_token = tokens::load_access_token(&conn)?.is_some();
-    Ok(GDriveAuthStatus {
-        authenticated: has_token,
-        email,
-        expires_at,
-    })
-}
-
-#[tauri::command]
 pub async fn gdrive_auth_logout(
     app: AppHandle,
     db: State<'_, DbState>,
 ) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::clear_all(&conn)?;
     drop(conn);
 
@@ -237,12 +197,8 @@ pub async fn run_backup(
     let folder_id = resolve_folder_id(&db, &access_token).await?;
 
     let schema_version = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        crate::db::migrations::current_version(&conn)
-            .map_err(|e| CommandError::Database(e.to_string()))?
+        let conn = db.conn()?;
+        crate::db::migrations::current_version(&conn)?
     };
 
     let app_data = std::env::var("APPDATA")
@@ -252,10 +208,7 @@ pub async fn run_backup(
         .join("backup_temp.db");
 
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let vacuum_sql = format!(
             "VACUUM INTO '{}'",
             temp_path.to_string_lossy().replace('\'', "''")
@@ -286,10 +239,7 @@ pub async fn run_backup(
     let file_id = upload_result?;
 
     let retention = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         tokens::get_setting_raw(&conn, keys::BACKUP_RETENTION_COUNT)?
             .and_then(|s| s.parse::<usize>().ok())
             .unwrap_or(5)
@@ -299,10 +249,7 @@ pub async fn run_backup(
 
     let completed_at = now_iso();
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         tokens::set_setting_raw(&conn, keys::BACKUP_LAST_AT, &completed_at)?;
     }
 
@@ -375,12 +322,8 @@ pub async fn restore_backup(
             .map_err(|e| CommandError::Database(format!("failed to read backup schema: {e}")))?;
 
         let current_version = {
-            let conn = db
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-            crate::db::migrations::current_version(&conn)
-                .map_err(|e| CommandError::Database(e.to_string()))?
+            let conn = db.conn()?;
+            crate::db::migrations::current_version(&conn)?
         };
 
         if backup_version > current_version {
@@ -394,10 +337,7 @@ pub async fn restore_backup(
     let db_path = db.db_path.clone();
 
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
             .map_err(|e| CommandError::Database(format!("checkpoint failed: {e}")))?;
     }
@@ -418,10 +358,7 @@ pub async fn restore_backup(
 
 #[tauri::command]
 pub async fn get_backup_status(db: State<'_, DbState>) -> Result<BackupStatus, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let email = tokens::load_user_email(&conn)?;
     let has_token = tokens::load_access_token(&conn)?.is_some();
@@ -452,10 +389,7 @@ pub async fn set_backup_frequency(
             "invalid frequency: {frequency}. Must be one of: manual, daily, weekly"
         )));
     }
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::set_setting_raw(&conn, keys::BACKUP_FREQUENCY, &frequency)?;
     Ok(())
 }
@@ -467,10 +401,7 @@ pub async fn set_backup_retention(db: State<'_, DbState>, count: u32) -> Result<
             "retention count must be between 1 and 100".to_string(),
         ));
     }
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::set_setting_raw(&conn, keys::BACKUP_RETENTION_COUNT, &count.to_string())?;
     Ok(())
 }
@@ -654,10 +585,7 @@ fn check_backup_due(db: &DbState) -> Result<bool, ()> {
 /// Like `ensure_valid_token` but takes `&DbState` directly instead of `State<'_, DbState>`.
 async fn ensure_valid_token_unmanaged(db: &DbState) -> Result<String, CommandError> {
     let (refresh_token_opt, expires_at_opt) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         let refresh = tokens::load_refresh_token(&conn)?;
         let expires = tokens::load_expires_at(&conn)?;
         (refresh, expires)
@@ -678,10 +606,7 @@ async fn ensure_valid_token_unmanaged(db: &DbState) -> Result<String, CommandErr
             match auth::refresh_access_token(client_id, client_secret, &refresh_token).await {
                 Ok((access_token, new_refresh, expires_in)) => {
                     let new_expires_at = now_secs + expires_in;
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                    let conn = db.conn()?;
                     let enc_access = tokens::encrypt(&access_token)?;
                     let enc_refresh = tokens::encrypt(&new_refresh)?;
                     tokens::set_setting_raw(&conn, keys::GDRIVE_ACCESS_TOKEN, &enc_access)?;
@@ -695,10 +620,7 @@ async fn ensure_valid_token_unmanaged(db: &DbState) -> Result<String, CommandErr
                 }
                 Err(e) => {
                     if matches!(e, CommandError::Auth(_)) {
-                        let conn = db
-                            .conn
-                            .lock()
-                            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+                        let conn = db.conn()?;
                         let _ = tokens::clear_all(&conn);
                         return Err(e);
                     }
@@ -711,10 +633,7 @@ async fn ensure_valid_token_unmanaged(db: &DbState) -> Result<String, CommandErr
         }
     }
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::load_access_token(&conn)?
         .ok_or_else(|| CommandError::Auth("Not connected to Google Drive".to_string()))
 }
@@ -725,10 +644,7 @@ async fn resolve_folder_id_unmanaged(
     access_token: &str,
 ) -> Result<String, CommandError> {
     {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
         if let Some(id) = tokens::load_folder_id(&conn)? {
             return Ok(id);
         }
@@ -736,10 +652,7 @@ async fn resolve_folder_id_unmanaged(
 
     let folder_id = api::ensure_backup_folder(access_token).await?;
 
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
     tokens::set_setting_raw(&conn, keys::GDRIVE_FOLDER_ID, &folder_id)?;
     Ok(folder_id)
 }

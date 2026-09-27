@@ -1,88 +1,17 @@
-//! Encrypted storage and retrieval of Google Drive OAuth tokens in the SQLite `settings` table.
-//! Uses AES-256-GCM with a device-bound key stored in app data (same pattern as Twitch).
-
-use aes_gcm::{
-    aead::{Aead, KeyInit},
-    Aes256Gcm,
-};
-use base64::Engine;
-use rusqlite::params;
-use std::path::PathBuf;
+//! Google Drive OAuth tokens in the SQLite `settings` table, encrypted via `crate::secrets`.
 
 use crate::commands::error::CommandError;
 use crate::models::settings::keys;
+pub use crate::secrets::{delete_setting, get_setting_raw, set_setting_raw};
 
-const GDRIVE_KEY_FILENAME: &str = "gdrive_key.bin";
-const NONCE_LEN: usize = 12;
-const KEY_LEN: usize = 32;
-
-fn key_path() -> Result<PathBuf, CommandError> {
-    let app_data = std::env::var("APPDATA")
-        .map_err(|_| CommandError::Unknown("APPDATA not set (non-Windows?)".to_string()))?;
-    Ok(PathBuf::from(app_data)
-        .join("nexus")
-        .join(GDRIVE_KEY_FILENAME))
-}
-
-fn ensure_key_file() -> Result<PathBuf, CommandError> {
-    let path = key_path()?;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| CommandError::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
-    }
-    if !path.exists() {
-        let mut key = [0u8; KEY_LEN];
-        getrandom::getrandom(&mut key).map_err(|e| CommandError::Unknown(e.to_string()))?;
-        std::fs::write(&path, &key).map_err(CommandError::Io)?;
-    }
-    Ok(path)
-}
-
-fn load_key() -> Result<[u8; KEY_LEN], CommandError> {
-    let path = ensure_key_file()?;
-    let bytes = std::fs::read(&path).map_err(CommandError::Io)?;
-    let mut key = [0u8; KEY_LEN];
-    if bytes.len() != KEY_LEN {
-        return Err(CommandError::Unknown(format!(
-            "invalid key file length: {}",
-            bytes.len()
-        )));
-    }
-    key.copy_from_slice(&bytes);
-    Ok(key)
-}
+const KEY_FILE: &str = "gdrive_key.bin";
 
 pub fn encrypt(plaintext: &str) -> Result<String, CommandError> {
-    let key = load_key()?;
-    let cipher =
-        Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
-    let mut nonce_bytes = [0u8; NONCE_LEN];
-    getrandom::getrandom(&mut nonce_bytes).map_err(|e| CommandError::Unknown(e.to_string()))?;
-    let nonce = aes_gcm::Nonce::from_slice(&nonce_bytes);
-    let ciphertext = cipher
-        .encrypt(nonce, plaintext.as_bytes())
-        .map_err(|e| CommandError::Unknown(e.to_string()))?;
-    let mut combined = nonce_bytes.to_vec();
-    combined.extend(ciphertext);
-    Ok(base64::engine::general_purpose::STANDARD.encode(&combined))
+    crate::secrets::encrypt(KEY_FILE, plaintext)
 }
 
 pub fn decrypt(encoded: &str) -> Result<String, CommandError> {
-    let key = load_key()?;
-    let combined = base64::engine::general_purpose::STANDARD
-        .decode(encoded.trim())
-        .map_err(|e| CommandError::Parse(format!("gdrive token decode: {e}")))?;
-    if combined.len() < NONCE_LEN {
-        return Err(CommandError::Parse("gdrive token too short".to_string()));
-    }
-    let (nonce_slice, ct) = combined.split_at(NONCE_LEN);
-    let cipher =
-        Aes256Gcm::new_from_slice(&key).map_err(|e| CommandError::Unknown(e.to_string()))?;
-    let nonce = aes_gcm::Nonce::from_slice(nonce_slice);
-    let plaintext = cipher.decrypt(nonce, ct).map_err(|_| {
-        CommandError::Auth("token decryption failed (wrong machine or corrupted)".to_string())
-    })?;
-    String::from_utf8(plaintext).map_err(|e| CommandError::Parse(e.to_string()))
+    crate::secrets::decrypt(KEY_FILE, encoded)
 }
 
 pub fn gdrive_setting_keys() -> &'static [&'static str] {
@@ -93,48 +22,6 @@ pub fn gdrive_setting_keys() -> &'static [&'static str] {
         keys::GDRIVE_USER_EMAIL,
         keys::GDRIVE_FOLDER_ID,
     ]
-}
-
-pub fn get_setting_raw(
-    conn: &rusqlite::Connection,
-    key: &str,
-) -> Result<Option<String>, CommandError> {
-    let mut stmt = conn
-        .prepare("SELECT value FROM settings WHERE key = ?1")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-    let mut rows = stmt
-        .query(params![key])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-    if let Some(row) = rows
-        .next()
-        .map_err(|e| CommandError::Database(e.to_string()))?
-    {
-        let v: Option<String> = row
-            .get(0)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(v)
-    } else {
-        Ok(None)
-    }
-}
-
-pub fn set_setting_raw(
-    conn: &rusqlite::Connection,
-    key: &str,
-    value: &str,
-) -> Result<(), CommandError> {
-    conn.execute(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
-        params![key, value],
-    )
-    .map_err(|e| CommandError::Database(e.to_string()))?;
-    Ok(())
-}
-
-pub fn delete_setting(conn: &rusqlite::Connection, key: &str) -> Result<(), CommandError> {
-    conn.execute("DELETE FROM settings WHERE key = ?1", params![key])
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-    Ok(())
 }
 
 pub fn store_tokens(

@@ -52,10 +52,7 @@ pub async fn check_library_health(
         Option<String>,
         i64,
     )> = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        let conn = db.conn()?;
 
         let mut stmt = conn
             .prepare(
@@ -66,8 +63,7 @@ pub async fn check_library_health(
                      source = 'standalone'
                      OR exe_path IS NOT NULL
                    )",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            )?;
 
         let rows = stmt
             .query_map(params![], |row| {
@@ -80,10 +76,8 @@ pub async fn check_library_health(
                     row.get::<_, Option<String>>(5)?,
                     row.get::<_, i64>(6)?,
                 ))
-            })
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         rows
     };
@@ -187,18 +181,14 @@ mod tests {
             Option<String>,
             i64,
         )> = {
-            let conn = state
-                .conn
-                .lock()
-                .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+            let conn = state.conn()?;
             let mut stmt = conn
                 .prepare(
                     "SELECT id, name, source, exe_path, folder_path, last_played, total_play_time
                      FROM games
                      WHERE is_hidden = 0
                        AND (source = 'standalone' OR exe_path IS NOT NULL)",
-                )
-                .map_err(|e| CommandError::Database(e.to_string()))?;
+                )?;
             let rows = stmt
                 .query_map(params![], |row| {
                     Ok((
@@ -210,10 +200,8 @@ mod tests {
                         row.get::<_, Option<String>>(5)?,
                         row.get::<_, i64>(6)?,
                     ))
-                })
-                .map_err(|e| CommandError::Database(e.to_string()))?;
-            rows.collect::<Result<Vec<_>, _>>()
-                .map_err(|e| CommandError::Database(e.to_string()))?
+                })?;
+            rows.collect::<Result<Vec<_>, _>>()?
         };
 
         let checkable: Vec<_> = candidates

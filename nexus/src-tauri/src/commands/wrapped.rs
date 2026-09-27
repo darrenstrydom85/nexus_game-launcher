@@ -186,10 +186,7 @@ fn get_wrapped_report_inner(
     period: WrappedPeriod,
     today_iso: &str,
 ) -> Result<WrappedReport, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let today_date = if today_iso.len() >= 10 {
         &today_iso[..10]
@@ -199,8 +196,7 @@ fn get_wrapped_report_inner(
     let (start_iso, end_iso, period_label) = resolve_period_to_range(&period, today_iso)?;
 
     let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .unchecked_transaction()?;
 
     // 1) Totals from sessions in range — join to games so orphaned sessions
     //    (old game_id) are resolved via (source, source_id) fallback.
@@ -218,8 +214,7 @@ fn get_wrapped_report_inner(
             ),
             params![start_iso, end_iso],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // 2) Total games in library (non-hidden, at report time)
     let total_games_in_library: i64 = tx
@@ -227,8 +222,7 @@ fn get_wrapped_report_inner(
             "SELECT COUNT(*) FROM games WHERE is_hidden = 0",
             [],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // 3) New games added in period (added_at in range)
     let new_games_added: i64 = tx
@@ -236,8 +230,7 @@ fn get_wrapped_report_inner(
             "SELECT COUNT(*) FROM games WHERE is_hidden = 0 AND added_at >= ?1 AND added_at <= ?2",
             params![start_iso, end_iso],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // 4) New titles in period: games whose first-ever session (MIN(started_at)) falls in range
     let new_titles_in_period: i64 = tx
@@ -254,8 +247,7 @@ fn get_wrapped_report_inner(
             ),
             params![start_iso, end_iso],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     // 5) Top games by play time in period (for most_played_game and top_games)
     let top_games_sql = format!(
@@ -270,8 +262,7 @@ fn get_wrapped_report_inner(
         SESSION_FILTER_PS
     );
     let top_games: Vec<WrappedGame> = tx
-        .prepare(&top_games_sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .prepare(&top_games_sql)?
         .query_map(params![start_iso, end_iso], |row| {
             Ok(WrappedGame {
                 id: row.get("id")?,
@@ -285,10 +276,8 @@ fn get_wrapped_report_inner(
                     .get::<_, String>("source")
                     .unwrap_or_else(|_| "unknown".to_string()),
             })
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let most_played_game = top_games.first().cloned();
 
@@ -301,14 +290,11 @@ fn get_wrapped_report_inner(
              WHERE {} AND ps.started_at >= ?1 AND ps.started_at <= ?2
              GROUP BY g.id",
             SESSION_FILTER_PS
-        ))
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        ))?
         .query_map(params![start_iso, end_iso], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let (genre_breakdown, most_played_genre, genre_tagline) = build_genre_breakdown(&per_game_play);
 
@@ -321,12 +307,9 @@ fn get_wrapped_report_inner(
              WHERE {} AND ps.started_at >= ?1 AND ps.started_at <= ?2
              GROUP BY g.source",
             SESSION_FILTER_PS
-        ))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map(params![start_iso, end_iso], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ))?
+        .query_map(params![start_iso, end_iso], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let total_for_pct = total_play_time_s.max(1);
     let platform_breakdown: Vec<PlatformShare> = platform_rows
@@ -364,8 +347,7 @@ fn get_wrapped_report_inner(
                 })
             },
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     // 9) Distinct session dates for streak (Rust loop)
     let distinct_dates: Vec<String> = tx
@@ -373,12 +355,9 @@ fn get_wrapped_report_inner(
             "SELECT DISTINCT date(started_at) as d FROM play_sessions
              WHERE {} AND started_at >= ?1 AND started_at <= ?2 ORDER BY d",
             SESSION_FILTER
-        ))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map(params![start_iso, end_iso], |row| row.get::<_, String>(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        ))?
+        .query_map(params![start_iso, end_iso], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
 
     let longest_streak_days = compute_longest_streak(&distinct_dates);
 
@@ -394,8 +373,7 @@ fn get_wrapped_report_inner(
             params![start_iso, end_iso],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     let (busiest_day, busiest_day_play_time_s) = busiest_row.unwrap_or((String::new(), 0));
 
@@ -427,8 +405,7 @@ fn get_wrapped_report_inner(
                 })
             },
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     let last_game: Option<WrappedGame> = tx
         .query_row(
@@ -457,8 +434,7 @@ fn get_wrapped_report_inner(
                 })
             },
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        .optional()?;
 
     // 12) play_time_by_month (12 entries for year, 1 for month)
     let play_time_by_month: Vec<MonthBucket> = match &period {
@@ -469,12 +445,9 @@ fn get_wrapped_report_inner(
                     "SELECT CAST(strftime('%m', started_at) AS INTEGER) as mo, COALESCE(SUM(duration_s), 0) as t
                      FROM play_sessions WHERE ended_at IS NOT NULL AND duration_s >= 30
                      AND started_at >= ?1 AND started_at <= ?2 GROUP BY mo",
-                )
-                .map_err(|e| CommandError::Database(e.to_string()))?
-                .query_map(params![start_iso, end_iso], |row| Ok((row.get(0)?, row.get(1)?)))
-                .map_err(|e| CommandError::Database(e.to_string()))?
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|e| CommandError::Database(e.to_string()))?;
+                )?
+                .query_map(params![start_iso, end_iso], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<Result<Vec<_>, _>>()?;
             for (mo, t) in rows {
                 if (1..=12).contains(&mo) {
                     buckets[(mo - 1) as usize].1 = t;
@@ -509,14 +482,11 @@ fn get_wrapped_report_inner(
     );
     let mut day_buckets = vec![(0u8, 0i64); 7];
     for (dow, t) in tx
-        .prepare(&dow_sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .prepare(&dow_sql)?
         .query_map(params![start_iso, end_iso], |row| {
             Ok((row.get::<_, i64>(0)? as u8, row.get(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        })?
+        .collect::<Result<Vec<_>, _>>()?
     {
         if (0..7).contains(&dow) {
             day_buckets[dow as usize].1 = t;
@@ -539,14 +509,11 @@ fn get_wrapped_report_inner(
     );
     let mut hour_buckets = vec![0i64; 24];
     for (h, t) in tx
-        .prepare(&hour_sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .prepare(&hour_sql)?
         .query_map(params![start_iso, end_iso], |row| {
             Ok((row.get::<_, i64>(0)?, row.get(1)?))
-        })
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        })?
+        .collect::<Result<Vec<_>, _>>()?
     {
         if (0..24).contains(&h) {
             hour_buckets[h as usize] = t;
@@ -594,8 +561,7 @@ fn get_wrapped_report_inner(
     };
     let trivia = build_trivia(&tx, &start_iso, &end_iso, &most_played_game, period_year);
 
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+    tx.commit()?;
 
     Ok(WrappedReport {
         period_label,
@@ -996,8 +962,7 @@ fn compute_comparison_previous(
             ),
             params![prev_start, prev_end],
             |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
+        )?;
 
     if previous_total_s == 0 {
         return Ok(Some(Comparison {
@@ -1024,20 +989,15 @@ fn compute_comparison_previous(
 fn get_available_wrapped_periods_inner(
     db: &DbState,
 ) -> Result<AvailableWrappedPeriods, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+    let conn = db.conn()?;
 
     let years_with_sessions: Vec<i32> = conn
         .prepare(&format!(
             "SELECT DISTINCT CAST(strftime('%Y', started_at) AS INTEGER) as y FROM play_sessions
              WHERE {} ORDER BY y ASC",
             SESSION_FILTER
-        ))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .query_map([], |row| row.get::<_, i64>(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        ))?
+        .query_map([], |row| row.get::<_, i64>(0))?
         .filter_map(|r| r.ok())
         .filter(|y: &i64| *y >= 1970 && *y <= 2100)
         .map(|y| y as i32)
@@ -1066,8 +1026,7 @@ fn get_available_wrapped_periods_inner(
             params![this_month_start, this_month_end],
             |row| row.get::<_, i32>(0),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .optional()?
         .is_some();
 
     let (last_month_start, last_month_end) = {
@@ -1087,8 +1046,7 @@ fn get_available_wrapped_periods_inner(
             params![last_month_start, last_month_end],
             |row| row.get::<_, i32>(0),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .optional()?
         .is_some();
 
     let y: i32 = today[..4].parse().unwrap_or(1970);
@@ -1101,8 +1059,7 @@ fn get_available_wrapped_periods_inner(
             params![format!("{y}-01-01T00:00:00Z"), format!("{y}-12-31T23:59:59Z")],
             |row| row.get::<_, i32>(0),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .optional()?
         .is_some();
 
     let last_year_has_data: bool = conn
@@ -1114,8 +1071,7 @@ fn get_available_wrapped_periods_inner(
             params![format!("{}-01-01T00:00:00Z", y - 1), format!("{}-12-31T23:59:59Z", y - 1)],
             |row| row.get::<_, i32>(0),
         )
-        .optional()
-        .map_err(|e| CommandError::Database(e.to_string()))?
+        .optional()?
         .is_some();
 
     Ok(AvailableWrappedPeriods {

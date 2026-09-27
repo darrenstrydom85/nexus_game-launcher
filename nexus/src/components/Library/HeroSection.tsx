@@ -4,6 +4,7 @@ import { useUiStore } from "@/stores/uiStore";
 import type { Game, GameSource } from "@/stores/gameStore";
 import { Play, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatPlayTime } from "@/lib/utils";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
   steam: "Steam",
@@ -14,14 +15,6 @@ const SOURCE_LABELS: Record<GameSource, string> = {
   xbox: "Xbox",
   standalone: "Standalone",
 };
-
-function formatPlayTime(totalSeconds: number): string {
-  const s = totalSeconds || 0;
-  const hours = Math.floor(s / 3600);
-  const minutes = Math.floor((s % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
 
 interface HeroSectionProps {
   games: Game[];

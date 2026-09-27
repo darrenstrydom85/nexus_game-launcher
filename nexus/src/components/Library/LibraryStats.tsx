@@ -91,11 +91,6 @@ interface BackendSession {
   note: string | null;
 }
 
-/** Formats play time in seconds as "Xh Ym" or "Xm". Exported for tests. */
-export function formatHours(seconds: number): string {
-  return formatPlayTime(seconds);
-}
-
 interface StatCardProps {
   icon: React.ReactNode;
   label: string;

@@ -50,22 +50,32 @@ struct ExportProgress {
 
 /// Resolve an asset's bytes from either a remote URL or a local file path.
 /// Returns `None` on any failure so the caller can skip it gracefully.
+/// `source` comes from the webview: local paths must be image files (no
+/// games.db / key files into the zip) and remote must be https.
+// ponytail: any https host allowed, since custom covers can live anywhere.
+// Host allowlist if the SSRF angle ever matters.
 async fn fetch_asset_bytes(client: &reqwest::Client, source: &str) -> Option<Vec<u8>> {
     let trimmed = source.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-
-    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+    if trimmed.starts_with("https://") {
         let resp = client.get(trimmed).send().await.ok()?;
         if !resp.status().is_success() {
             return None;
         }
         let bytes = resp.bytes().await.ok()?;
         Some(bytes.to_vec())
-    } else {
+    } else if super::utils::is_local_image(trimmed) {
         std::fs::read(trimmed).ok()
+    } else {
+        None
     }
+}
+
+/// Archive entry names must stay inside the archive (no zip-slip on extract).
+fn is_safe_rel_path(rel_path: &str) -> bool {
+    !rel_path.is_empty()
+        && !std::path::Path::new(rel_path).has_root()
+        && !rel_path.contains(':')
+        && !rel_path.split(['/', '\\']).any(|part| part == "..")
 }
 
 /// Write a frontend-built HTML page plus its referenced cover images into a zip
@@ -79,6 +89,17 @@ pub async fn export_stats_zip(
     html: String,
     assets: Vec<ExportAsset>,
 ) -> Result<ExportZipResult, CommandError> {
+    // dest_path comes from the save dialog; refuse anything that isn't a .zip
+    // so this can't be used to overwrite arbitrary files.
+    let is_zip = std::path::Path::new(&dest_path)
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("zip"));
+    if !is_zip {
+        return Err(CommandError::Permission(format!(
+            "export destination must be a .zip: {dest_path}"
+        )));
+    }
+
     let client = reqwest::Client::new();
 
     // De-duplicate by rel_path so the same cover shared across sections is
@@ -86,7 +107,7 @@ pub async fn export_stats_zip(
     let mut seen: HashSet<String> = HashSet::new();
     let unique: Vec<&ExportAsset> = assets
         .iter()
-        .filter(|a| seen.insert(a.rel_path.clone()))
+        .filter(|a| is_safe_rel_path(&a.rel_path) && seen.insert(a.rel_path.clone()))
         .collect();
 
     let total = unique.len();
@@ -148,4 +169,19 @@ pub async fn export_stats_zip(
         assets_written,
         assets_failed,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_safe_rel_path;
+
+    #[test]
+    fn rel_paths_stay_inside_archive() {
+        assert!(is_safe_rel_path("assets/covers/abc.jpg"));
+        assert!(!is_safe_rel_path(""));
+        assert!(!is_safe_rel_path("../evil.exe"));
+        assert!(!is_safe_rel_path("assets/../../evil.exe"));
+        assert!(!is_safe_rel_path("/etc/passwd"));
+        assert!(!is_safe_rel_path("C:evil.exe"));
+    }
 }

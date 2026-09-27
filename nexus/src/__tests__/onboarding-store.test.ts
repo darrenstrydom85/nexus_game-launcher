@@ -14,11 +14,6 @@ describe("onboardingStore", () => {
     expect(state.completedSteps).toEqual([]);
   });
 
-  it("setCurrentStep updates the step", () => {
-    useOnboardingStore.getState().setCurrentStep("steamgriddb");
-    expect(useOnboardingStore.getState().currentStep).toBe("steamgriddb");
-  });
-
   it("skipStep adds step to skipped list", () => {
     useOnboardingStore.getState().skipStep("steamgriddb");
     expect(useOnboardingStore.getState().skippedSteps).toEqual(["steamgriddb"]);
@@ -46,7 +41,7 @@ describe("onboardingStore", () => {
   });
 
   it("resetOnboarding restores initial state", () => {
-    useOnboardingStore.getState().setCurrentStep("sources");
+    useOnboardingStore.setState({ currentStep: "sources" });
     useOnboardingStore.getState().skipStep("steamgriddb");
     useOnboardingStore.getState().completeOnboarding();
     useOnboardingStore.getState().resetOnboarding();
@@ -73,7 +68,7 @@ describe("onboardingStore", () => {
   it("goBack skips over pre-skipped steps", () => {
     useOnboardingStore.getState().skipStep("steamgriddb");
     useOnboardingStore.getState().skipStep("igdb");
-    useOnboardingStore.getState().setCurrentStep("sources");
+    useOnboardingStore.setState({ currentStep: "sources" });
     useOnboardingStore.getState().goBack();
     // Should land on welcome, not igdb or steamgriddb
     expect(useOnboardingStore.getState().currentStep).toBe("welcome");

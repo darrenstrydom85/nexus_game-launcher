@@ -22,7 +22,6 @@ dotenvy = "0.15"
 tauri = { version = "2", features = ["protocol-asset", "image-ico", "tray-icon", "devtools"] }
 tauri-plugin-opener = "2"
 tauri-plugin-fs = "2"
-tauri-plugin-shell = "2"
 tauri-plugin-process = "2"
 tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 tauri-plugin-dialog = "2"
@@ -36,8 +35,6 @@ tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 log = "0.4"
 regex-lite = "0.1"
-notify = "7"
-notify-debouncer-mini = "0.5"
 winreg = "0.55"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 strsim = "0.11"
@@ -46,12 +43,12 @@ base64 = "0.22"
 sha2 = "0.10"
 getrandom = "0.2"
 urlencoding = "2"
-arboard = "3"
-png = "0.18"
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-updater = "2"
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+# DPAPI for wrapping the token encryption keys (see src/secrets.rs). Already in the tree via tauri.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
 
 [dev-dependencies]
 tempfile = "3"

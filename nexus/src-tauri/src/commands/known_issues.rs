@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 const KNOWN_ISSUES_URL: &str = "https://www.nexusgamelauncher.com/known-issues.json";
 
-/// Raw JSONBin payload shape: `{ "Known_Issues": ["…", "…"] }`.
+/// Payload shape of `known-issues.json`: `{ "Known_Issues": ["…", "…"] }`.
 #[derive(Debug, Deserialize)]
 struct KnownIssuesResponse {
     #[serde(rename = "Known_Issues", default)]
