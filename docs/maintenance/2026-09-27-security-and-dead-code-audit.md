@@ -44,7 +44,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   limited to the device-code flow; not worth the login UX change + forced re-link. Original note: (`option_env!`). Move to a public client + PKCE, drop
   `NEXUS_TWITCH_CLIENT_SECRET`. Google installed-app secret is non-confidential by design — leave it.
   `src-tauri/src/commands/twitch.rs:33-35`
-- [ ] **S9 token encryption key stored next to the ciphertext** — wrap the key with DPAPI (`CryptProtectData`)
+- [x] **S9 token encryption key stored next to the ciphertext** — wrap the key with DPAPI (`CryptProtectData`)
   or use the `keyring` crate. `src-tauri/src/twitch/tokens.rs:19-41`, `src-tauri/src/gdrive/tokens.rs:20-23`
 - [x] **S10 `stop_game(pid)` kills any PID** — only allow PIDs recorded for the active session.
   `src-tauri/src/commands/launcher.rs:224`
@@ -89,6 +89,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
 - [ ] **D6 `CommandError` boilerplate** — 448× `map_err(Database)` + 213× lock-poisoned `map_err`.
   `impl From<rusqlite::Error>` + `DbState::conn()` helper, use `?`. (~650)
 - [ ] **D7 duplicated OAuth plumbing** — `gdrive/{auth,tokens}.rs` vs `twitch/{auth,tokens}.rs` near-identical.
+  Token half done with S9 (`src/secrets.rs`); `auth.rs` (PKCE, callback server, error parsing) remains.
   One `oauth` module parameterised by provider + key file. Do alongside S8/S9. (~300)
 - [ ] **D8 `commands/tests.rs`** duplicates `error.rs` tests. (~280)
 - [ ] **D9 `lib/tauri.ts`** — 1188 lines, half the app bypasses it with raw `invoke`. Pick one path; ~60 wrappers dead.
@@ -117,6 +118,8 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - S2: custom cover/hero files outside the cache are re-granted at startup (image extensions only). A path
   typed into the Edit modal (not picked via Browse) shows after the next restart.
 - S4: remote export sources are https-only but any host (custom covers). Host allowlist if SSRF ever matters.
+- S9: keys wrapped with DPAPI (CurrentUser) in `src/secrets.rs`; raw 32-byte legacy key files are rewrapped on
+  first load. A data folder restored on another machine/user can't unwrap them: re-link Twitch/Google there.
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

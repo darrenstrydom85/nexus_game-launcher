@@ -4,6 +4,7 @@ pub mod dedup;
 pub mod gdrive;
 pub mod metadata;
 pub mod models;
+mod secrets;
 pub mod sources;
 pub mod twitch;
 mod utils;
