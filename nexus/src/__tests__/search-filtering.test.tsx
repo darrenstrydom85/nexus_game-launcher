@@ -255,29 +255,20 @@ describe("filterStore", () => {
     useFilterStore.getState().clearAll();
   });
 
-  it("toggleSource adds and removes", () => {
-    useFilterStore.getState().toggleSource("steam");
-    expect(useFilterStore.getState().sources).toContain("steam");
-    useFilterStore.getState().toggleSource("steam");
-    expect(useFilterStore.getState().sources).not.toContain("steam");
+  it("toggleTag adds and removes", () => {
+    useFilterStore.getState().toggleTag("t1");
+    expect(useFilterStore.getState().tags).toEqual(["t1"]);
+    useFilterStore.getState().toggleTag("t1");
+    expect(useFilterStore.getState().tags).toEqual([]);
   });
 
-  it("hasActiveFilters returns true when filters set", () => {
-    expect(useFilterStore.getState().hasActiveFilters()).toBe(false);
-    useFilterStore.getState().toggleGenre("RPG");
-    expect(useFilterStore.getState().hasActiveFilters()).toBe(true);
-  });
-
-  it("clearAll resets everything", () => {
-    useFilterStore.getState().toggleSource("steam");
-    useFilterStore.getState().toggleStatus("playing");
-    useFilterStore.getState().toggleGenre("RPG");
-    useFilterStore.getState().setMinRating(3);
+  it("clearAll resets tags and critic score range", () => {
+    useFilterStore.getState().toggleTag("t1");
+    useFilterStore.getState().setCriticScoreRange(70, 90);
     useFilterStore.getState().clearAll();
     const s = useFilterStore.getState();
-    expect(s.sources).toHaveLength(0);
-    expect(s.statuses).toHaveLength(0);
-    expect(s.genres).toHaveLength(0);
-    expect(s.minRating).toBeNull();
+    expect(s.tags).toHaveLength(0);
+    expect(s.minCriticScore).toBe(0);
+    expect(s.maxCriticScore).toBe(100);
   });
 });

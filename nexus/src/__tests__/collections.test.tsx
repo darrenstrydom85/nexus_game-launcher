@@ -267,18 +267,4 @@ describe("collectionStore", () => {
     expect(useCollectionStore.getState().collections[0].gameIds).toHaveLength(0);
   });
 
-  it("reorderCollections updates sort order", () => {
-    useCollectionStore.setState({
-      collections: [
-        makeCollection("c1", "A", [], 0),
-        makeCollection("c2", "B", [], 1),
-      ],
-    });
-    useCollectionStore.getState().reorderCollections(["c2", "c1"]);
-    const cols = useCollectionStore.getState().collections;
-    expect(cols[0].id).toBe("c2");
-    expect(cols[0].sortOrder).toBe(0);
-    expect(cols[1].id).toBe("c1");
-    expect(cols[1].sortOrder).toBe(1);
-  });
 });

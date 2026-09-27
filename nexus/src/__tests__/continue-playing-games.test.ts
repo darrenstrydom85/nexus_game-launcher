@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getContinuePlayingGames } from "@/components/Library/ContinuePlayingRow";
-import type { Game, GameSource } from "@/stores/gameStore";
+import type { Game } from "@/stores/gameStore";
 
 const BASE_GAME: Game = {
   id: "g1",
@@ -63,7 +63,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
       const games = [
         makeGame({ id: "g1", status: "playing", lastPlayedAt: daysAgo(10) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("g1");
     });
@@ -73,7 +73,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "g1", status: "completed", lastPlayedAt: daysAgo(3) }),
         makeGame({ id: "g2", status: "backlog", lastPlayedAt: daysAgo(6) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(2);
     });
 
@@ -81,7 +81,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
       const games = [
         makeGame({ id: "g1", status: "playing", lastPlayedAt: null }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(0);
     });
 
@@ -90,12 +90,12 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "g1", status: "completed", lastPlayedAt: daysAgo(8) }),
         makeGame({ id: "g2", status: "backlog", lastPlayedAt: daysAgo(14) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(0);
     });
 
     it("returns empty array when no games qualify", () => {
-      const result = getContinuePlayingGames([], null, [], 5);
+      const result = getContinuePlayingGames([], null, 5);
       expect(result).toEqual([]);
     });
   });
@@ -107,7 +107,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "new", status: "playing", lastPlayedAt: hoursAgo(1) }),
         makeGame({ id: "mid", status: "playing", lastPlayedAt: daysAgo(2) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result.map((g) => g.id)).toEqual(["new", "mid", "old"]);
     });
   });
@@ -121,7 +121,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
           lastPlayedAt: hoursAgo(i + 1),
         }),
       );
-      const result = getContinuePlayingGames(games, null, [], 3);
+      const result = getContinuePlayingGames(games, null, 3);
       expect(result).toHaveLength(3);
     });
 
@@ -130,7 +130,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "g1", status: "playing", lastPlayedAt: hoursAgo(1) }),
         makeGame({ id: "g2", status: "playing", lastPlayedAt: hoursAgo(2) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(2);
     });
   });
@@ -142,32 +142,9 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "e1", source: "epic", status: "playing", lastPlayedAt: hoursAgo(2) }),
         makeGame({ id: "s2", source: "steam", status: "playing", lastPlayedAt: hoursAgo(3) }),
       ];
-      const result = getContinuePlayingGames(games, "steam", [], 5);
+      const result = getContinuePlayingGames(games, "steam", 5);
       expect(result).toHaveLength(2);
       expect(result.every((g) => g.source === "steam")).toBe(true);
-    });
-
-    it("filters by filterSources array when provided", () => {
-      const games = [
-        makeGame({ id: "s1", source: "steam", status: "playing", lastPlayedAt: hoursAgo(1) }),
-        makeGame({ id: "e1", source: "epic", status: "playing", lastPlayedAt: hoursAgo(2) }),
-        makeGame({ id: "g1", source: "gog", status: "playing", lastPlayedAt: hoursAgo(3) }),
-      ];
-      const sources: GameSource[] = ["steam", "gog"];
-      const result = getContinuePlayingGames(games, null, sources, 5);
-      expect(result).toHaveLength(2);
-      expect(result.map((g) => g.source)).toEqual(["steam", "gog"]);
-    });
-
-    it("applies both sourceFilter and filterSources together", () => {
-      const games = [
-        makeGame({ id: "s1", source: "steam", status: "playing", lastPlayedAt: hoursAgo(1) }),
-        makeGame({ id: "e1", source: "epic", status: "playing", lastPlayedAt: hoursAgo(2) }),
-        makeGame({ id: "g1", source: "gog", status: "playing", lastPlayedAt: hoursAgo(3) }),
-      ];
-      const result = getContinuePlayingGames(games, "steam", ["steam", "epic"], 5);
-      expect(result).toHaveLength(1);
-      expect(result[0].source).toBe("steam");
     });
 
     it("returns all sources when no filter is applied", () => {
@@ -175,7 +152,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
         makeGame({ id: "s1", source: "steam", status: "playing", lastPlayedAt: hoursAgo(1) }),
         makeGame({ id: "e1", source: "epic", status: "playing", lastPlayedAt: hoursAgo(2) }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(2);
     });
   });
@@ -186,7 +163,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
       const games = [
         makeGame({ id: "g1", status: "completed", lastPlayedAt: exactly7d }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       // Exactly at the cutoff — Date.now() inside the function may differ by ms,
       // so this game is right at the boundary. It should be included or excluded
       // depending on ms precision; the important thing is no crash.
@@ -197,7 +174,7 @@ describe("Story 25.1: getContinuePlayingGames", () => {
       const games = [
         makeGame({ id: "g1", status: "playing", lastPlayedAt: "2020-01-01T00:00:00Z" }),
       ];
-      const result = getContinuePlayingGames(games, null, [], 5);
+      const result = getContinuePlayingGames(games, null, 5);
       expect(result).toHaveLength(1);
     });
   });

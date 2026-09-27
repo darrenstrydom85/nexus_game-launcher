@@ -36,13 +36,10 @@ export interface UiState {
 }
 
 export interface UiActions {
-  setSelectedGameId: (id: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
-  toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setSidebarVisible: (visible: boolean) => void;
   setSortField: (field: SortField) => void;
-  setSortDirection: (direction: SortDirection) => void;
   setSearchQuery: (query: string) => void;
   setSearchOpen: (open: boolean) => void;
   setDetailOverlayGameId: (id: string | null) => void;
@@ -78,23 +75,13 @@ export const useUiStore = create<UiStore>()(
   devtools(
     (set) => ({
       ...initialState,
-      setSelectedGameId: (id) =>
-        set({ selectedGameId: id }, false, "setSelectedGameId"),
       setViewMode: (mode) => set({ viewMode: mode }, false, "setViewMode"),
-      toggleSidebar: () =>
-        set(
-          (state) => ({ sidebarOpen: !state.sidebarOpen }),
-          false,
-          "toggleSidebar",
-        ),
       setSidebarOpen: (open) =>
         set({ sidebarOpen: open }, false, "setSidebarOpen"),
       setSidebarVisible: (visible) =>
         set({ sidebarVisible: visible }, false, "setSidebarVisible"),
       setSortField: (field) =>
         set({ sortField: field }, false, "setSortField"),
-      setSortDirection: (direction) =>
-        set({ sortDirection: direction }, false, "setSortDirection"),
       setSearchQuery: (query) =>
         set({ searchQuery: query }, false, "setSearchQuery"),
       setSearchOpen: (open) =>

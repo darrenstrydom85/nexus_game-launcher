@@ -17,30 +17,11 @@ describe("uiStore", () => {
     expect(state.detailOverlayGameId).toBeNull();
   });
 
-  it("setSelectedGameId updates selection", () => {
-    useUiStore.getState().setSelectedGameId("game-1");
-    expect(useUiStore.getState().selectedGameId).toBe("game-1");
-  });
-
-  it("setSelectedGameId clears selection with null", () => {
-    useUiStore.getState().setSelectedGameId("game-1");
-    useUiStore.getState().setSelectedGameId(null);
-    expect(useUiStore.getState().selectedGameId).toBeNull();
-  });
-
   it("setViewMode switches between grid and list", () => {
     useUiStore.getState().setViewMode("list");
     expect(useUiStore.getState().viewMode).toBe("list");
     useUiStore.getState().setViewMode("grid");
     expect(useUiStore.getState().viewMode).toBe("grid");
-  });
-
-  it("toggleSidebar flips sidebar state", () => {
-    expect(useUiStore.getState().sidebarOpen).toBe(true);
-    useUiStore.getState().toggleSidebar();
-    expect(useUiStore.getState().sidebarOpen).toBe(false);
-    useUiStore.getState().toggleSidebar();
-    expect(useUiStore.getState().sidebarOpen).toBe(true);
   });
 
   it("setSidebarOpen sets sidebar state directly", () => {
@@ -53,11 +34,6 @@ describe("uiStore", () => {
   it("setSortField updates sort field", () => {
     useUiStore.getState().setSortField("lastPlayed");
     expect(useUiStore.getState().sortField).toBe("lastPlayed");
-  });
-
-  it("setSortDirection updates sort direction", () => {
-    useUiStore.getState().setSortDirection("desc");
-    expect(useUiStore.getState().sortDirection).toBe("desc");
   });
 
   it("setSearchQuery updates search query", () => {

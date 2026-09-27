@@ -6,7 +6,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useFilterStore } from "@/stores/filterStore";
 import { useTagStore } from "@/stores/tagStore";
 import { useSyncStore } from "@/stores/syncStore";
-import type { Game, GameSource, GameStatus } from "@/stores/gameStore";
+import type { Game, GameSource } from "@/stores/gameStore";
 import type { GameContextMenuHandlers } from "@/components/GameCard";
 import { GameGrid } from "./GameGrid";
 import { GameCard } from "@/components/GameCard";
@@ -23,31 +23,17 @@ const SOURCE_LABELS: Record<GameSource, string> = {
   battlenet: "Battle.net", xbox: "Xbox", standalone: "Standalone",
 };
 
-const STATUS_LABELS: Record<GameStatus, string> = {
-  playing: "Currently Playing", completed: "Completed", backlog: "Backlog",
-  dropped: "Dropped", wishlist: "Wishlist", removed: "Removed", unset: "All Games",
-};
-
 function buildHeading(opts: {
   searchQuery: string;
   sourceFilter: string | null;
   genreFilter: string | null;
   activeCollection: { name: string } | null;
-  filterSources: GameSource[];
-  filterStatuses: GameStatus[];
-  filterGenres: string[];
 }): string {
-  const { searchQuery, sourceFilter, genreFilter, activeCollection, filterSources, filterStatuses, filterGenres } = opts;
+  const { searchQuery, sourceFilter, genreFilter, activeCollection } = opts;
 
   if (searchQuery) return `Results for "${searchQuery}"`;
   if (activeCollection) return activeCollection.name;
-  if (filterStatuses.length === 1) return STATUS_LABELS[filterStatuses[0]];
-  if (filterStatuses.length > 1) return "Filtered by Status";
-  if (filterSources.length === 1) return `${SOURCE_LABELS[filterSources[0]]} Games`;
-  if (filterSources.length > 1) return "Multiple Sources";
   if (sourceFilter) return `${SOURCE_LABELS[sourceFilter as GameSource] ?? sourceFilter} Games`;
-  if (filterGenres.length === 1) return filterGenres[0];
-  if (filterGenres.length > 1) return "Multiple Genres";
   if (genreFilter) return genreFilter;
   return "All Games";
 }
@@ -96,11 +82,7 @@ export function LibraryView({
     s.activeCollectionId ? s.collections.find((c) => c.id === s.activeCollectionId) ?? null : null,
   );
   const hiddenGameIds = useSettingsStore((s) => s.hiddenGameIds);
-  const filterSources = useFilterStore((s) => s.sources);
-  const filterStatuses = useFilterStore((s) => s.statuses);
-  const filterGenres = useFilterStore((s) => s.genres);
   const filterTags = useFilterStore((s) => s.tags);
-  const tagFilterMode = useFilterStore((s) => s.tagFilterMode);
   const minCriticScore = useFilterStore((s) => s.minCriticScore);
   const maxCriticScore = useFilterStore((s) => s.maxCriticScore);
   const gameTagMap = useTagStore((s) => s.gameTagMap);
@@ -140,17 +122,13 @@ export function LibraryView({
     if (filterTags.length > 0) {
       result = result.filter((g) => {
         const gameTags = gameTagMap[g.id] ?? [];
-        if (tagFilterMode === "and") {
-          return filterTags.every((t) => gameTags.includes(t));
-        }
         return filterTags.some((t) => gameTags.includes(t));
       });
     }
     return result;
-  }, [visibleGames, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore, filterTags, tagFilterMode, gameTagMap]);
+  }, [visibleGames, searchQuery, sourceFilter, genreFilter, activeCollection, minCriticScore, maxCriticScore, filterTags, gameTagMap]);
 
   const isFiltered = searchQuery.length > 0 || sourceFilter !== null || genreFilter !== null || activeCollectionId !== null
-    || filterSources.length > 0 || filterStatuses.length > 0 || filterGenres.length > 0
     || filterTags.length > 0
     || minCriticScore > 0 || maxCriticScore < 100;
 
@@ -159,10 +137,7 @@ export function LibraryView({
     sourceFilter,
     genreFilter,
     activeCollection,
-    filterSources,
-    filterStatuses,
-    filterGenres,
-  }), [searchQuery, sourceFilter, genreFilter, activeCollection, filterSources, filterStatuses, filterGenres]);
+  }), [searchQuery, sourceFilter, genreFilter, activeCollection]);
 
   if (error) {
     return (
@@ -236,7 +211,6 @@ export function LibraryView({
           <ContinuePlayingRow
             games={visibleGames}
             sourceFilter={sourceFilter as GameSource | null}
-            filterSources={filterSources}
             isCollectionActive={activeCollectionId !== null}
             onPlay={onPlay}
             onGameClick={(id) => useUiStore.getState().setDetailOverlayGameId(id)}

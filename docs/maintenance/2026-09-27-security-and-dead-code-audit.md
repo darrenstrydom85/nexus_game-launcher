@@ -96,7 +96,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   Only the dead `ping`/stub tests were removed (with D3).
 - [ ] **D9 `lib/tauri.ts`** — 1188 lines, half the app bypasses it with raw `invoke`. Pick one path; ~60 wrappers dead.
   Partly done with D3-D5: 25 dead wrappers + 14 orphaned types removed (now 883 lines). Raw-invoke vs wrapper choice remains.
-- [ ] **D10 unread store fields** — settingsStore (`autoScan`, `minimizeToTray`, `launchAtStartup`,
+- [x] **D10 unread store fields** — settingsStore (`autoScan`, `minimizeToTray`, `launchAtStartup`,
   `hiddenSmartCollections`, several setters), filterStore (`tagFilterMode` never set; `minRating`, `maxPlayTimeH`,
   `collectionId` only read by dead FilterBar), `achievementStore.newUnlockCount`, `toastStore.updateToast`,
   `masteryStore.getByGameId`. (~110)
@@ -109,6 +109,16 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   `HelixClipsResponse.pagination` unused; `ErrorKind` mirrors `CommandError`; `use-reduced-motion` re-export;
   `main.tsx` `Root()`; `standalone.rs` rebuilds 4 regexes per folder (`LazyLock`, or drop `regex-lite`);
   `image-ico` tauri feature → `image-png`.
+
+## Unfinished features found (product decisions, not deleted)
+
+- [ ] **U1 no Settings toggles** for achievement notifications, achievement sounds, milestone sounds. The stores read
+  `achievementNotificationsEnabled` / `achievementSoundsEnabled` / `milestoneSoundsEnabled` and their setters persist,
+  but no UI calls the setters, so users are stuck on the defaults. Add toggles, or drop the setters.
+- [ ] **U2 `settingsStore.reducedMotion` is never set or loaded** (always `false`), yet `Sidebar` and `StreakSection`
+  read it. Probably meant to follow the OS preference: switch them to `useReducedMotion()` from `motion/react`.
+- [ ] **U3 unseen-achievements badge computed, never shown.** `achievementStore.newUnlockCount` + `last_achievement_view_at`
+  cost a settings read per fetch and a write per view. Show the badge (sidebar nav?) or remove the chain.
 
 ## Checked and fine
 
@@ -131,6 +141,9 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
   Twitch refresh token should force re-login (lowercase the msg before matching).
 - D11: merged only byte-identical output. The 4 relative-time helpers were left alone: they print different
   text ("5 min ago" / "5m ago" / "Just now" / months / locale date after 7d), so merging changes the UI.
+- D10: filterStore cut to tags + critic score (sources/statuses/genres/tagFilterMode/rating/playtime/collection were
+  never set, so LibraryView's branches for them were dead; `ContinuePlayingRow.filterSources` was always `[]`).
+  Kept `resetOnboarding`/`clearToasts`/`setCollections` (test resets / internal use).
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

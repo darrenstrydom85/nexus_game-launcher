@@ -24,7 +24,6 @@ interface ToastState {
 
 interface ToastActions {
   addToast: (toast: Omit<Toast, "id">) => string;
-  updateToast: (id: string, updates: Partial<Omit<Toast, "id">>) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
@@ -46,16 +45,6 @@ export const useToastStore = create<ToastStore>()(
         );
         return id;
       },
-      updateToast: (id, updates) =>
-        set(
-          (state) => ({
-            toasts: state.toasts.map((t) =>
-              t.id === id ? { ...t, ...updates } : t,
-            ),
-          }),
-          false,
-          "updateToast",
-        ),
       removeToast: (id) =>
         set(
           (state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }),

@@ -14,7 +14,6 @@ interface MasteryState {
 interface MasteryActions {
   fetchAll: () => Promise<void>;
   refreshGame: (gameId: string) => Promise<void>;
-  getByGameId: (gameId: string) => GameMasteryTier | undefined;
 }
 
 export type MasteryStore = MasteryState & MasteryActions;
@@ -50,9 +49,6 @@ export const useMasteryStore = create<MasteryStore>()(
         }
       },
 
-      getByGameId: (gameId: string) => {
-        return get().tiers.get(gameId);
-      },
     }),
     { name: "MasteryStore", enabled: import.meta.env.DEV },
   ),

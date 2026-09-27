@@ -27,7 +27,6 @@ export interface CollectionActions {
   setActiveCollectionId: (id: string | null) => void;
   addGameToCollection: (collectionId: string, gameId: string) => void;
   removeGameFromCollection: (collectionId: string, gameId: string) => void;
-  reorderCollections: (orderedIds: string[]) => void;
   setLoading: (loading: boolean) => void;
 }
 
@@ -96,21 +95,6 @@ export const useCollectionStore = create<CollectionStore>()(
           }),
           false,
           "removeGameFromCollection",
-        ),
-      reorderCollections: (orderedIds) =>
-        set(
-          (state) => {
-            const map = new Map(state.collections.map((c) => [c.id, c]));
-            const reordered = orderedIds
-              .map((id, i) => {
-                const c = map.get(id);
-                return c ? { ...c, sortOrder: i } : null;
-              })
-              .filter(Boolean) as Collection[];
-            return { collections: reordered };
-          },
-          false,
-          "reorderCollections",
         ),
       setLoading: (loading) =>
         set({ isLoading: loading }, false, "setLoading"),
