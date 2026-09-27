@@ -1,5 +1,5 @@
 //! Twitch API connectivity check with 30s result cache (Story 19.11).
-//! Uses TCP connect to api.twitch.tv:443 with 3s timeout (same as check_twitch_api_available).
+//! Uses TCP connect to api.twitch.tv:443 with 3s timeout.
 
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
@@ -45,16 +45,6 @@ pub fn check_online() -> bool {
     online
 }
 
-/// Return the last-known connectivity result without making a request.
-#[allow(dead_code)]
-pub fn is_cached_online() -> bool {
-    CACHE
-        .lock()
-        .ok()
-        .and_then(|g| g.as_ref().map(|e| e.online))
-        .unwrap_or(false)
-}
-
 fn do_check_online() -> bool {
     let addr = match ("api.twitch.tv", 443).to_socket_addrs() {
         Ok(mut a) => match a.next() {
@@ -66,15 +56,3 @@ fn do_check_online() -> bool {
     std::net::TcpStream::connect_timeout(&addr, CONNECT_TIMEOUT).is_ok()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_cached_online_returns_false_when_never_checked() {
-        let guard = CACHE.lock().unwrap();
-        let result = guard.as_ref().map(|e| e.online);
-        drop(guard);
-        assert!(result.is_none() || result == Some(false) || result == Some(true));
-    }
-}

@@ -1,3 +1,4 @@
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +43,7 @@ pub fn generate_gradient(name: &str) -> GradientPlaceholder {
 
 pub fn gradient_data_uri(name: &str) -> String {
     let placeholder = generate_gradient(name);
-    let encoded = base64_encode(placeholder.svg.as_bytes());
+    let encoded = base64::engine::general_purpose::STANDARD.encode(placeholder.svg.as_bytes());
     format!("data:image/svg+xml;base64,{encoded}")
 }
 
@@ -91,36 +92,6 @@ fn xml_escape(s: &str) -> String {
         }
     }
     out
-}
-
-fn base64_encode(data: &[u8]) -> String {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::with_capacity((data.len() + 2) / 3 * 4);
-
-    for chunk in data.chunks(3) {
-        let b0 = chunk[0] as u32;
-        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
-
-        let n = (b0 << 16) | (b1 << 8) | b2;
-
-        result.push(CHARS[((n >> 18) & 0x3F) as usize] as char);
-        result.push(CHARS[((n >> 12) & 0x3F) as usize] as char);
-
-        if chunk.len() > 1 {
-            result.push(CHARS[((n >> 6) & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-
-        if chunk.len() > 2 {
-            result.push(CHARS[(n & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-    }
-
-    result
 }
 
 pub fn derive_name_from_path(path: &str) -> String {
@@ -229,10 +200,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn base64_encode_basic() {
-        assert_eq!(base64_encode(b"Hello"), "SGVsbG8=");
-        assert_eq!(base64_encode(b"Hi"), "SGk=");
-        assert_eq!(base64_encode(b"ABC"), "QUJD");
-    }
 }

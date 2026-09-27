@@ -66,19 +66,6 @@ fn check_network_available() -> Result<(), CommandError> {
     Ok(())
 }
 
-/// Check if Twitch API is reachable (for offline fallback). Uses TCP to api.twitch.tv:443.
-fn check_twitch_api_available() -> bool {
-    use std::net::ToSocketAddrs;
-    let addr = match ("api.twitch.tv", 443).to_socket_addrs() {
-        Ok(mut a) => match a.next() {
-            Some(addr) => addr,
-            None => return false,
-        },
-        Err(_) => return false,
-    };
-    std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(3)).is_ok()
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TwitchAuthStatus {
@@ -402,7 +389,7 @@ pub async fn get_twitch_followed_channels(
         (ch, st)
     };
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let channels =
@@ -493,7 +480,7 @@ pub async fn get_twitch_streams_by_game(
         (m, at)
     };
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let game_id_opt = match &cached_mapping {
@@ -635,7 +622,7 @@ pub async fn get_twitch_trending_library_games(
     };
 
     // When online and cache is still valid (15 min TTL), return cache to avoid unnecessary API calls (rate limits).
-    if !cached.is_empty() && check_twitch_api_available() {
+    if !cached.is_empty() && crate::utils::connectivity::check_online() {
         let cached_at_secs = cached.first().map(|e| e.cached_at);
         let data = cached
             .iter()
@@ -655,7 +642,7 @@ pub async fn get_twitch_trending_library_games(
         });
     }
 
-    if check_twitch_api_available() {
+    if crate::utils::connectivity::check_online() {
         let client_id = twitch_client_id()?;
         let http = reqwest::Client::new();
         let top_games = match api::fetch_top_games(&http, client_id, &access_token).await {

@@ -570,8 +570,6 @@ struct HelixClip {
 #[derive(Debug, Deserialize)]
 struct HelixClipsResponse {
     data: Vec<HelixClip>,
-    #[allow(dead_code)]
-    pagination: Option<HelixPagination>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

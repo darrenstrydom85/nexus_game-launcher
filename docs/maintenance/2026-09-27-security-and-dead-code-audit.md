@@ -104,7 +104,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   (use `lib/url.resolveUrl`), Rust `now_secs()` ×5, date helpers in `watch_history.rs` / `wrapped.rs`. (~150)
 - [ ] **D12 clipboard via Rust** — `navigator.clipboard.write(ClipboardItem)` works in WebView2. Delete
   `commands/clipboard.rs`, `arboard`, `png`. (~57, −2 deps)
-- [ ] **D13 small cuts** — hand-rolled base64 in `metadata/placeholders.rs` (use `base64` crate);
+- [x] **D13 small cuts** — hand-rolled base64 in `metadata/placeholders.rs` (use `base64` crate);
   `check_twitch_api_available` duplicates `connectivity::check_online`; `is_cached_online` unused;
   `HelixClipsResponse.pagination` unused; `ErrorKind` mirrors `CommandError`; `use-reduced-motion` re-export;
   `main.tsx` `Root()`; `standalone.rs` rebuilds 4 regexes per folder (`LazyLock`, or drop `regex-lite`);
@@ -144,6 +144,8 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - D10: filterStore cut to tags + critic score (sources/statuses/genres/tagFilterMode/rating/playtime/collection were
   never set, so LibraryView's branches for them were dead; `ContinuePlayingRow.filterSources` was always `[]`).
   Kept `resetOnboarding`/`clearToasts`/`setCollections` (test resets / internal use).
+- D13 kept on purpose: `hooks/use-reduced-motion` re-export is the `vi.mock` seam two test files use; the
+  `image-ico` -> `image-png` feature swap skipped (tray icon works, swap only risks it).
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

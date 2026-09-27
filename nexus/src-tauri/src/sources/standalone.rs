@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use crate::models::game::GameSource as GameSourceType;
 
 use super::{DetectedGame, GameSource, SourceError};
+use regex_lite::Regex;
+use std::sync::LazyLock;
 
 /// Standalone / Repack game scanner.
 ///
@@ -290,24 +292,23 @@ pub fn derive_game_name(folder_name: &str) -> String {
 }
 
 fn strip_bracketed_tags(s: &str) -> String {
-    let re_square = regex_lite::Regex::new(r"\[.*?\]").unwrap();
-    re_square.replace_all(s, "").to_string()
+    static RE_SQUARE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[.*?\]").unwrap());
+    RE_SQUARE.replace_all(s, "").to_string()
 }
 
 fn strip_parenthesized_versions(s: &str) -> String {
-    let re_paren = regex_lite::Regex::new(r"\(v?\d[\d.]*[^)]*\)").unwrap();
-    re_paren.replace_all(s, "").to_string()
+    static RE_PAREN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\(v?\d[\d.]*[^)]*\)").unwrap());
+    RE_PAREN.replace_all(s, "").to_string()
 }
 
 fn strip_dash_build(s: &str) -> String {
-    let re_dash = regex_lite::Regex::new(r"(?i)\s*-\s*build\s+\d+").unwrap();
-    re_dash.replace_all(s, "").to_string()
+    static RE_DASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\s*-\s*build\s+\d+").unwrap());
+    RE_DASH.replace_all(s, "").to_string()
 }
 
 fn strip_trailing_versions(s: &str) -> String {
-    let re_trailing =
-        regex_lite::Regex::new(r"(?i)\s+(?:v\d[\d.]*|build\s*\d+|\d+\.\d+[\d.]*)$").unwrap();
-    re_trailing.replace(s, "").to_string()
+    static RE_TRAILING: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\s+(?:v\d[\d.]*|build\s*\d+|\d+\.\d+[\d.]*)$").unwrap());
+    RE_TRAILING.replace(s, "").to_string()
 }
 
 fn normalize_whitespace(s: &str) -> String {
