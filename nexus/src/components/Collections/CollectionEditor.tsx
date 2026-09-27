@@ -105,7 +105,7 @@ export function CollectionEditor({
   const canToggleType = !isEditing;
 
   const inputClass = cn(
-    "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground",
+    "w-full rounded-md border border-foreground/15 bg-transparent px-3 py-2 text-sm text-foreground",
     "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring",
   );
 
@@ -127,7 +127,7 @@ export function CollectionEditor({
           <motion.div
             data-testid="editor-panel"
             className={cn(
-              "relative z-10 flex w-full max-h-[85vh] flex-col rounded-xl border border-border bg-card shadow-2xl",
+              "relative z-10 flex w-full max-h-[85vh] flex-col rounded-2xl border border-foreground/10 bg-card shadow-[0_30px_80px_rgba(0,0,0,0.55)]",
               isSmart ? "max-w-lg" : "max-w-md",
             )}
             initial={{ scale: 0.95 }}
@@ -136,7 +136,7 @@ export function CollectionEditor({
           >
             {/* Fixed header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="font-display text-3xl font-bold uppercase leading-none tracking-tight text-foreground">
                 {isEditing
                   ? editCollection.isSmart
                     ? "Edit Smart Collection"
@@ -161,10 +161,10 @@ export function CollectionEditor({
                     <button
                       data-testid="type-manual"
                       className={cn(
-                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex-1 rounded-full px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors",
                         !isSmart
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:bg-accent",
+                          ? "bg-foreground font-semibold text-background"
+                          : "border border-foreground/15 text-muted-foreground hover:text-foreground",
                       )}
                       onClick={() => setIsSmart(false)}
                     >
@@ -173,10 +173,10 @@ export function CollectionEditor({
                     <button
                       data-testid="type-smart"
                       className={cn(
-                        "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex-1 rounded-full px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors",
                         isSmart
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:bg-accent",
+                          ? "bg-foreground font-semibold text-background"
+                          : "border border-foreground/15 text-muted-foreground hover:text-foreground",
                       )}
                       onClick={() => setIsSmart(true)}
                     >
@@ -187,7 +187,7 @@ export function CollectionEditor({
 
                 {/* Name */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Name</label>
+                  <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Name</label>
                   <input
                     data-testid="editor-name"
                     className={cn(inputClass, error && "border-destructive")}
@@ -207,7 +207,7 @@ export function CollectionEditor({
 
                 {/* Icon picker */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Icon</label>
+                  <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Icon</label>
                   <div data-testid="editor-icon-picker" className="flex flex-wrap gap-1.5">
                     {EMOJI_OPTIONS.map((emoji) => (
                       <button
@@ -229,7 +229,7 @@ export function CollectionEditor({
 
                 {/* Color picker */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     Accent Color
                   </label>
                   <div data-testid="editor-color-picker" className="flex gap-2">
@@ -251,7 +251,7 @@ export function CollectionEditor({
                 {/* Smart collection builder */}
                 {isSmart && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">
+                    <label className="mb-2 block text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       Rules
                     </label>
                     <SmartCollectionBuilder
