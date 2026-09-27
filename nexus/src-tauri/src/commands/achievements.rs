@@ -6,7 +6,7 @@ use tauri::State;
 use crate::db::DbState;
 use crate::models::achievement::{
     AchievementCategory, AchievementDefinition, AchievementRarity, AchievementStatus,
-    NewlyUnlocked, UnlockedAchievement,
+    NewlyUnlocked,
 };
 
 use super::error::CommandError;
@@ -267,35 +267,6 @@ pub const ACHIEVEMENT_DEFINITIONS: &[AchievementDefinition] = &[
 ];
 
 // ── Commands ───────────────────────────────────────────────────────
-
-#[tauri::command]
-pub fn get_achievement_definitions() -> Vec<AchievementDefinition> {
-    ACHIEVEMENT_DEFINITIONS.to_vec()
-}
-
-#[tauri::command]
-pub fn get_unlocked_achievements(
-    db: State<'_, DbState>,
-) -> Result<Vec<UnlockedAchievement>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT id, unlocked_at, context_json FROM achievements ORDER BY unlocked_at DESC")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let rows = stmt
-        .query_map([], UnlockedAchievement::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let mut results = Vec::new();
-    for row in rows {
-        results.push(row.map_err(|e| CommandError::Database(e.to_string()))?);
-    }
-    Ok(results)
-}
 
 #[tauri::command]
 pub fn get_achievement_status(

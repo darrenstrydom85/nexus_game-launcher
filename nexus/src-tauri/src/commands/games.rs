@@ -59,59 +59,6 @@ pub fn get_games(
     Ok(games)
 }
 
-#[tauri::command]
-pub fn get_game(db: State<'_, DbState>, id: String) -> Result<Game, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let game = conn
-        .query_row(
-            "SELECT * FROM games WHERE id = ?1",
-            params![id],
-            Game::from_row,
-        )
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => CommandError::NotFound(format!("game {id}")),
-            other => CommandError::Database(other.to_string()),
-        })?;
-
-    Ok(game)
-}
-
-#[tauri::command]
-pub fn search_games(
-    db: State<'_, DbState>,
-    query: String,
-    include_notes: Option<bool>,
-) -> Result<Vec<Game>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let pattern = format!("%{query}%");
-
-    let sql = if include_notes.unwrap_or(false) {
-        "SELECT * FROM games WHERE (name LIKE ?1 OR notes LIKE ?1) AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
-    } else {
-        "SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
-    };
-
-    let mut stmt = conn
-        .prepare(sql)
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let games = stmt
-        .query_map(params![pattern], Game::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(games)
-}
-
 /// Deserializes a nullable field where:
 /// - key absent  → `None`          (don't touch the column)
 /// - key = null  → `Some(None)`    (set column to NULL)
@@ -332,28 +279,6 @@ pub fn open_game_folder(db: State<'_, DbState>, id: String) -> Result<(), Comman
     };
     let folder = folder.ok_or_else(|| CommandError::NotFound(format!("folder for game {id}")))?;
     open_dir(std::path::Path::new(&folder))
-}
-
-#[tauri::command]
-pub fn delete_game(db: State<'_, DbState>, id: String) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let now = now_iso();
-    let rows = conn
-        .execute(
-            "UPDATE games SET is_hidden = 1, updated_at = ?1 WHERE id = ?2",
-            params![now, id],
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    if rows == 0 {
-        return Err(CommandError::NotFound(format!("game {id}")));
-    }
-
-    Ok(())
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -725,96 +650,7 @@ mod tests {
 
     // ── get_game ──
 
-    #[test]
-    fn get_game_returns_existing() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Test Game", "gog");
-        drop(conn);
-
-        let game = get_game_inner(&state, "g1".into()).unwrap();
-        assert_eq!(game.name, "Test Game");
-        assert_eq!(game.source, "gog");
-    }
-
-    #[test]
-    fn get_game_returns_not_found() {
-        let state = setup_db();
-        let result = get_game_inner(&state, "nonexistent".into());
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("not found"));
-    }
-
-    #[test]
-    fn get_game_returns_all_fields() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, source_id, description, developer, publisher, genres, status, rating, total_play_time, play_count, is_hidden, added_at, updated_at)
-             VALUES ('g1', 'Full Game', 'steam', 'app_12345', 'A great game', 'DevCo', 'PubCo', 'RPG,Action', 'playing', 4, 3600, 5, 0, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let game = get_game_inner(&state, "g1".into()).unwrap();
-        assert_eq!(game.source_id, Some("app_12345".into()));
-        assert_eq!(game.description, Some("A great game".into()));
-        assert_eq!(game.developer, Some("DevCo".into()));
-        assert_eq!(game.publisher, Some("PubCo".into()));
-        assert_eq!(game.genres, Some("RPG,Action".into()));
-        assert_eq!(game.status, "playing");
-        assert_eq!(game.rating, Some(4));
-        assert_eq!(game.total_play_time, 3600);
-        assert_eq!(game.play_count, 5);
-        assert!(!game.is_hidden);
-    }
-
     // ── search_games ──
-
-    #[test]
-    fn search_games_matches_partial_name() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "The Witcher 3", "gog");
-        insert_test_game(&conn, "g2", "Witchfire", "epic");
-        insert_test_game(&conn, "g3", "Doom Eternal", "steam");
-        drop(conn);
-
-        let results = search_games_inner(&state, "witch".into(), false).unwrap();
-        assert_eq!(results.len(), 2);
-    }
-
-    #[test]
-    fn search_games_returns_all_non_removed_including_hidden() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Halo Infinite", "xbox");
-        insert_hidden_game(&conn, "g2", "Halo Wars");
-        drop(conn);
-
-        let results = search_games_inner(&state, "Halo".into(), false).unwrap();
-        assert_eq!(
-            results.len(),
-            2,
-            "returns both so frontend can sync hidden state"
-        );
-        assert!(results
-            .iter()
-            .any(|g| g.name == "Halo Infinite" && !g.is_hidden));
-        assert!(results.iter().any(|g| g.name == "Halo Wars" && g.is_hidden));
-    }
-
-    #[test]
-    fn search_games_returns_empty_for_no_match() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Some Game", "steam");
-        drop(conn);
-
-        let results = search_games_inner(&state, "zzzzz".into(), false).unwrap();
-        assert!(results.is_empty());
-    }
 
     // ── update_game ──
 
@@ -912,50 +748,6 @@ mod tests {
     }
 
     // ── delete_game ──
-
-    #[test]
-    fn delete_game_soft_deletes() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Doomed Game", "steam");
-        drop(conn);
-
-        delete_game_inner(&state, "g1".into()).unwrap();
-
-        let conn = state.conn.lock().unwrap();
-        let hidden: i32 = conn
-            .query_row("SELECT is_hidden FROM games WHERE id = 'g1'", [], |r| {
-                r.get(0)
-            })
-            .unwrap();
-        assert_eq!(hidden, 1);
-    }
-
-    #[test]
-    fn delete_game_updates_timestamp() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Game", "steam");
-        drop(conn);
-
-        delete_game_inner(&state, "g1".into()).unwrap();
-
-        let conn = state.conn.lock().unwrap();
-        let updated_at: String = conn
-            .query_row("SELECT updated_at FROM games WHERE id = 'g1'", [], |r| {
-                r.get(0)
-            })
-            .unwrap();
-        assert_ne!(updated_at, "2026-01-01T00:00:00Z");
-    }
-
-    #[test]
-    fn delete_game_not_found() {
-        let state = setup_db();
-        let result = delete_game_inner(&state, "nonexistent".into());
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not found"));
-    }
 
     #[test]
     fn deleted_game_still_returned_with_hidden_flag() {
@@ -1275,52 +1067,6 @@ mod tests {
         Ok(games)
     }
 
-    fn get_game_inner(state: &DbState, id: String) -> Result<Game, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let game = conn
-            .query_row(
-                "SELECT * FROM games WHERE id = ?1",
-                params![id],
-                Game::from_row,
-            )
-            .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => {
-                    CommandError::NotFound(format!("game {id}"))
-                }
-                other => CommandError::Database(other.to_string()),
-            })?;
-        Ok(game)
-    }
-
-    fn search_games_inner(
-        state: &DbState,
-        query: String,
-        include_notes: bool,
-    ) -> Result<Vec<Game>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let pattern = format!("%{query}%");
-        let sql = if include_notes {
-            "SELECT * FROM games WHERE (name LIKE ?1 OR notes LIKE ?1) AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
-        } else {
-            "SELECT * FROM games WHERE name LIKE ?1 AND (status IS NULL OR status != 'removed') ORDER BY name ASC"
-        };
-        let mut stmt = conn
-            .prepare(sql)
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        let games = stmt
-            .query_map(params![pattern], Game::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(games)
-    }
-
     fn update_game_inner(
         state: &DbState,
         id: String,
@@ -1506,81 +1252,7 @@ mod tests {
         assert_eq!(game.notes, Some("keep me".into()));
     }
 
-    #[test]
-    fn get_game_returns_notes() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 'hello world', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let game = get_game_inner(&state, "g1".into()).unwrap();
-        assert_eq!(game.notes, Some("hello world".into()));
-    }
-
     // ── search_games with include_notes ──
-
-    #[test]
-    fn search_games_finds_by_notes_when_enabled() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Dark Souls', 'steam', 'backlog', 'stuck on ice level boss', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        insert_test_game(&conn, "g2", "Hollow Knight", "steam");
-        drop(conn);
-
-        let results = search_games_inner(&state, "ice level".into(), true).unwrap();
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "Dark Souls");
-    }
-
-    #[test]
-    fn search_games_ignores_notes_when_disabled() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Dark Souls', 'steam', 'backlog', 'stuck on ice level boss', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let results = search_games_inner(&state, "ice level".into(), false).unwrap();
-        assert!(results.is_empty());
-    }
-
-    #[test]
-    fn search_games_notes_is_case_insensitive() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g1', 'Elden Ring', 'steam', 'backlog', 'Build Guide for Strength', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let results = search_games_inner(&state, "build guide".into(), true).unwrap();
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "Elden Ring");
-    }
-
-    #[test]
-    fn search_games_returns_name_and_notes_matches() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Ice Climber", "steam");
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, notes, added_at, updated_at) VALUES ('g2', 'Dark Souls', 'steam', 'backlog', 'ice level tips', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let results = search_games_inner(&state, "ice".into(), true).unwrap();
-        assert_eq!(results.len(), 2);
-    }
 
     // ── progress field ──
 
@@ -1684,18 +1356,4 @@ mod tests {
         assert_eq!(game.milestones_json, Some(milestones.to_string()));
     }
 
-    #[test]
-    fn get_game_returns_progress_fields() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        conn.execute(
-            "INSERT INTO games (id, name, source, status, progress, milestones_json, added_at, updated_at) VALUES ('g1', 'Game', 'steam', 'backlog', 42, '[{\"id\":\"m1\",\"label\":\"Boss\",\"completed\":false}]', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            [],
-        ).unwrap();
-        drop(conn);
-
-        let game = get_game_inner(&state, "g1".into()).unwrap();
-        assert_eq!(game.progress, Some(42));
-        assert!(game.milestones_json.as_ref().unwrap().contains("Boss"));
-    }
 }

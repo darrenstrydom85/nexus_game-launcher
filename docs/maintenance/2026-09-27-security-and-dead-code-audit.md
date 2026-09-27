@@ -75,17 +75,17 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   `notify`, `notify-debouncer-mini`. **Product check first:** `settingsStore.autoScan` hints auto-scan was planned. (~700)
 - [x] **D2 dedup feature unwired** — nothing imports `components/dedup`. Delete it, `dedupStore`, wrappers in
   `lib/tauri.ts:300-332`, and the Rust dedup commands. (~500)
-- [ ] **D3 dead Rust commands (never invoked)** — `debug_wrapped_sessions` (+`WrappedDiagnostics`),
+- [x] **D3 dead Rust commands (never invoked)** — `debug_wrapped_sessions` (+`WrappedDiagnostics`),
   `get_twitch_live_streams`, `get_collections`, `get_collection_games`, `reorder_collections`, `search_games`,
   `get_game`, `delete_game`, `get_play_sessions`, `get_twitch_embed_base_url`. Drop `open_twitch_login` from
   `generate_handler!` only (still used internally). (~400)
-- [ ] **D4 test-only frontend modules** — `stores/metadataStore.ts`, `lib/tracking.ts`,
+- [x] **D4 test-only frontend modules** — `stores/metadataStore.ts`, `lib/tracking.ts`,
   `hooks/useOrphanedSessionRecovery.ts`, `Collections/CollectionView.tsx`, `Collections/SortableCollectionList.tsx`,
   `Search/FilterBar.tsx`, `Search/SmartCollections.tsx`, `Twitch/TrendingInLibrary.tsx`, `shared/ErrorBoundary.tsx`,
   `components/motion/*`, `hooks/useAutoStatusTransition.ts`, `hooks/useKeyboardNav.ts`, `hooks/useOnlineStatus.ts`,
   `lib/retry.ts`, `ui/glass-panel.tsx` + their tests. Then re-check which Rust commands they alone called
   (list in audit: `ping`, `get_playtime`, `get_metadata`, `emit_test_event`, `get_placeholder_cover`, …). (~1.4k)
-- [ ] **D5 zero-ref frontend** — `hooks/useWatchSession.ts`, `shared/DynamicBackground.tsx`,
+- [x] **D5 zero-ref frontend** — `hooks/useWatchSession.ts`, `shared/DynamicBackground.tsx`,
   `shared/ManualTrackingToast.tsx`, `Library/LazyImage.tsx`, `assets/react.svg`, `assets/nexus-logo-32.png`,
   `assets/hardware/*.png`. (~260)
 - [ ] **D6 `CommandError` boilerplate** — 448× `map_err(Database)` + 213× lock-poisoned `map_err`.
@@ -93,8 +93,10 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
 - [ ] **D7 duplicated OAuth plumbing** — `gdrive/{auth,tokens}.rs` vs `twitch/{auth,tokens}.rs` near-identical.
   Token half done with S9 (`src/secrets.rs`); `auth.rs` (PKCE, callback server, error parsing) remains.
   One `oauth` module parameterised by provider + key file. Do alongside S8/S9. (~300)
-- [ ] **D8 `commands/tests.rs`** duplicates `error.rs` tests. (~280)
+- [~] **D8 `commands/tests.rs`** — audit was wrong: its CommandError serialization tests cover kinds `error.rs` doesn't.
+  Only the dead `ping`/stub tests were removed (with D3).
 - [ ] **D9 `lib/tauri.ts`** — 1188 lines, half the app bypasses it with raw `invoke`. Pick one path; ~60 wrappers dead.
+  Partly done with D3-D5: 25 dead wrappers + 14 orphaned types removed (now 883 lines). Raw-invoke vs wrapper choice remains.
 - [ ] **D10 unread store fields** — settingsStore (`autoScan`, `minimizeToTray`, `launchAtStartup`,
   `hiddenSmartCollections`, several setters), filterStore (`tagFilterMode` never set; `minRating`, `maxPlayTimeH`,
   `collectionId` only read by dead FilterBar), `achievementStore.newUnlockCount`, `toastStore.updateToast`,
@@ -122,6 +124,9 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - S4: remote export sources are https-only but any host (custom covers). Host allowlist if SSRF ever matters.
 - S9: keys wrapped with DPAPI (CurrentUser) in `src/secrets.rs`; raw 32-byte legacy key files are rewrapped on
   first load. A data folder restored on another machine/user can't unwrap them: re-link Twitch/Google there.
+- D3-D5: 29 IPC commands removed in total (the 10 audited + 19 whose only callers were dead frontend code);
+  `open_twitch_login` kept as a Rust fn (embed sign-in), just unregistered. Also dropped orphans: `aggregate_for_year`,
+  `KeyAvailability`, `UnlockedAchievement`, `CollectionWithCount`.
 - S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
   frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

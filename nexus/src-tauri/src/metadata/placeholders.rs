@@ -123,31 +123,6 @@ fn base64_encode(data: &[u8]) -> String {
     result
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum KeyAvailability {
-    Both,
-    SteamGridOnly,
-    IgdbOnly,
-    Neither,
-}
-
-pub fn check_key_availability(
-    steamgrid_key: Option<&str>,
-    igdb_client_id: Option<&str>,
-    igdb_client_secret: Option<&str>,
-) -> KeyAvailability {
-    let has_steamgrid = steamgrid_key.map_or(false, |k| !k.is_empty());
-    let has_igdb = igdb_client_id.map_or(false, |k| !k.is_empty())
-        && igdb_client_secret.map_or(false, |k| !k.is_empty());
-
-    match (has_steamgrid, has_igdb) {
-        (true, true) => KeyAvailability::Both,
-        (true, false) => KeyAvailability::SteamGridOnly,
-        (false, true) => KeyAvailability::IgdbOnly,
-        (false, false) => KeyAvailability::Neither,
-    }
-}
-
 pub fn derive_name_from_path(path: &str) -> String {
     let cleaned = path.replace('\\', "/").trim_end_matches('/').to_string();
 
@@ -228,46 +203,6 @@ mod tests {
     fn hsl_to_hex_blue() {
         let hex = hsl_to_hex(240, 100, 50);
         assert_eq!(hex, "#0000ff");
-    }
-
-    #[test]
-    fn key_availability_both() {
-        assert_eq!(
-            check_key_availability(Some("key"), Some("id"), Some("secret")),
-            KeyAvailability::Both
-        );
-    }
-
-    #[test]
-    fn key_availability_steamgrid_only() {
-        assert_eq!(
-            check_key_availability(Some("key"), None, None),
-            KeyAvailability::SteamGridOnly
-        );
-    }
-
-    #[test]
-    fn key_availability_igdb_only() {
-        assert_eq!(
-            check_key_availability(None, Some("id"), Some("secret")),
-            KeyAvailability::IgdbOnly
-        );
-    }
-
-    #[test]
-    fn key_availability_neither() {
-        assert_eq!(
-            check_key_availability(None, None, None),
-            KeyAvailability::Neither
-        );
-    }
-
-    #[test]
-    fn key_availability_empty_strings_treated_as_missing() {
-        assert_eq!(
-            check_key_availability(Some(""), Some(""), Some("")),
-            KeyAvailability::Neither
-        );
     }
 
     #[test]

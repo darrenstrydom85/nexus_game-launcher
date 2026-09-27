@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { renderHook } from "@testing-library/react";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { SettingsSheet } from "@/components/Settings/SettingsSheet";
@@ -15,10 +14,6 @@ import { AppearanceSettings } from "@/components/Settings/AppearanceSettings";
 import { ThemeStudio } from "@/components/Settings/ThemeStudio";
 import { DataManagement } from "@/components/Settings/DataManagement";
 import { AboutSection } from "@/components/Settings/AboutSection";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { withRetry } from "@/lib/retry";
-import { useOnlineStatus, getOfflineFallback } from "@/hooks/useOnlineStatus";
-import { useGridKeyboardNav, useGlobalShortcuts } from "@/hooks/useKeyboardNav";
 import { useSettingsStore } from "@/stores/settingsStore";
 
 beforeEach(() => {
@@ -330,18 +325,6 @@ describe("Story 12.3: AboutSection", () => {
 });
 
 describe("Story 12.4: Accessibility & Keyboard", () => {
-  it("useGridKeyboardNav handles arrow keys", () => {
-    const onSelect = vi.fn();
-    const { result } = renderHook(() =>
-      useGridKeyboardNav({ columns: 4, totalItems: 12, onSelect }),
-    );
-    expect(result.current.focusIndex).toBe(0);
-  });
-
-  it("useGlobalShortcuts is a function", () => {
-    expect(typeof useGlobalShortcuts).toBe("function");
-  });
-
   it("settings store has reducedMotion field", () => {
     expect(useSettingsStore.getState().reducedMotion).toBe(false);
     useSettingsStore.getState().setReducedMotion(true);
@@ -352,66 +335,6 @@ describe("Story 12.4: Accessibility & Keyboard", () => {
   it("focus rings use accent color (ring class in CSS)", () => {
     const css = readFileSync(resolve(__dirname, "../globals.css"), "utf-8");
     expect(css).toContain("outline-ring");
-  });
-});
-
-describe("Story 12.5: Error Handling", () => {
-  it("ErrorBoundary renders children normally", () => {
-    render(
-      <ErrorBoundary>
-        <div data-testid="child">OK</div>
-      </ErrorBoundary>,
-    );
-    expect(screen.getByTestId("child")).toBeInTheDocument();
-  });
-
-  it("ErrorBoundary catches errors and shows fallback", () => {
-    const Thrower = () => { throw new Error("Test error"); };
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    render(
-      <ErrorBoundary>
-        <Thrower />
-      </ErrorBoundary>,
-    );
-    expect(screen.getByTestId("error-boundary-fallback")).toBeInTheDocument();
-    expect(screen.getByText("Test error")).toBeInTheDocument();
-    expect(screen.getByTestId("error-retry")).toBeInTheDocument();
-    expect(screen.getByTestId("error-report")).toBeInTheDocument();
-    spy.mockRestore();
-  });
-
-  it("withRetry retries on failure", async () => {
-    let attempts = 0;
-    const fn = async () => {
-      attempts++;
-      if (attempts < 3) throw new Error("fail");
-      return "ok";
-    };
-    const result = await withRetry(fn, { maxRetries: 3, baseDelayMs: 10 });
-    expect(result).toBe("ok");
-    expect(attempts).toBe(3);
-  });
-
-  it("withRetry throws after max retries", async () => {
-    const fn = async () => { throw new Error("always fail"); };
-    await expect(withRetry(fn, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow("always fail");
-  });
-});
-
-describe("Story 12.6: Offline Behavior", () => {
-  it("useOnlineStatus returns boolean", () => {
-    const { result } = renderHook(() => useOnlineStatus());
-    expect(typeof result.current).toBe("boolean");
-  });
-
-  it("getOfflineFallback returns messages for known features", () => {
-    expect(getOfflineFallback("metadata")).toContain("offline");
-    expect(getOfflineFallback("verification")).toContain("internet");
-    expect(getOfflineFallback("trailer")).toContain("Offline");
-  });
-
-  it("getOfflineFallback returns generic message for unknown", () => {
-    expect(getOfflineFallback("unknown")).toContain("internet connection");
   });
 });
 

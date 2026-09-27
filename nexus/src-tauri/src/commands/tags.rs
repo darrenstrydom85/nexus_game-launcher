@@ -260,54 +260,6 @@ pub fn remove_tag_from_game(
 }
 
 #[tauri::command]
-pub fn get_game_tags(db: State<'_, DbState>, game_id: String) -> Result<Vec<Tag>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT t.* FROM tags t
-             INNER JOIN game_tags gt ON gt.tag_id = t.id
-             WHERE gt.game_id = ?1
-             ORDER BY t.name ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let tags = stmt
-        .query_map(params![game_id], Tag::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(tags)
-}
-
-#[tauri::command]
-pub fn get_games_by_tag(
-    db: State<'_, DbState>,
-    tag_id: String,
-) -> Result<Vec<String>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT game_id FROM game_tags WHERE tag_id = ?1")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let game_ids = stmt
-        .query_map(params![tag_id], |row| row.get::<_, String>(0))
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(game_ids)
-}
-
-#[tauri::command]
 pub fn get_all_game_tag_ids(db: State<'_, DbState>) -> Result<Vec<(String, String)>, CommandError> {
     let conn = db
         .conn
@@ -583,45 +535,7 @@ mod tests {
 
     // ── get_game_tags ──
 
-    #[test]
-    fn get_game_tags_returns_only_game_tags() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Game A");
-        insert_game(&conn, "g2", "Game B");
-        insert_tag(&conn, "t1", "RPG", None);
-        insert_tag(&conn, "t2", "FPS", None);
-        insert_tag(&conn, "t3", "Indie", None);
-        insert_game_tag(&conn, "g1", "t1");
-        insert_game_tag(&conn, "g1", "t3");
-        insert_game_tag(&conn, "g2", "t2");
-        drop(conn);
-
-        let tags = get_game_tags_inner(&state, "g1".into()).unwrap();
-        assert_eq!(tags.len(), 2);
-        let names: Vec<&str> = tags.iter().map(|t| t.name.as_str()).collect();
-        assert!(names.contains(&"Indie"));
-        assert!(names.contains(&"RPG"));
-    }
-
     // ── get_games_by_tag ──
-
-    #[test]
-    fn get_games_by_tag_returns_game_ids() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_game(&conn, "g1", "Game A");
-        insert_game(&conn, "g2", "Game B");
-        insert_tag(&conn, "t1", "RPG", None);
-        insert_game_tag(&conn, "g1", "t1");
-        insert_game_tag(&conn, "g2", "t1");
-        drop(conn);
-
-        let ids = get_games_by_tag_inner(&state, "t1".into()).unwrap();
-        assert_eq!(ids.len(), 2);
-        assert!(ids.contains(&"g1".to_string()));
-        assert!(ids.contains(&"g2".to_string()));
-    }
 
     // ── Test helpers: non-Tauri wrappers ──
 
@@ -838,49 +752,4 @@ mod tests {
         Ok(())
     }
 
-    fn get_game_tags_inner(state: &DbState, game_id: String) -> Result<Vec<Tag>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT t.* FROM tags t
-                 INNER JOIN game_tags gt ON gt.tag_id = t.id
-                 WHERE gt.game_id = ?1
-                 ORDER BY t.name ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let tags = stmt
-            .query_map(params![game_id], Tag::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(tags)
-    }
-
-    fn get_games_by_tag_inner(
-        state: &DbState,
-        tag_id: String,
-    ) -> Result<Vec<String>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let mut stmt = conn
-            .prepare("SELECT game_id FROM game_tags WHERE tag_id = ?1")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let game_ids = stmt
-            .query_map(params![tag_id], |row| row.get::<_, String>(0))
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(game_ids)
-    }
 }

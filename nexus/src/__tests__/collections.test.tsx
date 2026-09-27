@@ -2,35 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CollectionsSidebar } from "@/components/Collections/CollectionsSidebar";
 import { CollectionEditor } from "@/components/Collections/CollectionEditor";
-import { CollectionView } from "@/components/Collections/CollectionView";
 import { AddToCollectionPopover } from "@/components/Collections/AddToCollectionPopover";
-import { SortableCollectionList } from "@/components/Collections/SortableCollectionList";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
-import { useGameStore, type Game } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
 
 const makeCollection = (id: string, name: string, gameIds: string[] = [], sortOrder = 0): Collection => ({
   id, name, icon: "🎮", color: null, sortOrder, isSmart: false, rulesJson: null, gameIds,
-});
-
-const makeGame = (id: string, name: string): Game => ({
-  id, name, source: "steam", folderPath: null, exePath: null, exeName: null,
-  launchUrl: null, igdbId: null, steamgridId: null, description: null,
-  coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null,
-  customCover: null, customHero: null, potentialExeNames: null,
-  genres: [], releaseDate: null,
-  criticScore: null, criticScoreCount: null, communityScore: null, communityScoreCount: null, trailerUrl: null,
-  status: "unset", rating: null,
-  totalPlayTimeS: 0, lastPlayedAt: null, playCount: 0, addedAt: "2026-01-01", isHidden: false,
-  hltbMainH: null,
-  hltbMainExtraH: null,
-  hltbCompletionistH: null,
-  hltbId: null,
-  hltbFetchedAt: null,
-  notes: null,
-  progress: null,
-  milestonesJson: null,
-  completed: false,
 });
 
 describe("Story 10.1: CollectionsSidebar", () => {
@@ -183,61 +160,6 @@ describe("Story 10.2: CollectionEditor", () => {
   });
 });
 
-describe("Story 10.3: CollectionView", () => {
-  beforeEach(() => {
-    useCollectionStore.setState({
-      collections: [makeCollection("c1", "Favorites", ["g1", "g2"])],
-    });
-    useGameStore.setState({
-      games: [makeGame("g1", "Game One"), makeGame("g2", "Game Two"), makeGame("g3", "Game Three")],
-    });
-  });
-
-  it("renders filtered games", () => {
-    render(
-      <CollectionView
-        collectionId="c1"
-        renderCard={(g) => <div data-testid={`card-${g.id}`}>{g.name}</div>}
-      />,
-    );
-    expect(screen.getByTestId("collection-view")).toBeInTheDocument();
-    expect(screen.getByTestId("card-g1")).toBeInTheDocument();
-    expect(screen.getByTestId("card-g2")).toBeInTheDocument();
-    expect(screen.queryByTestId("card-g3")).not.toBeInTheDocument();
-  });
-
-  it("shows collection name as heading", () => {
-    render(
-      <CollectionView collectionId="c1" renderCard={(g) => <div>{g.name}</div>} />,
-    );
-    expect(screen.getByTestId("collection-heading")).toHaveTextContent("Favorites");
-  });
-
-  it("shows Edit Collection button", () => {
-    const onEdit = vi.fn();
-    render(
-      <CollectionView
-        collectionId="c1"
-        onEditCollection={onEdit}
-        renderCard={(g) => <div>{g.name}</div>}
-      />,
-    );
-    fireEvent.click(screen.getByTestId("collection-edit-button"));
-    expect(onEdit).toHaveBeenCalled();
-  });
-
-  it("shows empty state when no games", () => {
-    useCollectionStore.setState({
-      collections: [makeCollection("c3", "Empty", [])],
-    });
-    render(
-      <CollectionView collectionId="c3" renderCard={(g) => <div>{g.name}</div>} />,
-    );
-    expect(screen.getByTestId("collection-empty")).toBeInTheDocument();
-    expect(screen.getByText(/No games in this collection/)).toBeInTheDocument();
-  });
-});
-
 describe("Story 10.4: AddToCollectionPopover", () => {
   beforeEach(() => {
     useCollectionStore.setState({
@@ -301,48 +223,6 @@ describe("Story 10.4: AddToCollectionPopover", () => {
     );
     fireEvent.click(screen.getByTestId("atc-new-collection"));
     expect(onNew).toHaveBeenCalledOnce();
-  });
-});
-
-describe("Story 10.5: SortableCollectionList", () => {
-  beforeEach(() => {
-    useCollectionStore.setState({
-      collections: [
-        makeCollection("c1", "First", [], 0),
-        makeCollection("c2", "Second", [], 1),
-        makeCollection("c3", "Third", [], 2),
-      ],
-      activeCollectionId: null,
-    });
-  });
-
-  it("renders sortable list", () => {
-    render(<SortableCollectionList />);
-    expect(screen.getByTestId("sortable-collection-list")).toBeInTheDocument();
-  });
-
-  it("renders all collections", () => {
-    render(<SortableCollectionList />);
-    expect(screen.getByTestId("sortable-collection-c1")).toBeInTheDocument();
-    expect(screen.getByTestId("sortable-collection-c2")).toBeInTheDocument();
-    expect(screen.getByTestId("sortable-collection-c3")).toBeInTheDocument();
-  });
-
-  it("has drag handles", () => {
-    render(<SortableCollectionList />);
-    expect(screen.getByTestId("drag-handle-c1")).toBeInTheDocument();
-    expect(screen.getByTestId("drag-handle-c1")).toHaveAttribute("aria-label", "Reorder First");
-  });
-
-  it("clicking collection sets active", () => {
-    render(<SortableCollectionList />);
-    fireEvent.click(screen.getByText("Second"));
-    expect(useCollectionStore.getState().activeCollectionId).toBe("c2");
-  });
-
-  it("has role=list for accessibility", () => {
-    render(<SortableCollectionList />);
-    expect(screen.getByTestId("sortable-collection-list")).toHaveAttribute("role", "list");
   });
 });
 

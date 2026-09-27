@@ -1,15 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::commands::error::CommandError;
-    use crate::commands::ping::ping;
     use serde_json::Value;
-
-    #[test]
-    fn ping_returns_pong() {
-        let response = ping().expect("ping should succeed");
-        assert_eq!(response.message, "pong");
-        assert!(response.timestamp > 0);
-    }
 
     #[test]
     fn command_error_io_serializes_to_tagged_json() {
@@ -190,15 +182,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn stub_commands_return_not_implemented() {
-        use crate::commands::playtime::get_playtime;
-        use crate::commands::scanner::scan_directory;
-
-        let scan_err = scan_directory("/tmp".into()).unwrap_err();
-        assert!(scan_err.to_string().contains("not yet implemented"));
-
-        let playtime_err = get_playtime("game-1".into()).unwrap_err();
-        assert!(playtime_err.to_string().contains("not yet implemented"));
-    }
 }

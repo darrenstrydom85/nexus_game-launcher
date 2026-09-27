@@ -191,22 +191,6 @@ pub async fn gdrive_auth_start(
 }
 
 #[tauri::command]
-pub async fn gdrive_auth_status(db: State<'_, DbState>) -> Result<GDriveAuthStatus, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    let email = tokens::load_user_email(&conn)?;
-    let expires_at = tokens::load_expires_at(&conn)?;
-    let has_token = tokens::load_access_token(&conn)?.is_some();
-    Ok(GDriveAuthStatus {
-        authenticated: has_token,
-        email,
-        expires_at,
-    })
-}
-
-#[tauri::command]
 pub async fn gdrive_auth_logout(
     app: AppHandle,
     db: State<'_, DbState>,

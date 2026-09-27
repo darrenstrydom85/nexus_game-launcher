@@ -482,96 +482,6 @@ pub async fn get_twitch_followed_channels(
     })
 }
 
-/// Get live streams for followed channels. Online: fetch and cache. Offline: return cache with stale: true.
-#[tauri::command]
-pub async fn get_twitch_live_streams(
-    app: AppHandle,
-    db: State<'_, DbState>,
-) -> Result<TwitchResponse<Vec<TwitchStream>>, CommandError> {
-    let mgr = manager(&app)?;
-    let (mut user_id, mut access_token) = mgr.get_valid_access_token().await?;
-
-    let (cached, cached_at_secs) = {
-        let conn = db
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let c = cache::get_cached_live_streams(&conn)?;
-        let at = c.first().map(|s| s.cached_at);
-        (c, at)
-    };
-
-    if check_twitch_api_available() {
-        let client_id = twitch_client_id()?;
-        let http = reqwest::Client::new();
-        let channels =
-            match api::fetch_followed_channels(&http, client_id, &access_token, &user_id).await {
-                Ok(ch) => Some(ch),
-                Err(e) => match try_recover_auth_error(e, &mgr).await {
-                    Ok((new_uid, new_tok)) => {
-                        user_id = new_uid;
-                        access_token = new_tok;
-                        api::fetch_followed_channels(&http, client_id, &access_token, &user_id)
-                            .await
-                            .ok()
-                    }
-                    Err(_) => None,
-                },
-            };
-        if let Some(chs) = channels {
-            let user_ids: Vec<String> = chs.iter().map(|c| c.channel_id.clone()).collect();
-            let streams = api::fetch_live_streams(&http, client_id, &access_token, &user_ids)
-                .await
-                .ok();
-            if let Some(streams) = streams {
-                {
-                    let conn = db
-                        .conn
-                        .lock()
-                        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-                    cache::cache_live_streams(&conn, &streams)?;
-                }
-                let out: Vec<TwitchStream> = streams
-                    .into_iter()
-                    .map(|s| TwitchStream {
-                        title: s.title,
-                        game_name: s.game_name,
-                        game_id: s.game_id,
-                        viewer_count: s.viewer_count,
-                        thumbnail_url: s.thumbnail_url,
-                        started_at: s.started_at,
-                    })
-                    .collect();
-                let _ = app.emit(
-                    "twitch-data-updated",
-                    serde_json::json!({ "channelCount": chs.len(), "liveCount": out.len(), "stale": false }),
-                );
-                return Ok(TwitchResponse {
-                    data: out,
-                    stale: false,
-                    cached_at: Some(cached_at_now()),
-                });
-            }
-        }
-    }
-
-    Ok(TwitchResponse {
-        data: cached
-            .into_iter()
-            .map(|s| TwitchStream {
-                title: s.title,
-                game_name: s.game_name,
-                game_id: s.game_id,
-                viewer_count: s.viewer_count,
-                thumbnail_url: s.thumbnail_url,
-                started_at: s.started_at,
-            })
-            .collect(),
-        stale: true,
-        cached_at: cached_at_secs,
-    })
-}
-
 /// Get top streams for a game/category by name. Resolves game name via Twitch API (or cache),
 /// then fetches streams.
 #[tauri::command]
@@ -891,74 +801,6 @@ pub fn build_token_manager(app: AppHandle) -> Option<Arc<TwitchTokenManager>> {
 // ---------------------------------------------------------------------------
 
 use crate::twitch::watch_history;
-
-/// Begin a watch session. Returns the new session id; pass it back to
-/// [`twitch_watch_session_end`] when the embed closes.
-#[tauri::command]
-pub fn twitch_watch_session_start(
-    db: State<'_, DbState>,
-    channel_login: String,
-    channel_display_name: Option<String>,
-    twitch_game_id: Option<String>,
-    twitch_game_name: Option<String>,
-    nexus_game_id: Option<String>,
-) -> Result<i64, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::start_session(
-        &conn,
-        &channel_login,
-        channel_display_name.as_deref(),
-        twitch_game_id.as_deref(),
-        twitch_game_name.as_deref(),
-        nexus_game_id.as_deref(),
-    )
-}
-
-/// End a watch session. `duration_secs` is the *effective* watch time tracked by the
-/// frontend (visibility-aware); `watch_history::end_session` clamps it to a 24h ceiling.
-#[tauri::command]
-pub fn twitch_watch_session_end(
-    db: State<'_, DbState>,
-    session_id: i64,
-    duration_secs: i64,
-) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::end_session(&conn, session_id, duration_secs)
-}
-
-/// Aggregate the last `period_days` of watch history for the Stats tile.
-#[tauri::command]
-pub fn get_twitch_watch_stats(
-    db: State<'_, DbState>,
-    period_days: i64,
-    top_n: Option<usize>,
-) -> Result<watch_history::WatchAggregate, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::aggregate_for_recent_days(&conn, period_days, top_n.unwrap_or(3))
-}
-
-/// Aggregate a calendar year (UTC) of watch history for Wrapped.
-#[tauri::command]
-pub fn get_twitch_watch_year(
-    db: State<'_, DbState>,
-    year: i32,
-    top_n: Option<usize>,
-) -> Result<watch_history::WatchAggregate, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-    watch_history::aggregate_for_year(&conn, year, top_n.unwrap_or(3))
-}
 
 /// Aggregate Twitch watch history for an arbitrary inclusive date range
 /// (`YYYY-MM-DD` strings, UTC).
@@ -1415,18 +1257,6 @@ fn end_watch_session_for_label<R: tauri::Runtime>(app: &tauri::AppHandle<R>, lab
 /// (`msWebOOUI,msPdfOOUI,msSmartScreenProtection`) because setting this field
 /// replaces the default list — we have to opt back in to keep them.
 pub const NEXUS_WEBVIEW_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,BlockInsecurePrivateNetworkRequests --autoplay-policy=no-user-gesture-required";
-
-/// Return the base URL of the local Twitch embed server (e.g.
-/// `http://localhost:53127`). Frontend appends `/player?channel=...` or
-/// `/chat?channel=...` to construct iframe `src` URLs.
-///
-/// Returns an empty string if the server failed to start (the frontend then
-/// falls back to the direct twitch.tv embed URL — which works in `tauri dev`
-/// but not in packaged builds).
-#[tauri::command]
-pub fn get_twitch_embed_base_url(state: State<'_, TwitchEmbedBaseUrl>) -> String {
-    state.0.clone()
-}
 
 /// Stable label for the in-app Twitch login helper window.
 const TWITCH_LOGIN_LABEL: &str = "twitch-login";

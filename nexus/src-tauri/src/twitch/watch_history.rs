@@ -6,7 +6,7 @@
 //! the frontend's duration value because only it can observe `document.visibilityState` and
 //! window focus correctly across the inline panel and the pop-out window.
 //!
-//! Aggregation helpers ([`aggregate_for_period`], [`aggregate_for_year`]) power the Stats
+//! Aggregation helpers ([`aggregate_for_period`], [`aggregate_for_iso_dates`]) power the Stats
 //! tile and the Wrapped slide; they cap top-N lists at the values shown in the UI so we
 //! don't pull more rows than needed.
 
@@ -187,10 +187,11 @@ pub fn aggregate_for_period(
     })
 }
 
-/// Convenience wrapper that aggregates the previous `period_days` ending now.
+/// Test helper: aggregate the previous `period_days` ending now.
 /// We bump the upper bound by 1s so sessions started in the exact same second as the call
 /// are still included (half-open `[from, to)` would otherwise drop them).
-pub fn aggregate_for_recent_days(
+#[cfg(test)]
+fn aggregate_for_recent_days(
     conn: &Connection,
     period_days: i64,
     top_n: usize,
@@ -224,36 +225,6 @@ pub fn aggregate_for_iso_dates(
         ));
     }
     aggregate_for_period(conn, from, to_inclusive + 1, top_n)
-}
-
-/// Aggregate the entire calendar year (UTC) — used by the Wrapped slide.
-pub fn aggregate_for_year(
-    conn: &Connection,
-    year: i32,
-    top_n: usize,
-) -> Result<WatchAggregate, CommandError> {
-    // Compute Jan 1 of `year` and Jan 1 of `year + 1` in UTC seconds. We avoid a chrono dep
-    // by using a simple days-from-1970 calculation that handles Gregorian leap years.
-    fn jan1_secs(year: i32) -> i64 {
-        let mut days: i64 = 0;
-        let start = 1970;
-        if year >= start {
-            for y in start..year {
-                days += if is_leap(y) { 366 } else { 365 };
-            }
-        } else {
-            for y in year..start {
-                days -= if is_leap(y) { 366 } else { 365 };
-            }
-        }
-        days * 24 * 60 * 60
-    }
-    fn is_leap(y: i32) -> bool {
-        (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)
-    }
-    let from = jan1_secs(year);
-    let to = jan1_secs(year + 1);
-    aggregate_for_period(conn, from, to, top_n)
 }
 
 #[cfg(test)]

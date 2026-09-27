@@ -7,46 +7,9 @@ use super::error::CommandError;
 use super::utils::now_iso;
 use crate::db::DbState;
 use crate::models::collection::{
-    Collection, CollectionWithCount, CollectionWithGameIds, GroupOperator, SmartCollectionRule,
+    Collection, CollectionWithGameIds, GroupOperator, SmartCollectionRule,
     SmartCollectionRuleGroup, SmartCondition,
 };
-use crate::models::game::Game;
-
-#[tauri::command]
-pub fn get_collections(db: State<'_, DbState>) -> Result<Vec<CollectionWithCount>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT c.*, COUNT(cg.game_id) AS game_count
-             FROM collections c
-             LEFT JOIN collection_games cg ON cg.collection_id = c.id
-             GROUP BY c.id
-             ORDER BY c.sort_order ASC, c.name ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let mut collections: Vec<CollectionWithCount> = stmt
-        .query_map([], CollectionWithCount::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    for c in &mut collections {
-        if c.is_smart {
-            if let Some(ref rj) = c.rules_json {
-                c.game_count = evaluate_rules_sql(&conn, rj)
-                    .map(|ids| ids.len() as i64)
-                    .unwrap_or(0);
-            }
-        }
-    }
-
-    Ok(collections)
-}
 
 #[tauri::command]
 pub fn get_collections_with_game_ids(
@@ -405,79 +368,6 @@ pub fn remove_from_collection(
     Ok(())
 }
 
-#[tauri::command]
-pub fn reorder_collections(db: State<'_, DbState>, ids: Vec<String>) -> Result<(), CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let now = now_iso();
-    let tx = conn
-        .unchecked_transaction()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    for (index, id) in ids.iter().enumerate() {
-        let rows = tx
-            .execute(
-                "UPDATE collections SET sort_order = ?1, updated_at = ?2 WHERE id = ?3",
-                params![index as i64, now, id],
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        if rows == 0 {
-            return Err(CommandError::NotFound(format!("collection {id}")));
-        }
-    }
-
-    tx.commit()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(())
-}
-
-#[tauri::command]
-pub fn get_collection_games(
-    db: State<'_, DbState>,
-    collection_id: String,
-) -> Result<Vec<Game>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let exists: bool = conn
-        .query_row(
-            "SELECT COUNT(*) > 0 FROM collections WHERE id = ?1",
-            params![collection_id],
-            |row| row.get(0),
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    if !exists {
-        return Err(CommandError::NotFound(format!(
-            "collection {collection_id}"
-        )));
-    }
-
-    let mut stmt = conn
-        .prepare(
-            "SELECT g.* FROM games g
-             INNER JOIN collection_games cg ON cg.game_id = g.id
-             WHERE cg.collection_id = ?1
-             ORDER BY g.name ASC",
-        )
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let games = stmt
-        .query_map(params![collection_id], Game::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(games)
-}
-
 // ── Smart Collection Evaluation ──────────────────────────────────
 
 #[tauri::command]
@@ -815,48 +705,6 @@ mod tests {
 
     // ── get_collections ──
 
-    #[test]
-    fn get_collections_returns_all_with_counts() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "Favorites", 0);
-        insert_collection(&conn, "c2", "Backlog", 1);
-        insert_game(&conn, "g1", "Game A");
-        insert_game(&conn, "g2", "Game B");
-        insert_junction(&conn, "c1", "g1");
-        insert_junction(&conn, "c1", "g2");
-        drop(conn);
-
-        let collections = get_collections_inner(&state).unwrap();
-        assert_eq!(collections.len(), 2);
-        assert_eq!(collections[0].name, "Favorites");
-        assert_eq!(collections[0].game_count, 2);
-        assert_eq!(collections[1].name, "Backlog");
-        assert_eq!(collections[1].game_count, 0);
-    }
-
-    #[test]
-    fn get_collections_empty() {
-        let state = setup_db();
-        let collections = get_collections_inner(&state).unwrap();
-        assert!(collections.is_empty());
-    }
-
-    #[test]
-    fn get_collections_ordered_by_sort_order() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "Zebra", 2);
-        insert_collection(&conn, "c2", "Alpha", 0);
-        insert_collection(&conn, "c3", "Middle", 1);
-        drop(conn);
-
-        let collections = get_collections_inner(&state).unwrap();
-        assert_eq!(collections[0].name, "Alpha");
-        assert_eq!(collections[1].name, "Middle");
-        assert_eq!(collections[2].name, "Zebra");
-    }
-
     // ── create_collection ──
 
     #[test]
@@ -1105,107 +953,9 @@ mod tests {
 
     // ── reorder_collections ──
 
-    #[test]
-    fn reorder_collections_updates_sort_order() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "First", 0);
-        insert_collection(&conn, "c2", "Second", 1);
-        insert_collection(&conn, "c3", "Third", 2);
-        drop(conn);
-
-        reorder_collections_inner(&state, vec!["c3".into(), "c1".into(), "c2".into()]).unwrap();
-
-        let conn = state.conn.lock().unwrap();
-        let order: Vec<(String, i64)> = conn
-            .prepare("SELECT id, sort_order FROM collections ORDER BY sort_order ASC")
-            .unwrap()
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-            .unwrap()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-
-        assert_eq!(order[0], ("c3".into(), 0));
-        assert_eq!(order[1], ("c1".into(), 1));
-        assert_eq!(order[2], ("c2".into(), 2));
-    }
-
-    #[test]
-    fn reorder_collections_not_found() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "First", 0);
-        drop(conn);
-
-        let result = reorder_collections_inner(&state, vec!["c1".into(), "nonexistent".into()]);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not found"));
-    }
-
     // ── get_collection_games ──
 
-    #[test]
-    fn get_collection_games_returns_games() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "Favs", 0);
-        insert_game(&conn, "g1", "Zelda");
-        insert_game(&conn, "g2", "Apex");
-        insert_junction(&conn, "c1", "g1");
-        insert_junction(&conn, "c1", "g2");
-        drop(conn);
-
-        let games = get_collection_games_inner(&state, "c1".into()).unwrap();
-        assert_eq!(games.len(), 2);
-        assert_eq!(games[0].name, "Apex");
-        assert_eq!(games[1].name, "Zelda");
-    }
-
-    #[test]
-    fn get_collection_games_empty_collection() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_collection(&conn, "c1", "Empty", 0);
-        drop(conn);
-
-        let games = get_collection_games_inner(&state, "c1".into()).unwrap();
-        assert!(games.is_empty());
-    }
-
-    #[test]
-    fn get_collection_games_not_found() {
-        let state = setup_db();
-        let result = get_collection_games_inner(&state, "nope".into());
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not found"));
-    }
-
     // ── Test helpers: non-Tauri wrappers ──
-
-    fn get_collections_inner(state: &DbState) -> Result<Vec<CollectionWithCount>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT c.*, COUNT(cg.game_id) AS game_count
-                 FROM collections c
-                 LEFT JOIN collection_games cg ON cg.collection_id = c.id
-                 GROUP BY c.id
-                 ORDER BY c.sort_order ASC, c.name ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let collections = stmt
-            .query_map([], CollectionWithCount::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(collections)
-    }
 
     fn create_collection_inner(
         state: &DbState,
@@ -1454,77 +1204,6 @@ mod tests {
         }
 
         Ok(())
-    }
-
-    fn reorder_collections_inner(state: &DbState, ids: Vec<String>) -> Result<(), CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let now = now_iso();
-        let tx = conn
-            .unchecked_transaction()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        for (index, id) in ids.iter().enumerate() {
-            let rows = tx
-                .execute(
-                    "UPDATE collections SET sort_order = ?1, updated_at = ?2 WHERE id = ?3",
-                    params![index as i64, now, id],
-                )
-                .map_err(|e| CommandError::Database(e.to_string()))?;
-
-            if rows == 0 {
-                return Err(CommandError::NotFound(format!("collection {id}")));
-            }
-        }
-
-        tx.commit()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(())
-    }
-
-    fn get_collection_games_inner(
-        state: &DbState,
-        collection_id: String,
-    ) -> Result<Vec<Game>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-        let exists: bool = conn
-            .query_row(
-                "SELECT COUNT(*) > 0 FROM collections WHERE id = ?1",
-                params![collection_id],
-                |row| row.get(0),
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        if !exists {
-            return Err(CommandError::NotFound(format!(
-                "collection {collection_id}"
-            )));
-        }
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT g.* FROM games g
-                 INNER JOIN collection_games cg ON cg.game_id = g.id
-                 WHERE cg.collection_id = ?1
-                 ORDER BY g.name ASC",
-            )
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        let games = stmt
-            .query_map(params![collection_id], Game::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-
-        Ok(games)
     }
 
     fn evaluate_rules_inner(

@@ -172,18 +172,6 @@ pub fn award_xp_inner(
     })
 }
 
-/// One-time retroactive XP grant for existing play data.
-/// Safe to call multiple times — uses award_xp deduplication.
-#[tauri::command]
-pub fn backfill_xp_from_history(db: State<'_, DbState>) -> Result<XpSummary, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    backfill_xp_inner(&conn)
-}
-
 pub fn backfill_xp_inner(conn: &Connection) -> Result<XpSummary, CommandError> {
     // Session XP: 10 + floor(duration_s / 600) for each qualifying session
     let mut stmt = conn

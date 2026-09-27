@@ -193,29 +193,6 @@ pub fn end_session(
 }
 
 #[tauri::command]
-pub fn get_play_sessions(
-    db: State<'_, DbState>,
-    game_id: String,
-) -> Result<Vec<PlaySession>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT * FROM play_sessions WHERE game_id = ?1 ORDER BY started_at DESC")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let sessions = stmt
-        .query_map(params![game_id], PlaySession::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(sessions)
-}
-
-#[tauri::command]
 pub fn get_play_stats(db: State<'_, DbState>, game_id: String) -> Result<PlayStats, CommandError> {
     let conn = db
         .conn
@@ -306,26 +283,6 @@ pub fn get_activity_data(
         .map_err(|e| CommandError::Database(e.to_string()))?;
 
     Ok(buckets)
-}
-
-#[tauri::command]
-pub fn get_orphaned_sessions(db: State<'_, DbState>) -> Result<Vec<PlaySession>, CommandError> {
-    let conn = db
-        .conn
-        .lock()
-        .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-
-    let mut stmt = conn
-        .prepare("SELECT * FROM play_sessions WHERE ended_at IS NULL ORDER BY started_at DESC")
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    let sessions = stmt
-        .query_map([], PlaySession::from_row)
-        .map_err(|e| CommandError::Database(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| CommandError::Database(e.to_string()))?;
-
-    Ok(sessions)
 }
 
 #[tauri::command]
@@ -785,71 +742,6 @@ mod tests {
 
     // ── get_play_sessions ──
 
-    #[test]
-    fn get_play_sessions_returns_ordered_desc() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(
-            &conn,
-            "s1",
-            "g1",
-            "2026-01-10T10:00:00Z",
-            Some("2026-01-10T11:00:00Z"),
-            Some(3600),
-        );
-        insert_test_session(
-            &conn,
-            "s2",
-            "g1",
-            "2026-01-15T10:00:00Z",
-            Some("2026-01-15T11:00:00Z"),
-            Some(3600),
-        );
-        drop(conn);
-
-        let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
-        assert_eq!(sessions.len(), 2);
-        assert_eq!(sessions[0].id, "s2"); // newer first
-        assert_eq!(sessions[1].id, "s1");
-    }
-
-    #[test]
-    fn get_play_sessions_empty_for_unknown_game() {
-        let state = setup_db();
-        let sessions = get_play_sessions_inner(&state, "nonexistent".into()).unwrap();
-        assert!(sessions.is_empty());
-    }
-
-    #[test]
-    fn get_play_sessions_only_returns_matching_game() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Game A");
-        insert_test_game(&conn, "g2", "Game B");
-        insert_test_session(
-            &conn,
-            "s1",
-            "g1",
-            "2026-01-10T10:00:00Z",
-            Some("2026-01-10T11:00:00Z"),
-            Some(3600),
-        );
-        insert_test_session(
-            &conn,
-            "s2",
-            "g2",
-            "2026-01-10T12:00:00Z",
-            Some("2026-01-10T13:00:00Z"),
-            Some(3600),
-        );
-        drop(conn);
-
-        let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
-        assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].game_id, "g1");
-    }
-
     // ── get_play_stats ──
 
     #[test]
@@ -1059,48 +951,6 @@ mod tests {
 
     // ── get_orphaned_sessions ──
 
-    #[test]
-    fn get_orphaned_sessions_finds_null_ended_at() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(&conn, "s1", "g1", "2026-01-10T10:00:00Z", None, None);
-        insert_test_session(
-            &conn,
-            "s2",
-            "g1",
-            "2026-01-11T10:00:00Z",
-            Some("2026-01-11T11:00:00Z"),
-            Some(3600),
-        );
-        insert_test_session(&conn, "s3", "g1", "2026-01-12T10:00:00Z", None, None);
-        drop(conn);
-
-        let orphaned = get_orphaned_sessions_inner(&state).unwrap();
-        assert_eq!(orphaned.len(), 2);
-        assert_eq!(orphaned[0].id, "s3"); // newer first
-        assert_eq!(orphaned[1].id, "s1");
-    }
-
-    #[test]
-    fn get_orphaned_sessions_empty_when_all_ended() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(
-            &conn,
-            "s1",
-            "g1",
-            "2026-01-10T10:00:00Z",
-            Some("2026-01-10T11:00:00Z"),
-            Some(3600),
-        );
-        drop(conn);
-
-        let orphaned = get_orphaned_sessions_inner(&state).unwrap();
-        assert!(orphaned.is_empty());
-    }
-
     // ── Test helpers: non-Tauri wrappers ──
 
     fn create_session_inner(state: &DbState, game_id: String) -> Result<PlaySession, CommandError> {
@@ -1196,25 +1046,6 @@ mod tests {
         Ok(session)
     }
 
-    fn get_play_sessions_inner(
-        state: &DbState,
-        game_id: String,
-    ) -> Result<Vec<PlaySession>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let mut stmt = conn
-            .prepare("SELECT * FROM play_sessions WHERE game_id = ?1 ORDER BY started_at DESC")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        let sessions = stmt
-            .query_map(params![game_id], PlaySession::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(sessions)
-    }
-
     fn get_play_stats_inner(state: &DbState, game_id: String) -> Result<PlayStats, CommandError> {
         let conn = state
             .conn
@@ -1294,22 +1125,6 @@ mod tests {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| CommandError::Database(e.to_string()))?;
         Ok(buckets)
-    }
-
-    fn get_orphaned_sessions_inner(state: &DbState) -> Result<Vec<PlaySession>, CommandError> {
-        let conn = state
-            .conn
-            .lock()
-            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
-        let mut stmt = conn
-            .prepare("SELECT * FROM play_sessions WHERE ended_at IS NULL ORDER BY started_at DESC")
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        let sessions = stmt
-            .query_map([], PlaySession::from_row)
-            .map_err(|e| CommandError::Database(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CommandError::Database(e.to_string()))?;
-        Ok(sessions)
     }
 
     fn insert_test_game_with_source(
@@ -1680,31 +1495,6 @@ mod tests {
         let result = update_session_note_inner(&state, "nonexistent".into(), Some("note".into()));
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
-    }
-
-    #[test]
-    fn get_play_sessions_returns_note() {
-        let state = setup_db();
-        let conn = state.conn.lock().unwrap();
-        insert_test_game(&conn, "g1", "Test Game");
-        insert_test_session(
-            &conn,
-            "s1",
-            "g1",
-            "2026-01-10T10:00:00Z",
-            Some("2026-01-10T11:00:00Z"),
-            Some(3600),
-        );
-        conn.execute(
-            "UPDATE play_sessions SET note = 'My note' WHERE id = 's1'",
-            [],
-        )
-        .unwrap();
-        drop(conn);
-
-        let sessions = get_play_sessions_inner(&state, "g1".into()).unwrap();
-        assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].note, Some("My note".into()));
     }
 
     #[test]

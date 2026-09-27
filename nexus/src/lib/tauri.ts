@@ -1,31 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// ── Shared Error Type ──────────────────────────────────────────────
-export type CommandErrorKind =
-  | "io"
-  | "database"
-  | "notFound"
-  | "parse"
-  | "permission"
-  | "networkUnavailable"
-  | "auth"
-  | "unknown";
-
-export interface CommandError {
-  kind: CommandErrorKind;
-  message: string;
-}
-
-// ── Ping / Health Check ────────────────────────────────────────────
-export interface PingResponse {
-  message: string;
-  timestamp: number;
-}
-
-export function ping(): Promise<PingResponse> {
-  return invoke<PingResponse>("ping");
-}
-
 // ── Scanner Commands ───────────────────────────────────────────────
 export interface ScanResult {
   path: string;
@@ -33,27 +7,10 @@ export interface ScanResult {
   executable: string;
 }
 
-export function scanDirectory(_path: string): Promise<ScanResult[]> {
-  return invoke<ScanResult[]>("scan_directory", { path: _path });
-}
-
 // ── Launcher Commands ──────────────────────────────────────────────
-export interface LaunchOptions {
-  gameId: string;
-  args?: string[];
-}
-
 export interface LaunchResult {
   pid: number;
   gameId: string;
-}
-
-export function launchGame(options: LaunchOptions): Promise<LaunchResult> {
-  return invoke<LaunchResult>("launch_game", { options });
-}
-
-export function stopGame(pid: number): Promise<void> {
-  return invoke<void>("stop_game", { pid });
 }
 
 // ── Process Picker (Story 22.1) ───────────────────────────────────
@@ -71,17 +28,6 @@ export function listRunningProcesses(
   });
 }
 
-// ── Playtime Commands ──────────────────────────────────────────────
-export interface PlaytimeRecord {
-  gameId: string;
-  totalSeconds: number;
-  lastPlayed: string;
-}
-
-export function getPlaytime(gameId: string): Promise<PlaytimeRecord> {
-  return invoke<PlaytimeRecord>("get_playtime", { gameId });
-}
-
 // ── Metadata Commands ──────────────────────────────────────────────
 export interface GameMetadata {
   id: string;
@@ -89,23 +35,6 @@ export interface GameMetadata {
   description?: string;
   coverUrl?: string;
   genres?: string[];
-}
-
-export function getMetadata(gameId: string): Promise<GameMetadata> {
-  return invoke<GameMetadata>("get_metadata", { gameId });
-}
-
-export interface VerifyKeyResult {
-  valid: boolean;
-  message: string;
-}
-
-export function verifySteamgridKey(): Promise<VerifyKeyResult> {
-  return invoke<VerifyKeyResult>("verify_steamgrid_key");
-}
-
-export function verifyIgdbKeys(): Promise<VerifyKeyResult> {
-  return invoke<VerifyKeyResult>("verify_igdb_keys");
 }
 
 export function fetchMetadata(gameId: string): Promise<void> {
@@ -160,31 +89,9 @@ export function applySteamgridArtwork(
   });
 }
 
-export function fetchArtwork(gameId: string): Promise<void> {
-  return invoke<void>("fetch_artwork", { gameId });
-}
-
-export interface KeyStatus {
-  steamgrid: boolean;
-  igdb: boolean;
-  availability: "both" | "steamgrid_only" | "igdb_only" | "neither";
-}
-
-export function getKeyStatus(): Promise<KeyStatus> {
-  return invoke<KeyStatus>("get_key_status");
-}
-
 export interface CacheStats {
   totalBytes: number;
   gameBytes?: number;
-}
-
-export function getCacheStats(gameId?: string): Promise<CacheStats> {
-  return invoke<CacheStats>("get_cache_stats", { gameId: gameId ?? null });
-}
-
-export function getPlaceholderCover(name: string): Promise<string> {
-  return invoke<string>("get_placeholder_cover", { name });
 }
 
 export function runScoreBackfill(): Promise<number> {
@@ -218,43 +125,10 @@ export interface ScoreBackfillProgressEvent {
   total: number;
 }
 
-// ── Metadata Progress Event ───────────────────────────────────────
-export type MetadataStatus = "queued" | "fetching" | "complete" | "failed";
-
-export type MetadataProgressTrigger = "onboarding" | "resync" | "auto";
-
-export interface MetadataSyncError {
-  source: string;
-  gameId: string;
-  message: string;
-}
-
-export interface MetadataProgressEvent {
-  phase: string;
-  completed: number;
-  total: number;
-  currentGame: string | null;
-  trigger: MetadataProgressTrigger;
-  error: MetadataSyncError | null;
-  gameId: string;
-  gameName: string;
-  status: MetadataStatus;
-  progress?: number;
-}
-
-// ── Event Commands ─────────────────────────────────────────────────
-export function emitTestEvent(message: string): Promise<void> {
-  return invoke<void>("emit_test_event", { message });
-}
-
 // ── Database Commands ──────────────────────────────────────────────
 export interface DbStatus {
   connected: boolean;
   version: string;
-}
-
-export function getDbStatus(): Promise<DbStatus> {
-  return invoke<DbStatus>("get_db_status");
 }
 
 // ── Library Health Check ───────────────────────────────────────────
@@ -472,14 +346,6 @@ export function getTwitchClipsForGame(
 
 // ── Twitch Watch History (Story E1) ─────────────────────────────────────────
 
-export interface TwitchWatchSessionStartArgs {
-  channelLogin: string;
-  channelDisplayName?: string | null;
-  twitchGameId?: string | null;
-  twitchGameName?: string | null;
-  nexusGameId?: string | null;
-}
-
 export interface WatchTotals {
   totalSecs: number;
   sessionCount: number;
@@ -501,47 +367,6 @@ export interface WatchAggregate {
   totals: WatchTotals;
   topChannels: WatchByChannel[];
   topGames: WatchByGame[];
-}
-
-/** Begin a watch session; returns the new session id (pass to end). */
-export function twitchWatchSessionStart(
-  args: TwitchWatchSessionStartArgs,
-): Promise<number> {
-  return invoke<number>("twitch_watch_session_start", {
-    channelLogin: args.channelLogin,
-    channelDisplayName: args.channelDisplayName ?? null,
-    twitchGameId: args.twitchGameId ?? null,
-    twitchGameName: args.twitchGameName ?? null,
-    nexusGameId: args.nexusGameId ?? null,
-  });
-}
-
-/** End a watch session. Duration is the visibility-aware effective watch time. */
-export function twitchWatchSessionEnd(
-  sessionId: number,
-  durationSecs: number,
-): Promise<void> {
-  return invoke<void>("twitch_watch_session_end", {
-    sessionId,
-    durationSecs: Math.max(0, Math.floor(durationSecs)),
-  });
-}
-
-export function getTwitchWatchStats(
-  periodDays: number,
-  topN = 3,
-): Promise<WatchAggregate> {
-  return invoke<WatchAggregate>("get_twitch_watch_stats", {
-    periodDays,
-    topN,
-  });
-}
-
-export function getTwitchWatchYear(
-  year: number,
-  topN = 3,
-): Promise<WatchAggregate> {
-  return invoke<WatchAggregate>("get_twitch_watch_year", { year, topN });
 }
 
 /**
@@ -714,14 +539,6 @@ export function removeTagFromGame(
   return invoke<void>("remove_tag_from_game", { gameId, tagId });
 }
 
-export function getGameTags(gameId: string): Promise<Tag[]> {
-  return invoke<Tag[]>("get_game_tags", { gameId });
-}
-
-export function getGamesByTag(tagId: string): Promise<string[]> {
-  return invoke<string[]>("get_games_by_tag", { tagId });
-}
-
 export function getAllGameTagIds(): Promise<[string, string][]> {
   return invoke<[string, string][]>("get_all_game_tag_ids");
 }
@@ -786,21 +603,6 @@ export function evaluateSmartCollection(
   return invoke<string[]>("evaluate_smart_collection", { rulesJson });
 }
 
-export function createSmartCollection(
-  name: string,
-  rulesJson: string,
-  icon?: string | null,
-  color?: string | null,
-): Promise<unknown> {
-  return invoke("create_collection", {
-    name,
-    icon: icon ?? null,
-    color: color ?? null,
-    isSmart: true,
-    rulesJson,
-  });
-}
-
 // ── Google Drive Backup ───────────────────────────────────────────────
 
 export interface GDriveAuthStatus {
@@ -834,10 +636,6 @@ export interface BackupStatus {
 
 export function gdriveAuthStart(): Promise<GDriveAuthStatus> {
   return invoke<GDriveAuthStatus>("gdrive_auth_start");
-}
-
-export function gdriveAuthStatus(): Promise<GDriveAuthStatus> {
-  return invoke<GDriveAuthStatus>("gdrive_auth_status");
 }
 
 export function gdriveAuthLogout(): Promise<void> {
@@ -998,22 +796,6 @@ export type AchievementRarity =
   | "epic"
   | "legendary";
 
-export interface AchievementDefinition {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: AchievementCategory;
-  rarity: AchievementRarity;
-  points: number;
-}
-
-export interface UnlockedAchievement {
-  id: string;
-  unlockedAt: string;
-  contextJson: string | null;
-}
-
 export interface AchievementStatus {
   id: string;
   name: string;
@@ -1025,14 +807,6 @@ export interface AchievementStatus {
   unlocked: boolean;
   unlockedAt: string | null;
   contextJson: string | null;
-}
-
-export function getAchievementDefinitions(): Promise<AchievementDefinition[]> {
-  return invoke<AchievementDefinition[]>("get_achievement_definitions");
-}
-
-export function getUnlockedAchievements(): Promise<UnlockedAchievement[]> {
-  return invoke<UnlockedAchievement[]>("get_unlocked_achievements");
 }
 
 export function getAchievementStatus(): Promise<AchievementStatus[]> {
@@ -1106,8 +880,4 @@ export function awardXp(
     xpAmount,
     description,
   });
-}
-
-export function backfillXpFromHistory(): Promise<XpSummary> {
-  return invoke<XpSummary>("backfill_xp_from_history");
 }
