@@ -1,30 +1,12 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSettingsStore, type ExperienceMode } from "@/stores/settingsStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { ThemeMode } from "@/lib/theme";
 
 const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
   { mode: "light", label: "Light", icon: Sun },
   { mode: "dark", label: "Dark", icon: Moon },
   { mode: "system", label: "System", icon: Monitor },
-];
-
-const EXPERIENCE_OPTIONS: { mode: ExperienceMode; label: string; description: string }[] = [
-  {
-    mode: "current",
-    label: "Classic",
-    description: "The familiar sidebar layout.",
-  },
-  {
-    mode: "backdrop",
-    label: "Backdrop",
-    description: "Cinematic and art-first — a full-bleed hero, an icon rail, colors drawn from your game's art.",
-  },
-  {
-    mode: "channel",
-    label: "Channel",
-    description: "Console-style home — a focus row you traverse, top tabs, a system bar.",
-  },
 ];
 
 export function AppearanceSettings() {
@@ -44,8 +26,6 @@ export function AppearanceSettings() {
   const setMilestoneNotifications = useSettingsStore((s) => s.setMilestoneNotificationsEnabled);
   const retroMode = useSettingsStore((s) => s.retroMode);
   const setRetroMode = useSettingsStore((s) => s.setRetroMode);
-  const experience = useSettingsStore((s) => s.experience);
-  const setExperience = useSettingsStore((s) => s.setExperience);
 
   return (
     <section data-testid="appearance-settings">
@@ -74,37 +54,6 @@ export function AppearanceSettings() {
               >
                 <Icon className="size-3.5 shrink-0" aria-hidden />
                 {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span className="mb-1 block text-sm text-foreground">Experience</span>
-          <div
-            data-testid="experience-picker"
-            className="flex flex-col gap-1.5"
-            role="radiogroup"
-            aria-label="Launcher experience"
-          >
-            {EXPERIENCE_OPTIONS.map(({ mode, label, description }) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={experience === mode}
-                data-testid={`experience-${mode}`}
-                onClick={() => setExperience(mode)}
-                className={cn(
-                  "flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  experience === mode
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:bg-accent",
-                )}
-              >
-                <span className="text-sm font-medium text-foreground">{label}</span>
-                <span className="text-xs text-muted-foreground">{description}</span>
               </button>
             ))}
           </div>

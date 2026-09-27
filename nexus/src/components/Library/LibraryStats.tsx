@@ -130,6 +130,8 @@ interface LibraryStatsProps {
   initialDateRange?: StatsDateRange;
   /** Called when the user clicks "My Wrapped". */
   onOpenWrapped?: () => void;
+  /** Hide the "Library Stats" title (a wrapping view supplies its own header). */
+  hideTitle?: boolean;
 }
 
 const DEFAULT_STATS: PlayStats = {
@@ -220,6 +222,7 @@ export function LibraryStats({
   distribution: distributionProp,
   initialDateRange,
   onOpenWrapped,
+  hideTitle = false,
 }: LibraryStatsProps) {
   const [stats, setStats] = React.useState<PlayStats>(statsProp ?? DEFAULT_STATS);
   const [activityData, setActivityData] = React.useState<ActivityDataPoint[]>(activityDataProp ?? []);
@@ -408,7 +411,7 @@ export function LibraryStats({
     <div data-testid="library-stats" className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold text-foreground">Library Stats</h2>
+          {!hideTitle && <h2 className="text-2xl font-bold text-foreground">Library Stats</h2>}
           {onOpenWrapped && (
             <button
               type="button"

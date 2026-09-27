@@ -6,11 +6,9 @@ import "@fontsource/geist-sans/500.css";
 import "@fontsource/geist-sans/600.css";
 import "@fontsource/geist-sans/700.css";
 import "@fontsource/geist-mono/400.css";
-// Experience display faces: Backdrop (condensed) and Channel (grotesk)
+// Backdrop display face (hero titles, headline figures)
 import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
-import "@fontsource/space-grotesk/500.css";
-import "@fontsource/space-grotesk/700.css";
 // Bundled alternative fonts selectable in the Theme Studio.
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";

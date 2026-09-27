@@ -7,9 +7,6 @@ import { SteamGridDBStep } from "@/components/Onboarding/SteamGridDBStep";
 import { IGDBStep } from "@/components/Onboarding/IGDBStep";
 import { SourcesStep } from "@/components/Onboarding/SourcesStep";
 import { ConfirmLibraryStep } from "@/components/Onboarding/ConfirmLibraryStep";
-import { AppShell } from "@/components/shared/AppShell";
-import { LibraryView } from "@/components/Library/LibraryView";
-import { LibraryStats } from "@/components/Library/LibraryStats";
 import { WrappedView } from "@/components/Wrapped/WrappedView";
 import { ArchiveView } from "@/components/Archive/ArchiveView";
 import { CompletedView } from "@/components/Completed/CompletedView";
@@ -74,9 +71,7 @@ import { RetroApp } from "@/retro/RetroApp";
 import { RetroExitScreen } from "@/retro/RetroExitScreen";
 import { BackdropShell } from "@/components/Backdrop/BackdropShell";
 import { BackdropLibrary } from "@/components/Backdrop/BackdropLibrary";
-import { ChannelShell } from "@/components/Channel/ChannelShell";
-import { ChannelLibrary } from "@/components/Channel/ChannelLibrary";
-import { ChannelStats } from "@/components/Channel/ChannelStats";
+import { BackdropStats } from "@/components/Backdrop/BackdropStats";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -635,12 +630,6 @@ function MainApp() {
   // keep running — only the rendered shell changes.
   const retroMode = useSettingsStore((s) => s.retroMode);
 
-  // Modern shell variant (Current / Backdrop / Channel). Retro wins over this.
-  // Experiences are presentation wrappers: same nav ids, same handlers, and
-  // every modal/toast below stays mounted once regardless of the shell.
-  const experience = useSettingsStore((s) => s.experience);
-  const Shell =
-    experience === "backdrop" ? BackdropShell : experience === "channel" ? ChannelShell : AppShell;
 
   // Leaving retro shows the amber shutdown screen for a beat first.
   const [retroExiting, setRetroExiting] = React.useState(false);
@@ -692,7 +681,7 @@ function MainApp() {
   };
 
   return (
-    <Shell
+    <BackdropShell
       onSettingsClick={() => setSettingsOpen(true)}
       onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
       onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
@@ -718,25 +707,15 @@ function MainApp() {
       ) : activeNav === "twitch" ? (
         <TwitchPanel />
       ) : activeNav === "stats" ? (
-        experience === "channel" ? (
-          <ChannelStats
-            onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
-          />
-        ) : (
-          <LibraryStats
-            onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
-          />
-        )
+        <BackdropStats
+          onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")}
+        />
       ) : activeNav === "completed" ? (
         <CompletedView />
       ) : activeNav === "archive" ? (
         <ArchiveView />
-      ) : experience === "backdrop" ? (
-        <BackdropLibrary {...libraryViewProps} />
-      ) : experience === "channel" ? (
-        <ChannelLibrary {...libraryViewProps} />
       ) : (
-        <LibraryView {...libraryViewProps} />
+        <BackdropLibrary {...libraryViewProps} />
       )}
       <GameDetailOverlay>
         {(game) => {
@@ -993,7 +972,7 @@ function MainApp() {
           setEditCollectionTarget(null);
         }}
       />
-    </Shell>
+    </BackdropShell>
   );
 }
 

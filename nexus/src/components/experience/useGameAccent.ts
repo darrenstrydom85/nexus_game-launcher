@@ -6,7 +6,7 @@ import { useDominantColor } from "@/hooks/useDominantColor";
 /**
  * The game the experience shells treat as "selected": the explicit
  * selection when set, otherwise the most recently played game.
- * Same resolution HeroSection uses, shared so Backdrop and Channel agree.
+ * Explicit selection wins; most recently played is the fallback.
  */
 export function useHeroGame(games: Game[]): Game | null {
   const selectedGameId = useUiStore((s) => s.selectedGameId);

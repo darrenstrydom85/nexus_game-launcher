@@ -52,6 +52,8 @@
     --color-sidebar-ring: var(--sidebar-ring);
     --font-sans: "Geist Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
     --font-mono: "Geist Mono", "Cascadia Code", "Consolas", monospace;
+    /* Cinematic display face for the Backdrop UI (hero titles, headline figures) */
+    --font-display: "Barlow Condensed", "Segoe UI", system-ui, sans-serif;
 
     /* Glassmorphism utilities (resolved from theme-scoped --glass-* on :root / .dark) */
     --color-glass-sidebar: var(--glass-sidebar);
@@ -510,40 +512,15 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Experience shells (Backdrop / Channel)
+   Backdrop UI
    `--game-accent` is set at runtime on the shell root from the selected
    game's art (useGameAccent); every use falls back to the theme --primary so
-   ThemeStudio remains authoritative when no art is available.
+   ThemeStudio remains authoritative when no art is available. Rules are
+   scoped to .experience-backdrop so retro/onboarding are unaffected.
 --------------------------------------------------------------------------- */
-.experience-backdrop {
-    --font-display: "Barlow Condensed", var(--font-sans);
-}
-.experience-channel {
-    --font-display: "Space Grotesk", var(--font-sans);
-}
 
-/* Backdrop: the hero is the interface — taller stage, cinematic display type.
-   Height is inline on the shared HeroSection, so the scope override needs
-   !important; this is the one sanctioned use. */
-.experience-backdrop [data-testid="hero-section"] {
-    height: clamp(380px, 56vh, 620px) !important;
-}
-.experience-backdrop [data-testid="hero-game-name"] {
-    font-family: var(--font-display);
-    font-size: 3.5rem;
-    line-height: 0.95;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-}
-.experience-backdrop [data-testid="hero-overlay"] {
-    padding: 2.5rem;
-}
-.experience-backdrop [data-testid="hero-play-button"] {
-    background: var(--game-accent, var(--primary));
-}
-
-/* Backdrop: game-detail takeover — taller hero, cinematic display title.
-   Heights are utility classes on the shared overlay, hence !important. */
+/* Game-detail takeover: taller hero, cinematic display title. Heights are
+   utility classes on the shared overlay, hence !important. */
 .experience-backdrop [data-testid="detail-overlay-hero"] {
     height: 54% !important;
 }
@@ -555,8 +532,7 @@
     letter-spacing: 0.01em;
 }
 
-/* Backdrop: view headings speak the display voice. */
-.experience-backdrop [data-testid="library-stats"] h2.text-2xl,
+/* Shared views inside the Backdrop shell speak the display voice. */
 .experience-backdrop [data-testid="achievements-view"] h2.text-2xl {
     font-family: var(--font-display);
     font-size: 2.75rem;
@@ -565,20 +541,10 @@
     letter-spacing: 0.01em;
 }
 
-/* Channel: grotesk display voice for headings inside the shell. */
-.experience-channel [data-testid="channel-selected-info"] h1,
-.experience-channel [data-testid="channel-stats-header"] h1,
-.experience-channel [data-testid="detail-overlay-title"],
-.experience-channel [data-testid="library-stats"] h2.text-2xl,
-.experience-channel [data-testid="achievements-view"] h2.text-2xl {
-    font-family: var(--font-display);
-}
-.experience-channel [data-testid="detail-overlay-title"] {
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-.experience-channel [data-testid="detail-overlay-hero"] {
-    height: 45% !important;
+/* The grid keeps its sort/view controls; the shelf header above it owns the
+   title, so hide the grid's own heading text. */
+.experience-backdrop [data-testid="library-heading"] {
+    display: none;
 }
 
 /* Titlebar drag regions */
