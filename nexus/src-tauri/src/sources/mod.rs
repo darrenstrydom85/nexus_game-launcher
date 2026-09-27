@@ -4,7 +4,6 @@ pub mod gog;
 pub mod standalone;
 pub mod steam;
 pub mod ubisoft;
-pub mod watcher;
 pub mod xbox;
 
 use serde::{Deserialize, Serialize};

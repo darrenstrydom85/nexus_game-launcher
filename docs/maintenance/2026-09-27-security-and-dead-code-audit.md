@@ -53,12 +53,14 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
   list (setting the field replaces it); `BlockInsecurePrivateNetworkRequests` is needed for the `localhost` Twitch embeds (af7f343).
 - [x] **S13 auth-failure logs print raw provider body** — log status + error code only.
   `src-tauri/src/twitch/auth.rs:285`, `src-tauri/src/gdrive/auth.rs:210`
-- [ ] **S14 Google OAuth has no `state` param** — add, to match Twitch.
+- [~] **S14 Google OAuth has no `state` param** — WON'T FIX: PKCE binds the code to this flow's verifier, so an injected
+  code fails the exchange. Comes free if D7 merges the auth modules (Twitch sends `state`).
 - [x] **S15 `build.rs` forwards every `.env` key** — only forward `NEXUS_TWITCH_*` / `NEXUS_GOOGLE_*`; drop dead JSONBIN keys.
 - [ ] **S16 CSP** — drop `connect-src http://localhost:* http://127.0.0.1:*` if the main window never fetches the embed server.
   Deferred: low value, and must be tested against Vite HMR in `tauri dev` first.
 
-- [ ] **S17 secrets reachable from the webview + in cloud backups** — `igdb_client_secret`, `steamgrid_api_key`,
+- [~] **S17 secrets reachable from the webview + in cloud backups** — WON'T FIX (risk accepted 2026-09-27): user's own keys,
+  shown to them via the reveal toggle; backups keep them so restore works. Original note: — `igdb_client_secret`, `steamgrid_api_key`,
   `igdb_access_token` are plaintext in `settings`; the generic `get_setting`/`set_setting` IPC reads/writes any key
   (App.tsx:984-986 reads the secrets just to check they're set); cloud backup uploads the whole DB unscrubbed.
   Fix: deny-list secret/token keys in `get_setting`/`get_settings`/`set_setting` (use `get_key_status` for "is it set"),
@@ -68,7 +70,7 @@ Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simpl
 
 ## P3 — dead code (biggest cut first)
 
-- [ ] **D1 folder watcher never starts** — nothing calls `start_folder_watchers`, no listener for
+- [x] **D1 folder watcher never starts** — nothing calls `start_folder_watchers`, no listener for
   `watcher-game-detected`. Delete `sources/watcher.rs`, the 4 watcher commands + helpers in `commands/sources.rs`,
   `notify`, `notify-debouncer-mini`. **Product check first:** `settingsStore.autoScan` hints auto-scan was planned. (~700)
 - [ ] **D2 dedup feature unwired** — nothing imports `components/dedup`. Delete it, `dedupStore`, wrappers in

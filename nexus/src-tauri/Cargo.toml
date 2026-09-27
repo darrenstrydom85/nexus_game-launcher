@@ -35,8 +35,6 @@ tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 log = "0.4"
 regex-lite = "0.1"
-notify = "7"
-notify-debouncer-mini = "0.5"
 winreg = "0.55"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 strsim = "0.11"

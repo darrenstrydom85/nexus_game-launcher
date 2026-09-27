@@ -95,10 +95,7 @@ use commands::{
         add_watched_folder, get_setting, get_settings, get_watched_folders, remove_watched_folder,
         set_setting,
     },
-    sources::{
-        detect_launchers, get_active_watchers, scan_sources, start_folder_watchers,
-        stop_folder_watcher, stop_folder_watchers,
-    },
+    sources::{detect_launchers, scan_sources},
     streak::{get_streak, recalculate_streak},
     tags::{
         add_tag_to_game, create_tag, delete_tag, get_all_game_tag_ids, get_game_tags,
@@ -290,11 +287,9 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let db_state = db::init().expect("failed to initialize database");
-    let folder_watcher = sources::watcher::FolderWatcher::new();
 
     tauri::Builder::default()
         .manage(db_state)
-        .manage(folder_watcher)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
@@ -475,10 +470,6 @@ pub fn run() {
             remove_watched_folder,
             scan_sources,
             detect_launchers,
-            start_folder_watchers,
-            stop_folder_watchers,
-            stop_folder_watcher,
-            get_active_watchers,
             find_duplicates,
             get_duplicate_groups,
             get_game_sources,
