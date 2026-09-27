@@ -90,7 +90,7 @@ export function resolveLaunchProtocol(game: Game): LaunchRequest {
       return {
         gameId: game.id,
         protocol: "xbox_shell",
-        target: game.launchUrl ?? `explorer shell:AppsFolder\\${game.id}`,
+        target: game.launchUrl ?? `shell:AppsFolder\\${game.id}`,
       };
 
     default:
