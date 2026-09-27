@@ -23,7 +23,7 @@ export interface Rgb {
 
 const SANS_FALLBACK = '"Segoe UI", system-ui, -apple-system, sans-serif';
 const MONO_FALLBACK = '"Cascadia Code", "Consolas", monospace';
-const SYSTEM_SANS = '"Barlow", "Segoe UI", system-ui, -apple-system, sans-serif';
+const SYSTEM_SANS = '"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif';
 const SYSTEM_MONO = 'ui-monospace, "Cascadia Code", "Consolas", monospace';
 
 function clamp01(v: number): number {

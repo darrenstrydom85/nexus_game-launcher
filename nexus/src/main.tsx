@@ -6,11 +6,11 @@ import "@fontsource/geist-sans/500.css";
 import "@fontsource/geist-sans/600.css";
 import "@fontsource/geist-sans/700.css";
 import "@fontsource/geist-mono/400.css";
-// Backdrop faces: Barlow body + Barlow Condensed display (one superfamily)
-import "@fontsource/barlow/400.css";
-import "@fontsource/barlow/500.css";
-import "@fontsource/barlow/600.css";
-import "@fontsource/barlow/700.css";
+// Backdrop faces: IBM Plex Sans body + Barlow Condensed display
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans/700.css";
 import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
 // Bundled alternative fonts selectable in the Theme Studio.
