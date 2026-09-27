@@ -4,23 +4,18 @@ import { useUiStore, type NavItem } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { Titlebar } from "@/components/shared/Titlebar";
-import { Sidebar } from "@/components/shared/Sidebar";
 import { NowPlaying } from "@/components/shared/NowPlaying";
-import { HardwareBranding } from "@/components/shared/HardwareBranding";
 import { LevelBadge } from "@/components/Xp/LevelBadge";
 import { StreakWidget } from "@/components/Streak/StreakWidget";
 import type { AppShellProps } from "@/components/shared/AppShell";
-import { AnimatePresence, motion } from "motion/react";
 import {
   Archive,
   Award,
   BarChart3,
   Library,
   Shuffle,
-  SlidersHorizontal,
   Settings,
   Trophy,
-  X,
 } from "lucide-react";
 import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 
@@ -33,19 +28,12 @@ import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 export function BackdropShell({
   children,
   onSettingsClick,
-  onAddCollection,
-  onEditCollection,
-  onDeleteCollection,
   onStopGame,
   onGameDetails,
   onForceIdentify,
-  onPlayGame,
 }: AppShellProps) {
   const activeNav = useUiStore((s) => s.activeNav);
   const setActiveNav = useUiStore((s) => s.setActiveNav);
-  const toggleSourceFilter = useUiStore((s) => s.toggleSourceFilter);
-  const flyoutOpen = useUiStore((s) => s.sidebarOpen);
-  const setFlyoutOpen = useUiStore((s) => s.setSidebarOpen);
   const setSidebarVisible = useUiStore((s) => s.setSidebarVisible);
   const healthIssueCount = useSettingsStore((s) => s.healthCheckIssueCount);
   const twitchEnabled = useSettingsStore((s) => s.twitchEnabled);
@@ -56,7 +44,6 @@ export function BackdropShell({
   // consumers the sidebar surface is not visible (same as AppShell minimal).
   React.useEffect(() => {
     setSidebarVisible(false);
-    setFlyoutOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,23 +83,6 @@ export function BackdropShell({
           data-testid="backdrop-rail"
           className="z-10 flex w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar/80 py-2"
         >
-          <button
-            data-testid="backdrop-flyout-toggle"
-            className={cn(
-              "flex size-10 items-center justify-center rounded-md text-muted-foreground",
-              "transition-colors hover:bg-accent hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              flyoutOpen && "bg-accent text-foreground",
-            )}
-            onClick={() => setFlyoutOpen(!flyoutOpen)}
-            aria-label={flyoutOpen ? "Close panel" : "Open collections and filters"}
-            title="Collections & filters"
-          >
-            <SlidersHorizontal className="size-[18px]" />
-          </button>
-
-          <div className="mx-2 my-1 w-8 border-t border-border" />
-
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -166,57 +136,6 @@ export function BackdropShell({
             </span>
           </button>
         </aside>
-
-        {/* Flyout: full sidebar content (collections, filters, queue, streak) */}
-        <AnimatePresence>
-          {flyoutOpen && (
-            <>
-              <motion.div
-                data-testid="backdrop-flyout-backdrop"
-                className="fixed inset-0 z-40 bg-black/40"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                onClick={() => setFlyoutOpen(false)}
-              />
-              <motion.aside
-                data-testid="backdrop-flyout"
-                className="glass-sidebar fixed bottom-0 left-16 top-0 z-50 flex w-[280px] flex-col"
-                initial={{ x: -24, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -24, opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-              >
-                <div className="flex h-10 shrink-0 items-center justify-end px-3 pt-8">
-                  <button
-                    data-testid="backdrop-flyout-close"
-                    className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    onClick={() => setFlyoutOpen(false)}
-                    aria-label="Close panel"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-                <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-                  <Sidebar
-                    activeNav={activeNav}
-                    onNavigate={(item) => {
-                      setActiveNav(item);
-                      setFlyoutOpen(false);
-                    }}
-                    onToggleSource={toggleSourceFilter}
-                    onAddCollection={onAddCollection}
-                    onEditCollection={onEditCollection}
-                    onDeleteCollection={onDeleteCollection}
-                    onPlayGame={onPlayGame}
-                  />
-                </div>
-                <HardwareBranding sidebarOpen={true} />
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Main content, full bleed */}
         <main

@@ -659,9 +659,26 @@ function MainApp() {
     return <RetroExitScreen onDone={() => setRetroExiting(false)} />;
   }
 
-  // One props object shared by every experience's library view, so the three
-  // shells can never drift apart on behavior.
+  const handleAddCollection = () => {
+    setEditCollectionTarget(null);
+    setCollectionEditorOpen(true);
+  };
+  const handleEditCollection = (c: Collection) => {
+    setEditCollectionTarget(c);
+    setCollectionEditorOpen(true);
+  };
+  const handleDeleteCollection = (c: Collection) => {
+    invoke("delete_collection", { id: c.id })
+      .then(() => useCollectionStore.getState().removeCollection(c.id))
+      .catch(() => {});
+  };
+
+  // One props object for the library view; collection management feeds the
+  // inline filter row.
   const libraryViewProps = {
+    onAddCollection: handleAddCollection,
+    onEditCollection: handleEditCollection,
+    onDeleteCollection: handleDeleteCollection,
     onPlay: (game: Game) => launch(game),
     onSettingsClick: () => setSettingsOpen(true),
     onResync: handleResync,
@@ -683,13 +700,9 @@ function MainApp() {
   return (
     <BackdropShell
       onSettingsClick={() => setSettingsOpen(true)}
-      onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
-      onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
-      onDeleteCollection={(c) => {
-        invoke("delete_collection", { id: c.id })
-          .then(() => useCollectionStore.getState().removeCollection(c.id))
-          .catch(() => {});
-      }}
+      onAddCollection={handleAddCollection}
+      onEditCollection={handleEditCollection}
+      onDeleteCollection={handleDeleteCollection}
       onPlayGame={(gameId) => {
         const game = useGameStore.getState().games.find((g) => g.id === gameId);
         if (game) launch(game);

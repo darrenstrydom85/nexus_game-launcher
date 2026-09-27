@@ -38,15 +38,6 @@ describe("BackdropShell", () => {
     expect(useUiStore.getState().activeNav).toBe("stats");
   });
 
-  it("opens the flyout with the full sidebar content", () => {
-    render(<BackdropShell>content</BackdropShell>);
-    expect(screen.queryByTestId("backdrop-flyout")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("backdrop-flyout-toggle"));
-    expect(screen.getByTestId("backdrop-flyout")).toBeInTheDocument();
-    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
-    expect(screen.getByTestId("accordion-collections")).toBeInTheDocument();
-  });
-
   it("hides the Twitch rail item when Twitch is disabled", () => {
     useSettingsStore.setState({ twitchEnabled: false });
     render(<BackdropShell>content</BackdropShell>);

@@ -563,6 +563,41 @@
     padding-left: 0;
     padding-right: 0;
 }
+/* Backdrop menu voice: ink panel, soft blur, deep shadow. `.backdrop-menu`
+   is applied to portaled popovers (which render outside the shell scope);
+   the sort dropdown gets the same treatment via its testid. */
+.backdrop-menu,
+.experience-backdrop [data-testid="sort-dropdown-menu"] {
+    border-radius: 12px;
+    border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+    background: color-mix(in srgb, var(--popover) 92%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.no-transparency .backdrop-menu,
+.no-transparency .experience-backdrop [data-testid="sort-dropdown-menu"] {
+    background: var(--popover);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* The toolbar sits at the content's left edge now, so the menu must open
+   rightward or it hangs over the rail. */
+.experience-backdrop [data-testid="sort-dropdown-menu"] {
+    right: auto;
+    left: 0;
+    padding: 6px;
+}
+.experience-backdrop [data-testid="sort-dropdown-menu"] button {
+    font-size: 12px;
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: var(--muted-foreground);
+}
+.experience-backdrop [data-testid="sort-dropdown-menu"] button:hover {
+    color: var(--foreground);
+}
 .experience-backdrop [data-testid="sort-dropdown-trigger"] {
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);

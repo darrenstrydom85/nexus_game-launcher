@@ -40,7 +40,7 @@ const SOURCE_LABELS: Record<GameSource, string> = {
 
 export type { NavItem } from "@/stores/uiStore";
 
-function ScoreRangeSlider({
+export function ScoreRangeSlider({
   min,
   max,
   onChange,

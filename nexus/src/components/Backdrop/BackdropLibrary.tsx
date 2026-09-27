@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useGames } from "@/hooks/useGames";
 import { useFilteredGames } from "@/hooks/useFilteredGames";
 import { useUiStore } from "@/stores/uiStore";
-import { useCollectionStore } from "@/stores/collectionStore";
+import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { useFilterStore } from "@/stores/filterStore";
 import { useQueueStore } from "@/stores/queueStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -18,21 +18,31 @@ import { SyncActivityDot } from "@/components/Library/SyncActivityDot";
 import { getContinuePlayingGames } from "@/components/Library/ContinuePlayingRow";
 import { buildHeading, type LibraryViewProps } from "@/components/Library/LibraryView";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { LibraryFilters } from "./LibraryFilters";
+import { Loader2, RefreshCw } from "lucide-react";
 
 /**
  * The Backdrop library: hero stage on top, shelves beneath, the full grid
  * (sort, view modes, context menus) at the bottom. Shelf clicks retarget
  * the hero; the hero carries the play/details/queue actions.
  */
+interface BackdropLibraryProps extends LibraryViewProps {
+  onAddCollection?: () => void;
+  onEditCollection?: (collection: Collection) => void;
+  onDeleteCollection?: (collection: Collection) => void;
+}
+
 export function BackdropLibrary({
   onPlay,
   onResync,
   isSyncing = false,
   syncResult,
   onSettingsClick,
+  onAddCollection,
+  onEditCollection,
+  onDeleteCollection,
   ...contextMenuHandlers
-}: LibraryViewProps) {
+}: BackdropLibraryProps) {
   const { games, isLoading, error } = useGames();
   const {
     visibleGames,
@@ -202,20 +212,6 @@ export function BackdropLibrary({
           }
           trailing={
             <div className="flex items-center gap-3">
-              <button
-                data-testid="open-filters-button"
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]",
-                  "text-muted-foreground/70 transition-colors hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isFiltered && "text-primary hover:text-primary",
-                )}
-                onClick={() => useUiStore.getState().setSidebarOpen(true)}
-                title="Collections, genres, tags, score and source filters"
-              >
-                <SlidersHorizontal className="size-3" />
-                Filters{isFiltered ? " · on" : ""}
-              </button>
               {syncResult && !isSyncing && (
                 <span data-testid="sync-result" className="text-[10px] uppercase tracking-[0.12em] text-success">
                   Synced — {syncResult.added} added, {syncResult.updated} updated
@@ -247,6 +243,12 @@ export function BackdropLibrary({
             </div>
           }
         >
+          <LibraryFilters
+            visibleGames={visibleGames}
+            onAddCollection={onAddCollection}
+            onEditCollection={onEditCollection}
+            onDeleteCollection={onDeleteCollection}
+          />
           <GameGrid
             games={statusFiltered}
             totalCount={games.length}
