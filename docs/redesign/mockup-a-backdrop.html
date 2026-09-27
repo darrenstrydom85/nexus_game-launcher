@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option A — Backdrop — screens (real library)</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #202127; font-family: "Segoe UI", system-ui, sans-serif; }
+  .frame-label { width: 1280px; margin: 40px auto 10px auto; color: #9aa0ab; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; }
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; margin: 0 auto; background: #0a0a0f; color: #e8e8ea; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .display { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+  .eyebrow { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: #c7bfba; }
+  .muted { color: #8b8b96; }
+  .rail { position: absolute; top: 0; left: 0; bottom: 0; width: 64px; box-sizing: border-box; background: rgba(9,9,13,0.72); border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; align-items: center; padding: 46px 0 16px 0; gap: 6px; z-index: 5; backdrop-filter: blur(6px); }
+  .rail .ico { padding: 8px 0; }
+  .rail svg { stroke: #9b9ba6; fill: none; stroke-width: 1.6; }
+  .rail .active svg { stroke: #fff; }
+  .rail .active { position: relative; width: 100%; display: flex; justify-content: center; }
+  .rail .active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; background: var(--acc, #ff6b3d); border-radius: 2px; }
+  .titlebar { position: absolute; top: 0; left: 0; right: 0; height: 34px; display: flex; align-items: center; justify-content: flex-end; padding: 0 14px; gap: 18px; z-index: 6; color: #c9c4c0; font-size: 13px; }
+  .btn { font-family: inherit; border: none; border-radius: 6px; padding: 11px 26px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .btn.primary { background: var(--acc, #ff6b3d); color: #16100a; }
+  .btn.ghost { background: rgba(10,10,15,0.4); color: #f2f0ee; border: 1px solid rgba(255,255,255,0.35); font-weight: 600; }
+  .btn.faint { background: rgba(10,10,15,0.3); color: #cfc9c5; border: 1px solid rgba(255,255,255,0.18); font-weight: 400; }
+  .cover { border-radius: 6px; position: relative; overflow: hidden; background: #17171d; flex-shrink: 0; }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover .mono { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 34px; color: rgba(255,255,255,0.25); }
+  .shelfhead { display: flex; align-items: center; gap: 14px; }
+  .shelfhead .rule { flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08); }
+  .capsule { position: absolute; left: 84px; bottom: 16px; z-index: 7; display: flex; align-items: center; gap: 10px; background: rgba(16,14,18,0.92); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 8px 16px 8px 12px; font-size: 11px; }
+  .dot-live { width: 8px; height: 8px; border-radius: 999px; background: #43d17c; }
+  .heroimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
+  .scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 320px; background: linear-gradient(to top, rgba(10,10,15,0.97) 0%, rgba(10,10,15,0.55) 50%, rgba(10,10,15,0) 100%); }
+  .scrimside { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(10,10,15,0.75) 0%, rgba(10,10,15,0.15) 45%, rgba(10,10,15,0) 70%); }
+</style>
+</head>
+<body>
+<script>
+  const ART = "file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/";
+  const G = {
+    pal:  { id: "03b4f917-38c5-401a-a74a-067e0d53b4c3", n: "Palworld" },
+    poe:  { id: "0bda08fc-afca-4848-a3f2-e9763765daff", n: "Path of Exile 2" },
+    cd:   { id: "cc7314e3-f6c3-4438-a442-9200d4a9eb3c", n: "Crimson Desert" },
+    swo:  { id: "74d8cbdb-fb48-4f8e-a882-08f5a87c4f63", n: "Star Wars Outlaws" },
+    hog:  { id: "00a3c46a-d0bf-4a6d-b671-349140dcf90d", n: "Hogwarts Legacy" },
+    bmw:  { id: "305ce72b-9af3-4d32-8a1a-5bae460c62c8", n: "Black Myth: Wukong" },
+    unc:  { id: "36c56dbd-30cf-4cf3-a96f-22953e956338", n: "Uncharted: Legacy of Thieves" },
+    bf6:  { id: "3f17e5a7-3aae-45e5-b856-4903cdefa0c8", n: "Battlefield 6" },
+    war:  { id: null, n: "Wardogs" },
+    barb: { id: "89ab762f-9b72-41d8-bd7c-842b17c6a683", n: "Barbie Horse Trails" },
+    prec: { id: "c8630afe-72cc-49d4-a08f-5f49d7ab7c6c", n: "The Precinct" },
+    goose:{ id: "f0da448a-7f61-4909-9373-3c087300958d", n: "Untitled Goose Game" },
+    body: { id: "bcda522e-4701-4ab0-819d-0346557868f7", n: "Bodycam" },
+    dd:   { id: "1b0e5e1e-287a-434c-bf44-0cc57d7fe9c7", n: "Death's Door" },
+    ani:  { id: "beb1d10f-2f28-433b-a683-0c68986ccccd", n: "Aniimo" },
+    sh:   { id: "c0d6de69-db97-4e13-abb0-8a409cd9973d", n: "Silent Hill: Townfall" },
+    rs:   { id: "30c9893b-5939-4af7-ba41-dd64efe5e0d9", n: "RuneScape: Dragonwilds" },
+    swz:  { id: "9ab74e3e-4bd1-4c98-8ae7-8d4b165a9e3d", n: "Star Wars Zero Company" },
+  };
+  function cover(key, w, h, opts) {
+    const g = G[key], o = opts || {};
+    const img = g.id
+      ? `<img src="${ART}${g.id}/cover.jpg" alt="${g.n}">`
+      : `<span class="mono">${g.n.split(" ").map(x => x[0]).join("").slice(0,2)}</span>`;
+    return `<div class="cover" style="width:${w}px;height:${h}px;${o.style || ""}" title="${g.n}">${img}${o.badge || ""}</div>`;
+  }
+</script>
+
+<div class="frame-label">A · Backdrop — 01 Library (your real library)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;top:0;left:0;right:0;height:470px">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" alt="Palworld key art">
+    <div class="scrimside"></div>
+    <div class="scrim"></div>
+    <div style="position:absolute;left:104px;bottom:30px;display:flex;flex-direction:column;gap:10px">
+      <div class="eyebrow">Now selected · Steam · Queued next</div>
+      <div class="display" style="font-size:68px;line-height:0.95;color:#fff;text-shadow:0 2px 30px rgba(0,0,0,0.5)">PALWORLD</div>
+      <div style="font-size:13px;color:#e6ded6;text-shadow:0 1px 12px rgba(0,0,0,0.6)">68 hrs played · 28 sessions · last played yesterday</div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="btn primary"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#16100a"/></svg>PLAY</button>
+        <button class="btn ghost">Details</button>
+        <button class="btn faint">In queue ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="ico active"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="1.5" y="1.5" width="6.5" height="9" rx="1"/><rect x="11" y="1.5" width="6.5" height="6" rx="1"/><rect x="1.5" y="13.5" width="6.5" height="4" rx="1"/><rect x="11" y="10.5" width="6.5" height="7" rx="1"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M2.5 16.5 V10"/><path d="M7.5 16.5 V4"/><path d="M12.5 16.5 V7.5"/><path d="M17 16.5 V12"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M5 2.5 h9 v4 a4.5 4.5 0 0 1 -9 0 Z"/><path d="M9.5 11 v3"/><path d="M6.5 16.5 h6"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="2" y="3" width="15" height="4" rx="1"/><path d="M3.5 7 v7.5 a1.5 1.5 0 0 0 1.5 1.5 h9 a1.5 1.5 0 0 0 1.5 -1.5 V7"/><path d="M7.5 10.5 h4"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg></div>
+    <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 1.5 h13 v9.5 l-3.5 3.5 h-4 l-2.5 2.5 v-2.5 H3 Z"/><path d="M8 5 v4"/><path d="M12 5 v4"/></svg></div>
+    <div style="flex-grow:1"></div>
+    <div style="width:34px;height:34px;border-radius:999px;border:2px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#ffe2b0" title="Level 13 · 18,047 XP">13</div>
+    <div class="ico" title="26-day streak"><svg width="16" height="18" viewBox="0 0 16 18" style="stroke:#e0a52c"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg></div>
+    <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="2.6"/><path d="M9 1.5 v2.2 M9 14.3 v2.2 M1.5 9 h2.2 M14.3 9 h2.2 M3.7 3.7 l1.6 1.6 M12.7 12.7 l1.6 1.6 M14.3 3.7 l-1.6 1.6 M5.3 12.7 l-1.6 1.6"/></svg></div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+
+  <div style="position:absolute;top:470px;left:64px;right:0;bottom:0;box-sizing:border-box;padding:22px 40px 0 40px;display:flex;flex-direction:column;gap:12px">
+    <div class="shelfhead"><span class="eyebrow">Continue Playing</span><div class="rule"></div><span style="font-size:10px;letter-spacing:0.14em;color:#6f6f7a">VIEW ALL →</span></div>
+    <div id="a-shelf1" style="display:flex;gap:16px"></div>
+    <div class="shelfhead" style="margin-top:6px">
+      <span class="eyebrow">All Games · 18</span>
+      <span style="font-size:10px;color:#0a0a0f;background:#e8e8ea;border-radius:999px;padding:3px 10px">All</span>
+      <span style="font-size:10px;color:#c7bfba;border:1px solid rgba(255,255,255,0.16);border-radius:999px;padding:3px 10px">Playing 5</span>
+      <span style="font-size:10px;color:#c7bfba;border:1px solid rgba(255,255,255,0.16);border-radius:999px;padding:3px 10px">Backlog 12</span>
+      <div class="rule"></div><span style="font-size:10px;letter-spacing:0.14em;color:#6f6f7a">RECENT ▾ · ⊞</span>
+    </div>
+    <div id="a-shelf2" style="display:flex;gap:16px"></div>
+  </div>
+  <div class="capsule"><span class="dot-live"></span><span>Palworld</span><span class="muted" style="font-variant-numeric:tabular-nums">00:41:12</span><span class="muted" style="font-size:10px">■</span></div>
+</div>
+<script>
+  document.getElementById("a-shelf1").innerHTML =
+    cover("hog", 92, 138, { badge: '<span style="position:absolute;top:8px;left:8px;font-size:8px;letter-spacing:0.08em;background:#43d17c;color:#08130c;border-radius:3px;padding:2px 5px;font-weight:700">DONE</span>' }) +
+    cover("pal", 92, 138, { style: "outline:2px solid rgba(255,180,58,0.9);outline-offset:1px" }) +
+    cover("ani", 92, 138) + cover("war", 92, 138) + cover("unc", 92, 138) + cover("body", 92, 138);
+  document.getElementById("a-shelf2").innerHTML =
+    ["poe","cd","swo","bmw","bf6","prec","dd","goose","barb","sh","swz"].map(k => cover(k, 92, 120, { style: "border-radius:6px 6px 0 0" })).join("");
+</script>
+
+<div class="frame-label">A · Backdrop — 02 Game Detail (takeover)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;top:0;left:0;right:0;height:440px">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" alt="Palworld hero">
+    <div class="scrimside"></div>
+    <div class="scrim" style="height:300px"></div>
+    <div style="position:absolute;left:48px;top:52px;color:#efe9e4;font-size:12px;text-shadow:0 1px 8px rgba(0,0,0,0.8)">← Library</div>
+    <div style="position:absolute;left:48px;bottom:28px;right:48px;display:flex;align-items:flex-end;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="eyebrow">Steam · Shooter, RPG, Open World · Pocketpair</div>
+        <div class="display" style="font-size:76px;line-height:0.92;color:#fff;text-shadow:0 2px 30px rgba(0,0,0,0.5)">PALWORLD</div>
+        <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+          <button class="btn primary"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#16100a"/></svg>PLAY</button>
+          <button class="btn ghost">Backlog ▾</button>
+          <span class="btn faint" style="padding:11px 14px">★★★☆☆</span>
+          <span style="color:#e6ded6;font-size:11px;text-shadow:0 1px 8px rgba(0,0,0,0.8)">✎ Edit · 🗀 Folder · ↻ Metadata · + Collection</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:36px;text-align:right">
+        <div><div class="display" style="font-size:34px;color:#fff">67:49</div><div class="eyebrow">Hours</div></div>
+        <div><div class="display" style="font-size:34px;color:#fff">28</div><div class="eyebrow">Sessions</div></div>
+        <div><div class="display" style="font-size:34px;color:#fff">70</div><div class="eyebrow">Critic</div></div>
+        <div><div class="display" style="font-size:34px;color:#ffe2b0">103%</div><div class="eyebrow">of HLTB main</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+
+  <div style="position:absolute;top:440px;left:0;right:0;bottom:0;box-sizing:border-box;padding:24px 48px;display:flex;gap:48px">
+    <div style="flex:1.3;display:flex;flex-direction:column;gap:14px">
+      <div class="shelfhead"><span class="eyebrow">Playtime vs How Long To Beat</span><div class="rule"></div></div>
+      <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.08);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:3px;background:var(--acc)"></div></div>
+      <div class="muted" style="font-size:11px">67.8 hrs played · HLTB main 65.7 — you're past the finish line and still going</div>
+      <div class="shelfhead" style="margin-top:8px"><span class="eyebrow">Recent Sessions</span><div class="rule"></div><span style="font-size:10px;color:#6f6f7a">ALL 28 →</span></div>
+      <div style="display:flex;flex-direction:column;font-size:12px">
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>Yesterday, 12:56</span><span class="muted">1h 58m</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>Thursday, 05:09</span><span class="muted">1h 22m · early bird run</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><span>Wednesday, 17:56</span><span class="muted">1h 57m</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0"><span>Wednesday, 05:41</span><span class="muted">4h 32m · longest this month</span></div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <div class="shelfhead"><span class="eyebrow">How Long To Beat</span><div class="rule"></div></div>
+      <div style="display:flex;gap:28px;font-size:12px">
+        <div><div class="display" style="font-size:24px;color:#fff">66h</div><div class="muted" style="font-size:10px">MAIN</div></div>
+        <div><div class="display" style="font-size:24px;color:#fff">—</div><div class="muted" style="font-size:10px">MAIN +</div></div>
+        <div><div class="display" style="font-size:24px;color:#fff">—</div><div class="muted" style="font-size:10px">100%</div></div>
+      </div>
+      <div class="shelfhead" style="margin-top:4px"><span class="eyebrow">Queue</span><div class="rule"></div></div>
+      <div style="font-size:12px" class="muted">Position 1 of 1 — next up when you finish something</div>
+      <div class="shelfhead" style="margin-top:4px"><span class="eyebrow">Notes</span><div class="rule"></div></div>
+      <div style="font-size:12px;color:#cfc9c5;font-style:italic">Breeding setup done. Next: oil rig raid with the new squad.</div>
+      <div class="shelfhead" style="margin-top:4px"><span class="eyebrow">Live on Twitch</span><div class="rule"></div></div>
+      <div style="display:flex;gap:10px">
+        <div style="width:120px;height:66px;border-radius:6px;background:#1d1a14;position:relative"><span style="position:absolute;top:6px;left:6px;font-size:8px;background:#e0455a;color:#fff;border-radius:3px;padding:1px 5px">LIVE</span></div>
+        <div style="width:120px;height:66px;border-radius:6px;background:#141d1a"></div>
+        <div style="width:120px;height:66px;border-radius:6px;background:#1d1416"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label">A · Backdrop — 03 Stats (your real numbers)</div>
+<div class="frame" style="--acc:#e0a52c">
+  <div class="rail">
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="1.5" y="1.5" width="6.5" height="9" rx="1"/><rect x="11" y="1.5" width="6.5" height="6" rx="1"/><rect x="1.5" y="13.5" width="6.5" height="4" rx="1"/><rect x="11" y="10.5" width="6.5" height="7" rx="1"/></svg></div>
+    <div class="ico active"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M2.5 16.5 V10"/><path d="M7.5 16.5 V4"/><path d="M12.5 16.5 V7.5"/><path d="M17 16.5 V12"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M5 2.5 h9 v4 a4.5 4.5 0 0 1 -9 0 Z"/><path d="M9.5 11 v3"/><path d="M6.5 16.5 h6"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="2" y="3" width="15" height="4" rx="1"/><path d="M3.5 7 v7.5 a1.5 1.5 0 0 0 1.5 1.5 h9 a1.5 1.5 0 0 0 1.5 -1.5 V7"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg></div>
+    <div style="flex-grow:1"></div>
+    <div style="width:34px;height:34px;border-radius:999px;border:2px solid #ffb43a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#ffe2b0">13</div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;top:34px;left:64px;right:0;bottom:0;box-sizing:border-box;padding:34px 48px;display:flex;flex-direction:column;gap:20px;background:radial-gradient(900px 400px at 80% -10%, rgba(224,165,44,0.12), transparent 60%)">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div>
+        <div class="eyebrow">Your play record · all time</div>
+        <div class="display" style="font-size:84px;line-height:0.95;color:#fff">426 <span style="font-size:40px;color:#c7bfba">HRS</span></div>
+      </div>
+      <div style="display:flex;gap:36px;text-align:right">
+        <div><div class="display" style="font-size:30px;color:#fff">248</div><div class="eyebrow">Sessions</div></div>
+        <div><div class="display" style="font-size:30px;color:#e0a52c">26</div><div class="eyebrow">Day streak · best 39</div></div>
+        <div><div class="display" style="font-size:30px;color:#fff">LVL 13</div><div class="eyebrow">18,047 XP · 42% to 14</div></div>
+        <button class="btn ghost" style="align-self:center">Open Wrapped →</button>
+      </div>
+    </div>
+    <div class="shelfhead"><span class="eyebrow">Hours by weekday</span><div class="rule"></div><span class="muted" style="font-size:10px">SUNDAYS ARE FOR GAMING</span></div>
+    <div style="display:flex;align-items:flex-end;gap:8px;height:110px">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:58%;background:rgba(224,165,44,0.4)"></div><span class="muted" style="font-size:9px">MON · 53h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:26%;background:rgba(224,165,44,0.25)"></div><span class="muted" style="font-size:9px">TUE · 24h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:73%;background:rgba(224,165,44,0.5)"></div><span class="muted" style="font-size:9px">WED · 66h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:29%;background:rgba(224,165,44,0.25)"></div><span class="muted" style="font-size:9px">THU · 26h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:85%;background:rgba(224,165,44,0.65)"></div><span class="muted" style="font-size:9px">FRI · 77h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:92%;background:rgba(224,165,44,0.8)"></div><span class="muted" style="font-size:9px">SAT · 84h</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:100%;background:#e0a52c"></div><span style="font-size:9px;color:#ffe2b0">SUN · 91h</span></div>
+    </div>
+    <div style="display:flex;gap:48px;flex-grow:1">
+      <div style="flex:1.2;display:flex;flex-direction:column;gap:12px">
+        <div class="shelfhead"><span class="eyebrow">Top games</span><div class="rule"></div></div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:130px" class="muted">Palworld</span><div style="flex-grow:1;height:14px;background:rgba(255,255,255,0.06)"><div style="width:100%;height:100%;background:linear-gradient(90deg,#e0a52c,#c78516)"></div></div><span style="font-variant-numeric:tabular-nums">67.8h</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:130px" class="muted">Path of Exile 2</span><div style="flex-grow:1;height:14px;background:rgba(255,255,255,0.06)"><div style="width:85%;height:100%;background:rgba(224,165,44,0.6)"></div></div><span style="font-variant-numeric:tabular-nums">57.9h</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:130px" class="muted">Crimson Desert</span><div style="flex-grow:1;height:14px;background:rgba(255,255,255,0.06)"><div style="width:41%;height:100%;background:rgba(224,165,44,0.5)"></div></div><span style="font-variant-numeric:tabular-nums">27.6h</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:130px" class="muted">Star Wars Outlaws</span><div style="flex-grow:1;height:14px;background:rgba(255,255,255,0.06)"><div style="width:36%;height:100%;background:rgba(224,165,44,0.4)"></div></div><span style="font-variant-numeric:tabular-nums">24.4h</span></div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:130px" class="muted">Hogwarts Legacy</span><div style="flex-grow:1;height:14px;background:rgba(255,255,255,0.06)"><div style="width:31%;height:100%;background:rgba(224,165,44,0.35)"></div></div><span style="font-variant-numeric:tabular-nums">20.9h</span></div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+        <div class="shelfhead"><span class="eyebrow">Library</span><div class="rule"></div></div>
+        <div style="display:flex;gap:24px;font-size:11px" class="muted">
+          <span><b style="color:#43d17c">●</b> Playing 5</span><span><b style="color:#e0a52c">●</b> Backlog 12</span><span><b style="color:#e8e8ea">●</b> Completed 1</span><span><b style="color:#6f6f7a">●</b> Archived 30</span>
+        </div>
+        <div class="shelfhead" style="margin-top:8px"><span class="eyebrow">Averages</span><div class="rule"></div></div>
+        <div style="display:flex;gap:32px">
+          <div><div class="display" style="font-size:26px;color:#fff">1h 43m</div><div class="muted" style="font-size:10px">AVG SESSION</div></div>
+          <div><div class="display" style="font-size:26px;color:#fff">4h 32m</div><div class="muted" style="font-size:10px">LONGEST (PALWORLD)</div></div>
+          <div><div class="display" style="font-size:26px;color:#fff">15/15</div><div class="muted" style="font-size:10px">ACHIEVEMENTS</div></div>
+        </div>
+        <div class="shelfhead" style="margin-top:8px"><span class="eyebrow">Streak</span><div class="rule"></div></div>
+        <div style="font-size:12px" class="muted">Playing daily since <span style="color:#ffe2b0">August 26</span> — 26 days. Personal best is 39; thirteen to go.</div>
+      </div>
+    </div>
+  </div>
+  <div class="capsule"><span class="dot-live"></span><span>Palworld</span><span class="muted" style="font-variant-numeric:tabular-nums">00:41:12</span></div>
+</div>
+
+<div class="frame-label">A · Backdrop — 04 Achievements (15 / 15 — flawless)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div class="rail">
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="1.5" y="1.5" width="6.5" height="9" rx="1"/><rect x="11" y="1.5" width="6.5" height="6" rx="1"/><rect x="1.5" y="13.5" width="6.5" height="4" rx="1"/><rect x="11" y="10.5" width="6.5" height="7" rx="1"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M2.5 16.5 V10"/><path d="M7.5 16.5 V4"/><path d="M12.5 16.5 V7.5"/><path d="M17 16.5 V12"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M5 2.5 h9 v4 a4.5 4.5 0 0 1 -9 0 Z"/><path d="M9.5 11 v3"/><path d="M6.5 16.5 h6"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="2" y="3" width="15" height="4" rx="1"/><path d="M3.5 7 v7.5 a1.5 1.5 0 0 0 1.5 1.5 h9 a1.5 1.5 0 0 0 1.5 -1.5 V7"/></svg></div>
+    <div class="ico active"><svg width="19" height="19" viewBox="0 0 19 19"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg></div>
+    <div style="flex-grow:1"></div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;top:34px;left:64px;right:0;bottom:0;box-sizing:border-box;padding:34px 48px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div><div class="eyebrow">Trophy room · complete</div><div class="display" style="font-size:56px;line-height:0.95;color:#fff">ACHIEVEMENTS</div></div>
+      <div class="muted" style="font-size:12px">15 unlocked · 15 total · <span style="color:#ffe2b0">100%</span></div>
+    </div>
+    <div id="a-ach" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:16px"></div>
+  </div>
+</div>
+<script>
+  const A_ACH = [
+    ["#eab308","Iron Month","Play every day for 30 days straight.","LEGENDARY","APR 16"],
+    ["#eab308","Century of Hours","Pass 100 total hours of tracked play.","LEGENDARY","APR 16"],
+    ["#a855f7","Fortnight Flame","Keep a 14-day play streak alive.","EPIC","APR 16"],
+    ["#3b82f6","Week Streak","Play seven days in a row.","RARE","APR 16"],
+    ["#3b82f6","Genre Explorer","Play games from five different genres.","RARE","APR 16"],
+    ["#22c55e","First Completion","Finish your first game.","UNCOMMON","APR 16"],
+    ["#22c55e","Library Starter","Add ten games to your library.","UNCOMMON","APR 16"],
+    ["#9ca3af","First Launch","Launch a game through Nexus.","COMMON","APR 16"],
+    ["#9ca3af","Session One","Track your first play session.","COMMON","APR 16"],
+  ];
+  document.getElementById("a-ach").innerHTML = A_ACH.map(a => `
+    <div style="border-radius:8px;background:#131318;border-left:3px solid ${a[0]};padding:14px 16px;display:flex;flex-direction:column;gap:5px">
+      <div class="eyebrow" style="color:${a[0]};font-size:9px">${a[3]}</div>
+      <div style="font-size:14px;font-weight:600">${a[1]}</div>
+      <div class="muted" style="font-size:11px">${a[2]}</div>
+      <div class="muted" style="font-size:10px">Unlocked ${a[4]}</div>
+    </div>`).join("");
+</script>
+
+<div class="frame-label">A · Backdrop — 05 Twitch</div>
+<div class="frame" style="--acc:#a970ff">
+  <div class="rail">
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="1.5" y="1.5" width="6.5" height="9" rx="1"/><rect x="11" y="1.5" width="6.5" height="6" rx="1"/><rect x="1.5" y="13.5" width="6.5" height="4" rx="1"/><rect x="11" y="10.5" width="6.5" height="7" rx="1"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M2.5 16.5 V10"/><path d="M7.5 16.5 V4"/><path d="M12.5 16.5 V7.5"/><path d="M17 16.5 V12"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><path d="M5 2.5 h9 v4 a4.5 4.5 0 0 1 -9 0 Z"/><path d="M9.5 11 v3"/><path d="M6.5 16.5 h6"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><rect x="2" y="3" width="15" height="4" rx="1"/><path d="M3.5 7 v7.5 a1.5 1.5 0 0 0 1.5 1.5 h9 a1.5 1.5 0 0 0 1.5 -1.5 V7"/></svg></div>
+    <div class="ico"><svg width="19" height="19" viewBox="0 0 19 19"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg></div>
+    <div class="ico active"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 1.5 h13 v9.5 l-3.5 3.5 h-4 l-2.5 2.5 v-2.5 H3 Z"/><path d="M8 5 v4"/><path d="M12 5 v4"/></svg></div>
+    <div style="flex-grow:1"></div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;top:34px;left:64px;right:0;bottom:0;box-sizing:border-box;padding:34px 48px;display:flex;flex-direction:column;gap:18px;background:radial-gradient(900px 400px at 75% -10%, rgba(169,112,255,0.14), transparent 60%)">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div><div class="eyebrow" style="color:#c9a8ff">Followed channels</div><div class="display" style="font-size:56px;line-height:0.95;color:#fff">TWITCH</div></div>
+      <div class="muted" style="font-size:11px">Connected · refresh 60s</div>
+    </div>
+    <div class="shelfhead"><span class="eyebrow">Live now</span><div class="rule"></div></div>
+    <div style="display:flex;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="width:300px;height:169px;border-radius:8px;background:linear-gradient(140deg,#1d1420,#120e18);position:relative">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;color:#e8e8ea;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px">8.2K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">pal_pro_base_builds</div>
+        <div class="muted" style="font-size:11px">Palworld · “oil rig raid prep”</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="width:300px;height:169px;border-radius:8px;background:linear-gradient(140deg,#141c22,#0e1318);position:relative">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;color:#e8e8ea;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px">14.6K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">exile_econ</div>
+        <div class="muted" style="font-size:11px">Path of Exile 2 · league start day 2</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="width:300px;height:169px;border-radius:8px;background:linear-gradient(140deg,#1e1a12,#131009);position:relative">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;color:#e8e8ea;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px">2.1K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">wukong_no_hit</div>
+        <div class="muted" style="font-size:11px">Black Myth: Wukong · chapter 3 no-hit</div>
+      </div>
+    </div>
+    <div class="shelfhead" style="margin-top:8px"><span class="eyebrow">Trending for your library</span><div class="rule"></div><span style="font-size:10px;letter-spacing:0.14em;color:#6f6f7a">VIEW ALL →</span></div>
+    <div id="a-twrow" style="display:flex;gap:14px"></div>
+  </div>
+  <div class="capsule"><span class="dot-live"></span><span>Palworld</span><span class="muted" style="font-variant-numeric:tabular-nums">00:41:12</span></div>
+</div>
+<script>
+  const A_TW = [["pal","41K"],["poe","96K"],["bf6","22K"],["bmw","12K"],["hog","8.4K"]];
+  document.getElementById("a-twrow").innerHTML = A_TW.map(([k, v]) => `
+    <div style="width:180px;height:101px;border-radius:6px;position:relative;overflow:hidden;background:#17171d">
+      ${G[k].id ? `<img src="${ART}${G[k].id}/${["pal","bmw","hog","poe"].includes(k) ? "hero.jpg" : "cover.jpg"}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` : ""}
+      <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(5,5,8,0.85), transparent 60%)"></div>
+      <span style="position:absolute;left:8px;bottom:6px;font-size:9px;letter-spacing:0.08em;color:#f0ece8;text-transform:uppercase">${G[k].n} · ${v}</span>
+    </div>`).join("");
+</script>
+
+<div class="frame-label">A · Backdrop — 06 Settings (sheet over dimmed art)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" style="filter:blur(6px) brightness(0.5)" alt="">
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(5,5,8,0.55)"></div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;top:0;right:0;bottom:0;width:480px;box-sizing:border-box;background:#101014;border-left:1px solid rgba(255,255,255,0.08);padding:48px 36px 24px 36px;display:flex;flex-direction:column;gap:4px;overflow:hidden">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+      <div class="display" style="font-size:38px;color:#fff">SETTINGS</div>
+      <span class="muted" style="font-size:12px">✕ Close</span>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow" style="color:#e8e8ea">Appearance</span><span class="muted" style="font-size:10px">▴</span></div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">Theme</span>
+          <span style="display:flex;gap:4px">
+            <span style="font-size:10px;background:#e8e8ea;color:#0a0a0f;border-radius:999px;padding:4px 12px">Dark</span>
+            <span style="font-size:10px;border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:4px 12px" class="muted">Light</span>
+            <span style="font-size:10px;border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:4px 12px" class="muted">Auto</span>
+          </span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">Dynamic accent <span class="muted" style="font-size:10px">— tint UI from game art</span></span>
+          <span style="width:34px;height:18px;border-radius:999px;background:var(--acc);position:relative"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:999px;background:#fff"></span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px">Theme Studio</span><span style="font-size:11px;color:#ffe2b0">Open →</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">Interface font</span>
+          <span style="font-size:11px;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 12px" class="muted">Geist Sans ▾</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">Reduced motion</span>
+          <span style="width:34px;height:18px;border-radius:999px;background:rgba(255,255,255,0.15);position:relative"><span style="position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:999px;background:#8b8b96"></span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px">Hero animations</span>
+          <span style="width:34px;height:18px;border-radius:999px;background:var(--acc);position:relative"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:999px;background:#fff"></span></span>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">Library preferences</span><span class="muted" style="font-size:10px">▾</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">Sources &amp; folders</span><span style="font-size:10px" class="muted">STEAM · EPIC · UBISOFT · XBOX +2</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">API keys</span><span class="muted" style="font-size:10px">▾</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">Twitch</span><span style="font-size:10px;color:#43d17c">CONNECTED</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">Cloud backup</span><span class="muted" style="font-size:10px">GOOGLE DRIVE · LAST: TODAY</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between"><span class="eyebrow">Data management</span><span class="muted" style="font-size:10px">▾</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:14px 0;display:flex;justify-content:space-between;align-items:center">
+      <span class="eyebrow">Library health</span>
+      <span style="font-size:10px;color:#43d17c">ALL 18 GAMES OK</span>
+    </div>
+    <div style="flex-grow:1"></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;display:flex;justify-content:space-between;align-items:center">
+      <span class="muted" style="font-size:11px">Nexus · up to date</span>
+      <span style="font-size:10px;border:1px solid rgba(255,255,255,0.2);color:#c7bfba;border-radius:999px;padding:4px 12px">CHECK FOR UPDATES</span>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label">A · Backdrop — 07 Search palette + toasts</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" style="filter:brightness(0.35)" alt="">
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(5,5,8,0.5)"></div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;left:50%;top:130px;transform:translateX(-50%);width:640px;background:#101014;border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6)">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <svg width="16" height="16" viewBox="0 0 15 15" fill="none" stroke="#8b8b96" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10 L13.5 13.5"/></svg>
+      <span style="font-size:15px">star wars<span style="border-left:1px solid #ffb43a;margin-left:1px"></span></span>
+    </div>
+    <div style="padding:10px 8px">
+      <div class="eyebrow" style="padding:6px 12px;font-size:9px">Games</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,180,58,0.09);border-radius:8px">
+        <div class="cover" style="width:26px;height:38px;border-radius:3px"><img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/74d8cbdb-fb48-4f8e-a882-08f5a87c4f63/cover.jpg" alt=""></div>
+        <div style="flex-grow:1"><div style="font-size:13px;color:#fff">Star Wars Outlaws</div><div class="muted" style="font-size:10px">Ubisoft · Playing · 24 hrs · 52%</div></div>
+        <span class="muted" style="font-size:10px">↵ open</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px">
+        <div class="cover" style="width:26px;height:38px;border-radius:3px"><img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/9ab74e3e-4bd1-4c98-8ae7-8d4b165a9e3d/cover.jpg" alt=""></div>
+        <div style="flex-grow:1"><div style="font-size:13px">Star Wars Zero Company</div><div class="muted" style="font-size:10px">Standalone · Backlog · unplayed · critic 93</div></div>
+      </div>
+      <div class="eyebrow" style="padding:10px 12px 6px 12px;font-size:9px">Actions</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:7px 12px"><span class="muted" style="width:16px;text-align:center">⚙</span><span style="font-size:12px;flex-grow:1">Open Settings</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:7px 12px"><span class="muted" style="width:16px;text-align:center">⤨</span><span style="font-size:12px;flex-grow:1">Random Picker</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:7px 12px"><span class="muted" style="width:16px;text-align:center">↻</span><span style="font-size:12px;flex-grow:1">Scan Library</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:7px 12px"><span class="muted" style="width:16px;text-align:center">▚</span><span style="font-size:12px;flex-grow:1">Enter Retro Mode</span></div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:10px 20px" class="muted"><span style="font-size:10px">↑↓ navigate · ↵ open · esc close</span></div>
+  </div>
+  <div style="position:absolute;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;width:330px">
+    <div style="background:rgba(16,14,18,0.95);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 16px;display:flex;gap:10px;align-items:center">
+      <span style="color:#43d17c">✓</span><span style="font-size:12px;flex-grow:1">Backed up to Google Drive.</span>
+    </div>
+    <div style="background:rgba(16,14,18,0.95);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 16px;display:flex;gap:10px;align-items:center">
+      <svg width="15" height="17" viewBox="0 0 16 18" fill="none" stroke="#e0a52c" stroke-width="1.6"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg>
+      <span style="font-size:12px;flex-grow:1">26-day streak — 13 from your best.</span>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label">A · Backdrop — 08 Random Picker</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/c8630afe-72cc-49d4-a08f-5f49d7ab7c6c/hero.jpg" style="filter:brightness(0.3) blur(4px)" alt="">
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:26px;width:900px">
+    <div style="text-align:center">
+      <div class="eyebrow">12 backlog games. Can't decide?</div>
+      <div class="display" style="font-size:54px;color:#fff;margin-top:4px">RANDOM PICK</div>
+    </div>
+    <div id="a-spin" style="display:flex;align-items:center;gap:16px"></div>
+    <div style="text-align:center">
+      <div class="display" style="font-size:34px;color:#fff">THE PRECINCT</div>
+      <div class="muted" style="font-size:12px;margin-top:2px">Backlog · 3.6 hrs in · 38% done · about 12 hrs to beat</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn primary"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#16100a"/></svg>PLAY NOW</button>
+      <button class="btn ghost">Details</button>
+      <button class="btn faint">↻ Spin again</button>
+    </div>
+    <div class="muted" style="font-size:10px;letter-spacing:0.14em">FILTER: BACKLOG ONLY ▾</div>
+  </div>
+</div>
+<script>
+  document.getElementById("a-spin").innerHTML =
+    cover("goose", 86, 129, { style: "opacity:0.4" }) +
+    cover("bmw", 96, 144, { style: "opacity:0.6" }) +
+    cover("prec", 130, 195, { style: "outline:3px solid var(--acc);outline-offset:3px;box-shadow:0 0 50px rgba(255,180,58,0.35)" }) +
+    cover("unc", 96, 144, { style: "opacity:0.6" }) +
+    cover("barb", 86, 129, { style: "opacity:0.4" });
+</script>
+
+<div class="frame-label">A · Backdrop — 09 Wrapped (story card)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" style="filter:brightness(0.4) saturate(1.3)" alt="">
+    <div style="position:absolute;inset:0;background:linear-gradient(100deg, rgba(10,10,15,0.92) 0%, rgba(10,10,15,0.6) 50%, rgba(10,10,15,0.2) 100%)"></div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;top:44px;right:40px;display:flex;gap:6px">
+    <span style="font-size:10px;color:#0a0a0f;background:#e8e8ea;border-radius:999px;padding:4px 12px">2026</span>
+    <span style="font-size:10px;color:#c7bfba;border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:4px 12px">All time</span>
+  </div>
+  <div style="position:absolute;left:80px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;max-width:720px">
+    <div class="eyebrow" style="color:#ffe2b0">Your year in games</div>
+    <div class="display" style="font-size:150px;line-height:0.85;color:#fff">426</div>
+    <div class="display" style="font-size:44px;line-height:1;color:#ffe2b0">HOURS PLAYED</div>
+    <div style="font-size:14px;color:#e6ded6;margin-top:10px;max-width:520px">Nearly 18 full days. Palworld took 68 of those hours across 28 sessions — and you finished Hogwarts Legacy this morning. 248 sessions, 26-day streak, level 13.</div>
+    <button class="btn ghost" style="align-self:flex-start;margin-top:14px">Share this card ↗</button>
+  </div>
+  <div style="position:absolute;right:110px;top:50%;transform:translateY(-50%) rotate(4deg)">
+    <div class="cover" style="width:200px;height:300px;box-shadow:0 30px 80px rgba(0,0,0,0.7)">
+      <img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/cover.jpg" alt="Palworld">
+      <div style="position:absolute;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(to top,rgba(5,5,8,0.9),transparent);font-size:10px;letter-spacing:0.1em;color:#ffe2b0">TOP GAME · 68 HRS</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center">
+    <span style="width:20px;height:4px;border-radius:2px;background:#fff"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></span>
+    <span class="muted" style="font-size:10px;margin-left:10px">1 / 9 · → next</span>
+  </div>
+</div>
+
+<div class="frame-label">A · Backdrop — 10 Onboarding (welcome)</div>
+<div class="frame" style="--acc:#ffb43a">
+  <div style="position:absolute;inset:0;overflow:hidden">
+    <img class="heroimg" src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/305ce72b-9af3-4d32-8a1a-5bae460c62c8/hero.jpg" style="filter:brightness(0.35)" alt="">
+    <div style="position:absolute;inset:0;background:radial-gradient(800px 500px at 50% 55%, rgba(10,10,15,0.2), rgba(10,10,15,0.75))"></div>
+  </div>
+  <div class="titlebar"><span>–</span><span style="font-size:11px">▢</span><span>✕</span></div>
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center">
+    <div class="eyebrow">Welcome to</div>
+    <div class="display" style="font-size:120px;line-height:0.9;color:#fff;text-shadow:0 4px 40px rgba(0,0,0,0.6)">NEXUS</div>
+    <div style="font-size:15px;color:#e6ded6;max-width:440px;text-shadow:0 1px 12px rgba(0,0,0,0.8)">Every game you own — Steam, Epic, GOG, Ubisoft, Battle.net, Xbox and more — in one place, with your whole play history behind it.</div>
+    <button class="btn primary" style="margin-top:14px;padding:13px 40px">GET STARTED</button>
+    <span style="font-size:11px;color:#cfc9c5">Takes about two minutes</span>
+  </div>
+  <div style="position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center">
+    <span style="width:20px;height:4px;border-radius:2px;background:var(--acc)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(255,255,255,0.25)"></span>
+    <span class="muted" style="font-size:9px;letter-spacing:0.16em;margin-left:10px">WELCOME · ART · METADATA · SOURCES · CONFIRM</span>
+  </div>
+</div>
+
+<div style="height:60px"></div>
+</body>
+</html>

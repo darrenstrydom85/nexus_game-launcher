@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option B — Instrument — screens</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #202127; font-family: "IBM Plex Sans", "Segoe UI", sans-serif; }
+  .frame-label { width: 1280px; margin: 40px auto 10px auto; color: #9aa0ab; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; }
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; margin: 0 auto; background: #101013; color: #e8e8ea; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  .muted { color: #9a9aa4; }
+  .faint { color: #6f6f78; }
+  .acc { color: #ff6a1a; }
+  .cap { font-size: 11px; letter-spacing: 0.14em; }
+  .grouplabel { font-size: 9px; letter-spacing: 0.18em; color: #6f6f78; }
+  .titlebar { height: 36px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; padding: 0 16px; gap: 14px; border-bottom: 1px solid #232329; }
+  .sidebar { width: 216px; box-sizing: border-box; flex-shrink: 0; border-right: 1px solid #232329; display: flex; flex-direction: column; padding-top: 12px; }
+  .nav { display: flex; align-items: center; height: 30px; padding: 0 16px; }
+  .nav.active { position: relative; background: rgba(255,106,26,0.07); }
+  .nav.active::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 2px; background: #ff6a1a; }
+  .sep { height: 1px; background: #232329; margin: 10px 16px; }
+  .sub { display: flex; align-items: center; height: 26px; padding: 0 16px 0 24px; font-size: 12px; color: #c9c9d1; }
+  .hairline-b { border-bottom: 1px solid #1b1b20; }
+  .statustick { width: 8px; height: 8px; display: block; }
+  .block { border: 1px solid #232329; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .bigfig { font-family: "IBM Plex Mono", monospace; font-size: 30px; color: #fff; }
+  .rowgrid { display: grid; align-items: center; padding: 0 20px; }
+  button { font-family: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="frame-label">B · Instrument — 01 Library (list mode)</div>
+<div class="frame">
+  <div class="titlebar">
+    <span style="width:8px;height:8px;background:#ff6a1a"></span>
+    <span class="cap" style="letter-spacing:0.22em;font-weight:600">NEXUS</span>
+    <div style="flex-grow:1"></div>
+    <span class="mono faint" style="font-size:10px;letter-spacing:0.08em">SYNC 17:42 · 142 GAMES · LVL 27 · <span style="color:#43d17c">ONLINE</span></span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:13px">–</span><span class="muted" style="font-size:11px">▢</span><span class="muted" style="font-size:13px">✕</span>
+  </div>
+  <div style="flex-grow:1;display:flex;min-height:0">
+    <div class="sidebar">
+      <div class="nav active"><span class="cap" style="color:#fff;font-weight:500">LIBRARY</span></div>
+      <div class="nav"><span class="cap muted">STATS</span></div>
+      <div class="nav"><span class="cap muted" style="flex-grow:1">COMPLETED</span><span class="mono faint" style="font-size:10px">38</span></div>
+      <div class="nav"><span class="cap muted" style="flex-grow:1">ARCHIVE</span><span class="mono faint" style="font-size:10px">12</span></div>
+      <div class="nav"><span class="cap muted" style="flex-grow:1">ACHIEVEMENTS</span><span class="mono faint" style="font-size:10px">61</span></div>
+      <div class="nav"><span class="cap muted" style="flex-grow:1">TWITCH</span><span style="width:6px;height:6px;border-radius:999px;background:#e0455a;margin-right:6px"></span><span class="mono" style="font-size:10px;color:#e0455a">3</span></div>
+      <div class="sep"></div>
+      <div class="nav" style="height:26px"><span class="grouplabel" style="flex-grow:1">QUEUE</span><span class="mono faint" style="font-size:10px">4</span></div>
+      <div class="sub"><span style="flex-grow:1">Alan Wake 2</span><span class="mono faint" style="font-size:9px">01</span></div>
+      <div class="sub"><span style="flex-grow:1">Sekiro</span><span class="mono faint" style="font-size:9px">02</span></div>
+      <div class="sep"></div>
+      <div class="nav" style="height:26px"><span class="grouplabel">COLLECTIONS</span></div>
+      <div class="sub"><span style="flex-grow:1">Roguelikes</span><span class="mono faint" style="font-size:10px">12</span></div>
+      <div class="sub"><span style="flex-grow:1">Cozy</span><span class="mono faint" style="font-size:10px">8</span></div>
+      <div class="sub"><span style="flex-grow:1">Co-op nights</span><span class="mono faint" style="font-size:10px">15</span></div>
+      <div class="sep"></div>
+      <div class="nav" style="height:26px"><span class="grouplabel" style="flex-grow:1">GENRES</span><span class="faint" style="font-size:9px">▾</span></div>
+      <div class="nav" style="height:26px"><span class="grouplabel" style="flex-grow:1">TAGS</span><span class="faint" style="font-size:9px">▾</span></div>
+      <div class="nav" style="height:26px"><span class="grouplabel acc" style="flex-grow:1">SCORE</span><span class="mono acc" style="font-size:9px">85–100</span></div>
+      <div class="nav" style="height:26px"><span class="grouplabel" style="flex-grow:1">SOURCES</span><span class="faint" style="font-size:9px">▾</span></div>
+      <div style="flex-grow:1"></div>
+      <div style="border-top:1px solid #232329;padding:10px 16px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:7px;height:7px;background:#43d17c"></span>
+          <span class="cap" style="font-size:11px;letter-spacing:0.1em;color:#fff">HADES II</span>
+          <span style="flex-grow:1"></span>
+          <button aria-label="Stop" style="background:none;border:1px solid #33333b;color:#9a9aa4;width:18px;height:18px;font-size:8px;padding:0">■</button>
+        </div>
+        <span class="mono acc" style="font-size:12px">00:41:12</span>
+      </div>
+    </div>
+    <div style="flex-grow:1;display:flex;flex-direction:column;min-width:0">
+      <div style="height:44px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 20px;border-bottom:1px solid #232329;box-sizing:border-box">
+        <span style="font-size:13px;font-weight:600">ALL GAMES</span><span class="mono faint" style="font-size:11px">142</span>
+        <div style="flex-grow:1"></div>
+        <span class="mono muted" style="font-size:10px;letter-spacing:0.1em">SORT: RECENT ▾</span>
+        <span style="width:24px;height:24px;border:1px solid #33333b;display:inline-flex;align-items:center;justify-content:center;color:#6f6f78;font-size:11px">⊞</span>
+        <span style="width:24px;height:24px;border:1px solid #ff6a1a;display:inline-flex;align-items:center;justify-content:center;color:#ff6a1a;font-size:11px;margin-left:-1px">≣</span>
+      </div>
+      <div class="rowgrid mono faint" style="height:26px;grid-template-columns:30px minmax(0,1fr) 100px 130px 56px 96px 90px;border-bottom:1px solid #232329;font-size:9px;letter-spacing:0.14em">
+        <span></span><span>NAME</span><span>SOURCE</span><span>GENRE</span><span style="text-align:right">SCORE</span><span style="padding-left:16px">STATUS</span><span style="text-align:right">PLAYTIME</span>
+      </div>
+      <div style="flex-grow:1;overflow:hidden;display:flex;flex-direction:column" id="rows"></div>
+      <div style="height:28px;flex-shrink:0;border-top:1px solid #232329;display:flex;align-items:center;padding:0 20px;gap:16px;box-sizing:border-box">
+        <span class="mono faint" style="font-size:9px;letter-spacing:0.12em">15 OF 142 SHOWN · FILTER: SCORE 85–100</span>
+        <div style="flex-grow:1"></div>
+        <span class="mono faint" style="font-size:9px;letter-spacing:0.12em">TOTAL 1,608 HRS</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const GAMES = [
+    ["#43d17c","Hades II","Steam","Roguelike","94","PLAYING","#43d17c","41:20", true],
+    ["#43d17c","Factorio","Steam","Simulation","96","PLAYING","#43d17c","812:04"],
+    ["#e0a52c","Alan Wake 2","Epic","Horror","89","BACKLOG","#e0a52c","12:11"],
+    ["#d8d8de","Baldur's Gate 3","GOG","RPG","96","DONE","#d8d8de","141:33"],
+    ["#d8d8de","Elden Ring","Steam","Action RPG","95","DONE","#d8d8de","187:02"],
+    ["#e0a52c","Hollow Knight","Steam","Metroidvania","90","BACKLOG","#e0a52c","23:44"],
+    ["#d8d8de","Celeste","Steam","Platformer","92","DONE","#d8d8de","19:08"],
+    ["#d8d8de","Outer Wilds","Epic","Adventure","93","DONE","#d8d8de","22:51"],
+    ["#e05252","Disco Elysium","GOG","RPG","97","DROPPED","#e05252","31:16"],
+    ["#43d17c","Stardew Valley","Steam","Sim","89","PLAYING","#43d17c","96:40"],
+    ["#e0a52c","Sekiro","Steam","Action","91","BACKLOG","#e0a52c","44:37"],
+    ["#e0a52c","Cyberpunk 2077","GOG","RPG","86","BACKLOG","#e0a52c","63:20"],
+    ["#d8d8de","Hi-Fi Rush","Xbox","Action","88","DONE","#d8d8de","11:05"],
+    ["#d8d8de","Slay the Spire","Steam","Roguelike","89","DONE","#d8d8de","74:12"],
+    ["#e05252","Subnautica","Epic","Survival","87","DROPPED","#e05252","28:30"],
+  ];
+  document.getElementById("rows").innerHTML = GAMES.map(g => `
+    <div class="rowgrid hairline-b" style="height:31px;box-sizing:border-box;grid-template-columns:30px minmax(0,1fr) 100px 130px 56px 96px 90px;${g[8] ? "background:rgba(255,106,26,0.05)" : ""}">
+      <span class="statustick" style="background:${g[0]}"></span>
+      <span style="font-size:13px;${g[8] ? "color:#fff" : ""}">${g[1]}</span>
+      <span class="muted" style="font-size:11px">${g[2]}</span>
+      <span class="muted" style="font-size:11px">${g[3]}</span>
+      <span class="mono" style="font-size:11px;text-align:right">${g[4]}</span>
+      <span style="font-size:10px;letter-spacing:0.1em;color:${g[6]};padding-left:16px">${g[5]}</span>
+      <span class="mono" style="font-size:11px;text-align:right">${g[7]}</span>
+    </div>`).join("");
+</script>
+
+<div class="frame-label">B · Instrument — 02 Game Detail (dossier)</div>
+<div class="frame">
+  <div class="titlebar">
+    <span style="width:8px;height:8px;background:#ff6a1a"></span>
+    <span class="cap" style="letter-spacing:0.22em;font-weight:600">NEXUS</span>
+    <span class="mono faint" style="font-size:10px;margin-left:14px">/ LIBRARY / HADES II</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:13px">–</span><span class="muted" style="font-size:11px">▢</span><span class="muted" style="font-size:13px">✕</span>
+  </div>
+  <div style="flex-grow:1;display:flex;min-height:0">
+    <!-- left column -->
+    <div style="width:340px;box-sizing:border-box;flex-shrink:0;border-right:1px solid #232329;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div style="width:220px;height:330px;background:#2b1214;position:relative;overflow:hidden;align-self:center">
+        <div style="position:absolute;right:-10px;top:-30px;font-family:'IBM Plex Mono',monospace;font-size:170px;color:rgba(255,120,80,0.13)">II</div>
+      </div>
+      <button style="background:#ff6a1a;color:#1a0d05;border:none;padding:12px;font-size:12px;letter-spacing:0.16em;font-weight:600">▶ PLAY</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#232329;border:1px solid #232329">
+        <div style="background:#101013;padding:10px 12px"><div class="grouplabel">STATUS</div><div style="font-size:12px;color:#43d17c;margin-top:3px">PLAYING ▾</div></div>
+        <div style="background:#101013;padding:10px 12px"><div class="grouplabel">RATING</div><div style="font-size:12px;margin-top:3px">★★★★☆</div></div>
+        <div style="background:#101013;padding:10px 12px"><div class="grouplabel">PROGRESS</div><div class="mono" style="font-size:12px;margin-top:3px">34%</div></div>
+        <div style="background:#101013;padding:10px 12px"><div class="grouplabel">MASTERY</div><div style="font-size:12px;color:#c0c0c0;margin-top:3px">SILVER 14/25</div></div>
+      </div>
+      <div class="mono faint" style="font-size:9px;letter-spacing:0.12em;display:flex;flex-direction:column;gap:6px">
+        <span>EDIT ENTRY</span><span>OPEN FOLDER</span><span>REFETCH METADATA</span><span>ADD TO COLLECTION</span><span>HIDE GAME</span>
+      </div>
+    </div>
+    <!-- right column -->
+    <div style="flex-grow:1;padding:24px 28px;display:flex;flex-direction:column;gap:18px;overflow:hidden;box-sizing:border-box">
+      <div>
+        <div style="font-size:26px;font-weight:600">Hades II</div>
+        <div class="mono faint" style="font-size:10px;letter-spacing:0.12em;margin-top:4px">STEAM · ROGUELIKE · 2024 · SUPERGIANT GAMES · CRITIC 94</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#232329;border:1px solid #232329">
+        <div style="background:#101013;padding:12px 14px"><div class="grouplabel">PLAYTIME</div><div class="mono" style="font-size:20px;margin-top:4px">41:20</div></div>
+        <div style="background:#101013;padding:12px 14px"><div class="grouplabel">SESSIONS</div><div class="mono" style="font-size:20px;margin-top:4px">32</div></div>
+        <div style="background:#101013;padding:12px 14px"><div class="grouplabel">AVG SESSION</div><div class="mono" style="font-size:20px;margin-top:4px">1:17</div></div>
+        <div style="background:#101013;padding:12px 14px"><div class="grouplabel">HLTB MAIN</div><div class="mono" style="font-size:20px;margin-top:4px">28:00</div></div>
+      </div>
+      <div>
+        <div class="grouplabel" style="margin-bottom:8px">SESSION LOG</div>
+        <div class="rowgrid mono faint hairline-b" style="grid-template-columns:120px 90px 1fr;height:22px;font-size:9px;letter-spacing:0.14em;padding:0"><span>DATE</span><span>LENGTH</span><span>NOTE</span></div>
+        <div class="rowgrid hairline-b" style="grid-template-columns:120px 90px 1fr;height:28px;padding:0;font-size:12px"><span class="mono" style="font-size:11px">SEP 26 21:04</span><span class="mono" style="font-size:11px">2:12</span><span class="muted">one chamber short of Chronos</span></div>
+        <div class="rowgrid hairline-b" style="grid-template-columns:120px 90px 1fr;height:28px;padding:0;font-size:12px"><span class="mono" style="font-size:11px">SEP 23 20:31</span><span class="mono" style="font-size:11px">1:48</span><span class="faint">—</span></div>
+        <div class="rowgrid hairline-b" style="grid-template-columns:120px 90px 1fr;height:28px;padding:0;font-size:12px"><span class="mono" style="font-size:11px">SEP 21 15:12</span><span class="mono" style="font-size:11px">3:05</span><span class="muted">unlocked the Moon path</span></div>
+        <div class="rowgrid hairline-b" style="grid-template-columns:120px 90px 1fr;height:28px;padding:0;font-size:12px"><span class="mono" style="font-size:11px">SEP 20 22:40</span><span class="mono" style="font-size:11px">0:52</span><span class="faint">—</span></div>
+        <div class="rowgrid" style="grid-template-columns:120px 90px 1fr;height:28px;padding:0;font-size:12px"><span class="mono" style="font-size:11px">SEP 17 19:22</span><span class="mono" style="font-size:11px">2:41</span><span class="faint">—</span></div>
+      </div>
+      <div style="display:flex;gap:28px">
+        <div style="flex:1">
+          <div class="grouplabel" style="margin-bottom:8px">MILESTONES</div>
+          <div style="font-size:12px;display:flex;flex-direction:column;gap:6px">
+            <span><span class="acc">✓</span> First run complete</span>
+            <span><span class="acc">✓</span> 25 hours played</span>
+            <span class="faint">□ Beat a boss without damage</span>
+            <span class="faint">□ 50 hours played</span>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="grouplabel" style="margin-bottom:8px">TAGS · COLLECTIONS</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:10px;border:1px solid #33333b;padding:3px 10px">roguelike</span>
+            <span style="font-size:10px;border:1px solid #33333b;padding:3px 10px">favorites</span>
+            <span style="font-size:10px;border:1px solid rgba(255,106,26,0.5);color:#ff8845;padding:3px 10px">ROGUELIKES</span>
+          </div>
+          <div class="grouplabel" style="margin:14px 0 8px 0">LIVE ON TWITCH</div>
+          <div style="font-size:12px;display:flex;flex-direction:column;gap:5px">
+            <span><span style="color:#e0455a">●</span> zagreus_speedruns <span class="mono faint" style="font-size:10px">12.4K</span></span>
+            <span><span style="color:#e0455a">●</span> underworld_uncut <span class="mono faint" style="font-size:10px">3.1K</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-label">B · Instrument — 03 Stats (flagship)</div>
+<div class="frame">
+  <div class="titlebar">
+    <span style="width:8px;height:8px;background:#ff6a1a"></span>
+    <span class="cap" style="letter-spacing:0.22em;font-weight:600">NEXUS</span>
+    <span class="mono faint" style="font-size:10px;margin-left:14px">/ STATS</span>
+    <div style="flex-grow:1"></div>
+    <span class="mono faint" style="font-size:10px">EXPORT CSV · OPEN WRAPPED</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:13px">–</span><span class="muted" style="font-size:11px">▢</span><span class="muted" style="font-size:13px">✕</span>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:20px;display:flex;flex-direction:column;gap:16px;min-height:0">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#232329;border:1px solid #232329">
+      <div style="background:#101013;padding:16px"><div class="grouplabel">TOTAL PLAYTIME</div><div class="bigfig">1,608<span style="font-size:14px;color:#6f6f78">h</span></div></div>
+      <div style="background:#101013;padding:16px"><div class="grouplabel">SESSIONS</div><div class="bigfig">412</div></div>
+      <div style="background:#101013;padding:16px"><div class="grouplabel">CURRENT STREAK</div><div class="bigfig" style="color:#ff6a1a">12<span style="font-size:14px;color:#6f6f78">d</span></div></div>
+      <div style="background:#101013;padding:16px"><div class="grouplabel">LEVEL</div><div class="bigfig">27</div><div class="mono faint" style="font-size:9px">4,210 / 4,800 XP</div></div>
+      <div style="background:#101013;padding:16px"><div class="grouplabel">COMPLETED</div><div class="bigfig">38<span style="font-size:14px;color:#6f6f78">/142</span></div></div>
+    </div>
+    <div style="display:flex;gap:16px;flex-grow:1;min-height:0">
+      <div class="block" style="flex:1.4">
+        <div class="grouplabel" style="margin-bottom:10px">ACTIVITY · 52 WEEKS</div>
+        <div id="punch" style="display:flex;flex-direction:column;gap:3px"></div>
+        <div style="flex-grow:1"></div>
+        <div class="grouplabel" style="margin:12px 0 8px 0">SESSION LENGTH DISTRIBUTION</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:64px">
+          <div style="flex:1;background:#2a2a31;height:34%"></div><div style="flex:1;background:#2a2a31;height:58%"></div><div style="flex:1;background:#ff6a1a;height:100%"></div><div style="flex:1;background:#2a2a31;height:72%"></div><div style="flex:1;background:#2a2a31;height:41%"></div><div style="flex:1;background:#2a2a31;height:22%"></div><div style="flex:1;background:#2a2a31;height:9%"></div>
+        </div>
+        <div class="mono faint" style="display:flex;justify-content:space-between;font-size:8px;letter-spacing:0.08em"><span>&lt;15M</span><span>30M</span><span>1H</span><span>2H</span><span>3H</span><span>4H</span><span>&gt;5H</span></div>
+      </div>
+      <div class="block" style="flex:1">
+        <div class="grouplabel" style="margin-bottom:10px">TOP GAMES · HOURS</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:104px" class="muted">Factorio</span><div style="flex-grow:1;height:10px;background:#1b1b20"><div style="width:92%;height:100%;background:#ff6a1a"></div></div><span class="mono" style="font-size:10px;width:34px;text-align:right">812</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:104px" class="muted">Elden Ring</span><div style="flex-grow:1;height:10px;background:#1b1b20"><div style="width:23%;height:100%;background:#8f4211"></div></div><span class="mono" style="font-size:10px;width:34px;text-align:right">187</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:104px" class="muted">Baldur's Gate 3</span><div style="flex-grow:1;height:10px;background:#1b1b20"><div style="width:17%;height:100%;background:#8f4211"></div></div><span class="mono" style="font-size:10px;width:34px;text-align:right">141</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:104px" class="muted">Stardew Valley</span><div style="flex-grow:1;height:10px;background:#1b1b20"><div style="width:12%;height:100%;background:#5c2f10"></div></div><span class="mono" style="font-size:10px;width:34px;text-align:right">96</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:104px" class="muted">Slay the Spire</span><div style="flex-grow:1;height:10px;background:#1b1b20"><div style="width:9%;height:100%;background:#5c2f10"></div></div><span class="mono" style="font-size:10px;width:34px;text-align:right">74</span></div>
+        </div>
+        <div class="grouplabel" style="margin:16px 0 8px 0">MASTERY TIERS</div>
+        <div class="mono" style="font-size:10px;display:flex;flex-direction:column;gap:5px">
+          <span><span style="color:#cd7f32">■</span> BRONZE <span class="faint">×22</span></span>
+          <span><span style="color:#c0c0c0">■</span> SILVER <span class="faint">×9</span></span>
+          <span><span style="color:#ffd700">■</span> GOLD <span class="faint">×4</span></span>
+          <span><span style="color:#e5e4e2">■</span> PLATINUM <span class="faint">×1</span></span>
+          <span><span style="color:#b9f2ff">■</span> DIAMOND <span class="faint">×1</span></span>
+        </div>
+      </div>
+      <div class="block" style="flex:1">
+        <div class="grouplabel" style="margin-bottom:10px">STREAK CALENDAR · SEPTEMBER</div>
+        <div id="cal" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+        <div class="grouplabel" style="margin:16px 0 8px 0">XP · LAST 8 WEEKS</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:56px">
+          <div style="flex:1;background:#2a2a31;height:30%"></div><div style="flex:1;background:#2a2a31;height:45%"></div><div style="flex:1;background:#2a2a31;height:38%"></div><div style="flex:1;background:#2a2a31;height:60%"></div><div style="flex:1;background:#2a2a31;height:52%"></div><div style="flex:1;background:#2a2a31;height:70%"></div><div style="flex:1;background:#2a2a31;height:64%"></div><div style="flex:1;background:#ff6a1a;height:88%"></div>
+        </div>
+        <div class="grouplabel" style="margin:16px 0 6px 0">TWITCH WATCH TIME</div>
+        <div class="mono" style="font-size:18px">96<span style="font-size:11px;color:#6f6f78">h WATCHED · 34 STREAMS</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // punch-card heatmap
+  const lvls = ["#1b1b20","#4a2a12","#8f4211","#ff6a1a"];
+  let punch = "";
+  for (let r = 0; r < 7; r++) {
+    punch += '<div style="display:flex;gap:3px">';
+    for (let c = 0; c < 52; c++) {
+      const v = (r * 13 + c * 7 + ((r * c) % 11)) % 9;
+      punch += `<span style="width:9px;height:9px;background:${lvls[v < 4 ? 0 : v < 6 ? 1 : v < 8 ? 2 : 3]}"></span>`;
+    }
+    punch += "</div>";
+  }
+  document.getElementById("punch").innerHTML = punch;
+  let cal = "";
+  for (let d = 1; d <= 28; d++) {
+    const played = (d % 7 !== 3 && d % 5 !== 0) || d > 16;
+    const streak = d >= 17;
+    cal += `<span class="mono" style="font-size:9px;display:flex;align-items:center;justify-content:center;height:22px;border:1px solid ${streak ? "#ff6a1a" : "#232329"};color:${played ? "#e8e8ea" : "#4a4a52"};background:${streak ? "rgba(255,106,26,0.08)" : "transparent"}">${d}</span>`;
+  }
+  document.getElementById("cal").innerHTML = cal;
+</script>
+
+<div class="frame-label">B · Instrument — 04 Achievements (ledger)</div>
+<div class="frame">
+  <div class="titlebar">
+    <span style="width:8px;height:8px;background:#ff6a1a"></span>
+    <span class="cap" style="letter-spacing:0.22em;font-weight:600">NEXUS</span>
+    <span class="mono faint" style="font-size:10px;margin-left:14px">/ ACHIEVEMENTS</span>
+    <div style="flex-grow:1"></div>
+    <span class="mono faint" style="font-size:10px">61 / 89 UNLOCKED · 68%</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:13px">–</span><span class="muted" style="font-size:11px">▢</span><span class="muted" style="font-size:13px">✕</span>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:20px;display:flex;flex-direction:column;min-height:0">
+    <div class="rowgrid mono faint" style="height:24px;grid-template-columns:26px minmax(0,1fr) 110px 140px 120px;border-bottom:1px solid #232329;font-size:9px;letter-spacing:0.14em;padding:0 12px">
+      <span></span><span>ACHIEVEMENT</span><span>RARITY</span><span>PROGRESS</span><span style="text-align:right">UNLOCKED</span>
+    </div>
+    <div id="ach" style="display:flex;flex-direction:column"></div>
+  </div>
+</div>
+<script>
+  const ACH = [
+    ["#eab308","Thousand-Hour Engineer","Reach 1,000 hours in a single game","LEGENDARY · 1.4%","#eab308",1,1,"MAR 14"],
+    ["#a855f7","Iron Streak","Play every day for 30 days straight","EPIC · 4.2%","#c084fc",0.4,0,"12 / 30"],
+    ["#a855f7","Backlog Zero","Empty your backlog completely","EPIC · 3.1%","#c084fc",0.12,0,"—"],
+    ["#3b82f6","Century Club","Own 100 games across all sources","RARE · 11%","#60a5fa",1,1,"JAN 03"],
+    ["#3b82f6","Night Owl","Play past 2 AM","RARE · 9%","#60a5fa",1,1,"SEP 27"],
+    ["#22c55e","Finisher","Complete 25 games","UNCOMMON · 28%","#4ade80",0.92,0,"23 / 25"],
+    ["#22c55e","Curator","Create 5 collections","UNCOMMON · 31%","#4ade80",1,1,"FEB 11"],
+    ["#9ca3af","First Steps","Track your first play session","COMMON · 61%","#9ca3af",1,1,"2025"],
+    ["#9ca3af","Tagged","Tag 10 games","COMMON · 44%","#9ca3af",1,1,"2025"],
+    ["#9ca3af","Second Opinion","Rate 20 games","COMMON · 38%","#9ca3af",0.65,0,"13 / 20"],
+  ];
+  document.getElementById("ach").innerHTML = ACH.map(a => `
+    <div class="rowgrid hairline-b" style="height:40px;grid-template-columns:26px minmax(0,1fr) 110px 140px 120px;padding:0 12px;${a[6] ? "" : "opacity:0.6"}">
+      <span style="width:9px;height:9px;background:${a[0]}"></span>
+      <span><span style="font-size:13px;${a[6] ? "color:#fff" : ""}">${a[1]}</span><span class="faint" style="font-size:11px;margin-left:10px">${a[2]}</span></span>
+      <span class="mono" style="font-size:9px;letter-spacing:0.08em;color:${a[4]}">${a[3]}</span>
+      <span style="padding-right:20px"><span style="display:block;height:4px;background:#1b1b20"><span style="display:block;height:4px;width:${a[5] * 100}%;background:${a[0]}"></span></span></span>
+      <span class="mono" style="font-size:10px;text-align:right;color:${a[6] ? "#e8e8ea" : "#6f6f78"}">${a[7]}</span>
+    </div>`).join("");
+</script>
+
+<div style="height:60px"></div>
+</body>
+</html>

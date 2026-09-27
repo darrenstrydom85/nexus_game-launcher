@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option D — Channel — screens (real library)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #202127; font-family: "Space Grotesk", "Segoe UI", sans-serif; }
+  .frame-label { width: 1280px; margin: 40px auto 10px auto; color: #9aa0ab; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-family: "Segoe UI", sans-serif; }
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; margin: 0 auto; color: #e9edee; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; background: radial-gradient(1100px 520px at 50% -12%, var(--amb, rgba(200,162,74,0.3)), transparent 65%), linear-gradient(180deg, #0e1418 0%, #0b0e11 100%); }
+  .muted { color: #9aa7a8; }
+  .faint { color: #66787a; }
+  .titlebar { height: 30px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; padding: 0 14px; gap: 16px; color: #7d8a8c; font-size: 12px; }
+  .tabs { height: 46px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; padding: 0 48px; gap: 8px; }
+  .tab { font-size: 13px; color: #9aa7a8; padding: 8px 16px; }
+  .tab.on { color: #0b0e11; background: #e9edee; border-radius: 999px; padding: 8px 20px; font-weight: 600; }
+  .tile { border-radius: 10px; position: relative; overflow: hidden; background: #151a1e; flex-shrink: 0; }
+  .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tile .shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(5,8,10,0.8) 0%, transparent 50%); }
+  .tile .name { position: absolute; left: 10px; bottom: 8px; font-size: 10px; letter-spacing: 0.08em; color: #e6ecec; text-transform: uppercase; }
+  .tile .mono { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 30px; color: rgba(255,255,255,0.22); }
+  .tile.sel { outline: 2px solid #fff; outline-offset: 3px; }
+  .rowlabel { font-size: 11px; letter-spacing: 0.18em; color: #c3cccd; }
+  .btn { font-family: inherit; border-radius: 8px; padding: 10px 20px; font-size: 13px; cursor: pointer; }
+  .btn.primary { display: inline-flex; align-items: center; gap: 8px; background: #e9edee; color: #0b0e11; border: none; padding: 10px 30px; font-weight: 700; }
+  .btn.ghost { background: transparent; color: #e9edee; border: 1px solid rgba(233,237,238,0.3); font-weight: 500; }
+  .btn.faintb { background: transparent; color: #9aa7a8; border: 1px solid rgba(233,237,238,0.16); }
+  .statusbar { height: 46px; box-sizing: border-box; flex-shrink: 0; border-top: 1px solid rgba(233,237,238,0.08); background: rgba(9,12,14,0.82); display: flex; align-items: center; padding: 0 20px; gap: 20px; }
+  .lvl { width: 26px; height: 26px; border-radius: 999px; border: 2px solid #8fd8d2; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #c8ecea; }
+  .card { border-radius: 12px; background: rgba(233,237,238,0.05); border: 1px solid rgba(233,237,238,0.08); padding: 18px 20px; box-sizing: border-box; }
+  .flame { display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+<script>
+  const ART = "file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/";
+  const HERO = new Set(["pal","poe","cd","hog","bmw","prec","ani","swz"]);
+  const G = {
+    pal:  { id: "03b4f917-38c5-401a-a74a-067e0d53b4c3", n: "Palworld" },
+    poe:  { id: "0bda08fc-afca-4848-a3f2-e9763765daff", n: "Path of Exile 2" },
+    cd:   { id: "cc7314e3-f6c3-4438-a442-9200d4a9eb3c", n: "Crimson Desert" },
+    swo:  { id: "74d8cbdb-fb48-4f8e-a882-08f5a87c4f63", n: "Star Wars Outlaws" },
+    hog:  { id: "00a3c46a-d0bf-4a6d-b671-349140dcf90d", n: "Hogwarts Legacy" },
+    bmw:  { id: "305ce72b-9af3-4d32-8a1a-5bae460c62c8", n: "Black Myth: Wukong" },
+    unc:  { id: "36c56dbd-30cf-4cf3-a96f-22953e956338", n: "Uncharted: Legacy of Thieves" },
+    bf6:  { id: "3f17e5a7-3aae-45e5-b856-4903cdefa0c8", n: "Battlefield 6" },
+    war:  { id: null, n: "Wardogs" },
+    barb: { id: "89ab762f-9b72-41d8-bd7c-842b17c6a683", n: "Barbie Horse Trails" },
+    prec: { id: "c8630afe-72cc-49d4-a08f-5f49d7ab7c6c", n: "The Precinct" },
+    goose:{ id: "f0da448a-7f61-4909-9373-3c087300958d", n: "Untitled Goose Game" },
+    body: { id: "bcda522e-4701-4ab0-819d-0346557868f7", n: "Bodycam" },
+    dd:   { id: "1b0e5e1e-287a-434c-bf44-0cc57d7fe9c7", n: "Death's Door" },
+    ani:  { id: "beb1d10f-2f28-433b-a683-0c68986ccccd", n: "Aniimo" },
+    sh:   { id: "c0d6de69-db97-4e13-abb0-8a409cd9973d", n: "Silent Hill: Townfall" },
+    rs:   { id: "30c9893b-5939-4af7-ba41-dd64efe5e0d9", n: "RuneScape: Dragonwilds" },
+    swz:  { id: "9ab74e3e-4bd1-4c98-8ae7-8d4b165a9e3d", n: "Star Wars Zero Company" },
+  };
+  function tile(key, w, h, opts) {
+    const g = G[key], o = opts || {};
+    const img = g.id
+      ? `<img src="${ART}${g.id}/${HERO.has(key) ? "hero.jpg" : "cover.jpg"}" alt="${g.n}">`
+      : `<span class="mono">${g.n.split(" ").map(x => x[0]).join("").slice(0,2)}</span>`;
+    const name = o.noname ? "" : `<div class="shade"></div><div class="name" style="${o.namestyle || ""}">${g.n}</div>`;
+    return `<div class="tile ${o.sel ? "sel" : ""}" style="width:${w}px;height:${h}px;${o.style || ""}" title="${g.n}">${img}${name}${o.extra || ""}</div>`;
+  }
+</script>
+
+<div class="frame-label">D · Channel — 01 Library (home, your real library)</div>
+<div class="frame" style="--amb: rgba(200,150,60,0.32)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div class="tabs">
+    <span class="tab on">Library</span><span class="tab">Stats</span><span class="tab">Completed</span><span class="tab">Awards</span>
+    <span class="tab">Twitch <span style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#e0455a;margin-left:3px;vertical-align:middle"></span></span>
+    <div style="flex-grow:1"></div>
+    <svg width="16" height="16" viewBox="0 0 15 15" fill="none" stroke="#9aa7a8" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10 L13.5 13.5"/></svg>
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="#9aa7a8" stroke-width="1.5" style="margin-left:12px"><circle cx="9" cy="9" r="2.6"/><path d="M9 1.5 v2.2 M9 14.3 v2.2 M1.5 9 h2.2 M14.3 9 h2.2 M3.7 3.7 l1.6 1.6 M12.7 12.7 l1.6 1.6 M14.3 3.7 l-1.6 1.6 M5.3 12.7 l-1.6 1.6"/></svg>
+  </div>
+  <div id="d-focus" style="flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:20px;margin-top:22px"></div>
+  <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:18px">
+    <div style="font-weight:700;font-size:30px;letter-spacing:0.04em">BLACK MYTH: WUKONG</div>
+    <div class="muted" style="font-size:11px;letter-spacing:0.18em">9.3 HRS · BACKLOG · 17% · CRITIC 88</div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn primary"><svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#0b0e11"/></svg>PLAY</button>
+      <button class="btn ghost">Details</button>
+      <button class="btn faintb">+ Queue</button>
+    </div>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:24px 48px 0 48px;display:flex;flex-direction:column;gap:10px;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px"><span class="rowlabel">CONTINUE PLAYING</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div id="d-row1" style="display:flex;gap:14px"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span class="rowlabel">QUEUE</span><span class="faint" style="font-size:10px">· 1</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div id="d-row2" style="display:flex;gap:14px"></div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <span style="color:#7d8a8c;font-size:10px">■</span>
+    <div style="flex-grow:1"></div>
+    <span class="flame"><svg width="13" height="15" viewBox="0 0 16 18" fill="none" stroke="#e0a52c" stroke-width="1.6"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg><span style="font-size:12px;color:#e0a52c;font-weight:600">26</span></span>
+    <span class="lvl">13</span>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">18 GAMES · SYNCED</span>
+  </div>
+</div>
+<script>
+  document.getElementById("d-focus").innerHTML =
+    tile("hog", 190, 114, { style: "opacity:0.72" }) +
+    tile("pal", 190, 114, { style: "opacity:0.72" }) +
+    tile("bmw", 290, 174, { sel: true, style: "box-shadow:0 0 60px rgba(200,150,60,0.4);border-radius:12px", namestyle: "font-size:12px;left:14px;bottom:12px" }) +
+    tile("cd", 190, 114, { style: "opacity:0.72" }) +
+    tile("poe", 190, 114, { style: "opacity:0.72" });
+  document.getElementById("d-row1").innerHTML =
+    tile("hog", 148, 88, { style: "border-radius:8px", extra: '<span style="position:absolute;top:6px;left:6px;font-size:8px;letter-spacing:0.06em;background:#43d17c;color:#08130c;border-radius:3px;padding:2px 5px;font-weight:700;z-index:2">DONE</span>' }) +
+    tile("pal", 148, 88, { style: "border-radius:8px" }) +
+    tile("ani", 148, 88, { style: "border-radius:8px" }) +
+    tile("war", 148, 88, { style: "border-radius:8px" }) +
+    tile("unc", 148, 88, { style: "border-radius:8px" }) +
+    tile("body", 148, 88, { style: "border-radius:8px" }) +
+    tile("swo", 148, 88, { style: "border-radius:8px" });
+  document.getElementById("d-row2").innerHTML =
+    tile("pal", 148, 60, { style: "border-radius:8px 8px 0 0", noname: true });
+</script>
+
+<div class="frame-label">D · Channel — 02 Game Detail (takeover)</div>
+<div class="frame" style="--amb: rgba(200,150,60,0.4)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div style="flex-shrink:0;box-sizing:border-box;padding:6px 48px 0 48px"><span class="muted" style="font-size:12px">← Library</span></div>
+  <div style="flex-shrink:0;display:flex;gap:36px;box-sizing:border-box;padding:20px 48px 0 48px;align-items:center">
+    <div class="tile sel" style="width:340px;height:204px;box-shadow:0 0 60px rgba(200,150,60,0.4);border-radius:12px">
+      <img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/305ce72b-9af3-4d32-8a1a-5bae460c62c8/hero.jpg" alt="Black Myth: Wukong">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="muted" style="font-size:11px;letter-spacing:0.18em">STANDALONE · ACTION RPG · GAME SCIENCE · 2024</div>
+      <div style="font-weight:700;font-size:38px;letter-spacing:0.03em">BLACK MYTH: WUKONG</div>
+      <div style="display:flex;gap:26px;font-size:12px" class="muted">
+        <span><b style="color:#e9edee;font-size:16px">9:18</b> HRS</span>
+        <span><b style="color:#e9edee;font-size:16px">17%</b> COMPLETE</span>
+        <span><b style="color:#e9edee;font-size:16px">88</b> CRITIC</span>
+        <span><b style="color:#e9edee;font-size:16px">38h</b> HLTB MAIN</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+        <button class="btn primary"><svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#0b0e11"/></svg>PLAY</button>
+        <button class="btn ghost">Backlog ▾</button>
+        <button class="btn faintb">Rate ☆</button>
+        <span class="faint" style="font-size:11px">Edit · Folder · Metadata · + Collection · Hide</span>
+      </div>
+    </div>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:26px 48px 0 48px;display:flex;flex-direction:column;gap:12px;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px"><span class="rowlabel">SESSIONS</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div style="display:flex;gap:14px">
+      <div class="card" style="width:230px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">AUG 19 · 21:24</div><div style="font-size:16px;font-weight:600;margin-top:4px">2h 41m</div><div class="muted" style="font-size:11px;margin-top:3px">chapter 2 boss wall</div></div>
+      <div class="card" style="width:230px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">AUG 17 · 20:02</div><div style="font-size:16px;font-weight:600;margin-top:4px">3h 12m</div></div>
+      <div class="card" style="width:230px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">AUG 15 · 19:40</div><div style="font-size:16px;font-weight:600;margin-top:4px">1h 58m</div></div>
+      <div class="card" style="width:230px;opacity:0.7"><div class="faint" style="font-size:10px;letter-spacing:0.14em">AUG 14 · 22:10</div><div style="font-size:16px;font-weight:600;margin-top:4px">1h 27m</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span class="rowlabel">PROGRESS · HLTB · LIVE</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div style="display:flex;gap:14px">
+      <div class="card" style="width:300px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">STORY PROGRESS</div><div style="height:4px;border-radius:2px;background:rgba(233,237,238,0.1);margin-top:12px"><div style="width:17%;height:100%;border-radius:2px;background:#d9b25e"></div></div><div class="muted" style="font-size:10px;margin-top:6px">17% · SET MANUALLY</div></div>
+      <div class="card" style="width:250px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">HOW LONG TO BEAT</div><div style="display:flex;gap:18px;margin-top:6px"><span><b style="font-size:16px">38h</b> <span class="faint" style="font-size:9px">MAIN</span></span><span><b style="font-size:16px">9h</b> <span class="faint" style="font-size:9px">PLAYED</span></span></div></div>
+      <div class="card" style="width:280px"><div class="faint" style="font-size:10px;letter-spacing:0.14em">LIVE ON TWITCH</div><div style="font-size:13px;margin-top:6px"><span style="color:#e0455a">●</span> wukong_no_hit <span class="faint" style="font-size:10px">2.1K</span></div><div style="font-size:13px;margin-top:3px"><span style="color:#e0455a">●</span> destined_one_runs <span class="faint" style="font-size:10px">960</span></div></div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <div style="flex-grow:1"></div>
+    <span class="lvl">13</span>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">18 GAMES · SYNCED</span>
+  </div>
+</div>
+
+<div class="frame-label">D · Channel — 03 Stats (profile, your real numbers)</div>
+<div class="frame" style="--amb: rgba(224,165,44,0.22)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div class="tabs">
+    <span class="tab">Library</span><span class="tab on">Stats</span><span class="tab">Completed</span><span class="tab">Awards</span><span class="tab">Twitch</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:12px">Open Wrapped →</span>
+  </div>
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:28px;box-sizing:border-box;padding:20px 48px 0 48px">
+    <div style="width:84px;height:84px;border-radius:999px;border:3px solid #8fd8d2;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <span style="font-weight:700;font-size:26px">13</span><span class="faint" style="font-size:8px;letter-spacing:0.14em">LEVEL</span>
+    </div>
+    <div>
+      <div style="font-weight:700;font-size:34px">426 hours played</div>
+      <div class="muted" style="font-size:12px;letter-spacing:0.12em;margin-top:4px">248 SESSIONS · 1 COMPLETED · 18,047 XP · 42% TO LEVEL 14</div>
+    </div>
+    <div style="flex-grow:1"></div>
+    <div class="card" style="display:flex;align-items:center;gap:12px">
+      <svg width="18" height="21" viewBox="0 0 16 18" fill="none" stroke="#e0a52c" stroke-width="1.6"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg>
+      <div><div style="font-weight:700;font-size:22px;color:#e0a52c">26 days</div><div class="faint" style="font-size:9px;letter-spacing:0.14em">CURRENT STREAK · BEST 39</div></div>
+    </div>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:24px 48px 0 48px;display:flex;flex-direction:column;gap:12px;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px"><span class="rowlabel">HOURS BY WEEKDAY</span><span class="faint" style="font-size:10px">· SUNDAYS WIN</span></div>
+    <div style="display:flex;align-items:flex-end;gap:10px;height:105px;max-width:640px">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:58%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.45)"></div><span class="faint" style="font-size:9px">MON 53</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:26%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.3)"></div><span class="faint" style="font-size:9px">TUE 24</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:73%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.55)"></div><span class="faint" style="font-size:9px">WED 66</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:29%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.3)"></div><span class="faint" style="font-size:9px">THU 26</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:85%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.7)"></div><span class="faint" style="font-size:9px">FRI 77</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:92%;border-radius:6px 6px 0 0;background:rgba(143,216,210,0.85)"></div><span class="faint" style="font-size:9px">SAT 84</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:100%;border-radius:6px 6px 0 0;background:#8fd8d2"></div><span class="faint" style="font-size:9px;color:#c8ecea">SUN 91</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span class="rowlabel">MOST PLAYED</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div id="d-top" style="display:flex;gap:14px"></div>
+    <div style="display:flex;gap:14px;margin-top:10px">
+      <div class="card" style="flex:1"><div class="faint" style="font-size:10px;letter-spacing:0.14em">ACHIEVEMENTS</div><div style="font-weight:700;font-size:20px;margin-top:6px">15 / 15 <span class="faint" style="font-size:10px;font-weight:400">· 100%</span></div></div>
+      <div class="card" style="flex:1"><div class="faint" style="font-size:10px;letter-spacing:0.14em">AVG SESSION</div><div style="font-weight:700;font-size:20px;margin-top:6px">1h 43m</div></div>
+      <div class="card" style="flex:1"><div class="faint" style="font-size:10px;letter-spacing:0.14em">LONGEST SESSION</div><div style="font-weight:700;font-size:20px;margin-top:6px">4h 32m <span class="faint" style="font-size:10px;font-weight:400">· PALWORLD</span></div></div>
+      <div class="card" style="flex:1"><div class="faint" style="font-size:10px;letter-spacing:0.14em">LIBRARY</div><div style="font-weight:700;font-size:20px;margin-top:6px">18 <span class="faint" style="font-size:10px;font-weight:400">+ 30 ARCHIVED</span></div></div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <div style="flex-grow:1"></div>
+    <span class="flame"><svg width="13" height="15" viewBox="0 0 16 18" fill="none" stroke="#e0a52c" stroke-width="1.6"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg><span style="font-size:12px;color:#e0a52c;font-weight:600">26</span></span>
+    <span class="lvl">13</span>
+  </div>
+</div>
+<script>
+  const D_TOP = [["pal","67.8h"],["poe","57.9h"],["cd","27.6h"],["swo","24.4h"],["hog","20.9h"]];
+  document.getElementById("d-top").innerHTML = D_TOP.map(([k, v]) =>
+    tile(k, 190, 100, { style: "border-radius:10px", extra: `<span style="position:absolute;right:10px;bottom:8px;font-weight:700;font-size:16px;z-index:2">${v}</span>` })
+  ).join("");
+</script>
+
+<div class="frame-label">D · Channel — 04 Awards (trophy room — 15/15)</div>
+<div class="frame" style="--amb: rgba(234,179,8,0.16)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div class="tabs">
+    <span class="tab">Library</span><span class="tab">Stats</span><span class="tab">Completed</span><span class="tab on">Awards</span><span class="tab">Twitch</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:12px">15 / 15 · 100%</span>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:14px 48px 0 48px;display:flex;flex-direction:column;gap:10px;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px"><span class="rowlabel" style="color:#eab308">MILESTONE AWARDS</span></div>
+    <div style="display:flex;gap:14px">
+      <div class="card" style="width:340px;border-color:rgba(234,179,8,0.4);box-shadow:0 0 30px rgba(234,179,8,0.1)">
+        <div style="display:flex;gap:12px;align-items:center">
+          <svg width="26" height="26" viewBox="0 0 19 19" fill="none" stroke="#eab308" stroke-width="1.4"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg>
+          <div><div style="font-weight:600;font-size:15px">Iron Month</div><div class="muted" style="font-size:11px">30-day play streak · APR 16</div></div>
+        </div>
+      </div>
+      <div class="card" style="width:340px;border-color:rgba(234,179,8,0.4);box-shadow:0 0 30px rgba(234,179,8,0.1)">
+        <div style="display:flex;gap:12px;align-items:center">
+          <svg width="26" height="26" viewBox="0 0 19 19" fill="none" stroke="#eab308" stroke-width="1.4"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg>
+          <div><div style="font-weight:600;font-size:15px">Century of Hours</div><div class="muted" style="font-size:11px">100 tracked hours · APR 16</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="rowlabel" style="color:#c084fc">STREAKS</span></div>
+    <div style="display:flex;gap:14px">
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">Fortnight Flame</div><div class="muted" style="font-size:11px">14-day streak · APR 16</div></div>
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">Week Streak</div><div class="muted" style="font-size:11px">7-day streak · APR 16</div></div>
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">Daily Devotion</div><div class="muted" style="font-size:11px">first full week · APR 16</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="rowlabel" style="color:#60a5fa">COLLECTION &amp; PLAY</span></div>
+    <div style="display:flex;gap:14px">
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">Genre Explorer</div><div class="muted" style="font-size:11px">5 genres played · APR 16</div></div>
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">Library Starter</div><div class="muted" style="font-size:11px">10 games added · APR 16</div></div>
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">First Completion</div><div class="muted" style="font-size:11px">first game finished · APR 16</div></div>
+      <div class="card" style="width:250px"><div style="font-weight:600;font-size:14px">First Launch</div><div class="muted" style="font-size:11px">first game launched · APR 16</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;right:20px;top:44px;display:flex;gap:12px;align-items:center;background:rgba(12,15,17,0.95);border:1px solid rgba(96,165,250,0.4);border-radius:10px;padding:12px 18px">
+    <svg width="22" height="22" viewBox="0 0 19 19" fill="none" stroke="#60a5fa" stroke-width="1.5"><circle cx="9.5" cy="7" r="4.5"/><path d="M6.5 10.5 L5 17 L9.5 14.5 L14 17 L12.5 10.5"/></svg>
+    <div><div style="font-size:12px;font-weight:600">All achievements unlocked</div><div class="muted" style="font-size:11px">The trophy room is complete — for now.</div></div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <div style="flex-grow:1"></div>
+    <span class="flame"><svg width="13" height="15" viewBox="0 0 16 18" fill="none" stroke="#e0a52c" stroke-width="1.6"><path d="M8 1.5 C10 5 13 6.5 13 10.5 A5 5 0 0 1 3 10.5 C3 8 4.5 6.5 5.5 5.5 C5.5 7 6.5 8 8 8.5 C8 6 7.5 4 8 1.5 Z"/></svg><span style="font-size:12px;color:#e0a52c;font-weight:600">26</span></span>
+    <span class="lvl">13</span>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">18 GAMES · SYNCED</span>
+  </div>
+</div>
+
+<div class="frame-label">D · Channel — 05 Twitch</div>
+<div class="frame" style="--amb: rgba(145,70,255,0.22)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div class="tabs">
+    <span class="tab">Library</span><span class="tab">Stats</span><span class="tab">Completed</span><span class="tab">Awards</span><span class="tab on">Twitch</span>
+    <div style="flex-grow:1"></div>
+    <span class="muted" style="font-size:12px">Connected · refresh 60s</span>
+  </div>
+  <div style="flex-grow:1;box-sizing:border-box;padding:16px 48px 0 48px;display:flex;flex-direction:column;gap:10px;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px"><span class="rowlabel">LIVE NOW</span><span style="width:6px;height:6px;border-radius:999px;background:#e0455a"></span><span class="faint" style="font-size:10px">· 3 FOLLOWED</span></div>
+    <div style="display:flex;gap:14px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="tile sel" style="width:300px;height:169px;border-radius:12px;background:linear-gradient(140deg,#1d1420,#120e18)">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px;z-index:2">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px;z-index:2">8.2K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">pal_pro_base_builds</div>
+        <div class="muted" style="font-size:11px">Palworld · oil rig raid prep</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="tile" style="width:300px;height:169px;border-radius:12px;background:linear-gradient(140deg,#141c22,#0e1318)">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px;z-index:2">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px;z-index:2">14.6K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">exile_econ</div>
+        <div class="muted" style="font-size:11px">Path of Exile 2 · league start</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="tile" style="width:300px;height:169px;border-radius:12px;background:linear-gradient(140deg,#1e1a12,#131009)">
+          <span style="position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:0.08em;background:#e0455a;color:#fff;border-radius:3px;padding:2px 6px;z-index:2">LIVE</span>
+          <span style="position:absolute;bottom:10px;right:10px;font-size:10px;background:rgba(0,0,0,0.6);border-radius:3px;padding:2px 6px;z-index:2">2.1K</span>
+        </div>
+        <div style="font-size:13px;font-weight:600">wukong_no_hit</div>
+        <div class="muted" style="font-size:11px">Black Myth: Wukong · ch. 3 no-hit</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span class="rowlabel">TRENDING FOR YOUR LIBRARY</span><span class="faint" style="font-size:11px">▸</span></div>
+    <div id="d-tw" style="display:flex;gap:14px"></div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <div style="flex-grow:1"></div>
+    <span class="lvl">13</span>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">18 GAMES · SYNCED</span>
+  </div>
+</div>
+<script>
+  const D_TW = [["pal","41K LIVE VIEWERS"],["poe","96K"],["bf6","22K"],["bmw","12K"],["hog","8.4K"]];
+  document.getElementById("d-tw").innerHTML = D_TW.map(([k, v]) =>
+    tile(k, 190, 107, { style: "border-radius:10px", extra: `<span style="position:absolute;right:10px;top:8px;font-size:9px;color:#e6ecec;background:rgba(0,0,0,0.55);border-radius:3px;padding:2px 6px;z-index:2">${v}</span>` })
+  ).join("");
+</script>
+
+<div class="frame-label">D · Channel — 06 Settings (console page)</div>
+<div class="frame" style="--amb: rgba(143,216,210,0.14)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div class="tabs"><span class="muted" style="font-size:12px">← Library</span><div style="flex-grow:1"></div><span style="font-weight:600;font-size:15px">Settings</span><div style="flex-grow:1"></div></div>
+  <div style="flex-grow:1;display:flex;box-sizing:border-box;padding:10px 48px 0 48px;gap:36px;min-height:0">
+    <div style="width:230px;display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+      <span style="font-size:13px;font-weight:600;color:#0b0e11;background:#e9edee;border-radius:999px;padding:9px 18px">Appearance</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">Library</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">Sources &amp; folders</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">API keys</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">Twitch <span style="color:#43d17c;font-size:10px">· CONNECTED</span></span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">Cloud backup</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">Data</span>
+      <span class="muted" style="font-size:13px;padding:9px 18px">About</span>
+    </div>
+    <div style="flex-grow:1;display:flex;flex-direction:column;gap:12px">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:14px;font-weight:600">Theme</div><div class="muted" style="font-size:11px">Dark, light, or follow the system</div></div>
+        <span style="display:flex;gap:4px">
+          <span style="font-size:11px;background:#e9edee;color:#0b0e11;border-radius:999px;padding:6px 16px;font-weight:600">Dark</span>
+          <span class="muted" style="font-size:11px;border:1px solid rgba(233,237,238,0.2);border-radius:999px;padding:6px 16px">Light</span>
+          <span class="muted" style="font-size:11px;border:1px solid rgba(233,237,238,0.2);border-radius:999px;padding:6px 16px">Auto</span>
+        </span>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;outline:2px solid #fff;outline-offset:2px">
+        <div><div style="font-size:14px;font-weight:600">Ambient color from selected game</div><div class="muted" style="font-size:11px">The screen takes its wash from the focused tile's art</div></div>
+        <span style="width:40px;height:22px;border-radius:999px;background:#8fd8d2;position:relative"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:999px;background:#0b0e11"></span></span>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:14px;font-weight:600">Theme Studio</div><div class="muted" style="font-size:11px">Build and save your own token themes</div></div>
+        <span class="muted" style="font-size:12px">Open →</span>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:14px;font-weight:600">Interface font</div></div>
+        <span class="muted" style="font-size:12px;border:1px solid rgba(233,237,238,0.2);border-radius:8px;padding:7px 14px">Space Grotesk ▾</span>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:14px;font-weight:600">Reduced motion</div><div class="muted" style="font-size:11px">Snap focus changes instead of springing</div></div>
+        <span style="width:40px;height:22px;border-radius:999px;background:rgba(233,237,238,0.15);position:relative"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:999px;background:#66787a"></span></span>
+      </div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span style="width:8px;height:8px;border-radius:999px;background:#43d17c"></span>
+    <span style="font-size:12px">Palworld</span>
+    <span style="font-size:12px;color:#7d8a8c;font-variant-numeric:tabular-nums">00:41:12</span>
+    <div style="flex-grow:1"></div>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">NEXUS · UP TO DATE</span>
+  </div>
+</div>
+
+<div class="frame-label">D · Channel — 07 Search (overlay)</div>
+<div class="frame" style="--amb: rgba(143,216,210,0.18)">
+  <div style="position:absolute;inset:0;background:rgba(5,8,10,0.7);z-index:2"></div>
+  <div class="titlebar" style="position:relative;z-index:3"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div style="position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:26px;margin-top:60px">
+    <div style="display:flex;align-items:center;gap:14px;width:620px;border-bottom:2px solid rgba(233,237,238,0.4);padding-bottom:12px">
+      <svg width="22" height="22" viewBox="0 0 15 15" fill="none" stroke="#9aa7a8" stroke-width="1.4"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10 L13.5 13.5"/></svg>
+      <span style="font-size:26px;font-weight:500">star wars<span style="border-left:2px solid #8fd8d2;margin-left:2px"></span></span>
+    </div>
+    <div id="d-search" style="display:flex;gap:18px"></div>
+    <div style="display:flex;gap:10px">
+      <span class="btn faintb" style="font-size:12px">⚙ Settings</span>
+      <span class="btn faintb" style="font-size:12px">⤨ Random Picker</span>
+      <span class="btn faintb" style="font-size:12px">↻ Scan Library</span>
+      <span class="btn faintb" style="font-size:12px">▚ Retro Mode</span>
+    </div>
+    <span class="faint" style="font-size:11px">↑↓←→ navigate · ↵ open · esc close</span>
+  </div>
+</div>
+<script>
+  document.getElementById("d-search").innerHTML =
+    tile("swo", 280, 168, { sel: true, style: "border-radius:12px", namestyle: "font-size:11px", extra: '<span style="position:absolute;right:10px;bottom:8px;font-size:9px;color:#c8ecea;z-index:2">24 HRS · 52%</span>' }) +
+    tile("swz", 280, 168, { style: "border-radius:12px;opacity:0.8", namestyle: "font-size:11px", extra: '<span style="position:absolute;right:10px;bottom:8px;font-size:9px;color:#9aa7a8;z-index:2">UNPLAYED · 93</span>' });
+</script>
+
+<div class="frame-label">D · Channel — 08 Random Picker</div>
+<div class="frame" style="--amb: rgba(200,150,60,0.25)">
+  <div style="position:absolute;inset:0;background:rgba(5,8,10,0.6);z-index:2"></div>
+  <div class="titlebar" style="position:relative;z-index:3"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div style="position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:24px;margin-top:44px">
+    <div style="text-align:center">
+      <div class="muted" style="font-size:11px;letter-spacing:0.2em">12 BACKLOG GAMES · SPINNING</div>
+      <div style="font-weight:700;font-size:34px;letter-spacing:0.04em;margin-top:4px">RANDOM PICK</div>
+    </div>
+    <div id="d-spin" style="display:flex;align-items:center;gap:18px"></div>
+    <div style="text-align:center">
+      <div style="font-weight:700;font-size:26px">THE PRECINCT</div>
+      <div class="muted" style="font-size:11px;letter-spacing:0.14em;margin-top:3px">BACKLOG · 3.6 HRS IN · 38% · ~12H TO BEAT</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn primary"><svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 1.5 L10.5 6 L2 10.5 Z" fill="#0b0e11"/></svg>PLAY</button>
+      <button class="btn ghost">Details</button>
+      <button class="btn faintb">↻ Spin again</button>
+    </div>
+    <span class="faint" style="font-size:10px;letter-spacing:0.14em">FILTER: BACKLOG ONLY ▾</span>
+  </div>
+</div>
+<script>
+  document.getElementById("d-spin").innerHTML =
+    tile("goose", 170, 102, { style: "border-radius:10px;opacity:0.4", noname: true }) +
+    tile("bmw", 200, 120, { style: "border-radius:10px;opacity:0.65", noname: true }) +
+    tile("prec", 290, 174, { sel: true, style: "border-radius:12px;box-shadow:0 0 60px rgba(200,150,60,0.4)", namestyle: "font-size:12px" }) +
+    tile("unc", 200, 120, { style: "border-radius:10px;opacity:0.65", noname: true }) +
+    tile("rs", 170, 102, { style: "border-radius:10px;opacity:0.4", noname: true });
+</script>
+
+<div class="frame-label">D · Channel — 09 Wrapped (event)</div>
+<div class="frame" style="--amb: rgba(224,165,44,0.35)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div style="flex-grow:1;display:flex;align-items:center;justify-content:center;gap:70px">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:560px">
+      <div class="muted" style="font-size:12px;letter-spacing:0.22em">YOUR 2026 · WRAPPED</div>
+      <div style="font-weight:700;font-size:110px;line-height:0.9">426<span style="font-size:44px;color:#e0a52c"> HRS</span></div>
+      <div style="font-size:15px;color:#c3cccd;line-height:1.55">248 sessions. A 26-day streak still alive. Palworld ate 68 hours, Path of Exile 2 took 58 — and this morning you finally rolled credits on Hogwarts Legacy.</div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn primary">Next →</button>
+        <button class="btn ghost">Share card</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="tile" style="width:300px;height:170px;border-radius:14px;outline:2px solid #e0a52c;outline-offset:3px;box-shadow:0 0 70px rgba(224,165,44,0.3)">
+        <img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/03b4f917-38c5-401a-a74a-067e0d53b4c3/hero.jpg" alt="Palworld">
+        <div class="shade"></div><div class="name">TOP GAME · PALWORLD · 68H</div>
+      </div>
+      <div style="display:flex;gap:14px">
+        <div class="tile" style="width:143px;height:84px;border-radius:10px"><img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/0bda08fc-afca-4848-a3f2-e9763765daff/hero.jpg" alt=""><div class="shade"></div><div class="name" style="font-size:8px">POE 2 · 58H</div></div>
+        <div class="tile" style="width:143px;height:84px;border-radius:10px"><img src="file:///C:/Users/stryd/AppData/Roaming/nexus/cache/images/00a3c46a-d0bf-4a6d-b671-349140dcf90d/hero.jpg" alt=""><div class="shade"></div><div class="name" style="font-size:8px">FINISHED · HOGWARTS</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="flex-shrink:0;display:flex;justify-content:center;gap:8px;align-items:center;padding-bottom:26px">
+    <span style="width:20px;height:4px;border-radius:2px;background:#e9edee"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.3)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.3)"></span>
+    <span class="faint" style="font-size:10px;margin-left:10px">1 / 9</span>
+  </div>
+</div>
+
+<div class="frame-label">D · Channel — 10 Onboarding (first boot)</div>
+<div class="frame" style="--amb: rgba(143,216,210,0.3)">
+  <div class="titlebar"><span>–</span><span style="font-size:10px">▢</span><span>✕</span></div>
+  <div style="flex-grow:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center">
+    <div style="width:64px;height:64px;border-radius:18px;background:#e9edee;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#0b0e11">N</div>
+    <div style="font-weight:700;font-size:56px;letter-spacing:0.04em">NEXUS</div>
+    <div style="font-size:15px;color:#c3cccd;max-width:440px">Let's set up your library. We'll scan Steam, Epic, GOG, Ubisoft, Battle.net and Xbox — you confirm what belongs.</div>
+    <button class="btn primary" style="margin-top:12px;padding:13px 44px">GET STARTED</button>
+    <span class="faint" style="font-size:11px">About two minutes</span>
+  </div>
+  <div style="flex-shrink:0;display:flex;justify-content:center;gap:8px;align-items:center;padding-bottom:14px">
+    <span style="width:20px;height:4px;border-radius:2px;background:#8fd8d2"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.25)"></span>
+    <span style="width:8px;height:4px;border-radius:2px;background:rgba(233,237,238,0.25)"></span>
+  </div>
+  <div class="statusbar" style="justify-content:center">
+    <span class="faint" style="font-size:10px;letter-spacing:0.16em">WELCOME · ARTWORK · METADATA · SOURCES · CONFIRM</span>
+  </div>
+</div>
+
+<div style="height:60px"></div>
+</body>
+</html>
