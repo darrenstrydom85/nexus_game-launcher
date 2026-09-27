@@ -13,6 +13,47 @@ import { GameTagsSection } from "@/components/Tags/GameTagsSection";
 import { ScoreBadge } from "@/components/shared/ScoreBadge";
 import { MasteryTierDetail } from "./MasteryTierDetail";
 import { Plus } from "lucide-react";
+import { useQueueStore } from "@/stores/queueStore";
+
+/** Mockup 02: playtime measured against the HLTB main-story figure. */
+function PlaytimeVsHltb({ game }: { game: Game }) {
+  if (!game.hltbMainH || game.hltbMainH <= 0 || game.totalPlayTimeS <= 0) return null;
+  const playedH = game.totalPlayTimeS / 3600;
+  const pct = Math.round((playedH / game.hltbMainH) * 100);
+  return (
+    <div data-testid="detail-hltb-bar">
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Playtime vs How Long To Beat</h3>
+      <div className="h-1.5 rounded-full bg-foreground/10">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        {playedH.toFixed(1)} hrs played · HLTB main {game.hltbMainH.toFixed(1)}
+        {pct >= 100
+          ? " — you're past the finish line and still going"
+          : ` — ${pct}% of the main story`}
+      </p>
+    </div>
+  );
+}
+
+/** Mockup 02: this game's place in the play queue. */
+function QueueStatus({ gameId }: { gameId: string }) {
+  const entries = useQueueStore((s) => s.entries);
+  const idx = entries.findIndex((e) => e.gameId === gameId);
+  if (idx < 0) return null;
+  return (
+    <div data-testid="detail-queue-status">
+      <h3 className="mb-2 text-sm font-semibold text-foreground">Queue</h3>
+      <p className="text-[12px] text-muted-foreground">
+        Position {idx + 1} of {entries.length}
+        {idx === 0 ? " — next up when you finish something" : ""}
+      </p>
+    </div>
+  );
+}
 
 interface DetailContentProps {
   game: Game;
@@ -155,14 +196,18 @@ export function DetailContent({
         onHide={onHide}
       />
 
-      {/* Full-width info strip: scores + release date + genres */}
-      <GameInfoStrip game={game} />
+      <div className="flex gap-12 px-10 pb-10 pt-4" data-testid="detail-columns">
+        {/* Left column — the play story: HLTB progress, sessions, about, media */}
+        <div data-testid="detail-left-col" className="flex w-[60%] flex-col gap-6">
+          <PlaytimeVsHltb game={game} />
 
-      <div className="flex gap-6 px-6 pb-6" data-testid="detail-columns">
-        {/* Left column — content: about + game info + play stats + collections */}
-        <div data-testid="detail-left-col" className="flex w-[60%] flex-col gap-4">
+          <GamePlayStats
+            game={game}
+            onViewFullStats={onViewFullStats}
+          />
+
           {game.description && (
-            <div data-testid="detail-description" className="rounded-lg border border-border bg-card p-4">
+            <div data-testid="detail-description">
               <h3 className="mb-3 text-sm font-semibold text-foreground">About</h3>
               <div className="text-sm leading-relaxed text-muted-foreground">
                 {game.description.split("\n").map((p, i) => (
@@ -172,32 +217,41 @@ export function DetailContent({
             </div>
           )}
 
-          <LiveOnTwitch gameName={game.name} />
-
-          <TwitchClipsRow gameName={game.name} />
-
           <GameMetadata game={game} />
 
-          <GameNotes game={game} />
+          {screenshots.length > 0 && (
+            <div>
+              <GameScreenshots screenshots={screenshots} />
+            </div>
+          )}
 
-          {/* Tags card */}
+          <GameTrailer youtubeId={youtubeId} />
+
+          <TwitchClipsRow gameName={game.name} />
+        </div>
+
+        {/* Right column — status: HLTB figures, queue, notes, tags, mastery, live */}
+        <div data-testid="detail-right-col" className="group flex w-[40%] flex-col gap-6">
+          <HltbSection game={game} />
+          <QueueStatus gameId={game.id} />
+          <GameNotes game={game} />
           <GameTagsSection gameId={game.id} />
 
-          {/* Collections card */}
-          <div data-testid="detail-collections" className="rounded-lg border border-border bg-card p-4">
+          {/* Collections */}
+          <div data-testid="detail-collections">
             <h3 className="mb-3 text-sm font-semibold text-foreground">Collections</h3>
             <div className="flex flex-wrap gap-1.5">
               {collections.map((c) => (
                 <span
                   key={c}
-                  className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground"
+                  className="rounded-full border border-foreground/15 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
                 >
                   {c}
                 </span>
               ))}
               <button
                 data-testid="detail-add-collection"
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-foreground/20 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-muted-foreground hover:text-foreground"
                 onClick={onAddToCollection}
               >
                 <Plus className="size-3" />
@@ -206,23 +260,10 @@ export function DetailContent({
             </div>
           </div>
 
-          {screenshots.length > 0 && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <GameScreenshots screenshots={screenshots} />
-            </div>
-          )}
-        </div>
-
-        {/* Right column — 40%: mastery + HLTB + play stats + trailer */}
-        <div data-testid="detail-right-col" className="group flex w-[40%] flex-col gap-4">
           <MasteryTierDetail gameId={game.id} />
-          <HltbSection game={game} />
           <GameProgress game={game} onStatusChange={onStatusChange} />
-          <GamePlayStats
-            game={game}
-            onViewFullStats={onViewFullStats}
-          />
-          <GameTrailer youtubeId={youtubeId} />
+          <LiveOnTwitch gameName={game.name} />
+          <GameInfoStrip game={game} />
         </div>
       </div>
     </div>
