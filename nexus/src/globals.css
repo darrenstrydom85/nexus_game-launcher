@@ -618,23 +618,6 @@
     border-bottom: 0;
     padding: 6px 40px 2px 40px;
 }
-.experience-backdrop [data-testid="detail-columns"] .rounded-lg.border.bg-card {
-    border-color: transparent;
-    background: transparent;
-    padding: 0;
-}
-.experience-backdrop [data-testid="detail-content"] h3 {
-    display: flex;
-    align-items: center;
-}
-.experience-backdrop [data-testid="detail-content"] h3::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    margin-left: 14px;
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
-}
-
 /* Game detail: section headers speak the shelf voice; the info strip sits
    flush under the hero instead of floating as a card. */
 .experience-backdrop [data-testid="detail-content"] h3 {
