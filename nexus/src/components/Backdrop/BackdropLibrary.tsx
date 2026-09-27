@@ -18,7 +18,7 @@ import { SyncActivityDot } from "@/components/Library/SyncActivityDot";
 import { getContinuePlayingGames } from "@/components/Library/ContinuePlayingRow";
 import { buildHeading, type LibraryViewProps } from "@/components/Library/LibraryView";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, SlidersHorizontal } from "lucide-react";
 
 /**
  * The Backdrop library: hero stage on top, shelves beneath, the full grid
@@ -201,7 +201,21 @@ export function BackdropLibrary({
             </div>
           }
           trailing={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                data-testid="open-filters-button"
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]",
+                  "text-muted-foreground/70 transition-colors hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isFiltered && "text-primary hover:text-primary",
+                )}
+                onClick={() => useUiStore.getState().setSidebarOpen(true)}
+                title="Collections, genres, tags, score and source filters"
+              >
+                <SlidersHorizontal className="size-3" />
+                Filters{isFiltered ? " · on" : ""}
+              </button>
               {syncResult && !isSyncing && (
                 <span data-testid="sync-result" className="text-[10px] uppercase tracking-[0.12em] text-success">
                   Synced — {syncResult.added} added, {syncResult.updated} updated
