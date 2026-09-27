@@ -33,6 +33,16 @@ pub fn get_db_status(db: State<'_, DbState>) -> Result<DbStatus, CommandError> {
     })
 }
 
+/// Open the folder holding games.db in Explorer.
+#[tauri::command]
+pub fn open_data_folder(db: State<'_, DbState>) -> Result<(), CommandError> {
+    let dir = db
+        .db_path
+        .parent()
+        .ok_or_else(|| CommandError::NotFound("data folder".into()))?;
+    super::utils::open_dir(dir)
+}
+
 /// Wipes all user data from every table. The schema itself (including
 /// schema_version) is preserved so migrations don't re-run on next launch.
 #[tauri::command]

@@ -40,52 +40,33 @@ describe("tauri capabilities configuration", () => {
     expect(ids).toContain("core:event:default");
   });
 
-  it("includes all required filesystem permissions scoped to $APPDATA/nexus", () => {
-    const requiredFs = [
-      "fs:allow-read-dir",
-      "fs:allow-read-file",
+  it("grants only the fs commands the frontend uses (dialog-picked files)", () => {
+    expect(ids.filter((id) => id.startsWith("fs:")).sort()).toEqual([
       "fs:allow-read-text-file",
       "fs:allow-write-file",
       "fs:allow-write-text-file",
-      "fs:allow-mkdir",
-      "fs:allow-remove",
-      "fs:allow-rename",
-      "fs:allow-exists",
-    ];
-
-    for (const perm of requiredFs) {
-      expect(ids).toContain(perm);
-    }
-
-    const fsPerms = caps.permissions.filter(
-      (p): p is PermissionScope =>
-        typeof p !== "string" && p.identifier.startsWith("fs:"),
-    );
-
-    for (const perm of fsPerms) {
-      for (const scope of perm.allow ?? []) {
-        expect(scope.path).toMatch(/^\$APPDATA\/nexus/);
-      }
-    }
+    ]);
   });
 
   it("does not use the overly broad fs:default", () => {
     expect(ids).not.toContain("fs:default");
   });
 
-  it("includes shell:allow-open for URL opening", () => {
-    expect(ids).toContain("shell:allow-open");
+  it("does not grant the shell plugin", () => {
+    expect(ids.filter((id) => id.startsWith("shell:"))).toEqual([]);
   });
 
-  it("does not use the overly broad shell:default", () => {
-    expect(ids).not.toContain("shell:default");
+  it("grants restart only, not exit", () => {
+    expect(ids).toContain("process:allow-restart");
+    expect(ids).not.toContain("process:default");
   });
 
-  it("includes process:default for app lifecycle", () => {
-    expect(ids).toContain("process:default");
+  it("has no generic open-path and scopes open-url", () => {
+    expect(ids).not.toContain("opener:default");
+    expect(ids).not.toContain("opener:allow-open-path");
   });
 
-  it("includes HTTP permissions scoped to required API domains", () => {
+  it("scopes HTTP to the hosts the webview fetches", () => {
     const httpPerm = caps.permissions.find(
       (p): p is PermissionScope =>
         typeof p !== "string" && p.identifier.startsWith("http:"),
@@ -94,10 +75,13 @@ describe("tauri capabilities configuration", () => {
     expect(httpPerm).toBeDefined();
     const urls = (httpPerm!.allow ?? []).map((s) => s.url ?? "");
 
-    expect(urls.some((u) => u.includes("steamgriddb.com"))).toBe(true);
-    expect(urls.some((u) => u.includes("api.igdb.com"))).toBe(true);
-    expect(urls.some((u) => u.includes("id.twitch.tv"))).toBe(true);
-    expect(urls.some((u) => u.includes("nexusgamelauncher.com"))).toBe(true);
+    // Only webview fetches: HLTB (hltb.ts) and retro cover bytes (RetroCover).
+    // Everything else goes through Rust reqwest.
+    expect(urls.sort()).toEqual([
+      "https://cdn2.steamgriddb.com/**",
+      "https://howlongtobeat.com/**",
+      "https://images.igdb.com/**",
+    ]);
   });
 
   it("all HTTP scopes use HTTPS only", () => {

@@ -5,7 +5,7 @@ use tauri::State;
 use uuid::Uuid;
 
 use super::error::CommandError;
-use super::utils::now_iso;
+use super::utils::{now_iso, open_dir};
 use crate::db::DbState;
 use crate::models::game::{Game, GameSource};
 use crate::sources::standalone::derive_potential_exe_names;
@@ -310,6 +310,28 @@ pub fn update_game(
     }
 
     Ok(game)
+}
+
+/// Open a game's install folder in Explorer. Path comes from the DB, not the
+/// webview, and must be a directory (see `open_dir`).
+#[tauri::command]
+pub fn open_game_folder(db: State<'_, DbState>, id: String) -> Result<(), CommandError> {
+    let folder: Option<String> = {
+        let conn = db
+            .conn
+            .lock()
+            .map_err(|e| CommandError::Database(format!("lock poisoned: {e}")))?;
+        conn.query_row(
+            "SELECT folder_path FROM games WHERE id = ?1",
+            params![id],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|e| CommandError::Database(e.to_string()))?
+        .flatten()
+    };
+    let folder = folder.ok_or_else(|| CommandError::NotFound(format!("folder for game {id}")))?;
+    open_dir(std::path::Path::new(&folder))
 }
 
 #[tauri::command]

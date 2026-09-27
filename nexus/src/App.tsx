@@ -1,6 +1,5 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { OnboardingWizard } from "@/components/Onboarding/OnboardingWizard";
 import { WelcomeStep } from "@/components/Onboarding/WelcomeStep";
@@ -517,7 +516,7 @@ function MainApp() {
       .catch(() => {});
   }, []);
   const handleLibraryOpenFolder = React.useCallback((game: Game) => {
-    if (game.folderPath) openPath(game.folderPath).catch(() => {});
+    if (game.folderPath) invoke("open_game_folder", { id: game.id }).catch(() => {});
   }, []);
   const handleLibrarySetStatus = React.useCallback(
     (gameId: string, status: GameStatus) => {
@@ -785,7 +784,7 @@ function MainApp() {
               onEdit={() => setEditGameTarget(game)}
               onAddToCollection={() => setAddToCollectionTarget(game)}
               onOpenFolder={() => {
-                if (game.folderPath) openPath(game.folderPath).catch(() => {});
+                if (game.folderPath) invoke("open_game_folder", { id: game.id }).catch(() => {});
               }}
               onHide={() => {
                 invoke("update_game", { id: game.id, fields: { isHidden: true } })

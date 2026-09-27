@@ -2,7 +2,6 @@ import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
 
@@ -176,7 +175,7 @@ export function DataManagement() {
   const handleOpenDbFolder = React.useCallback(async () => {
     if (dbPath && dbPath !== "..." && dbPath !== "Unknown") {
       try {
-        await openPath(dbPath);
+        await invoke("open_data_folder");
       } catch {
         // best-effort
       }

@@ -19,18 +19,18 @@ Legend: **S** = security, **D** = dead code / simplification. Line counts are ap
 
 ## P1 — close attack surface
 
-- [ ] **S2 asset protocol scope is the whole disk** — `assetProtocol.scope: ["**/*"]` lets the webview read
+- [x] **S2 asset protocol scope is the whole disk** — `assetProtocol.scope: ["**/*"]` lets the webview read
   `twitch_key.bin`, `games.db`, anything. Narrow to the cover/metadata cache dir. Check whether user-picked
   custom covers are copied into the cache or loaded in place first. `src-tauri/tauri.conf.json:26`
-- [ ] **S3 `opener:allow-open-path` on `/**`** — webview can open/run any file. Frontend only reveals
+- [x] **S3 `opener:allow-open-path` on `/**`** — webview can open/run any file. Frontend only reveals
   game folders + DB folder. Replace with a Rust command keyed by game id, drop the permission.
   `src-tauri/capabilities/default.json:16`, `src/App.tsx:520,788`, `src/components/Settings/DataManagement.tsx:179`
-- [ ] **S4 `export_stats_zip` arbitrary read + SSRF** — non-http `assets[].source` is `fs::read` of any path;
+- [x] **S4 `export_stats_zip` arbitrary read + SSRF** — non-http `assets[].source` is `fs::read` of any path;
   http sources are fetched unrestricted. Allow only https from known cover CDNs or files under the cover cache.
   `src-tauri/src/commands/export.rs:53-69`
 - [x] **S5 remove `tauri-plugin-shell`** — registered + `shell:allow-open` granted, never used on either side.
   Drop plugin init, Cargo dep, npm package, capability entry. `src-tauri/src/lib.rs:276`
-- [ ] **S6 tighten capabilities**
+- [x] **S6 tighten capabilities**
   - fs: keep `allow-read-text-file`, `allow-write-file`, `allow-write-text-file`; drop read-dir/read-file/mkdir/remove/rename/exists
     (static `$APPDATA/nexus/**` scope does not even match the real data dir).
   - `process:default` → `process:allow-restart` (only `relaunch()` is used).
@@ -100,3 +100,10 @@ Legend: **S** = security, **D** = dead code / simplification. Line counts are ap
 No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`dangerouslySetInnerHTML`;
 `.env` never committed; updater signed + https; `*.log` ignored; `unsafe-headers` on http plugin is needed
 (`hltb.ts` sets `Origin`/`Referer`); `src/retro` is a live feature; all 11 `@fontsource` packages used.
+
+## Notes
+
+- S2: custom cover/hero files outside the cache are re-granted at startup (image extensions only). A path
+  typed into the Edit modal (not picked via Browse) shows after the next restart.
+- S4: remote export sources are https-only but any host (custom covers). Host allowlist if SSRF ever matters.
+- `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

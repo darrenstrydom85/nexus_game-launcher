@@ -1,5 +1,32 @@
 /// Shared time utilities and string helpers for Tauri commands.
-/// Uses no external crates — pure std only.
+/// Pure std apart from `open_dir`.
+
+/// Open a directory in Explorer. Directories only: ShellExecute on a file would
+/// run it, and these commands exist so the webview has no generic open-path.
+pub fn open_dir(dir: &std::path::Path) -> Result<(), super::error::CommandError> {
+    if !dir.is_dir() {
+        return Err(super::error::CommandError::NotFound(format!(
+            "folder {}",
+            dir.display()
+        )));
+    }
+    tauri_plugin_opener::open_path(dir, None::<&str>)
+        .map_err(|e| super::error::CommandError::Unknown(e.to_string()))
+}
+
+/// Absolute path to an image file. Gate for local paths the webview hands us
+/// (custom covers, export assets), so it can't point them at games.db or key files.
+pub fn is_local_image(path: &str) -> bool {
+    let path = std::path::Path::new(path);
+    path.is_absolute()
+        && path
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| {
+                ["png", "jpg", "jpeg", "webp", "gif", "bmp"]
+                    .contains(&e.to_ascii_lowercase().as_str())
+            })
+}
 
 /// Normalizes a game title for storage and metadata lookup by stripping
 /// trademark, registered, and copyright symbols (e.g. TM, (R), ®, ™, ©)
@@ -157,6 +184,16 @@ pub fn iso_to_epoch_secs(iso: &str) -> Result<i64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_absolute_image_paths_pass() {
+        assert!(is_local_image(r"C:\Pictures\cover.PNG"));
+        assert!(is_local_image(r"D:\art\hero.jpeg"));
+        assert!(!is_local_image("https://cdn2.steamgriddb.com/x.png"));
+        assert!(!is_local_image("cover.png"));
+        assert!(!is_local_image(r"C:\Users\me\AppData\Roaming\nexus\games.db"));
+        assert!(!is_local_image(r"C:\Users\me\AppData\Roaming\nexus\twitch_key.bin"));
+    }
 
     #[test]
     fn now_iso_returns_valid_format() {

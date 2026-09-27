@@ -50,7 +50,8 @@ use commands::{
         remove_from_collection, reorder_collections, update_collection,
     },
     database::{
-        clear_play_history, debug_wrapped_sessions, get_db_status, relink_play_sessions, reset_all,
+        clear_play_history, debug_wrapped_sessions, get_db_status, open_data_folder,
+        relink_play_sessions, reset_all,
         reset_keep_keys, reset_library_keep_stats,
     },
     dedup::{
@@ -60,7 +61,9 @@ use commands::{
     events::emit_test_event,
     export::export_stats_zip,
     fonts::list_system_fonts,
-    games::{confirm_games, delete_game, get_game, get_games, search_games, update_game},
+    games::{
+        confirm_games, delete_game, get_game, get_games, open_game_folder, search_games, update_game,
+    },
     hardware::get_system_hardware,
     health::check_library_health,
     known_issues::fetch_known_issues,
@@ -155,6 +158,26 @@ fn read_twitch_enabled<R: Runtime>(app: &tauri::AppHandle<R>) -> bool {
     match val {
         Ok(Some(v)) => v != "false",
         _ => true,
+    }
+}
+
+/// The asset protocol scope only covers the image cache (tauri.conf.json). Custom
+/// cover/hero art picked through the dialog is granted for that session by the
+/// dialog plugin; re-grant the saved picks on startup. Image extensions only, so
+/// a "cover" pointed at games.db or a token key file stays unreadable.
+fn allow_custom_images(app: &tauri::App, conn: &rusqlite::Connection) {
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT custom_cover FROM games WHERE custom_cover IS NOT NULL
+         UNION SELECT custom_hero FROM games WHERE custom_hero IS NOT NULL",
+    ) else {
+        return;
+    };
+    let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) else {
+        return;
+    };
+    let scope = app.asset_protocol_scope();
+    for path in rows.flatten().filter(|p| commands::utils::is_local_image(p)) {
+        let _ = scope.allow_file(&path);
     }
 }
 
@@ -355,6 +378,7 @@ pub fn run() {
 
             if let Some(db) = app.try_state::<DbState>() {
                 if let Ok(conn) = db.conn.lock() {
+                    allow_custom_images(app, &conn);
                     let _ = commands::streak::recalculate_streak_inner(&conn);
                     let _ = commands::achievements::evaluate_achievements_inner(&conn);
 
@@ -392,6 +416,8 @@ pub fn run() {
             get_playtime,
             get_metadata,
             get_db_status,
+            open_data_folder,
+            open_game_folder,
             reset_all,
             reset_keep_keys,
             clear_play_history,
@@ -541,3 +567,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
