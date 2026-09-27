@@ -102,7 +102,7 @@ export function BackdropShell({
         {/* Icon rail */}
         <aside
           data-testid="backdrop-rail"
-          className="z-30 flex w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar/80 py-2"
+          className="z-10 flex w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar/80 py-2"
         >
           <button
             data-testid="backdrop-flyout-toggle"

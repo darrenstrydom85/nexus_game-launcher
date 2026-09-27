@@ -111,7 +111,7 @@ export function BackdropHero({ games, onPlay, onDetails }: BackdropHeroProps) {
           <button
             data-testid="backdrop-hero-play"
             className="inline-flex items-center gap-2 rounded-md px-7 py-3 text-[13px] font-bold tracking-wide text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ background: "var(--game-accent, var(--primary))", color: "var(--background)" }}
+            style={{ background: "var(--game-accent, var(--primary))", color: "var(--game-accent-ink, var(--background))" }}
             onClick={() => onPlay?.(game)}
           >
             <Play className="size-3.5 fill-current" />
