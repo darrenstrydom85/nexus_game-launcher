@@ -137,7 +137,7 @@ export function BackdropLibrary({
 
         {continueGames.length > 0 && (
           <Shelf title="Continue Playing" testid="backdrop-continue-shelf">
-            <div className="scrollbar-hide flex gap-4 overflow-x-auto py-1">
+            <div className="scrollbar-hide -mx-2 flex gap-4 overflow-x-auto px-2 py-1">
               {continueGames.map((game) => (
                 <ShelfCover
                   key={game.id}
@@ -153,7 +153,7 @@ export function BackdropLibrary({
 
         {queueGames.length > 0 && (
           <Shelf title="Up Next" count={queueGames.length} testid="backdrop-queue-shelf">
-            <div className="scrollbar-hide flex gap-4 overflow-x-auto py-1">
+            <div className="scrollbar-hide -mx-2 flex gap-4 overflow-x-auto px-2 py-1">
               {queueGames.map((game) => (
                 <ShelfCover
                   key={game.id}
