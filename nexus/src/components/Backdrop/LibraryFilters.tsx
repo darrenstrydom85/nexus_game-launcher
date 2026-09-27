@@ -144,7 +144,7 @@ export function LibraryFilters({
           </PopoverTrigger>
           <PopoverContent align="start" className="backdrop-menu w-64 p-1.5">
             <button
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[11px] uppercase tracking-[0.08em] text-foreground hover:bg-accent"
               onClick={onAddCollection}
             >
               <Plus className="size-3.5" />
@@ -153,7 +153,7 @@ export function LibraryFilters({
             {collections.length > 0 && <div className="my-1.5 border-t border-border" />}
             {collections.map((c) => (
               <div key={c.id} className="flex items-center gap-1 rounded-md px-2 py-1 hover:bg-accent">
-                <span className="flex-1 truncate text-sm text-foreground">
+                <span className="flex-1 truncate text-[11px] uppercase tracking-[0.08em] text-foreground">
                   {c.icon} {c.name}
                 </span>
                 <button
@@ -192,7 +192,7 @@ export function LibraryFilters({
               <button
                 key={name}
                 className={cn(
-                  "flex w-full items-center rounded-md px-2 py-1.5 text-sm hover:bg-accent",
+                  "flex w-full items-center rounded-md px-2 py-1.5 text-[11px] uppercase tracking-[0.08em] hover:bg-accent",
                   genreFilter === name ? "text-foreground" : "text-muted-foreground",
                 )}
                 onClick={() => toggleGenreFilter(name)}
@@ -220,7 +220,7 @@ export function LibraryFilters({
                 key={tag.id}
                 data-testid={`tag-filter-${tag.name}`}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent",
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[11px] uppercase tracking-[0.08em] hover:bg-accent",
                   filterTags.includes(tag.id) ? "text-foreground" : "text-muted-foreground",
                 )}
                 onClick={() => toggleTag(tag.id)}

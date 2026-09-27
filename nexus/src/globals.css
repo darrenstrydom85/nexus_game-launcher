@@ -590,7 +590,9 @@
     padding: 6px;
 }
 .experience-backdrop [data-testid="sort-dropdown-menu"] button {
-    font-size: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     border-radius: 8px;
     padding: 7px 10px;
     color: var(--muted-foreground);
