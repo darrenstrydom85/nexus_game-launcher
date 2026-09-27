@@ -1,11 +1,11 @@
 {
-    "version":  "0.5.3",
-    "notes":  "Restores HowLongToBeat lookups after HLTB moved its search API, and makes the client re-discover the path on its own if it moves again. Full changelog: https://www.nexusgamelauncher.com/changelog.html#v0.5.3",
-    "pub_date":  "2026-08-26T17:21:05Z",
+    "version":  "0.5.4",
+    "notes":  "HowLongToBeat lookups work again: Nexus now handles HLTB\u0027s new token-only search handshake.",
+    "pub_date":  "2026-09-27T13:27:42Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1FvSi8wVHFkaVEyQVhES25LYmdjWEkrcWZreS8zR1UzVGFpU3hCVmlmTHdxSG5UUE1TbE9IL2gzaGtkalZWVjlxT2NOa0w5RXA4amZGcTJSSCt5bXdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3NzY0ODQyCWZpbGU6TmV4dXNfMC41LjNfeDY0LXNldHVwLmV4ZQozMjg1TFVkam5DVGFqNWFiZU9TWWZvb01xUDZyTzJsV1pEWVJXLzN2OW9PYjRoS1lMMklwNzFuRk1oK1BZMnJ0R01wL1NDK2hSSGJLYnEzM3B1ODZBdz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.3_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2VKVG0xTTc3S0d3dzhPSkhFQm9KOHlVa2wrcU5ZZFI5OXE3VS95L3hvZHFMYmtTNXdZRHpoc3BER3VRVkhJUEl4UFZQekFiTlJwZHFMM0JlMUpZVlE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTE1NjUwCWZpbGU6TmV4dXNfMC41LjRfeDY0LXNldHVwLmV4ZQo3QWRMOGNFT0FhYnUxR1NLemtpeXRYMWVHUC9DOW9GWjZjM2h6SXQ2ZXhKN2Jwc0czTHFsd0V3N3VUdmRnTUlOK0JMVXFwSUpOZmsvZy94aXJTNzJCQT09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.4_x64-setup.exe"
                                          }
                   }
 }
