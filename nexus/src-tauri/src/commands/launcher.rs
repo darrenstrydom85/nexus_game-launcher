@@ -222,6 +222,13 @@ fn launch_url(scheme: &str, url: &str) -> Result<(), String> {
 
 #[tauri::command(async)]
 pub fn stop_game(pid: u32) -> Result<(), CommandError> {
+    // pid comes from the webview: never kill Nexus itself or a blocklisted
+    // system/shell process (explorer.exe etc.).
+    // ponytail: name check only, not "pid belongs to a tracked session" --
+    // sessions are tracked frontend-side, so Rust has nothing to check against.
+    if pid == std::process::id() || exe_name_of(pid).map_or(true, |n| is_blocked(&n)) {
+        return Err(CommandError::Permission(format!("refusing to stop pid {pid}")));
+    }
     #[cfg(target_os = "windows")]
     {
         let _ = Command::new("taskkill")
@@ -261,6 +268,18 @@ fn is_pid_alive(pid: u32) -> bool {
         }
         Err(_) => false,
     }
+}
+
+/// Image name for a pid, from `tasklist` CSV (`"game.exe","1234",...`).
+fn exe_name_of(pid: u32) -> Option<String> {
+    let out = Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/NH", "/FO", "CSV"])
+        .creation_flags(0x08000000)
+        .output()
+        .ok()?;
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let name = stdout.trim().strip_prefix('"')?.split('"').next()?;
+    Some(name.to_string())
 }
 
 fn is_exe_running(exe_name: &str) -> bool {
@@ -574,6 +593,12 @@ mod tests {
         assert!(launch_direct_exe("").is_err());
         assert!(launch_direct_exe("a&calc.exe").is_err());
         assert!(launch_direct_exe("C:\\definitely\\missing\\game.exe").is_err());
+    }
+
+    #[test]
+    fn stop_game_refuses_self_and_unknown_pids() {
+        assert!(stop_game(std::process::id()).is_err());
+        assert!(stop_game(u32::MAX - 3).is_err()); // no such process
     }
 
     #[test]

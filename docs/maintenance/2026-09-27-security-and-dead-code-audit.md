@@ -3,7 +3,7 @@
 Source: repo-wide audit of `nexus/` (frontend `src/`, backend `src-tauri/`) at v0.5.4.
 Ordered by impact. Tick items off as they land; note the PR next to each.
 
-Legend: **S** = security, **D** = dead code / simplification. Line counts are approximate.
+Legend: `[x]` done, `[~]` won't fix. **S** = security, **D** = dead code / simplification. Line counts are approximate.
 
 ---
 
@@ -40,20 +40,31 @@ Legend: **S** = security, **D** = dead code / simplification. Line counts are ap
 
 ## P2 — secrets and hardening
 
-- [ ] **S8 Twitch client secret baked into binary** (`option_env!`). Move to a public client + PKCE, drop
+- [~] **S8 Twitch client secret baked into binary** — WON'T FIX (risk accepted 2026-09-27): Twitch public clients are
+  limited to the device-code flow; not worth the login UX change + forced re-link. Original note: (`option_env!`). Move to a public client + PKCE, drop
   `NEXUS_TWITCH_CLIENT_SECRET`. Google installed-app secret is non-confidential by design — leave it.
   `src-tauri/src/commands/twitch.rs:33-35`
 - [ ] **S9 token encryption key stored next to the ciphertext** — wrap the key with DPAPI (`CryptProtectData`)
   or use the `keyring` crate. `src-tauri/src/twitch/tokens.rs:19-41`, `src-tauri/src/gdrive/tokens.rs:20-23`
-- [ ] **S10 `stop_game(pid)` kills any PID** — only allow PIDs recorded for the active session.
+- [x] **S10 `stop_game(pid)` kills any PID** — only allow PIDs recorded for the active session.
   `src-tauri/src/commands/launcher.rs:224`
-- [ ] **S11 devtools in release** — gate the `devtools` feature behind a `diag` cargo feature.
-- [ ] **S12 `additionalBrowserArgs`** disables SmartScreen + `BlockInsecurePrivateNetworkRequests` — remove unless proven needed.
-- [ ] **S13 auth-failure logs print raw provider body** — log status + error code only.
+- [~] **S11 devtools in release** — WON'T FIX: deliberate for diagnosing packaged builds; a local user owns the machine anyway. Original note: — gate the `devtools` feature behind a `diag` cargo feature.
+- [x] **S12 `additionalBrowserArgs`** — not an issue: `msWebOOUI,msPdfOOUI,msSmartScreenProtection` is Tauri's own default
+  list (setting the field replaces it); `BlockInsecurePrivateNetworkRequests` is needed for the `localhost` Twitch embeds (af7f343).
+- [x] **S13 auth-failure logs print raw provider body** — log status + error code only.
   `src-tauri/src/twitch/auth.rs:285`, `src-tauri/src/gdrive/auth.rs:210`
 - [ ] **S14 Google OAuth has no `state` param** — add, to match Twitch.
-- [ ] **S15 `build.rs` forwards every `.env` key** — only forward `NEXUS_TWITCH_*` / `NEXUS_GOOGLE_*`; drop dead JSONBIN keys.
+- [x] **S15 `build.rs` forwards every `.env` key** — only forward `NEXUS_TWITCH_*` / `NEXUS_GOOGLE_*`; drop dead JSONBIN keys.
 - [ ] **S16 CSP** — drop `connect-src http://localhost:* http://127.0.0.1:*` if the main window never fetches the embed server.
+  Deferred: low value, and must be tested against Vite HMR in `tauri dev` first.
+
+- [ ] **S17 secrets reachable from the webview + in cloud backups** — `igdb_client_secret`, `steamgrid_api_key`,
+  `igdb_access_token` are plaintext in `settings`; the generic `get_setting`/`set_setting` IPC reads/writes any key
+  (App.tsx:984-986 reads the secrets just to check they're set); cloud backup uploads the whole DB unscrubbed.
+  Fix: deny-list secret/token keys in `get_setting`/`get_settings`/`set_setting` (use `get_key_status` for "is it set"),
+  and blank token rows in the `VACUUM INTO` copy before upload.
+- [ ] **S18 stale build outputs hold the JSONBIN keys** — ~10 `target/debug/build/Nexus-*/output` files from before S15.
+  `cargo clean -p Nexus` and rotate/delete the JSONBIN keys if that service is dead.
 
 ## P3 — dead code (biggest cut first)
 
@@ -106,4 +117,6 @@ No SQL injection (all `format!` SQL uses fixed lists or `?N`); no `innerHTML`/`d
 - S2: custom cover/hero files outside the cache are re-granted at startup (image extensions only). A path
   typed into the Edit modal (not picked via Browse) shows after the next restart.
 - S4: remote export sources are https-only but any host (custom covers). Host allowlist if SSRF ever matters.
+- S10: done as a name guard (refuses Nexus's own pid + system-process blocklist). Sessions are tracked
+  frontend-side, so Rust has no session pid list to check against.
 - `retro-mode.test.tsx` "M opens metadata search…" is flaky under full-suite load; passes alone.

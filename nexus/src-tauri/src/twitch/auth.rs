@@ -282,7 +282,6 @@ pub async fn exchange_code(
     );
 
     if !status.is_success() {
-        eprintln!("[twitch-auth] token exchange error: {body}");
         return Err(parse_token_error(status.as_u16(), &body));
     }
 

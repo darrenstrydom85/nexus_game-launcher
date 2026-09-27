@@ -207,7 +207,6 @@ pub async fn exchange_code(
     );
 
     if !status.is_success() {
-        eprintln!("[gdrive-auth] token exchange error: {body}");
         return Err(parse_token_error(status.as_u16(), &body));
     }
 
@@ -314,7 +313,6 @@ pub async fn get_google_user_email(access_token: &str) -> Result<String, Command
         .text()
         .await
         .map_err(|e| CommandError::Unknown(e.to_string()))?;
-    eprintln!("[gdrive-auth] userinfo body: {body}");
 
     let json: serde_json::Value = serde_json::from_str(&body)
         .map_err(|e| CommandError::Parse(format!("userinfo json: {e}")))?;
