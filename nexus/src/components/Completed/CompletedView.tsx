@@ -19,6 +19,7 @@ import {
   Layers,
 } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { BackdropPageHeader } from "@/components/Backdrop/BackdropPageHeader";
 
 type SortField = "name" | "totalPlayTime" | "rating" | "lastPlayed";
 type SortDir = "asc" | "desc";
@@ -312,6 +313,16 @@ export function CompletedView() {
   return (
     <TooltipProvider>
       <div data-testid="completed-view" className="flex flex-col">
+        <BackdropPageHeader
+          eyebrow="The trophy shelf"
+          title="Completed"
+          right={
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {completedGames.length} finished
+            </span>
+          }
+          className="px-6 pt-6"
+        />
         {/* Stats banner */}
         <StatsBar stats={stats} />
 

@@ -66,8 +66,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
           >
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <h2 className="text-lg font-semibold text-foreground">Settings</h2>
+            <div className="flex items-end justify-between border-b border-border px-6 pb-4 pt-6">
+              <h2 className="font-display text-4xl font-bold uppercase leading-none tracking-tight text-foreground">Settings</h2>
               <button
                 data-testid="settings-close"
                 className="rounded-md p-1 text-muted-foreground hover:text-foreground"

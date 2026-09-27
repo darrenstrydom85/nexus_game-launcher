@@ -3,6 +3,7 @@ import { Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAchievementStore } from "@/stores/achievementStore";
 import { AchievementCard } from "./AchievementCard";
+import { BackdropPageHeader } from "@/components/Backdrop/BackdropPageHeader";
 import { AchievementProgressBar } from "./AchievementProgressBar";
 import type { AchievementCategory, AchievementRarity, AchievementStatus } from "@/lib/tauri";
 
@@ -108,12 +109,15 @@ export function AchievementsView() {
       className="flex h-full flex-col gap-6 overflow-y-auto px-6 py-6"
       data-testid="achievements-view"
     >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-bold tracking-tight">Achievements</h2>
-        <p className="text-sm text-muted-foreground">
-          Track your gaming milestones and unlock rewards
-        </p>
-      </div>
+      <BackdropPageHeader
+        eyebrow="Trophy room"
+        title="Achievements"
+        right={
+          <span className="text-xs text-muted-foreground">
+            {totalUnlocked} of {statuses.length} unlocked
+          </span>
+        }
+      />
 
       <AchievementProgressBar statuses={statuses} />
 

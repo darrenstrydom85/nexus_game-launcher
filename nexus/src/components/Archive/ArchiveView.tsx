@@ -119,13 +119,16 @@ export function ArchiveView() {
         {/* All archived games table */}
         <section data-testid="archive-all-section" className="px-6 pt-5">
           <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-foreground">
-                All Archived Games
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Shelved, not forgotten
+              </p>
+              <h2 className="font-display text-[44px] font-bold uppercase leading-[0.95] tracking-tight text-foreground">
+                Archive
+                <span className="ml-3 align-middle text-sm font-normal normal-case tracking-normal text-muted-foreground tabular-nums">
+                  {archivedGames.length}
+                </span>
               </h2>
-              <span className="text-sm tabular-nums text-muted-foreground">
-                {archivedGames.length}
-              </span>
             </div>
 
             <div className="flex items-center gap-2">

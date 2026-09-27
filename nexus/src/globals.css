@@ -547,6 +547,24 @@
     display: none;
 }
 
+/* Game detail: section headers speak the shelf voice; the info strip sits
+   flush under the hero instead of floating as a card. */
+.experience-backdrop [data-testid="detail-content"] h3 {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--muted-foreground);
+}
+.experience-backdrop [data-testid="game-info-strip"] {
+    margin-left: 0;
+    margin-right: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
 /* Titlebar drag regions */
 .titlebar-drag-region {
     -webkit-app-region: drag;

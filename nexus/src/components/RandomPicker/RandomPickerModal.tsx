@@ -127,8 +127,9 @@ export function RandomPickerModal({
               <X className="size-5" />
             </button>
 
-            <Dices className="size-10 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">What should I play?</h2>
+            <Dices className="size-9" style={{ color: "var(--game-accent, var(--primary))" }} />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Can't decide?</p>
+            <h2 className="font-display text-5xl font-bold uppercase leading-none tracking-tight text-foreground">What should I play?</h2>
 
             {phase === "filters" && (
               <div data-testid="picker-filters" className="flex w-full flex-col items-center gap-4">

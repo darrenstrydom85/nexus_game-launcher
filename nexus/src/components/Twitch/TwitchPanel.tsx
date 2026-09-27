@@ -391,7 +391,7 @@ export function TwitchPanel() {
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h2
                       id="live-now-heading"
-                      className="flex items-center gap-2 text-lg font-semibold text-foreground"
+                      className="flex items-center gap-3 font-display text-[32px] font-bold uppercase leading-none tracking-tight text-foreground"
                     >
                       <span
                         className={`size-2 rounded-full bg-destructive ${!reduceMotion ? "animate-play-pulse" : ""}`}
