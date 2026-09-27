@@ -95,18 +95,18 @@ export function SearchCommand({
           />
           <motion.div
             data-testid="search-panel"
-            className="relative z-10 w-full max-w-xl overflow-hidden rounded-xl border border-border bg-popover shadow-2xl"
+            className="relative z-10 w-full max-w-[640px] overflow-hidden rounded-xl border border-foreground/10 bg-popover shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
             initial={{ scale: 0.95, y: -10 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: -10 }}
           >
             {/* Input */}
-            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-              <Search className="size-5 text-muted-foreground" />
+            <div className="flex items-center gap-3 border-b border-foreground/10 px-5 py-4">
+              <Search className="size-4 text-muted-foreground" />
               <input
                 ref={inputRef}
                 data-testid="search-input"
-                className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
                 placeholder="Search games, collections, actions..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -127,7 +127,7 @@ export function SearchCommand({
               <div data-testid="search-results" className="max-h-[50vh] overflow-y-auto p-2">
                 {gameResults.length > 0 && (
                   <div data-testid="search-group-games">
-                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="px-3 pb-1.5 pt-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
                       Games
                     </p>
                     {gameResults.map((r) => {
@@ -137,30 +137,33 @@ export function SearchCommand({
                           key={r.id}
                           data-testid={`search-result-${r.id}`}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm",
+                            "flex w-full items-center gap-3 rounded-lg px-3 py-2",
                             "hover:bg-accent",
-                            globalIdx === selectedIndex && "bg-accent text-accent-foreground",
+                            globalIdx === selectedIndex && "bg-primary/10",
                           )}
                           onClick={() => handleSelect(r)}
                         >
                           {r.game?.coverUrl ? (
-                            <img src={r.game.coverUrl} alt="" className="size-8 rounded object-cover" />
+                            <img src={r.game.coverUrl} alt="" className="h-[38px] w-[26px] shrink-0 rounded-[3px] object-cover" />
                           ) : (
-                            <div className="flex size-8 items-center justify-center rounded bg-secondary text-xs">
+                            <div className="flex h-[38px] w-[26px] shrink-0 items-center justify-center rounded-[3px] bg-secondary text-xs">
                               {r.name.charAt(0)}
                             </div>
                           )}
                           <div className="flex flex-1 flex-col text-left">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{r.name}</span>
+                              <span className="text-[13px] text-foreground">{r.name}</span>
                               {r.noteSnippet && (
                                 <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                                   Note match
                                 </span>
                               )}
                             </div>
-                            <span className="truncate text-xs text-muted-foreground">{r.subtitle}</span>
+                            <span className="truncate text-[10px] text-muted-foreground">{r.subtitle}</span>
                           </div>
+                          {globalIdx === selectedIndex && (
+                            <span className="shrink-0 text-[10px] text-muted-foreground">↵ open</span>
+                          )}
                         </button>
                       );
                     })}
@@ -169,7 +172,7 @@ export function SearchCommand({
 
                 {collectionResults.length > 0 && (
                   <div data-testid="search-group-collections">
-                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="px-3 pb-1.5 pt-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
                       Collections
                     </p>
                     {collectionResults.map((r) => {
@@ -179,9 +182,9 @@ export function SearchCommand({
                           key={r.id}
                           data-testid={`search-result-${r.id}`}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm",
+                            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-foreground",
                             "hover:bg-accent",
-                            globalIdx === selectedIndex && "bg-accent",
+                            globalIdx === selectedIndex && "bg-primary/10",
                           )}
                           onClick={() => handleSelect(r)}
                         >
@@ -195,7 +198,7 @@ export function SearchCommand({
 
                 {tagResults.length > 0 && (
                   <div data-testid="search-group-tags">
-                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="px-3 pb-1.5 pt-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
                       Tags
                     </p>
                     {tagResults.map((r) => {
@@ -205,9 +208,9 @@ export function SearchCommand({
                           key={r.id}
                           data-testid={`search-result-${r.id}`}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm",
+                            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-foreground",
                             "hover:bg-accent",
-                            globalIdx === selectedIndex && "bg-accent",
+                            globalIdx === selectedIndex && "bg-primary/10",
                           )}
                           onClick={() => handleSelect(r)}
                         >
@@ -224,7 +227,7 @@ export function SearchCommand({
 
                 {actionResults.length > 0 && (
                   <div data-testid="search-group-actions">
-                    <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="px-3 pb-1.5 pt-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
                       Actions
                     </p>
                     {actionResults.map((r) => {
@@ -234,9 +237,9 @@ export function SearchCommand({
                           key={r.id}
                           data-testid={`search-result-${r.id}`}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm",
+                            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-foreground",
                             "hover:bg-accent",
-                            globalIdx === selectedIndex && "bg-accent",
+                            globalIdx === selectedIndex && "bg-primary/10",
                           )}
                           onClick={() => handleSelect(r)}
                         >
@@ -255,6 +258,10 @@ export function SearchCommand({
                 No results for "{query}"
               </div>
             )}
+
+            <div className="border-t border-foreground/10 px-5 py-2.5 text-[10px] text-muted-foreground">
+              ↑↓ navigate · ↵ open · esc close
+            </div>
           </motion.div>
         </motion.div>
       )}
