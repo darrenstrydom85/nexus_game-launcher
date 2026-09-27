@@ -37,8 +37,8 @@ describe("Story 5.1: Obsidian Theme Color Tokens", () => {
     expect(globalsCSS).toContain("--color-glow: var(--glow)");
   });
 
-  it("defines Geist Sans and Geist Mono font families", () => {
-    expect(globalsCSS).toContain('"Geist Sans"');
+  it("defines Barlow and Geist Mono font families", () => {
+    expect(globalsCSS).toContain('"Barlow"');
     expect(globalsCSS).toContain('"Geist Mono"');
     expect(globalsCSS).toContain("--font-sans:");
     expect(globalsCSS).toContain("--font-mono:");
