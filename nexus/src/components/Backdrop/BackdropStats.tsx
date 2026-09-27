@@ -90,7 +90,7 @@ export function BackdropStats({ onOpenWrapped }: BackdropStatsProps) {
       className="flex flex-col pb-8"
       style={{
         background:
-          "radial-gradient(900px 400px at 80% -10%, color-mix(in srgb, var(--game-accent, var(--primary)) 12%, transparent), transparent 60%)",
+          "radial-gradient(900px 400px at 80% -10%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 60%)",
       }}
     >
       {/* Headline */}
@@ -158,8 +158,8 @@ export function BackdropStats({ onOpenWrapped }: BackdropStatsProps) {
                     style={{
                       height: `${Math.max(3, d.pct)}%`,
                       background: isPeak
-                        ? "var(--game-accent, var(--primary))"
-                        : `color-mix(in srgb, var(--game-accent, var(--primary)) ${25 + d.pct * 0.5}%, transparent)`,
+                        ? "var(--primary)"
+                        : `color-mix(in srgb, var(--primary) ${25 + d.pct * 0.5}%, transparent)`,
                     }}
                   />
                   <span className={isPeak ? "text-[9px] text-foreground" : "text-[9px] text-muted-foreground"}>
@@ -188,7 +188,7 @@ export function BackdropStats({ onOpenWrapped }: BackdropStatsProps) {
                     className="h-full"
                     style={{
                       width: `${(g.totalPlayTimeS / topMax) * 100}%`,
-                      background: `color-mix(in srgb, var(--game-accent, var(--primary)) ${
+                      background: `color-mix(in srgb, var(--primary) ${
                         40 + (g.totalPlayTimeS / topMax) * 60
                       }%, transparent)`,
                     }}

@@ -174,7 +174,7 @@ export function GameDetailOverlay({ children }: GameDetailOverlayProps) {
                     <div>
                       <p
                         className="font-display text-3xl font-bold leading-none"
-                        style={{ color: "var(--game-accent, var(--primary))" }}
+                        style={{ color: "var(--primary)" }}
                       >
                         {game.progress}%
                       </p>

@@ -513,10 +513,8 @@
 
 /* ---------------------------------------------------------------------------
    Backdrop UI
-   `--game-accent` is set at runtime on the shell root from the selected
-   game's art (useGameAccent); every use falls back to the theme --primary so
-   ThemeStudio remains authoritative when no art is available. Rules are
-   scoped to .experience-backdrop so retro/onboarding are unaffected.
+   Accent surfaces use the theme --primary (ThemeStudio-controlled). Rules
+   are scoped to .experience-backdrop so retro/onboarding are unaffected.
 --------------------------------------------------------------------------- */
 
 /* Game-detail takeover: taller hero, cinematic display title. Heights are

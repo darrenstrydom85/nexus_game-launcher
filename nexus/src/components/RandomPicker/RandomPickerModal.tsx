@@ -127,7 +127,7 @@ export function RandomPickerModal({
               <X className="size-5" />
             </button>
 
-            <Dices className="size-9" style={{ color: "var(--game-accent, var(--primary))" }} />
+            <Dices className="size-9" style={{ color: "var(--primary)" }} />
             <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Can't decide?</p>
             <h2 className="font-display text-5xl font-bold uppercase leading-none tracking-tight text-foreground">What should I play?</h2>
 

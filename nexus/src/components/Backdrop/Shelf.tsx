@@ -63,7 +63,7 @@ export function ShelfCover({ game, selected, onClick, size = "md" }: ShelfCoverP
           ? "ring-2 ring-offset-2 ring-offset-background"
           : "opacity-90 hover:opacity-100 hover:ring-1 hover:ring-foreground/30",
       )}
-      style={selected ? { ["--tw-ring-color" as string]: "var(--game-accent, var(--primary))" } : undefined}
+      style={selected ? { ["--tw-ring-color" as string]: "var(--primary)" } : undefined}
       onClick={onClick}
       aria-label={game.name}
       aria-pressed={selected}

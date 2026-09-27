@@ -1,7 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUiStore, type NavItem } from "@/stores/uiStore";
-import { useGameStore } from "@/stores/gameStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTwitchStore } from "@/stores/twitchStore";
 import { Titlebar } from "@/components/shared/Titlebar";
@@ -11,7 +10,6 @@ import { HardwareBranding } from "@/components/shared/HardwareBranding";
 import { LevelBadge } from "@/components/Xp/LevelBadge";
 import { StreakWidget } from "@/components/Streak/StreakWidget";
 import type { AppShellProps } from "@/components/shared/AppShell";
-import { useHeroGame, useGameAccent } from "@/components/experience/useGameAccent";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Archive,
@@ -54,11 +52,6 @@ export function BackdropShell({
   const liveCount = useTwitchStore((s) => s.liveCount);
   const isAuthenticated = useTwitchStore((s) => s.isAuthenticated);
 
-  const games = useGameStore((s) => s.games);
-  const heroGame = useHeroGame(games);
-  const rootRef = React.useRef<HTMLDivElement>(null);
-  useGameAccent(rootRef, heroGame);
-
   // The floating NowPlaying capsule replaces the sidebar-docked card, so tell
   // consumers the sidebar surface is not visible (same as AppShell minimal).
   React.useEffect(() => {
@@ -92,7 +85,6 @@ export function BackdropShell({
 
   return (
     <div
-      ref={rootRef}
       className="experience-backdrop flex h-screen flex-col overflow-hidden bg-background"
       data-testid="backdrop-shell"
     >
@@ -139,7 +131,7 @@ export function BackdropShell({
               {activeNav === item.id && (
                 <span
                   className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full"
-                  style={{ background: "var(--game-accent, var(--primary))" }}
+                  style={{ background: "var(--primary)" }}
                 />
               )}
               {item.icon}

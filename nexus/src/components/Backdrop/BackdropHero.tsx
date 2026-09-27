@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { formatPlayTime } from "@/lib/utils";
 import type { Game, GameSource } from "@/stores/gameStore";
 import { useQueueStore } from "@/stores/queueStore";
-import { useHeroGame } from "@/components/experience/useGameAccent";
+import { useHeroGame } from "@/components/experience/useHeroGame";
 import { Play } from "lucide-react";
 
 const SOURCE_LABELS: Record<GameSource, string> = {
@@ -79,7 +79,7 @@ export function BackdropHero({ games, onPlay, onDetails }: BackdropHeroProps) {
               className="h-full w-full"
               style={{
                 background:
-                  "radial-gradient(700px 400px at 70% 20%, color-mix(in srgb, var(--game-accent, var(--primary)) 30%, transparent), transparent 65%), var(--background)",
+                  "radial-gradient(700px 400px at 70% 20%, color-mix(in srgb, var(--primary) 30%, transparent), transparent 65%), var(--background)",
               }}
             />
           )}
@@ -111,7 +111,7 @@ export function BackdropHero({ games, onPlay, onDetails }: BackdropHeroProps) {
           <button
             data-testid="backdrop-hero-play"
             className="inline-flex items-center gap-2 rounded-md px-7 py-3 text-[13px] font-bold tracking-wide text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ background: "var(--game-accent, var(--primary))", color: "var(--game-accent-ink, var(--background))" }}
+            style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
             onClick={() => onPlay?.(game)}
           >
             <Play className="size-3.5 fill-current" />
