@@ -55,6 +55,19 @@ describe("searchHltb", () => {
     expect(body.ign_abc).toBe("val");
   });
 
+  it("works with a token-only session (no fingerprint pair)", async () => {
+    mockFetch
+      .mockResolvedValueOnce(json({ token: "tok" }))
+      .mockResolvedValueOnce(json({ data: [GAME] }));
+    const { searchHltb } = await loadModule();
+
+    expect(await searchHltb("Hades")).toHaveLength(1);
+    const init = mockFetch.mock.calls[1][1];
+    expect(init.headers["x-auth-token"]).toBe("tok");
+    expect(init.headers).not.toHaveProperty("x-hp-key");
+    expect(Object.keys(JSON.parse(init.body))).not.toContain("undefined");
+  });
+
   it("rediscovers the search path from the site bundles when init 404s", async () => {
     mockFetch
       .mockResolvedValueOnce(text("not found", 404))

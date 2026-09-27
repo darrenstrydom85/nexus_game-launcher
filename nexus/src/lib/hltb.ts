@@ -27,8 +27,9 @@ interface HltbApiGame {
 
 interface AuthSession {
   token: string;
-  hpKey: string;
-  hpVal: string;
+  // Fingerprint pair HLTB sent alongside the token until Sep 2026; now token-only.
+  hpKey?: string;
+  hpVal?: string;
   expiresAt: number;
 }
 
@@ -96,16 +97,12 @@ async function getSession(signal?: AbortSignal): Promise<AuthSession | null> {
       hpVal?: string;
     };
 
-    if (!json.token || !json.hpKey || !json.hpVal) {
+    if (!json.token) {
       console.warn("[HLTB] session init missing fields:", Object.keys(json));
       return null;
     }
 
-    console.log(
-      "[HLTB] session acquired — token:",
-      json.token.slice(0, 16) + "...",
-      "hpKey:", json.hpKey,
-    );
+    console.log("[HLTB] session acquired — token:", json.token.slice(0, 16) + "...");
 
     cachedSession = {
       token: json.token,
@@ -126,7 +123,7 @@ function secondsToHours(seconds: number): number {
   return seconds > 0 ? Math.round((seconds / 3600) * 10) / 10 : 0;
 }
 
-function buildPayload(query: string, hpKey: string, hpVal: string) {
+function buildPayload(query: string, hpKey?: string, hpVal?: string) {
   const payload: Record<string, unknown> = {
     searchType: "games",
     searchTerms: query.trim().split(/\s+/),
@@ -152,7 +149,7 @@ function buildPayload(query: string, hpKey: string, hpVal: string) {
     useCache: true,
   };
 
-  payload[hpKey] = hpVal;
+  if (hpKey && hpVal) payload[hpKey] = hpVal;
 
   return payload;
 }
@@ -189,8 +186,9 @@ async function doSearch(
       Origin: BASE_URL,
       Referer: `${BASE_URL}`,
       "x-auth-token": session.token,
-      "x-hp-key": session.hpKey,
-      "x-hp-val": session.hpVal,
+      ...(session.hpKey && session.hpVal
+        ? { "x-hp-key": session.hpKey, "x-hp-val": session.hpVal }
+        : {}),
     },
     body: JSON.stringify(buildPayload(query, session.hpKey, session.hpVal)),
     signal,
@@ -199,7 +197,7 @@ async function doSearch(
 
 /**
  * Search HLTB via their unofficial API.
- * Obtains a session (token + fingerprint pair) from `${searchPath}/init`,
+ * Obtains a session token (plus optional fingerprint pair) from `${searchPath}/init`,
  * then POSTs to `${searchPath}` with the required auth headers and payload field.
  * On 403 (token expired) or 404 (path rotated under a warm session) it refreshes
  * the session — which re-runs path discovery — and retries once.
