@@ -142,18 +142,18 @@
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty-four releases and counting — what's new, what's improved, and what
+      Thirty-five releases and counting — what's new, what's improved, and what
       got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.5.3_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_0.5.4_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.5.3
+        Download v0.5.4
       </a>
-      <a href="#v0.5.3" class="btn btn--ghost">
+      <a href="#v0.5.4" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.5.3
+        Latest · v0.5.4
       </a>
     </div>
   </div>
@@ -169,7 +169,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.5.3">
+          <a class="changelog-rail-link is-latest" href="#v0.5.4">
+            <span class="changelog-rail-version">v0.5.4</span>
+            <span class="changelog-rail-date">Sep 27</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.3">
             <span class="changelog-rail-version">v0.5.3</span>
             <span class="changelog-rail-date">Aug 26</span>
           </a>
@@ -313,11 +317,37 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.5.3 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.5.3">
+            <!-- ── v0.5.4 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.5.4">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.4</h2>
+                <time class="changelog-entry-date" datetime="2026-09-27">Sep 27, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  HowLongToBeat lookups are working again. HLTB didn't move its
+                  search API this time &mdash; it changed the handshake, dropping
+                  the fingerprint values Nexus required alongside the session
+                  token. Nexus now works with the token alone and still sends
+                  the fingerprint if HLTB brings it back.
+                </p>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>HowLongToBeat lookups</strong> &mdash; Automatic and manual HLTB searches no longer fail with &ldquo;could not obtain session&rdquo;.</li>
+                    <li><strong>Flexible HLTB handshake</strong> &mdash; The HLTB client accepts token-only sessions and keeps optional support for the older fingerprint pair.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.3 ── -->
+            <article class="changelog-entry" id="v0.5.3">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.3</h2>
-                <time class="changelog-entry-date" datetime="2026-08-26">Aug 26, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-08-26">Aug 26, 2026</time>
               </div>
 
               <div class="changelog-entry-body">
