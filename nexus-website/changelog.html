@@ -142,18 +142,18 @@
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty-five releases and counting — what's new, what's improved, and what
+      Thirty-six releases and counting — what's new, what's improved, and what
       got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.5.4_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_0.5.5_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.5.4
+        Download v0.5.5
       </a>
-      <a href="#v0.5.4" class="btn btn--ghost">
+      <a href="#v0.5.5" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.5.4
+        Latest · v0.5.5
       </a>
     </div>
   </div>
@@ -169,7 +169,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.5.4">
+          <a class="changelog-rail-link is-latest" href="#v0.5.5">
+            <span class="changelog-rail-version">v0.5.5</span>
+            <span class="changelog-rail-date">Oct 2</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.4">
             <span class="changelog-rail-version">v0.5.4</span>
             <span class="changelog-rail-date">Sep 27</span>
           </a>
@@ -260,7 +264,11 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.5.1">v0.5.1 — Aug 3, 2026 (Latest)</option>
+              <option value="v0.5.5">v0.5.5 — Oct 2, 2026 (Latest)</option>
+              <option value="v0.5.4">v0.5.4 — Sep 27, 2026</option>
+              <option value="v0.5.3">v0.5.3 — Aug 26, 2026</option>
+              <option value="v0.5.2">v0.5.2 — Aug 3, 2026</option>
+              <option value="v0.5.1">v0.5.1 — Aug 3, 2026</option>
               <option value="v0.5.0">v0.5.0 — Jun 18, 2026</option>
               <option value="v0.4.3">v0.4.3 — Jun 18, 2026</option>
               <option value="v0.4.2">v0.4.2 — Jun 15, 2026</option>
@@ -317,11 +325,47 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.5.4 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.5.4">
+            <!-- ── v0.5.5 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v0.5.5">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v0.5.5</h2>
+                <time class="changelog-entry-date" datetime="2026-10-02">Oct 2, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  A security release. A full audit of Nexus tightened how games
+                  launch, what the app can read from disk, and how your Twitch
+                  and Google Drive sign-ins are stored. There's nothing new to
+                  learn &mdash; Nexus works the same, just safer and a little
+                  lighter.
+                </p>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Sign-ins locked to your PC</strong> &mdash; Twitch and Google Drive sign-in keys are now protected by Windows, so they only unlock for your Windows account on this machine. Existing sign-ins carry over.</li>
+                    <li><strong>Tighter file access</strong> &mdash; Nexus only reads images from its own cache and the custom covers you pick, &ldquo;Open folder&rdquo; only opens folders, and stats export checks everything that goes into the zip.</li>
+                    <li><strong>Stop game safeguards</strong> &mdash; Stop can no longer target Nexus itself or Windows system processes.</li>
+                    <li><strong>Lighter app</strong> &mdash; Unused features and two libraries removed; copying a certificate image now uses the built-in clipboard.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Safer game launches</strong> &mdash; Games no longer launch through the Windows command prompt, so unusual characters in a game's path or link can't run anything extra.</li>
+                    <li><strong>Epic launch links</strong> &mdash; Epic games with <code>&amp;silent=true</code> in their launch link no longer get it cut off.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.4 ── -->
+            <article class="changelog-entry" id="v0.5.4">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.4</h2>
-                <time class="changelog-entry-date" datetime="2026-09-27">Sep 27, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-09-27">Sep 27, 2026</time>
               </div>
 
               <div class="changelog-entry-body">

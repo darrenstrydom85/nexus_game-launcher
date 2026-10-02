@@ -1,11 +1,11 @@
 {
-    "version":  "0.5.4",
-    "notes":  "HowLongToBeat lookups work again: Nexus now handles HLTB\u0027s new token-only search handshake.",
-    "pub_date":  "2026-09-27T13:27:42Z",
+    "version":  "0.5.5",
+    "notes":  "A security release: safer game launches, tighter file access, and Twitch and Google Drive sign-ins locked to your Windows account.",
+    "pub_date":  "2026-10-02T16:21:54Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2VKVG0xTTc3S0d3dzhPSkhFQm9KOHlVa2wrcU5ZZFI5OXE3VS95L3hvZHFMYmtTNXdZRHpoc3BER3VRVkhJUEl4UFZQekFiTlJwZHFMM0JlMUpZVlE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTE1NjUwCWZpbGU6TmV4dXNfMC41LjRfeDY0LXNldHVwLmV4ZQo3QWRMOGNFT0FhYnUxR1NLemtpeXRYMWVHUC9DOW9GWjZjM2h6SXQ2ZXhKN2Jwc0czTHFsd0V3N3VUdmRnTUlOK0JMVXFwSUpOZmsvZy94aXJTNzJCQT09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.4_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2RMeFN6NGNlN2U3OVEvT0psN3lXdzhtYlQ2VUpubzlTUDRCL3V2UjRKckpnQkg3dWNud0VpanlncVd3ZS82dE1nWnpnVEUwSjd0Um4zRGhsRFR3SkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwOTU4MTAzCWZpbGU6TmV4dXNfMC41LjVfeDY0LXNldHVwLmV4ZQpWYWtDaDFsazZhUnl3VW1YZVY3K3JyTndvOUU0TXJZcTM0bHlwQXM0TnNHQUpRck5SaFRDVHNiVlNnWkhWQ01Pa01MaXhCYnpLWlNFSUlqM2ZSVndBUT09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.5_x64-setup.exe"
                                          }
                   }
 }
