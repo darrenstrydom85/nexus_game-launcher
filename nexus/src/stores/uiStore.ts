@@ -26,6 +26,9 @@ export interface UiState {
   searchQuery: string;
   searchOpen: boolean;
   detailOverlayGameId: string | null;
+  /** v1 quick view drawer: open game, and the list order it steps through. */
+  quickViewGameId: string | null;
+  quickViewIds: string[];
   activeNav: NavItem;
   sourceFilter: string | null;
   genreFilter: string | null;
@@ -43,6 +46,8 @@ export interface UiActions {
   setSearchQuery: (query: string) => void;
   setSearchOpen: (open: boolean) => void;
   setDetailOverlayGameId: (id: string | null) => void;
+  setQuickViewGameId: (id: string | null) => void;
+  setQuickViewIds: (ids: string[]) => void;
   setActiveNav: (nav: NavItem) => void;
   setSourceFilter: (source: string | null) => void;
   toggleSourceFilter: (source: string) => void;
@@ -64,6 +69,8 @@ const initialState: UiState = {
   searchQuery: "",
   searchOpen: false,
   detailOverlayGameId: null,
+  quickViewGameId: null,
+  quickViewIds: [],
   activeNav: "library",
   sourceFilter: null,
   genreFilter: null,
@@ -88,6 +95,10 @@ export const useUiStore = create<UiStore>()(
         set({ searchOpen: open }, false, "setSearchOpen"),
       setDetailOverlayGameId: (id) =>
         set({ detailOverlayGameId: id }, false, "setDetailOverlayGameId"),
+      setQuickViewGameId: (id) =>
+        set({ quickViewGameId: id }, false, "setQuickViewGameId"),
+      setQuickViewIds: (ids) =>
+        set({ quickViewIds: ids }, false, "setQuickViewIds"),
       setActiveNav: (nav) =>
         set({ activeNav: nav }, false, "setActiveNav"),
       setSourceFilter: (source) =>

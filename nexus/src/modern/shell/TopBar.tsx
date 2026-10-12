@@ -193,7 +193,7 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
           onClick={() => setSearchOpen(true)}
           aria-label="Search (Ctrl K)"
           className={cn(
-            "titlebar-no-drag pressable flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background/60 px-3 text-left text-sm text-muted-foreground outline-none",
+            "@container titlebar-no-drag pressable flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background/60 px-3 text-left text-sm text-muted-foreground outline-none",
             "max-w-[420px] hover:border-ring/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             "max-[900px]:size-9 max-[900px]:flex-none max-[900px]:justify-center max-[900px]:px-0",
           )}
@@ -202,7 +202,8 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
           <span className="truncate max-[900px]:sr-only">
             {gameCount > 0 ? `Search ${gameCount} games, collections, tags` : "Search"}
           </span>
-          <kbd className="ml-auto rounded border border-border px-1.5 py-px font-mono text-[11px] text-muted-foreground max-[900px]:hidden">
+          {/* Never wraps; hides once the field is too narrow to hold it beside the text. */}
+          <kbd className="ml-auto shrink-0 whitespace-nowrap rounded border border-border px-1.5 py-px font-mono text-[11px] text-muted-foreground max-[900px]:hidden @max-[260px]:hidden">
             Ctrl K
           </kbd>
         </button>

@@ -68,11 +68,21 @@ import { useMasteryStore } from "@/stores/masteryStore";
 import { useTagStore } from "@/stores/tagStore";
 import { useXpStore } from "@/stores/xpStore";
 import { LevelUpToast } from "@/components/Xp/LevelUpToast";
-import { useCeremonyStore } from "@/stores/ceremonyStore";
 import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
 import { RetroApp } from "@/retro/RetroApp";
 import { RetroExitScreen } from "@/retro/RetroExitScreen";
 import { ModernApp } from "@/modern/ModernApp";
+import type { LibraryPageProps } from "@/modern/library/LibraryPage";
+import {
+  addGameToCollection,
+  hideGame,
+  openGameFolder,
+  refetchGameMetadata,
+  removeGameFromCollection,
+  setGameCompleted,
+  setGameRating,
+  setGameStatus,
+} from "@/lib/gameActions";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -504,49 +514,24 @@ function MainApp() {
     setMetadataSearchGame(game);
   }, []);
   const handleLibraryRefetchMetadata = React.useCallback(
-    async (game: Game) => {
-      await invoke("fetch_metadata", { gameId: game.id });
-      await refreshGames();
-    },
-    [refreshGames],
+    (game: Game) => refetchGameMetadata(game),
+    [],
   );
   const handleLibraryHideGame = React.useCallback((game: Game) => {
-    invoke("update_game", { id: game.id, fields: { isHidden: true } })
-      .then(() => {
-        useSettingsStore.getState().hideGame(game.id);
-        useUiStore.getState().setDetailOverlayGameId(null);
-      })
-      .catch(() => {});
+    hideGame(game);
   }, []);
   const handleLibraryOpenFolder = React.useCallback((game: Game) => {
-    if (game.folderPath) invoke("open_game_folder", { id: game.id }).catch(() => {});
+    openGameFolder(game);
   }, []);
   const handleLibrarySetStatus = React.useCallback(
     (gameId: string, status: GameStatus) => {
-      invoke("update_game", { id: gameId, fields: { status } })
-        .then(() => refreshGames())
-        .then(() => {
-          if (status === "completed" || status === "dropped") {
-            const qs = useQueueStore.getState();
-            if (qs.isQueued(gameId)) {
-              const entry = qs.entries.find((e) => e.gameId === gameId);
-              qs.remove(gameId, entry?.name);
-            }
-            // Epic 41: trigger retirement ceremony when game is retired.
-            if (useSettingsStore.getState().retirementCeremonyEnabled) {
-              useCeremonyStore.getState().openForGame(gameId, "retirement").catch(() => {});
-            }
-          }
-        })
-        .catch(() => {});
+      setGameStatus(gameId, status);
     },
     [],
   );
   const handleLibrarySetRating = React.useCallback(
     (gameId: string, rating: number | null) => {
-      invoke("update_game", { id: gameId, fields: { rating } })
-        .then(() => refreshGames())
-        .catch(() => {});
+      setGameRating(gameId, rating);
     },
     [],
   );
@@ -561,21 +546,14 @@ function MainApp() {
         return;
       }
       const collection = collections.find((c) => `${c.icon} ${c.name}` === collectionLabel);
-      if (collection) {
-        invoke("add_to_collection", { collectionId: collection.id, gameId })
-          .then(() => useCollectionStore.getState().addGameToCollection(collection.id, gameId))
-          .catch(() => {});
-      }
+      if (collection) addGameToCollection(gameId, collection.id);
     },
     [games, collections],
   );
   const handleRemoveFromCollection = React.useCallback(
     (gameId: string) => {
       const collectionId = useCollectionStore.getState().activeCollectionId;
-      if (!collectionId) return;
-      invoke("remove_from_collection", { collectionId, gameId })
-        .then(() => useCollectionStore.getState().removeGameFromCollection(collectionId, gameId))
-        .catch(() => {});
+      if (collectionId) removeGameFromCollection(gameId, collectionId);
     },
     [],
   );
@@ -723,70 +701,17 @@ function MainApp() {
               onStop={handleStopActiveGame}
               onForceIdentify={handleForceIdentify}
               onStatusChange={(status) => {
-                if (gameIsArchived) {
-                  const nextCompleted = status === "completed";
-                  const wasCompleted = game.completed;
-                  invoke("update_game", {
-                    id: game.id,
-                    fields: { completed: nextCompleted },
-                  })
-                    .then(() => refreshGames())
-                    .then(() => {
-                      // Epic 41: archived games stay status = "removed" so we
-                      // trigger off the `completed` flag transitioning to true.
-                      if (
-                        nextCompleted &&
-                        !wasCompleted &&
-                        useSettingsStore.getState().retirementCeremonyEnabled
-                      ) {
-                        useCeremonyStore
-                          .getState()
-                          .openForGame(game.id, "retirement")
-                          .catch(() => {});
-                      }
-                    })
-                    .catch(() => {});
-                } else {
-                  invoke("update_game", { id: game.id, fields: { status } })
-                    .then(() => refreshGames())
-                    .then(() => {
-                      if (status === "completed" || status === "dropped") {
-                        const qs = useQueueStore.getState();
-                        if (qs.isQueued(game.id)) {
-                          qs.remove(game.id, game.name);
-                        }
-                        // Epic 41: trigger retirement ceremony when game is retired.
-                        if (useSettingsStore.getState().retirementCeremonyEnabled) {
-                          useCeremonyStore.getState().openForGame(game.id, "retirement").catch(() => {});
-                        }
-                      }
-                    })
-                    .catch(() => {});
-                }
+                // Archived games stay status = "removed"; only the completed flag moves.
+                if (gameIsArchived) setGameCompleted(game, status === "completed");
+                else setGameStatus(game.id, status);
               }}
-              onRatingChange={(rating) => {
-                invoke("update_game", { id: game.id, fields: { rating } })
-                  .then(() => refreshGames())
-                  .catch(() => {});
-              }}
-              onRefetchMetadata={async () => {
-                await invoke("fetch_metadata", { gameId: game.id });
-                await refreshGames();
-              }}
+              onRatingChange={(rating) => setGameRating(game.id, rating)}
+              onRefetchMetadata={() => refetchGameMetadata(game)}
               onSearchMetadata={() => setMetadataSearchGame(game)}
               onEdit={() => setEditGameTarget(game)}
               onAddToCollection={() => setAddToCollectionTarget(game)}
-              onOpenFolder={() => {
-                if (game.folderPath) invoke("open_game_folder", { id: game.id }).catch(() => {});
-              }}
-              onHide={() => {
-                invoke("update_game", { id: game.id, fields: { isHidden: true } })
-                  .then(() => {
-                    useSettingsStore.getState().hideGame(game.id);
-                    useUiStore.getState().setDetailOverlayGameId(null);
-                  })
-                  .catch(() => {});
-              }}
+              onOpenFolder={() => openGameFolder(game)}
+              onHide={() => hideGame(game)}
             />
           );
         }}
@@ -897,6 +822,7 @@ function MainApp() {
       <RetirementCeremony />
       <CollectionEditor
         open={collectionEditorOpen}
+        existingNames={collections.map((c) => c.name)}
         onClose={() => {
           setCollectionEditorOpen(false);
           setEditCollectionTarget(null);
@@ -974,11 +900,38 @@ function MainApp() {
   );
 
   if (layoutV1) {
+    const library: LibraryPageProps = {
+      onPlay: (game) => launch(game),
+      onEdit: (game) => setEditGameTarget(game),
+      onSearchMetadata: (game) => setMetadataSearchGame(game),
+      onNewCollectionWithGame: (gameId) => {
+        gameIdToAddToNewCollectionRef.current = gameId;
+        setEditCollectionTarget(null);
+        setCollectionEditorOpen(true);
+      },
+      onNewCollection: () => {
+        setEditCollectionTarget(null);
+        setCollectionEditorOpen(true);
+      },
+      onEditCollection: (c) => {
+        setEditCollectionTarget(c);
+        setCollectionEditorOpen(true);
+      },
+      onDeleteCollection: (c) => {
+        invoke("delete_collection", { id: c.id })
+          .then(() => useCollectionStore.getState().removeCollection(c.id))
+          .catch(() => {});
+      },
+      onOpenSettings: () => setSettingsOpen(true),
+      onResync: handleResync,
+      syncResult,
+    };
     return (
       <ModernApp
         page={pageContent}
         gameDetail={gameDetail}
         overlays={overlays}
+        library={library}
         onStopGame={handleStopActiveGame}
         onForceIdentify={handleForceIdentify}
         onResync={handleResync}
