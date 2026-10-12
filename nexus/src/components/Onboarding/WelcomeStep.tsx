@@ -1,96 +1,90 @@
-import * as React from "react";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, ImageIcon, Layers, Trophy, type LucideIcon } from "lucide-react";
 import { useOnboardingStore } from "@/stores/onboardingStore";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { EASE_OUT } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
-import { Search, FolderOpen, Play } from "lucide-react";
 import nexusOnboardingLogo from "@/assets/nexus-onboarding-logo.png";
 
-const ONBOARDING_ACCENT = "#7600da";
-
-const PANELS = [
-  { icon: <Search className="size-8" />, title: "Scan", desc: "Auto-detect games from all your launchers" },
-  { icon: <FolderOpen className="size-8" />, title: "Organize", desc: "One unified library with rich metadata" },
-  { icon: <Play className="size-8" />, title: "Play", desc: "Launch any game with a single click" },
+const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
+  {
+    icon: Layers,
+    title: "Every launcher",
+    body: "Steam, Epic, GOG, Ubisoft Connect, Battle.net, Xbox and your own folders.",
+  },
+  {
+    icon: ImageIcon,
+    title: "A library that looks the part",
+    body: "Artwork, ratings and how long each game takes to beat.",
+  },
+  {
+    icon: Trophy,
+    title: "Play and keep score",
+    body: "Sessions, streaks, achievements and your yearly Wrapped.",
+  },
 ];
+
+/** Soft, static accent glow behind the logo tile. */
+const LOGO_GLOW =
+  "0 0 0 1px color-mix(in oklab, var(--primary) 40%, transparent), 0 12px 48px -6px color-mix(in oklab, var(--primary) 55%, transparent)";
 
 export function WelcomeStep() {
   const goNext = useOnboardingStore((s) => s.goNext);
-  const [activePanel, setActivePanel] = React.useState(0);
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setActivePanel((p) => (p + 1) % PANELS.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div data-testid="welcome-step" className="flex max-w-lg flex-col items-center gap-8 text-center">
-      {/* Logo */}
-      <motion.div
+    <div data-testid="welcome-step" className="flex flex-col items-center text-center">
+      <span
         data-testid="welcome-logo"
-        className="flex size-20 items-center justify-center rounded-2xl"
-        style={{
-          backgroundColor: ONBOARDING_ACCENT,
-          boxShadow: `0 0 40px ${ONBOARDING_ACCENT}40`,
-        }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex size-16 items-center justify-center rounded-2xl bg-primary"
+        style={{ boxShadow: LOGO_GLOW }}
       >
-        <img
-          src={nexusOnboardingLogo}
-          alt=""
-          width={48}
-          height={48}
-          className="size-12"
-        />
-      </motion.div>
+        <img src={nexusOnboardingLogo} alt="" width={40} height={40} className="size-10" />
+      </span>
 
-      <motion.h1
-        className="text-3xl font-bold tracking-tight text-foreground"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+      <h1
+        tabIndex={-1}
+        className="mt-7 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-foreground outline-none"
       >
         Welcome to Nexus
-      </motion.h1>
-
-      <p data-testid="welcome-tagline" className="text-lg text-muted-foreground">
-        All your games. One place.
+      </h1>
+      <p data-testid="welcome-tagline" className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+        All your games, from every launcher, in one place.
       </p>
 
-      {/* Three-panel sequence */}
-      <div data-testid="welcome-panels" className="flex gap-4">
-        {PANELS.map((panel, i) => (
-          <button
-            key={panel.title}
-            data-testid={`welcome-panel-${i}`}
-            className={cn(
-              "flex w-36 flex-col items-center gap-2 rounded-lg border p-4 transition-all",
-              activePanel === i
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:border-primary/30",
-            )}
-            onClick={() => setActivePanel(i)}
+      <ul
+        data-testid="welcome-features"
+        aria-label="What Nexus does"
+        className="mt-9 w-full max-w-[460px] divide-y divide-border/70 overflow-hidden rounded-2xl border border-border bg-card text-left"
+      >
+        {FEATURES.map(({ icon: Icon, title, body }, i) => (
+          <motion.li
+            key={title}
+            data-testid={`welcome-feature-${i}`}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: EASE_OUT, delay: 0.1 + i * 0.08 }}
+            className="flex items-center gap-3.5 px-[18px] py-3.5"
           >
-            {panel.icon}
-            <span className="text-sm font-semibold">{panel.title}</span>
-            <span className="text-xs">{panel.desc}</span>
-          </button>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">{title}</span>
+              <span className="mt-0.5 block text-[13px] text-muted-foreground">{body}</span>
+            </span>
+          </motion.li>
         ))}
-      </div>
+      </ul>
 
       <Button
         data-testid="welcome-start"
-        size="lg"
-        className="mt-4"
         onClick={goNext}
+        className="mt-9 h-11 rounded-xl px-6 text-[15px] font-semibold has-[>svg]:px-6 focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Let's get started
+        Let’s get started
+        <ArrowRight className="size-4" strokeWidth={2} aria-hidden />
       </Button>
-
     </div>
   );
 }

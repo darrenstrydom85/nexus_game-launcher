@@ -74,6 +74,29 @@ describe("onboardingStore", () => {
     expect(useOnboardingStore.getState().currentStep).toBe("welcome");
   });
 
+  it("skipCurrent marks the current step skipped (not completed) and advances", () => {
+    useOnboardingStore.setState({ currentStep: "steamgriddb", completedSteps: ["welcome"] });
+    useOnboardingStore.getState().skipCurrent();
+    const state = useOnboardingStore.getState();
+    expect(state.currentStep).toBe("igdb");
+    expect(state.skippedSteps).toEqual(["steamgriddb"]);
+    expect(state.completedSteps).toEqual(["welcome"]);
+  });
+
+  it("skipCurrent replaces an earlier completion of the same step", () => {
+    useOnboardingStore.setState({ currentStep: "igdb", completedSteps: ["welcome", "steamgriddb", "igdb"] });
+    useOnboardingStore.getState().skipCurrent();
+    expect(useOnboardingStore.getState().completedSteps).not.toContain("igdb");
+    expect(useOnboardingStore.getState().skippedSteps).toContain("igdb");
+  });
+
+  it("skipCurrent hops over pre-skipped steps like goNext", () => {
+    useOnboardingStore.getState().skipStep("igdb");
+    useOnboardingStore.setState({ currentStep: "steamgriddb" });
+    useOnboardingStore.getState().skipCurrent();
+    expect(useOnboardingStore.getState().currentStep).toBe("sources");
+  });
+
   it("goNext only skips intermediate skipped steps, not the last one", () => {
     useOnboardingStore.getState().skipStep("steamgriddb");
     // igdb is NOT skipped — should land there
