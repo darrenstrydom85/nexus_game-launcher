@@ -63,9 +63,11 @@ export interface Game {
   progress: number | null;
   milestonesJson: string | null;
   completed: boolean;
+  /** Cached screenshot URLs (backend stores them comma-joined). */
+  screenshotUrls?: string[];
 }
 
-interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt" | "progress" | "milestonesJson"> {
+interface BackendGame extends Omit<Game, "screenshotUrls" | "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt" | "progress" | "milestonesJson"> {
   totalPlayTime?: number;
   totalPlayTimeS?: number;
   lastPlayed?: string | null;
@@ -87,6 +89,7 @@ interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "pl
   hltbFetchedAt?: string | null;
   progress?: number | null;
   milestonesJson?: string | null;
+  screenshotUrls?: string | null;
 }
 
 export interface Milestone {
@@ -167,6 +170,10 @@ export const useGameStore = create<GameStore>()(
           heroUrl: resolveUrl(g.customHero ?? g.heroUrl),
           logoUrl: resolveUrl(g.logoUrl),
           iconUrl: resolveUrl(g.iconUrl),
+          screenshotUrls: (g.screenshotUrls ?? "")
+            .split(",")
+            .map((u) => resolveUrl(u.trim()))
+            .filter((u): u is string => !!u),
           totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
           lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
           playCount: g.playCount ?? 0,

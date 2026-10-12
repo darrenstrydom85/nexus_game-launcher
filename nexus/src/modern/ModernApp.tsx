@@ -1,5 +1,5 @@
 import * as React from "react";
-import { MotionConfig } from "motion/react";
+import { AnimatePresence, MotionConfig } from "motion/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -7,12 +7,11 @@ import { TopBar } from "./shell/TopBar";
 import { NowPlayingStrip } from "./shell/NowPlayingStrip";
 import { LibraryPage, type LibraryPageProps } from "./library/LibraryPage";
 import { QuickViewDrawer } from "./library/QuickViewDrawer";
+import { GamePage } from "./game/GamePage";
 
 interface ModernAppProps {
   /** Page for nav items not rebuilt yet. Phases replace these one by one. */
   page: React.ReactNode;
-  /** Game detail for `detailOverlayGameId` (overlay until the Game page lands). */
-  gameDetail: React.ReactNode;
   /** Dialogs, toasts and prompts shared with the classic shell. */
   overlays: React.ReactNode;
   library: LibraryPageProps;
@@ -27,7 +26,6 @@ interface ModernAppProps {
 /** v1.0 shell: top bar + now-playing strip, then the page with the quick view pushing in beside it. */
 export function ModernApp({
   page,
-  gameDetail,
   overlays,
   library,
   onStopGame,
@@ -39,6 +37,7 @@ export function ModernApp({
 }: ModernAppProps) {
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const activeNav = useUiStore((s) => s.activeNav);
+  const openGameId = useUiStore((s) => s.detailOverlayGameId);
 
   React.useEffect(() => {
     useUiStore.getState().setActiveNav("home");
@@ -63,8 +62,14 @@ export function ModernApp({
               onQuickView={(id) => useUiStore.getState().setQuickViewGameId(id)}
             />
           </div>
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <main data-testid="modern-main" className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="relative flex min-h-0 flex-1 overflow-hidden">
+            {/* Inert while a game page covers it, so Tab can't wander underneath. */}
+            <main
+              data-testid="modern-main"
+              // React 19 supports `inert`; the installed types predate it.
+              {...({ inert: openGameId !== null } as React.HTMLAttributes<HTMLElement>)}
+              className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+            >
               {activeNav === "home" ? <HomePlaceholder /> : isLibrary ? <LibraryPage {...library} /> : page}
             </main>
             <QuickViewDrawer
@@ -74,9 +79,22 @@ export function ModernApp({
               onNewCollectionWithGame={library.onNewCollectionWithGame}
               onStop={onStopGame}
             />
+            <AnimatePresence initial={false}>
+              {openGameId && (
+                <GamePage
+                  key={openGameId}
+                  gameId={openGameId}
+                  onPlay={library.onPlay}
+                  onEdit={library.onEdit}
+                  onSearchMetadata={library.onSearchMetadata}
+                  onNewCollectionWithGame={library.onNewCollectionWithGame}
+                  onStop={onStopGame}
+                  onForceIdentify={onForceIdentify}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </div>
-        {gameDetail}
         {overlays}
       </TooltipProvider>
     </MotionConfig>

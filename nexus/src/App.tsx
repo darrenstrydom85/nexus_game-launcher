@@ -35,14 +35,8 @@ import { useUiStore } from "@/stores/uiStore";
 import { navigateFromTrayTarget } from "@/lib/navigation";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSettingsApplier } from "@/hooks/useSettingsApplier";
+import { extractYoutubeId } from "@/lib/youtube";
 
-function extractYoutubeId(url: string): string | null {
-  try {
-    return new URL(url).searchParams.get("v");
-  } catch {
-    return null;
-  }
-}
 import { useToastStore } from "@/stores/toastStore";
 import { runScoreBackfill, checkLibraryHealth, type ScoreBackfillProgressEvent, type DeadGame } from "@/lib/tauri";
 import { HealthCheckModal } from "@/components/Settings/HealthCheckModal";
@@ -929,7 +923,6 @@ function MainApp() {
     return (
       <ModernApp
         page={pageContent}
-        gameDetail={gameDetail}
         overlays={overlays}
         library={library}
         onStopGame={handleStopActiveGame}

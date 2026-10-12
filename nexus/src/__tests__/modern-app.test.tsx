@@ -21,7 +21,6 @@ function renderApp() {
   return render(
     <ModernApp
       page={<div data-testid="page">legacy page</div>}
-      gameDetail={<div data-testid="game-detail" />}
       overlays={<div data-testid="overlays" />}
       library={library}
       onStopGame={vi.fn()}
@@ -59,10 +58,17 @@ describe("v1 ModernApp shell", () => {
     expect(screen.queryByTestId("page")).not.toBeInTheDocument();
   });
 
-  it("mounts the top bar, game detail and shared overlays", () => {
+  it("mounts the top bar and shared overlays", () => {
     renderApp();
     expect(screen.getByTestId("top-bar")).toBeInTheDocument();
-    expect(screen.getByTestId("game-detail")).toBeInTheDocument();
     expect(screen.getByTestId("overlays")).toBeInTheDocument();
+  });
+
+  it("covers the page with the game page and makes the page inert", () => {
+    useGameStore.setState({ games: [{ id: "g1", name: "Ori", source: "steam", genres: [], status: "unset", totalPlayTimeS: 0, addedAt: "2026-01-01" } as never] });
+    renderApp();
+    act(() => useUiStore.getState().setDetailOverlayGameId("g1"));
+    expect(screen.getByTestId("game-page")).toBeInTheDocument();
+    expect(screen.getByTestId("modern-main")).toHaveAttribute("inert");
   });
 });

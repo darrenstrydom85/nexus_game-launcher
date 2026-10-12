@@ -76,8 +76,16 @@ describe("gameStore", () => {
 
   it("setGames updates the games array", () => {
     useGameStore.getState().setGames([mockGame]);
-    expect(useGameStore.getState().games).toEqual([mockGame]);
+    // Screenshots are split from the backend's comma-joined field; none here.
+    expect(useGameStore.getState().games).toEqual([{ ...mockGame, screenshotUrls: [] }]);
     expect(useGameStore.getState().games).toHaveLength(1);
+  });
+
+  it("setGames splits the comma-joined screenshot field", () => {
+    useGameStore.getState().setGames([
+      { ...mockGame, screenshotUrls: "https://a/1.jpg, https://a/2.jpg," } as unknown as Game,
+    ]);
+    expect(useGameStore.getState().games[0].screenshotUrls).toEqual(["https://a/1.jpg", "https://a/2.jpg"]);
   });
 
   it("setGames replaces existing games", () => {

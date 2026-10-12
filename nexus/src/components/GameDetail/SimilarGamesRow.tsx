@@ -52,7 +52,8 @@ export function SimilarGamesRow({ igdbId }: { igdbId: number | null }) {
   return (
     <div data-testid="similar-games" className="rounded-lg border border-border bg-card p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">More like this</h3>
-      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+      {/* Capped tracks: covers stay ~100px however wide the column gets. */}
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(96px,112px))] gap-x-3 gap-y-4">
         {similar.map((s) => {
           const ownedId = ownedIdByIgdb.get(s.igdbId);
           return (
@@ -61,7 +62,7 @@ export function SimilarGamesRow({ igdbId }: { igdbId: number | null }) {
                 type="button"
                 data-testid={`similar-game-${s.igdbId}`}
                 onClick={() => (ownedId ? openGame(ownedId) : open(s.stores[0]?.url ?? s.igdbUrl))}
-                className="group relative aspect-[3/4] w-full overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="pressable img-outline group relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label={ownedId ? `Open ${s.name} in your library` : `View ${s.name}`}
               >
                 {s.coverUrl && (
@@ -69,7 +70,7 @@ export function SimilarGamesRow({ igdbId }: { igdbId: number | null }) {
                     src={s.coverUrl}
                     alt=""
                     loading="lazy"
-                    className="size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                    className="size-full object-cover transition-[filter] duration-150 group-hover:brightness-110"
                   />
                 )}
                 {ownedId && (
