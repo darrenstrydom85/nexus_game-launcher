@@ -828,6 +828,9 @@ export interface AchievementStatus {
   unlocked: boolean;
   unlockedAt: string | null;
   contextJson: string | null;
+  /** Locked achievements with a measurable counter: current value and unlock target. */
+  progressCurrent?: number | null;
+  progressTarget?: number | null;
 }
 
 export function getAchievementStatus(): Promise<AchievementStatus[]> {

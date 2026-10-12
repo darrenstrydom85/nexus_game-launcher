@@ -54,6 +54,10 @@ pub struct AchievementStatus {
     pub unlocked: bool,
     pub unlocked_at: Option<String>,
     pub context_json: Option<String>,
+    /// Locked achievements with a measurable counter: where the player is now.
+    pub progress_current: Option<i64>,
+    /// Locked achievements with a measurable counter: the unlock target.
+    pub progress_target: Option<i64>,
 }
 
 // ── Newly unlocked (returned by evaluate_achievements) ─────────────
@@ -101,9 +105,13 @@ mod tests {
             unlocked: true,
             unlocked_at: Some("2026-04-16T12:00:00Z".into()),
             context_json: None,
+            progress_current: Some(3),
+            progress_target: Some(10),
         };
         let json = serde_json::to_value(&status).unwrap();
         assert!(json.get("unlockedAt").is_some());
         assert!(json.get("contextJson").is_some());
+        assert_eq!(json.get("progressCurrent"), Some(&serde_json::json!(3)));
+        assert_eq!(json.get("progressTarget"), Some(&serde_json::json!(10)));
     }
 }

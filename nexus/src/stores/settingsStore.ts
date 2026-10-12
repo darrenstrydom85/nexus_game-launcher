@@ -89,6 +89,8 @@ export interface SettingsState {
   retroCoverArt: boolean;
   /** v1.0 top-bar layout (ModernApp). Off until the rebuild cuts over. */
   layoutV1: boolean;
+  /** v1 Home: show the This PC (CPU/GPU) tile. Default on. */
+  showHardwareOnHome: boolean;
   _hydrated: boolean;
 }
 
@@ -137,6 +139,7 @@ export interface SettingsActions {
   setRetroCrt: (value: boolean) => void;
   setRetroCoverArt: (value: boolean) => void;
   setLayoutV1: (value: boolean) => void;
+  setShowHardwareOnHome: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -200,6 +203,7 @@ const initialState: SettingsState = {
   retroCrt: false,
   retroCoverArt: false,
   layoutV1: false,
+  showHardwareOnHome: true,
   _hydrated: false,
 };
 
@@ -330,6 +334,7 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.layout_v1 !== undefined) {
               patch.layoutV1 = settings.layout_v1 === "true";
             }
+            patch.showHardwareOnHome = settings.show_hardware_on_home !== "false";
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
             }
@@ -548,6 +553,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setLayoutV1: (value) => {
           persistSetting("layout_v1", String(value));
           set({ layoutV1: value }, false, "setLayoutV1");
+        },
+        setShowHardwareOnHome: (value) => {
+          persistSetting("show_hardware_on_home", String(value));
+          set({ showHardwareOnHome: value }, false, "setShowHardwareOnHome");
         },
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);

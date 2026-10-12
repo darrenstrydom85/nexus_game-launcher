@@ -29,6 +29,7 @@ function renderApp() {
       isSyncing={false}
       onOpenSettings={vi.fn()}
       onOpenUpdate={vi.fn()}
+      onOpenRandom={vi.fn()}
     />,
   );
 }

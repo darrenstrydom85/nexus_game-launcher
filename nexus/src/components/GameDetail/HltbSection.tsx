@@ -421,53 +421,32 @@ export function HltbSection({ game }: HltbSectionProps) {
     );
   }
 
-  const rows: { label: string; value: number | null; testId: string }[] = [
-    { label: "Main Story", value: game.hltbMainH, testId: "hltb-main" },
-    {
-      label: "Main + Extras",
-      value: game.hltbMainExtraH,
-      testId: "hltb-main-extra",
-    },
-    {
-      label: "Completionist",
-      value: game.hltbCompletionistH,
-      testId: "hltb-completionist",
-    },
+  const rows: { label: string; short: string; value: number | null; testId: string }[] = [
+    { label: "Main Story", short: "Main", value: game.hltbMainH, testId: "hltb-main" },
+    { label: "Main + Extras", short: "+ Extras", value: game.hltbMainExtraH, testId: "hltb-main-extra" },
+    { label: "Completionist", short: "100%", value: game.hltbCompletionistH, testId: "hltb-completionist" },
   ];
+  // All three columns always show (a missing estimate reads "—"), so the layout never shifts.
+  const shown = rows;
+  // One scale for the bar: the longest estimate we have.
+  const max = game.hltbCompletionistH || game.hltbMainExtraH || game.hltbMainH || 0;
+  const you = game.totalPlayTimeS / 3600;
+  const pct = (h: number) => `${Math.min(100, (h / max) * 100)}%`;
+  const mainPct = game.hltbMainH ? Math.min(100, Math.round((you / game.hltbMainH) * 100)) : null;
+  const viaIgdb = game.hltbId?.startsWith(IGDB_TTB_PREFIX);
 
   return (
-    <div
+    <section
       data-testid="hltb-section"
-      className="group/hltb rounded-lg border border-border bg-card p-4"
+      className="group/hltb flex flex-col gap-3 rounded-xl border border-border bg-card p-4"
       aria-label="How Long to Beat estimates"
     >
-      <div className="mb-3 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-foreground">
-          How Long to Beat
-        </h3>
-        {game.hltbId?.startsWith(IGDB_TTB_PREFIX) ? (
-          <span data-testid="hltb-attribution" className="text-xs text-muted-foreground">
-            via IGDB
-          </span>
-        ) : game.hltbId && (
-          <button
-            data-testid="hltb-attribution"
-            className={cn(
-              "text-xs text-muted-foreground transition-colors hover:text-primary",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            )}
-            onClick={handleAttribution}
-          >
-            via HowLongToBeat
-          </button>
-        )}
-        <div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover/hltb:opacity-100 has-[:focus-visible]:opacity-100">
+      <div className="flex items-center gap-2">
+        <h3 className="whitespace-nowrap text-sm font-semibold text-foreground">How long to beat</h3>
+        <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover/hltb:opacity-100 group-focus-within/hltb:opacity-100">
           <button
             data-testid="hltb-wrong-game"
-            className={cn(
-              "rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            )}
+            className="pressable flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             onClick={handleEnterSearchMode}
             aria-label="Wrong game? Search manually"
             title="Wrong game?"
@@ -476,10 +455,7 @@ export function HltbSection({ game }: HltbSectionProps) {
           </button>
           <button
             data-testid="hltb-refetch"
-            className={cn(
-              "rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            )}
+            className="pressable flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             onClick={handleRefetch}
             aria-label="Re-fetch HLTB data"
           >
@@ -488,28 +464,42 @@ export function HltbSection({ game }: HltbSectionProps) {
         </div>
       </div>
 
-      <dl className="flex flex-col gap-2.5 text-sm">
-        {rows.map((row) => {
+      {you > 0 && (
+        <p data-testid="hltb-you" className="-mt-1 text-xs tabular-nums text-muted-foreground">
+          You: <span className="font-semibold text-foreground">{you.toFixed(1)}h</span>
+          {mainPct != null && <> · {mainPct}% of main story</>}
+        </p>
+      )}
+
+      {max > 0 && (
+        <div aria-hidden className="relative h-2 rounded-full bg-secondary">
+          <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: pct(you) }} />
+          {game.hltbMainH && game.hltbMainH < max && (
+            <span className="absolute -top-[3px] h-3.5 w-0.5 rounded-full bg-foreground/80" style={{ left: pct(game.hltbMainH) }} />
+          )}
+          {game.hltbMainExtraH && game.hltbMainExtraH < max && (
+            <span className="absolute -top-[3px] h-3.5 w-0.5 rounded-full bg-foreground/45" style={{ left: pct(game.hltbMainExtraH) }} />
+          )}
+        </div>
+      )}
+
+      <dl className="grid gap-2 text-xs" style={{ gridTemplateColumns: `repeat(${Math.max(shown.length, 1)}, minmax(0, 1fr))` }}>
+        {shown.map((row, i) => {
           const daysStr = formatHltbDays(row.value, hoursPerDay);
+          const align = shown.length > 1 && i === shown.length - 1 ? "items-end text-right" : i > 0 ? "items-center text-center" : "items-start";
           return (
-            <div key={row.testId} className="flex items-start justify-between gap-3">
-              <dt className="text-muted-foreground">{row.label}</dt>
+            <div key={row.testId} className={cn("flex min-w-0 flex-col", align)}>
+              <dt className="text-muted-foreground" title={row.label}>{row.short}</dt>
               <dd
                 data-testid={row.testId}
-                className="text-right"
                 aria-label={formatAriaRow(row.label, row.value, hoursPerDay)}
+                className={cn("flex flex-col", align)}
               >
-                <div className="font-medium tabular-nums text-foreground">
-                  {formatHltbTime(row.value)}
-                </div>
+                <span className="text-sm font-semibold tabular-nums text-foreground">{formatHltbTime(row.value)}</span>
                 {daysStr && (
-                  <div
-                    data-testid={`${row.testId}-days`}
-                    className="text-xs font-normal tabular-nums text-muted-foreground"
-                    aria-hidden="true"
-                  >
+                  <span data-testid={`${row.testId}-days`} aria-hidden="true" className="tabular-nums text-muted-foreground">
                     {daysStr}
-                  </div>
+                  </span>
                 )}
               </dd>
             </div>
@@ -517,12 +507,21 @@ export function HltbSection({ game }: HltbSectionProps) {
         })}
       </dl>
 
-      <p
-        data-testid="hltb-pace-footnote"
-        className="mt-3 text-[11px] leading-tight text-muted-foreground"
-      >
-        Days assume {hoursPerDay} h/day of play
+      <p data-testid="hltb-pace-footnote" className="flex flex-wrap items-center gap-x-1.5 text-[11px] leading-tight text-muted-foreground">
+        {viaIgdb ? (
+          <span data-testid="hltb-attribution">via IGDB</span>
+        ) : game.hltbId ? (
+          <button
+            data-testid="hltb-attribution"
+            onClick={handleAttribution}
+            className="rounded transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            via HowLongToBeat
+          </button>
+        ) : null}
+        {(viaIgdb || game.hltbId) && <span aria-hidden>·</span>}
+        <span>Days assume {hoursPerDay} h/day of play</span>
       </p>
-    </div>
+    </section>
   );
 }

@@ -931,6 +931,7 @@ function MainApp() {
         isSyncing={isSyncing}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenUpdate={() => setUpdateDialogOpen(true)}
+        onOpenRandom={() => setRandomPickerOpen(true)}
       />
     );
   }

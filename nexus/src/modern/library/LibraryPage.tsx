@@ -215,7 +215,7 @@ export function LibraryPage({
           {(tab.kind === "all" || tab.kind === "collection") && (
             <div className="flex items-center gap-2 pb-2.5">
               <Select value={sortField} onValueChange={(v) => useUiStore.getState().setSortField(v as SortField)}>
-                <SelectTrigger aria-label="Sort games" data-testid="lib-sort" className="w-44">
+                <SelectTrigger aria-label="Sort games" data-testid="lib-sort" className="min-w-44">
                   <span className="text-muted-foreground">Sort</span>
                   <SelectValue />
                 </SelectTrigger>

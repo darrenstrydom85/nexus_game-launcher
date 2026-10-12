@@ -8,6 +8,7 @@ import { NowPlayingStrip } from "./shell/NowPlayingStrip";
 import { LibraryPage, type LibraryPageProps } from "./library/LibraryPage";
 import { QuickViewDrawer } from "./library/QuickViewDrawer";
 import { GamePage } from "./game/GamePage";
+import { HomePage } from "./home/HomePage";
 
 interface ModernAppProps {
   /** Page for nav items not rebuilt yet. Phases replace these one by one. */
@@ -21,6 +22,7 @@ interface ModernAppProps {
   isSyncing: boolean;
   onOpenSettings: () => void;
   onOpenUpdate: () => void;
+  onOpenRandom: () => void;
 }
 
 /** v1.0 shell: top bar + now-playing strip, then the page with the quick view pushing in beside it. */
@@ -34,6 +36,7 @@ export function ModernApp({
   isSyncing,
   onOpenSettings,
   onOpenUpdate,
+  onOpenRandom,
 }: ModernAppProps) {
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
   const activeNav = useUiStore((s) => s.activeNav);
@@ -70,7 +73,19 @@ export function ModernApp({
               {...({ inert: openGameId !== null } as React.HTMLAttributes<HTMLElement>)}
               className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
             >
-              {activeNav === "home" ? <HomePlaceholder /> : isLibrary ? <LibraryPage {...library} /> : page}
+              {activeNav === "home" ? (
+                <HomePage
+                  onPlay={library.onPlay}
+                  onStop={onStopGame}
+                  onOpenRandom={onOpenRandom}
+                  onResync={onResync}
+                  onOpenSettings={onOpenSettings}
+                />
+              ) : isLibrary ? (
+                <LibraryPage {...library} />
+              ) : (
+                page
+              )}
             </main>
             <QuickViewDrawer
               onPlay={library.onPlay}
@@ -98,17 +113,5 @@ export function ModernApp({
         {overlays}
       </TooltipProvider>
     </MotionConfig>
-  );
-}
-
-// ponytail: placeholder until the Home phase builds the spotlight + dashboard.
-function HomePlaceholder() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-12 text-center">
-      <p className="text-base font-semibold text-foreground">Home is on its way</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        The spotlight and dashboard arrive in a later phase. Everything else in the top bar works today.
-      </p>
-    </div>
   );
 }

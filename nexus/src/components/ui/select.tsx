@@ -15,7 +15,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "pressable flex h-9 items-center justify-between gap-2 rounded-lg border border-input bg-background/60 px-3 text-sm text-foreground outline-none",
+      // Values never wrap: the trigger truncates them instead.
+      "pressable flex h-9 items-center justify-between gap-2 whitespace-nowrap rounded-lg border border-input bg-background/60 px-3 text-sm text-foreground outline-none [&>span]:min-w-0 [&>span]:truncate",
       "hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 data-[placeholder]:text-muted-foreground",
       className,
     )}

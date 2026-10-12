@@ -7,34 +7,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getSystemHardware, type HardwareInfo } from "@/lib/tauri";
+import { type HardwareInfo } from "@/lib/tauri";
+import { getHardwareCached, trimCpuName, trimGpuName } from "@/lib/hardware";
 
 let cachedHardwareInfo: HardwareInfo | null = null;
-
-function trimCpuName(brand: string, fullName: string): string {
-  if (!fullName) return "";
-  let name = fullName;
-  name = name.replace(/\(R\)/gi, "").replace(/\(TM\)/gi, "");
-  if (brand === "intel") {
-    name = name.replace(/^Intel\s+Core\s+/i, "").replace(/\s+Processor$/i, "");
-  } else if (brand === "amd") {
-    name = name.replace(/^AMD\s+/i, "");
-  }
-  return name.replace(/\s+/g, " ").trim();
-}
-
-function trimGpuName(brand: string, fullName: string): string {
-  if (!fullName) return "";
-  let name = fullName;
-  if (brand === "nvidia") {
-    name = name.replace(/^NVIDIA\s+/i, "");
-  } else if (brand === "amd") {
-    name = name.replace(/^AMD\s+/i, "");
-  } else if (brand === "intel") {
-    name = name.replace(/^Intel\s*\(R\)\s*/i, "");
-  }
-  return name.replace(/\s+/g, " ").trim();
-}
 
 interface BrandRowProps {
   brand: string;
@@ -103,7 +79,7 @@ export function HardwareBranding({ sidebarOpen }: HardwareBrandingProps) {
   React.useEffect(() => {
     if (cachedHardwareInfo) return;
     let cancelled = false;
-    getSystemHardware().then((info) => {
+    getHardwareCached().then((info) => {
       if (cancelled) return;
       cachedHardwareInfo = info;
       setHardware(info);
