@@ -76,6 +76,23 @@ export function HomePage({ onPlay, onStop, onOpenRandom, onResync, onOpenSetting
 
   // Still loading: a skeleton, never the empty-library welcome.
   if (games.length === 0 && !hasLoaded && !error) return <HomeSkeleton />;
+  // The library didn't load: say so, rather than welcoming an "empty" library.
+  if (games.length === 0 && error) {
+    return (
+      <div data-testid="home-error" className="flex min-h-full flex-col items-center justify-center gap-3 px-10 py-24 text-center">
+        <p className="text-[17px] font-semibold text-foreground">Couldn’t load your library</p>
+        <p className="max-w-md text-sm text-muted-foreground">{error}</p>
+        <button
+          type="button"
+          // Clearing the error lets useGames fetch again.
+          onClick={() => useGameStore.getState().setError(null)}
+          className="pressable mt-1 h-9 rounded-lg border border-input px-4 text-sm font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div data-testid="home-page" data-fresh={fresh} className="flex min-h-full flex-col">

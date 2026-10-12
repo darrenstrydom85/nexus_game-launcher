@@ -197,7 +197,7 @@ function QueueRow({ entry, position, onPlay }: { entry: PlayQueueEntry; position
 /* ── This week ───────────────────────────────────────────────────── */
 
 export function WeekTile() {
-  const days = useDailyActivity();
+  const { days, failed } = useDailyActivity();
   const fortnight = lastDays(14);
   const secondsOn = (d: Date) => days?.get(dayKey(d))?.seconds ?? 0;
   const week = fortnight.slice(7);
@@ -209,6 +209,10 @@ export function WeekTile() {
 
   return (
     <Tile id="week" title="This week" action={<TileLink onClick={() => useUiStore.getState().setActiveNav("stats")}>All stats</TileLink>}>
+      {failed && !days ? (
+        <p className="text-sm text-muted-foreground">Couldn’t load your play time. It’ll try again after your next session.</p>
+      ) : (
+        <>
       <div className="flex items-baseline gap-2.5">
         <span className="text-[28px] font-bold leading-none tabular-nums text-foreground">{total > 0 ? formatPlayTime(total) : "0h"}</span>
         {days && (previous > 0 || total > 0) && (
@@ -235,6 +239,8 @@ export function WeekTile() {
           );
         })}
       </div>
+        </>
+      )}
     </Tile>
   );
 }
@@ -325,7 +331,7 @@ function heatClass(seconds: number) {
 
 export function StreakTile() {
   const streak = useStreakStore((s) => s.streak);
-  const days = useDailyActivity();
+  const { days, failed } = useDailyActivity();
   const cells = lastDays(HEAT_WEEKS * 7);
   const playedDays = days ? cells.filter((d) => (days.get(dayKey(d))?.seconds ?? 0) > 0).length : 0;
   const current = streak?.currentStreak ?? 0;
@@ -342,6 +348,9 @@ export function StreakTile() {
             {current === 1 ? "day" : "days"} · best {streak?.longestStreak ?? 0}
           </span>
         </div>
+        {failed && !days ? (
+          <p className="text-xs text-muted-foreground">Couldn’t load your recent days.</p>
+        ) : (
         <div
           role="img"
           aria-label={`Played on ${playedDays} of the last ${HEAT_WEEKS * 7} days`}
@@ -353,6 +362,7 @@ export function StreakTile() {
             return <span key={dayKey(d)} className={cn("size-[10px] rounded-[2px]", heatClass(s))} />;
           })}
         </div>
+        )}
       </div>
     </Tile>
   );

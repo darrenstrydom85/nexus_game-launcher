@@ -28,6 +28,8 @@ async function loadLastViewAt(): Promise<string | null> {
 interface AchievementState {
   statuses: AchievementStatus[];
   loading: boolean;
+  /** The last status fetch failed. */
+  error: boolean;
   newUnlockCount: number;
   pendingNotifications: NewlyUnlocked[];
   highlightId: string | null;
@@ -49,6 +51,7 @@ export const useAchievementStore = create<AchievementStore>()(
     (set, get) => ({
       statuses: [],
       loading: false,
+      error: false,
       newUnlockCount: 0,
       pendingNotifications: [],
       highlightId: null,
@@ -57,9 +60,9 @@ export const useAchievementStore = create<AchievementStore>()(
         set({ loading: true }, false, "fetchStatuses/start");
         try {
           const statuses = await getAchievementStatus();
-          set({ statuses, loading: false }, false, "fetchStatuses/done");
+          set({ statuses, loading: false, error: false }, false, "fetchStatuses/done");
         } catch {
-          set({ loading: false }, false, "fetchStatuses/error");
+          set({ loading: false, error: true }, false, "fetchStatuses/error");
         }
       },
 

@@ -51,8 +51,9 @@ export const LibraryCard = React.memo(function LibraryCard({
   ...menu
 }: LibraryCardProps) {
   const showProgress = useSettingsStore((s) => s.showCardProgress);
-  const [imgFailed, setImgFailed] = React.useState(false);
-  const cover = !imgFailed ? game.coverUrl : null;
+  // Remember which URL failed, so new artwork for the same card gets a fresh try.
+  const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
+  const cover = game.coverUrl !== failedUrl ? game.coverUrl : null;
   const progress = showProgress && game.progress ? game.progress : 0;
 
   return (
@@ -82,7 +83,7 @@ export const LibraryCard = React.memo(function LibraryCard({
                   alt=""
                   loading="lazy"
                   draggable={false}
-                  onError={() => setImgFailed(true)}
+                  onError={() => setFailedUrl(game.coverUrl)}
                   className="size-full object-cover transition-[filter] duration-150 group-hover:brightness-110"
                 />
               ) : (

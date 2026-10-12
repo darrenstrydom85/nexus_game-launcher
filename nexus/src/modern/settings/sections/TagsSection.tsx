@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTagStore } from "@/stores/tagStore";
+import { useToastStore } from "@/stores/toastStore";
 import type { TagWithCount } from "@/lib/tauri";
 import { SettingsCard, SettingsRow } from "../SettingsKit";
 
@@ -29,6 +30,9 @@ const sameColour = (a: string | null, b: string | null) => (a ?? "").toLowerCase
 function TagDot({ color }: { color: string | null }) {
   return <span aria-hidden className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: color || FALLBACK_COLOUR }} />;
 }
+
+/** A save failure whose message the form shows as is. */
+class TagFormError extends Error {}
 
 /** Name and colour fields for creating or editing a tag. Throws from `onSubmit` keep the form open with an error. */
 function TagForm({
@@ -58,8 +62,8 @@ function TagForm({
     setError(null);
     try {
       await onSubmit(trimmed, color);
-    } catch {
-      setError("Couldn’t save. A tag with that name may already exist.");
+    } catch (err) {
+      setError(err instanceof TagFormError ? err.message : "Couldn’t save. A tag with that name may already exist.");
       setSaving(false);
     }
   };
@@ -137,8 +141,18 @@ function TagRow({ tag, onDelete }: { tag: TagWithCount; onDelete: (tag: TagWithC
   const [editing, setEditing] = React.useState(false);
 
   const save = async (name: string, color: string | null) => {
-    if (name !== tag.name) await rename(tag.id, name);
-    if (!sameColour(color, tag.color)) await updateColor(tag.id, color);
+    const renaming = name !== tag.name;
+    if (renaming) await rename(tag.id, name);
+    if (!sameColour(color, tag.color)) {
+      try {
+        await updateColor(tag.id, color);
+      } catch {
+        // The rename has landed, so a retry only needs the colour.
+        throw new TagFormError(
+          renaming ? "Renamed, but couldn’t change the colour. Please try again." : "Couldn’t change the colour. Please try again.",
+        );
+      }
+    }
     setEditing(false);
   };
 
@@ -233,7 +247,10 @@ export function TagsSection() {
         confirmLabel="Delete"
         destructive
         onConfirm={() => {
-          if (target) deleteTag(target.id).catch(() => {});
+          if (!target) return;
+          deleteTag(target.id).catch(() =>
+            useToastStore.getState().addToast({ type: "error", message: `Couldn’t delete “${target.name}”. Please try again.` }),
+          );
         }}
       />
     </>

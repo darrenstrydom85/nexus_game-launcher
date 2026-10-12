@@ -39,16 +39,22 @@ export function useHiddenGames() {
     [unhideGame, addToast],
   );
 
-  const unhideAll = React.useCallback(
-    () =>
-      Promise.all(hiddenGameIds.map((id) => invoke("update_game", { id, fields: { isHidden: false } })))
-        .then(() => {
-          hiddenGameIds.forEach((id) => unhideGame(id));
-          addToast({ type: "success", message: "All hidden games restored" });
-        })
-        .catch(() => addToast({ type: "error", message: "Failed to restore some games" })),
-    [hiddenGameIds, unhideGame, addToast],
-  );
+  /** Unhides every hidden game. Ones that fail stay hidden. */
+  const unhideAll = React.useCallback(async () => {
+    const ids = hiddenGameIds;
+    const results = await Promise.allSettled(ids.map((id) => invoke("update_game", { id, fields: { isHidden: false } })));
+    let restored = 0;
+    results.forEach((r, i) => {
+      if (r.status !== "fulfilled") return;
+      unhideGame(ids[i]);
+      restored++;
+    });
+    const failed = ids.length - restored;
+    const games = (n: number) => `${n} ${n === 1 ? "game" : "games"}`;
+    if (failed === 0) addToast({ type: "success", message: `Restored ${games(restored)} to your library.` });
+    else if (restored === 0) addToast({ type: "error", message: "Couldn’t restore your hidden games. Please try again." });
+    else addToast({ type: "error", message: `Restored ${games(restored)}, but couldn’t restore ${failed}. Please try again.` });
+  }, [hiddenGameIds, unhideGame, addToast]);
 
   return { hiddenGames, unhide, unhideAll };
 }

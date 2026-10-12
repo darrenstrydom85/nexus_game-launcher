@@ -8,14 +8,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { MAX_FAVORITES } from "@/modern/twitch/useTwitchPanel";
 
 function thumbnailUrl(template: string): string {
   return template
     .replace("{width}", "440")
     .replace("{height}", "248");
 }
-
-const MAX_FAVORITES = 20;
 
 export interface StreamCardProps {
   stream: LiveStreamItem;

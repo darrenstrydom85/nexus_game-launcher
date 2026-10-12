@@ -512,10 +512,9 @@ function MainApp() {
   const handleLibrarySearchMetadata = React.useCallback((game: Game) => {
     setMetadataSearchGame(game);
   }, []);
-  const handleLibraryRefetchMetadata = React.useCallback(
-    (game: Game) => refetchGameMetadata(game),
-    [],
-  );
+  const handleLibraryRefetchMetadata = React.useCallback(async (game: Game) => {
+    await refetchGameMetadata(game);
+  }, []);
   const handleLibraryHideGame = React.useCallback((game: Game) => {
     hideGame(game);
   }, []);

@@ -163,7 +163,7 @@ function CoverWall({ calm }: { calm: boolean }) {
 /** Same shape as the loaded Home, so nothing jumps when the library arrives. */
 export function HomeSkeleton() {
   return (
-    <div data-testid="home-loading" aria-busy="true" aria-label="Loading your library" className="flex flex-col">
+    <div data-testid="home-loading" role="status" aria-busy="true" aria-label="Loading your library" className="flex flex-col">
       <div className="relative h-[clamp(320px,50vh,500px)] bg-secondary/50">
         <div className="absolute bottom-9 left-10 flex flex-col gap-4">
           <div className="h-3 w-40 rounded-full bg-secondary motion-safe:animate-pulse" />

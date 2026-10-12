@@ -108,7 +108,8 @@ function StripContent({
       <span data-testid="now-playing-strip-name" className="min-w-0 truncate text-sm font-semibold text-foreground">
         {gameName}
       </span>
-      <span data-testid="now-playing-strip-timer" className="font-mono text-[15px] tabular-nums text-foreground">
+      {/* Ticks every second: kept out of the status announcements. */}
+      <span data-testid="now-playing-strip-timer" aria-live="off" className="font-mono text-[15px] tabular-nums text-foreground">
         {formatRunningTimer(elapsed)}
       </span>
       <span className="text-[13px] text-muted-foreground max-[900px]:hidden">Started {startedLabel}</span>

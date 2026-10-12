@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTwitchStore, type LiveStreamItem } from "@/stores/twitchStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useToastStore } from "@/stores/toastStore";
 import { twitchAuthStatus, validateTwitchToken } from "@/lib/tauri";
 
 export const MAX_FAVORITES = 20;
@@ -151,7 +152,10 @@ export function useTwitchPanel() {
       channelDisplayName: s.displayName,
       twitchGameId: s.gameId || null,
       twitchGameName: s.gameName || null,
-    }).catch((e) => console.error("[twitch] popout_stream failed:", e));
+    }).catch((e) => {
+      console.error("[twitch] popout_stream failed:", e);
+      useToastStore.getState().addToast({ type: "error", message: "Couldn’t open the stream." });
+    });
   }, []);
 
   const selectChannel = React.useCallback((login: string | null) => {

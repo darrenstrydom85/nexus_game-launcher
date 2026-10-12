@@ -16,6 +16,7 @@ import { IntegrationsSection } from "@/modern/settings/sections/IntegrationsSect
 import { APIKeyManager } from "@/components/Settings/APIKeyManager";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useTwitchStore } from "@/stores/twitchStore";
+import { useToastStore } from "@/stores/toastStore";
 
 const EMPTY_KEYS = { steamGridDbKey: "", igdbClientId: "", igdbClientSecret: "" };
 const SGDB_KEY = "1e53abcdef0123456789abcdef012a5c";
@@ -73,7 +74,8 @@ describe("v1 Settings: Integrations", () => {
         fireEvent.click(screen.getByTestId("steamgrid-save"));
       });
 
-      expect(setSettingCalls()).toContainEqual({ key: "steamgrid_api_key", value: SGDB_KEY });
+      // One write: the store is updated without writing the key a second time.
+      expect(setSettingCalls()).toEqual([{ key: "steamgrid_api_key", value: SGDB_KEY }]);
       expect(mockInvoke).toHaveBeenCalledWith("verify_steamgrid_key");
       expect(useSettingsStore.getState().apiKeys.steamGridDbKey).toBe(SGDB_KEY);
       expect(screen.getByTestId("steamgrid-masked")).toHaveTextContent("1e53 •••••••••••• 2a5c");
@@ -159,9 +161,25 @@ describe("v1 Settings: Integrations", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Remove SteamGridDB key" }));
       fireEvent.click(within(screen.getByRole("alertdialog")).getByTestId("confirm-action"));
-      expect(useSettingsStore.getState().apiKeys.steamGridDbKey).toBe("");
-      expect(setSettingCalls()).toContainEqual({ key: "steamgrid_api_key", value: "" });
+      await waitFor(() => expect(useSettingsStore.getState().apiKeys.steamGridDbKey).toBe(""));
+      expect(setSettingCalls()).toEqual([{ key: "steamgrid_api_key", value: "" }]);
       expect(screen.getByTestId("steamgrid-status")).toHaveTextContent("Not set");
+    });
+
+    it("keeps the key when removing it fails", async () => {
+      useToastStore.setState({ toasts: [] });
+      useSettingsStore.setState({ apiKeys: { ...EMPTY_KEYS, steamGridDbKey: SGDB_KEY } });
+      await renderSection();
+      mockInvoke.mockImplementation((cmd: string) => (cmd === "set_setting" ? Promise.reject("database is locked") : Promise.resolve(null)));
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove SteamGridDB key" }));
+      fireEvent.click(within(screen.getByRole("alertdialog")).getByTestId("confirm-action"));
+
+      await waitFor(() =>
+        expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t remove your SteamGridDB key. Please try again." }),
+      );
+      expect(useSettingsStore.getState().apiKeys.steamGridDbKey).toBe(SGDB_KEY);
+      expect(screen.getByTestId("steamgrid-masked")).toBeInTheDocument();
     });
 
     it("re-runs the setup wizard", async () => {

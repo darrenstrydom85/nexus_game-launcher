@@ -10,6 +10,7 @@ import { TagsSection } from "@/modern/settings/sections/TagsSection";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useTagStore } from "@/stores/tagStore";
+import { useToastStore } from "@/stores/toastStore";
 import type { TagWithCount } from "@/lib/tauri";
 
 function game(over: Partial<Game> & { id: string }): Game {
@@ -256,5 +257,37 @@ describe("v1 settings: Tags", () => {
     await waitFor(() => expect(screen.queryByTestId("tag-manager-row-Co-op")).not.toBeInTheDocument());
     expect(mockInvoke).toHaveBeenCalledWith("delete_tag", { tagId: "t1" });
     expect(screen.getByTestId("tag-manager-row-Backlog")).toBeInTheDocument();
+  });
+
+  it("says which step failed when the rename lands but the colour doesn't", async () => {
+    tagDb = [tag("t1", "Coop", 3)];
+    mockInvoke.mockImplementation((cmd: string, args?: Record<string, unknown>) =>
+      cmd === "update_tag_color" ? Promise.reject(new Error("locked")) : backend(cmd, args),
+    );
+    await renderTags();
+    fireEvent.click(screen.getByTestId("tag-edit-Coop"));
+    fireEvent.change(await screen.findByTestId("tag-form-name"), { target: { value: "Co-op" } });
+    fireEvent.click(screen.getByTestId("tag-colour-green"));
+    fireEvent.click(screen.getByTestId("tag-form-submit"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Renamed, but couldn’t change the colour. Please try again.");
+    expect(screen.getByTestId("tag-form")).toBeInTheDocument();
+    expect(screen.getByTestId("tag-manager-row-Co-op")).toBeInTheDocument();
+  });
+
+  it("keeps the tag and says so when deleting it fails", async () => {
+    useToastStore.setState({ toasts: [] });
+    tagDb = [tag("t1", "Co-op", 3)];
+    mockInvoke.mockImplementation((cmd: string, args?: Record<string, unknown>) =>
+      cmd === "delete_tag" ? Promise.reject(new Error("locked")) : backend(cmd, args),
+    );
+    await renderTags();
+    fireEvent.click(screen.getByTestId("tag-delete-Co-op"));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByTestId("confirm-action"));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t delete “Co-op”. Please try again." }),
+    );
+    expect(screen.getByTestId("tag-manager-row-Co-op")).toBeInTheDocument();
   });
 });

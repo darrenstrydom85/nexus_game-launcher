@@ -2,11 +2,17 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
 import {
+  importToast,
   useDataManagement,
   type BulkDeleteResult,
   type ResetMode,
   type ShortSessionsCount,
 } from "@/modern/settings/hooks/useDataManagement";
+import { useToastStore } from "@/stores/toastStore";
+
+function toastError(message: string) {
+  return () => useToastStore.getState().addToast({ type: "error", message });
+}
 
 export function DataManagement() {
   const data = useDataManagement();
@@ -22,28 +28,23 @@ export function DataManagement() {
   const [preview, setPreview] = React.useState<ShortSessionsCount | null>(null);
   const [deleteResult, setDeleteResult] = React.useState<BulkDeleteResult | null>(null);
 
-  // Legacy busy keys, mapped from the shared hook.
-  const busy =
-    data.busy === "reset"
-      ? resetMode === "keepStats"
-        ? "resetKeepStats"
-        : resetMode === "keepKeys"
-          ? "resetKeepKeys"
-          : "reset"
-      : data.busy;
+  const resetting = data.isBusy("reset");
 
   const handleExport = () => {
-    data.exportLibrary().catch(() => {});
+    data.exportLibrary().catch(toastError("Couldn’t export the library. Please try again."));
   };
 
   const handleImport = () => {
-    data.importLibrary().catch(() => {});
+    data
+      .importLibrary()
+      .then((result) => result && useToastStore.getState().addToast(importToast(result)))
+      .catch(toastError("Couldn’t import that file. Check it’s a Nexus library export."));
   };
 
   const handleClearHistory = () => {
     data
       .clearHistory()
-      .catch(() => {})
+      .catch(toastError("Couldn’t clear play history. Please try again."))
       .finally(() => setConfirmClear(false));
   };
 
@@ -55,7 +56,7 @@ export function DataManagement() {
     data
       .countShortSessions(thresholdSecs)
       .then(setPreview)
-      .catch(() => {});
+      .catch(toastError("Couldn’t count short sessions. Please try again."));
   };
 
   const handleDeleteShortSessions = () => {
@@ -65,23 +66,23 @@ export function DataManagement() {
         setDeleteResult(result);
         setPreview(null);
       })
-      .catch(() => {});
+      .catch(toastError("Couldn’t remove short sessions. Please try again."));
   };
 
   const handleReset = (mode: ResetMode) => {
     setResetMode(mode);
     data
       .reset(mode)
-      .catch(() => {})
+      .catch(toastError("Couldn’t reset Nexus. Please try again."))
       .finally(() => setConfirmReset(0));
   };
 
   const handleClearCache = () => {
-    data.clearCache().catch(() => {});
+    data.clearCache().catch(toastError("Couldn’t clear the image cache."));
   };
 
   const handleOpenDbFolder = () => {
-    data.openDataFolder().catch(() => {});
+    data.openDataFolder().catch(toastError("Couldn’t open the data folder."));
   };
 
   return (
@@ -94,10 +95,10 @@ export function DataManagement() {
             variant="secondary"
             size="sm"
             className="flex-1 gap-1"
-            disabled={busy === "export"}
+            disabled={data.isBusy("export")}
             onClick={handleExport}
           >
-            {busy === "export" ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            {data.isBusy("export") ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
             Export Library
           </Button>
           <Button
@@ -105,10 +106,10 @@ export function DataManagement() {
             variant="secondary"
             size="sm"
             className="flex-1 gap-1"
-            disabled={busy === "import"}
+            disabled={data.isBusy("import")}
             onClick={handleImport}
           >
-            {busy === "import" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {data.isBusy("import") ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
             Import Library
           </Button>
         </div>
@@ -131,10 +132,10 @@ export function DataManagement() {
             <Button
               size="xs"
               variant="destructive"
-              disabled={busy === "clearHistory"}
+              disabled={data.isBusy("clearHistory")}
               onClick={handleClearHistory}
             >
-              {busy === "clearHistory" ? "Clearing..." : "Yes, clear"}
+              {data.isBusy("clearHistory") ? "Clearing..." : "Yes, clear"}
             </Button>
             <Button size="xs" variant="secondary" onClick={() => setConfirmClear(false)}>
               Cancel
@@ -216,10 +217,10 @@ export function DataManagement() {
                 size="xs"
                 variant="secondary"
                 className="gap-1"
-                disabled={busy === "previewShort"}
+                disabled={data.isBusy("previewShort")}
                 onClick={handlePreviewShortSessions}
               >
-                {busy === "previewShort" ? (
+                {data.isBusy("previewShort") ? (
                   <Loader2 className="size-3 animate-spin" />
                 ) : (
                   <Search className="size-3" />
@@ -250,10 +251,10 @@ export function DataManagement() {
                 <Button
                   size="xs"
                   variant="destructive"
-                  disabled={busy === "deleteShort"}
+                  disabled={data.isBusy("deleteShort")}
                   onClick={handleDeleteShortSessions}
                 >
-                  {busy === "deleteShort" ? "Removing..." : "Remove"}
+                  {data.isBusy("deleteShort") ? "Removing..." : "Remove"}
                 </Button>
               </div>
             )}
@@ -309,31 +310,31 @@ export function DataManagement() {
                 data-testid="data-reset-keep-stats"
                 size="xs"
                 variant="secondary"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("keepStats")}
                 className="w-full justify-center"
               >
-                {busy === "resetKeepStats" ? "Resetting..." : "Reset, keep play history & API keys"}
+                {resetting && resetMode === "keepStats" ? "Resetting..." : "Reset, keep play history & API keys"}
               </Button>
               <Button
                 data-testid="data-reset-keep-keys"
                 size="xs"
                 variant="secondary"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("keepKeys")}
                 className="w-full justify-center"
               >
-                {busy === "resetKeepKeys" ? "Resetting..." : "Reset, keep API keys only"}
+                {resetting && resetMode === "keepKeys" ? "Resetting..." : "Reset, keep API keys only"}
               </Button>
               <Button
                 data-testid="data-reset-everything"
                 size="xs"
                 variant="destructive"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("all")}
                 className="w-full justify-center"
               >
-                {busy === "reset" ? "Resetting..." : "Reset everything"}
+                {resetting && resetMode === "all" ? "Resetting..." : "Reset everything"}
               </Button>
               <Button size="xs" variant="ghost" onClick={() => setConfirmReset(0)} className="w-full justify-center">
                 Cancel
@@ -349,10 +350,10 @@ export function DataManagement() {
             data-testid="data-clear-cache"
             variant="ghost"
             size="xs"
-            disabled={busy === "cache"}
+            disabled={data.isBusy("cache")}
             onClick={handleClearCache}
           >
-            {busy === "cache" ? "Clearing..." : "Clear"}
+            {data.isBusy("cache") ? "Clearing..." : "Clear"}
           </Button>
         </div>
 

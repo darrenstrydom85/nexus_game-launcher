@@ -39,25 +39,39 @@ export function GameActionBar({ game, onStop, onForceIdentify, ...menu }: GameAc
   const archived = game.status === "removed";
 
   // Enter plays, 1-5 rates, S cycles status. Only from the page itself, never from a control.
+  const onPlay = menu.onPlay;
+  const writing = React.useRef(false);
   React.useEffect(() => {
+    // One write at a time; each resolves after the store refreshes, so a quick
+    // second press sees the first one's result instead of a stale prop.
+    const once = (write: () => Promise<boolean>) => {
+      if (writing.current) return;
+      writing.current = true;
+      void write().finally(() => {
+        writing.current = false;
+      });
+    };
     const onKey = (e: KeyboardEvent) => {
       if (shortcutBlocked(e)) return;
+      const g = useGameStore.getState().games.find((x) => x.id === game.id) ?? game;
+      const isArchived = g.status === "removed";
       if (e.key === "Enter") {
-        if (!archived && !running) {
+        if (!isArchived && !running) {
           e.preventDefault();
-          menu.onPlay(game);
+          onPlay(g);
         }
       } else if (/^[1-5]$/.test(e.key)) {
         const r = Number(e.key);
-        setGameRating(game.id, game.rating === r ? null : r);
+        once(() => setGameRating(g.id, g.rating === r ? null : r));
       } else if (e.key === "s" || e.key === "S") {
-        if (archived) setGameCompleted(game, !game.completed);
-        else setGameStatus(game.id, CYCLE[(CYCLE.indexOf(game.status) + 1) % CYCLE.length]);
+        once(() =>
+          isArchived ? setGameCompleted(g, !g.completed) : setGameStatus(g.id, CYCLE[(CYCLE.indexOf(g.status) + 1) % CYCLE.length]),
+        );
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [game, archived, running, menu]);
+  }, [game, running, onPlay]);
 
   return (
     <div data-testid="game-action-bar" className="flex flex-wrap items-center gap-2.5">

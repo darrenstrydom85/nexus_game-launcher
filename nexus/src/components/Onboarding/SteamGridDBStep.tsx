@@ -28,6 +28,13 @@ export function SteamGridDBStep() {
   const handleVerify = React.useCallback(async () => {
     setVerifyState("verifying");
     setErrorMsg("");
+    // Verification reads the saved key, so save first and put the old one back if it fails;
+    // otherwise a mistyped key would stick and the step would count as done next launch.
+    const prior = useSettingsStore.getState().apiKeys.steamGridDbKey;
+    const restore = async () => {
+      await invoke("set_setting", { key: "steamgrid_api_key", value: prior }).catch(() => {});
+      setApiKeys({ steamGridDbKey: prior });
+    };
     try {
       await invoke("set_setting", { key: "steamgrid_api_key", value: apiKey });
       setApiKeys({ steamGridDbKey: apiKey });
@@ -37,10 +44,12 @@ export function SteamGridDBStep() {
       if (result.valid) {
         setVerifyState("success");
       } else {
+        await restore();
         setVerifyState("error");
         setErrorMsg(result.message);
       }
     } catch (err: unknown) {
+      await restore();
       setVerifyState("error");
       setErrorMsg(err instanceof Error ? err.message : "Verification failed");
     }

@@ -59,7 +59,23 @@ describe("v1 Data & health settings", () => {
   beforeEach(() => {
     for (const k of Object.keys(responses)) delete responses[k];
     mockInvoke.mockReset();
-    mockInvoke.mockImplementation((cmd: string) => Promise.resolve(cmd in responses ? responses[cmd] : null));
+    mockInvoke.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      const r = responses[cmd];
+      return Promise.resolve(typeof r === "function" ? r(args) : cmd in responses ? r : null);
+    });
+    // confirm_games returns the saved games in input order, as new rows.
+    responses.confirm_games = ({ detectedGames }: { detectedGames: Record<string, unknown>[] }) =>
+      detectedGames.map((g, i) => ({
+        ...g,
+        id: `new-${i}`,
+        status: "backlog",
+        rating: null,
+        notes: null,
+        progress: null,
+        milestonesJson: null,
+        completed: false,
+        isHidden: !!g.isHidden,
+      }));
     vi.mocked(openDialog).mockReset().mockResolvedValue(null);
     vi.mocked(save).mockReset().mockResolvedValue(null);
     vi.mocked(readTextFile).mockReset().mockResolvedValue("[]");
@@ -102,6 +118,68 @@ describe("v1 Data & health settings", () => {
     fireEvent.click(screen.getByTestId("data-import"));
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("confirm_games", { detectedGames: games }));
+  });
+
+  it("import skips removed games and puts back each game's status, rating and notes", async () => {
+    const hades = { id: "old-1", name: "Hades", source: "steam", sourceId: "1", status: "playing", rating: 5, notes: "Run 12", progress: 40, completed: false, isHidden: false };
+    const gone = { id: "old-2", name: "Uninstalled", source: "steam", sourceId: "2", status: "removed", rating: 3 };
+    const celeste = { id: "old-3", name: "Celeste", source: "epic", status: "backlog", rating: null, notes: null, completed: false, isHidden: false };
+    vi.mocked(openDialog).mockResolvedValue("C:/nexus-library.json");
+    vi.mocked(readTextFile).mockResolvedValue(JSON.stringify([hades, gone, celeste]));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("data-import"));
+
+    await waitFor(() => expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "success", message: "Imported 2 games." }));
+    expect(mockInvoke).toHaveBeenCalledWith("confirm_games", { detectedGames: [hades, celeste] });
+    // Only Hades differs from a new game's defaults; `completed` rides along so update_game doesn't derive it.
+    expect(invoked("update_game")).toEqual([
+      ["update_game", { id: "new-0", fields: { status: "playing", rating: 5, notes: "Run 12", progress: 40, completed: false } }],
+    ]);
+    expect(invoked("relink_play_sessions")).toHaveLength(1);
+    expect(invoked("get_games")).toHaveLength(1);
+  });
+
+  it("import says so when a game's details couldn't be put back", async () => {
+    vi.mocked(openDialog).mockResolvedValue("C:/nexus-library.json");
+    vi.mocked(readTextFile).mockResolvedValue(JSON.stringify([{ name: "Hades", source: "steam", sourceId: "1", status: "completed", rating: 4 }]));
+    responses.update_game = () => Promise.reject(new Error("database is locked"));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("data-import"));
+
+    await waitFor(() =>
+      expect(useToastStore.getState().toasts).toEqual([
+        expect.objectContaining({ type: "error", message: "Imported 1 game, but couldn’t restore the status, rating or notes of 1 game." }),
+      ]),
+    );
+  });
+
+  it("keeps one action's button disabled while a different action finishes", async () => {
+    responses.get_cache_stats = { totalBytes: 2048 };
+    let finishExport!: (path: string | null) => void;
+    vi.mocked(save).mockReturnValue(new Promise((resolve) => (finishExport = resolve)));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("data-export"));
+    await waitFor(() => expect(screen.getByTestId("data-export")).toBeDisabled());
+    fireEvent.click(screen.getByTestId("data-clear-cache"));
+    await waitFor(() => expect(useToastStore.getState().toasts[0]?.message).toBe("Image cache cleared."));
+
+    expect(screen.getByTestId("data-export")).toBeDisabled();
+    await act(async () => finishExport(null));
+    expect(screen.getByTestId("data-export")).toBeEnabled();
+  });
+
+  it("classic Data panel reports a failure instead of swallowing it", async () => {
+    responses.get_cache_stats = { totalBytes: 2048 };
+    responses.clear_cache = () => Promise.reject(new Error("in use"));
+    render(<DataManagement />);
+    await act(async () => {});
+
+    fireEvent.click(screen.getByTestId("data-clear-cache"));
+
+    await waitFor(() => expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t clear the image cache." }));
   });
 
   it("exports the library as JSON to the chosen file", async () => {
@@ -211,6 +289,45 @@ describe("v1 Data & health settings", () => {
     expect(useSettingsStore.getState().healthCheckIssueCount).toBe(0);
   });
 
+  it("keeps a missing game listed when removing it fails", async () => {
+    responses.check_library_health = { deadGames: [deadGame], totalChecked: 12, checkedAt: new Date().toISOString() };
+    responses.update_game = () => Promise.reject(new Error("database is locked"));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("run-health-check"));
+    fireEvent.click(await screen.findByTestId("dead-game-remove-d1"));
+
+    await waitFor(() => expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t remove \"Lost Game\". Please try again." }));
+    expect(screen.getByTestId("dead-game-row-d1")).toBeInTheDocument();
+    expect(useSettingsStore.getState().healthCheckIssueCount).toBe(1);
+  });
+
+  it("remove all keeps the games it couldn't remove", async () => {
+    const other: DeadGame = { ...deadGame, id: "d2", name: "Other Game" };
+    responses.check_library_health = { deadGames: [deadGame, other], totalChecked: 12, checkedAt: new Date().toISOString() };
+    responses.update_game = ({ id }: { id: string }) => (id === "d2" ? Promise.reject(new Error("locked")) : Promise.resolve(null));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("run-health-check"));
+    fireEvent.click(await screen.findByTestId("health-check-remove-all"));
+    fireEvent.click(screen.getByTestId("confirm-action"));
+
+    await waitFor(() => expect(screen.queryByTestId("dead-game-row-d1")).not.toBeInTheDocument());
+    expect(screen.getByTestId("dead-game-row-d2")).toBeInTheDocument();
+    expect(useSettingsStore.getState().healthCheckIssueCount).toBe(1);
+    expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Removed 1 game, but couldn’t remove 1. Please try again." });
+  });
+
+  it("says so when the health check fails, and lets you run it again", async () => {
+    responses.check_library_health = () => Promise.reject(new Error("boom"));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("run-health-check"));
+
+    await waitFor(() => expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t check your library. Please try again." }));
+    expect(screen.getByTestId("run-health-check")).toBeEnabled();
+  });
+
   it("fixes a missing game's path from the file picker", async () => {
     responses.check_library_health = { deadGames: [deadGame], totalChecked: 12, checkedAt: new Date().toISOString() };
     vi.mocked(openDialog).mockResolvedValue("D:/Games/Lost/lost.exe");
@@ -262,6 +379,21 @@ describe("v1 Data & health settings", () => {
 
     await waitFor(() => expect(useSettingsStore.getState().hiddenGameIds).toEqual([]));
     expect(invoked("update_game")).toHaveLength(2);
+    expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "success", message: "Restored 2 games to your library." });
+  });
+
+  it("unhide all keeps the games it couldn't restore hidden", async () => {
+    useGameStore.setState({ games: [game("g1", "Zelda"), game("g2", "Asteroids")] });
+    useSettingsStore.setState({ hiddenGameIds: ["g1", "g2"] });
+    responses.update_game = ({ id }: { id: string }) => (id === "g2" ? Promise.reject(new Error("locked")) : Promise.resolve(null));
+    await renderData();
+
+    fireEvent.click(screen.getByTestId("hidden-games-manage"));
+    fireEvent.click(screen.getByTestId("unhide-all"));
+    fireEvent.click(screen.getByTestId("confirm-action"));
+
+    await waitFor(() => expect(useSettingsStore.getState().hiddenGameIds).toEqual(["g2"]));
+    expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Restored 1 game, but couldn’t restore 1. Please try again." });
   });
 });
 

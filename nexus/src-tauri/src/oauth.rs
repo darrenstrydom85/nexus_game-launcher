@@ -6,11 +6,40 @@
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use sha2::{Digest, Sha256};
-use std::io::{Read, Write};
+use std::collections::HashMap;
+use std::io::{ErrorKind, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::time::Duration;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 
 use crate::commands::error::CommandError;
+
+/// How long the callback server waits for the browser before giving up and freeing the port.
+const CALLBACK_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+/// How often a waiting callback server checks for the browser, its deadline and a newer attempt.
+const CALLBACK_POLL: Duration = Duration::from_millis(100);
+/// How long a new attempt retries the port while an abandoned one lets go of it.
+const BIND_RETRY: Duration = Duration::from_secs(2);
+
+/// The latest sign-in attempt on each callback port. Starting a new one tells an older
+/// one still waiting (its browser tab abandoned) to stop and free the port.
+static LATEST_ATTEMPT: LazyLock<Mutex<HashMap<u16, u64>>> = LazyLock::new(Default::default);
+
+/// Record a new attempt on `port`, superseding any still waiting there.
+fn begin_attempt(port: u16) -> u64 {
+    let mut latest = LATEST_ATTEMPT.lock().unwrap_or_else(|e| e.into_inner());
+    let id = latest.get(&port).map_or(1, |n| n + 1);
+    latest.insert(port, id);
+    id
+}
+
+fn is_latest_attempt(port: u16, id: u64) -> bool {
+    LATEST_ATTEMPT
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&port)
+        == Some(&id)
+}
 
 /// What differs per provider in the shared flow.
 pub struct Provider {
@@ -59,7 +88,8 @@ pub async fn authorize(
 ) -> Result<(String, String), CommandError> {
     let (verifier, challenge) = pkce_pair();
     let state = random_state();
-    let listener = TcpListener::bind(("127.0.0.1", p.port)).map_err(|e| {
+    let attempt = begin_attempt(p.port);
+    let listener = bind_callback(p.port).await.map_err(|e| {
         CommandError::NetworkUnavailable(format!("failed to bind callback listener: {e}"))
     })?;
 
@@ -68,28 +98,72 @@ pub async fn authorize(
 
     // Blocking accept runs off the async runtime so it doesn't starve Tokio workers.
     eprintln!("[{}-auth] waiting for callback on port {}...", p.name, p.port);
-    let code = tokio::task::spawn_blocking(move || receive_callback(listener, &state, p))
-        .await
-        .map_err(|e| CommandError::Unknown(format!("callback task panicked: {e}")))??
-        .ok_or_else(|| CommandError::Auth("Authorization was denied".to_string()))?;
+    let code = tokio::task::spawn_blocking(move || {
+        let stream = wait_for_callback(&listener, p.port, attempt, CALLBACK_TIMEOUT)?;
+        receive_callback(stream, &state, p)
+    })
+    .await
+    .map_err(|e| CommandError::Unknown(format!("callback task panicked: {e}")))??
+    .ok_or_else(|| CommandError::Auth("Authorization was denied".to_string()))?;
     Ok((code, verifier))
 }
 
-/// Block until one HTTP request hits the listener and parse `code`/`error`/`state`.
-/// Returns Ok(Some(code)) on success, Ok(None) if the user denied, Err on timeout,
-/// provider error, or `state` mismatch.
+/// Bind the callback port, retrying briefly while a superseded attempt lets go of it.
+async fn bind_callback(port: u16) -> std::io::Result<TcpListener> {
+    let deadline = Instant::now() + BIND_RETRY;
+    loop {
+        match TcpListener::bind(("127.0.0.1", port)) {
+            Err(e) if e.kind() == ErrorKind::AddrInUse && Instant::now() < deadline => {
+                tokio::time::sleep(CALLBACK_POLL).await;
+            }
+            result => return result,
+        }
+    }
+}
+
+/// Wait for the browser to hit the callback server. Gives up after `timeout`, or as soon
+/// as a newer attempt on `port` starts, so an abandoned sign-in never holds the port.
+fn wait_for_callback(
+    listener: &TcpListener,
+    port: u16,
+    attempt: u64,
+    timeout: Duration,
+) -> Result<TcpStream, CommandError> {
+    listener.set_nonblocking(true)?;
+    let deadline = Instant::now() + timeout;
+    loop {
+        match listener.accept() {
+            Ok((stream, _)) => {
+                // Accepted sockets inherit non-blocking mode on Windows.
+                stream.set_nonblocking(false)?;
+                return Ok(stream);
+            }
+            Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::Interrupted) => {
+                if !is_latest_attempt(port, attempt) {
+                    return Err(CommandError::Auth(
+                        "Sign-in was replaced by a newer attempt.".to_string(),
+                    ));
+                }
+                if Instant::now() >= deadline {
+                    return Err(CommandError::Auth(
+                        "OAuth callback timed out. Please try again.".to_string(),
+                    ));
+                }
+                std::thread::sleep(CALLBACK_POLL);
+            }
+            Err(e) => return Err(CommandError::Io(e)),
+        }
+    }
+}
+
+/// Read the one HTTP request the browser sends and parse `code`/`error`/`state`.
+/// Returns Ok(Some(code)) on success, Ok(None) if the user denied, Err on provider
+/// error or `state` mismatch.
 fn receive_callback(
-    listener: TcpListener,
+    mut stream: TcpStream,
     expected_state: &str,
     p: &Provider,
 ) -> Result<Option<String>, CommandError> {
-    let (mut stream, _) = listener.accept().map_err(|e| {
-        if e.kind() == std::io::ErrorKind::TimedOut {
-            CommandError::Auth("OAuth callback timed out. Please try again.".to_string())
-        } else {
-            CommandError::Io(e)
-        }
-    })?;
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
 
     let mut buf = [0u8; 4096];
@@ -357,7 +431,9 @@ mod tests {
             let mut sink = Vec::new();
             let _ = stream.read_to_end(&mut sink);
         });
-        let result = receive_callback(listener, expected_state, &TEST);
+        let attempt = begin_attempt(port);
+        let stream = wait_for_callback(&listener, port, attempt, Duration::from_secs(5)).unwrap();
+        let result = receive_callback(stream, expected_state, &TEST);
         writer.join().unwrap();
         result
     }
@@ -368,5 +444,32 @@ mod tests {
         assert!(matches!(callback_with("code=abc123&state=evil", "good"), Err(CommandError::Auth(m)) if m.contains("state")));
         assert!(matches!(callback_with("code=abc123", "good"), Err(CommandError::Auth(_))));
         assert!(matches!(callback_with("error=access_denied&state=good", "good"), Ok(None)));
+    }
+
+    #[test]
+    fn wait_for_callback_gives_up_after_the_timeout() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let attempt = begin_attempt(port);
+        let result = wait_for_callback(&listener, port, attempt, Duration::from_millis(250));
+        assert!(matches!(result, Err(CommandError::Auth(m)) if m.contains("timed out")));
+    }
+
+    #[test]
+    fn a_newer_attempt_frees_the_port() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let first = begin_attempt(port);
+        let started = Instant::now();
+        let waiter = std::thread::spawn(move || {
+            wait_for_callback(&listener, port, first, Duration::from_secs(30)).map(|_| ())
+        });
+        std::thread::sleep(Duration::from_millis(150));
+        begin_attempt(port);
+        let result = waiter.join().unwrap();
+        assert!(matches!(result, Err(CommandError::Auth(m)) if m.contains("newer")));
+        assert!(started.elapsed() < Duration::from_secs(5));
+        // The waiter dropped the listener, so the port binds again.
+        TcpListener::bind(("127.0.0.1", port)).unwrap();
     }
 }

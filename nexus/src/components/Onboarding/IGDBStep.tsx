@@ -29,6 +29,13 @@ export function IGDBStep() {
   const handleVerify = React.useCallback(async () => {
     setVerifyState("verifying");
     setErrorMsg("");
+    // Verification reads the saved keys, so save first and put the old ones back if it fails.
+    const { igdbClientId: priorId, igdbClientSecret: priorSecret } = useSettingsStore.getState().apiKeys;
+    const restore = async () => {
+      await invoke("set_setting", { key: "igdb_client_id", value: priorId }).catch(() => {});
+      await invoke("set_setting", { key: "igdb_client_secret", value: priorSecret }).catch(() => {});
+      setApiKeys({ igdbClientId: priorId, igdbClientSecret: priorSecret });
+    };
     try {
       await invoke("set_setting", { key: "igdb_client_id", value: clientId });
       await invoke("set_setting", { key: "igdb_client_secret", value: clientSecret });
@@ -39,6 +46,7 @@ export function IGDBStep() {
       if (result.valid) {
         setVerifyState("success");
       } else {
+        await restore();
         setVerifyState("error");
         if (result.message.toLowerCase().includes("client id")) {
           setErrorMsg("That client ID wasn’t accepted. Check it in your Twitch developer console.");
@@ -51,6 +59,7 @@ export function IGDBStep() {
         }
       }
     } catch (err: unknown) {
+      await restore();
       setVerifyState("error");
       setErrorMsg(err instanceof Error ? err.message : "Verification failed");
     }

@@ -165,7 +165,7 @@ describe("Story 12.8: HiddenGamesList", () => {
       const toasts = useToastStore.getState().toasts;
       expect(toasts).toHaveLength(1);
       expect(toasts[0].type).toBe("success");
-      expect(toasts[0].message).toBe("All hidden games restored");
+      expect(toasts[0].message).toBe("Restored 2 games to your library.");
     });
   });
 

@@ -168,7 +168,11 @@ impl IgdbClient {
         Self {
             client_id,
             client_secret,
-            http: reqwest::Client::new(),
+            // A stalled IGDB must not hold a semaphore permit forever.
+            http: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .unwrap_or_default(),
             token: Arc::new(Mutex::new(None)),
             semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT)),
             rate_limiter: Arc::new(Mutex::new(Vec::new())),

@@ -73,6 +73,7 @@ function unlockContext(json: string | null): string | null {
 export function AchievementsPage() {
   const statuses = useAchievementStore((s) => s.statuses);
   const loading = useAchievementStore((s) => s.loading);
+  const failed = useAchievementStore((s) => s.error);
   const highlightId = useAchievementStore((s) => s.highlightId);
   const reduce = useReducedMotionConfig();
   const [category, setCategory] = React.useState<AchievementCategory | "all">("all");
@@ -119,6 +120,23 @@ export function AchievementsPage() {
     }
     return out;
   }, [statuses]);
+
+  // Nothing to show and the fetch failed: say so, rather than "no achievements yet".
+  if (failed && !loading && statuses.length === 0) {
+    return (
+      <div data-testid="achievements-error" className={cn(COLUMN, "flex flex-col items-center gap-3 py-24 text-center")}>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground">Achievements</h1>
+        <p className="text-sm text-muted-foreground">Couldn’t load your achievements.</p>
+        <button
+          type="button"
+          onClick={() => void useAchievementStore.getState().fetchStatuses()}
+          className="pressable h-8 rounded-lg border border-input px-3 text-[13px] font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (loading && statuses.length === 0) {
     return (

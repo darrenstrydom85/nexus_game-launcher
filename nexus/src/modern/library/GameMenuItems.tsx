@@ -219,9 +219,8 @@ export function GameMenuItems({
         data-testid="menu-refetch"
         onSelect={() => {
           addToast({ type: "info", message: `Re-fetching metadata for ${game.name}…` });
-          refetchGameMetadata(game).catch(() =>
-            addToast({ type: "error", message: `Couldn't re-fetch metadata for ${game.name}.` }),
-          );
+          // Failures toast from gameActions.
+          void refetchGameMetadata(game);
         }}
       >
         <RefreshCw {...ICON} /> Re-fetch metadata
@@ -238,12 +237,14 @@ export function GameMenuItems({
       <M.Item
         data-testid="menu-hide"
         onSelect={() => {
-          hideGame(game).then(() =>
-            addToast({
-              type: "info",
-              message: `"${game.name}" hidden from library`,
-              action: { label: "Undo", onClick: () => unhideGame(game) },
-            }),
+          hideGame(game).then(
+            (ok) =>
+              ok &&
+              addToast({
+                type: "info",
+                message: `"${game.name}" hidden from library`,
+                action: { label: "Undo", onClick: () => void unhideGame(game) },
+              }),
           );
         }}
       >

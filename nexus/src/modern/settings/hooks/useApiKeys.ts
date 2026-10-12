@@ -1,6 +1,8 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { errorMessage } from "@/lib/utils";
 import { useSettingsStore, type ApiKeys } from "@/stores/settingsStore";
+import { useToastStore } from "@/stores/toastStore";
 
 export type KeyProvider = "steamgrid" | "igdb";
 
@@ -22,22 +24,32 @@ const CLEARED: Record<KeyProvider, Partial<ApiKeys>> = {
   igdb: { igdbClientId: "", igdbClientSecret: "" },
 };
 
+const KEY_NAMES: Record<KeyProvider, string> = {
+  steamgrid: "SteamGridDB key",
+  igdb: "IGDB keys",
+};
+
+/**
+ * Writes each key to the database, then puts it in the store as that write
+ * lands, so the two never disagree. The store's own `setApiKeys` would write
+ * a second time, so this sets the state directly. Rejects on the first failed write.
+ */
+async function writeKeys(keys: Partial<ApiKeys>) {
+  for (const [k, v] of Object.entries(keys) as [keyof ApiKeys, string][]) {
+    await invoke("set_setting", { key: SETTING_KEYS[k], value: v });
+    useSettingsStore.setState((s) => ({ apiKeys: { ...s.apiKeys, [k]: v } }));
+  }
+}
+
 /** First and last four characters around a fixed run of dots, so the length never leaks. */
 export function maskKey(key: string): string {
   if (key.length <= 8) return "••••••••";
   return `${key.slice(0, 4)} •••••••••••• ${key.slice(-4)}`;
 }
 
-export function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === "string") return err;
-  return "Something went wrong";
-}
-
 /** API keys from the settings store, with save (then verify) and remove. */
 export function useApiKeys() {
   const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const setApiKeys = useSettingsStore((s) => s.setApiKeys);
   const [checks, setChecks] = React.useState<Partial<Record<KeyProvider, KeyCheck>>>({});
   // Drops a verify result that lands after a newer save or a remove.
   const runs = React.useRef<Record<KeyProvider, number>>({ steamgrid: 0, igdb: 0 });
@@ -64,28 +76,31 @@ export function useApiKeys() {
 
   /**
    * Writes the keys and updates the store, then checks them with the provider
-   * in the background. Rejects if the write fails.
+   * in the background. Rejects if a write fails.
    */
   const save = React.useCallback(
     async (provider: KeyProvider, keys: Partial<ApiKeys>) => {
       const trimmed = Object.fromEntries(Object.entries(keys).map(([k, v]) => [k, (v ?? "").trim()])) as Partial<ApiKeys>;
       // Await the writes so the verify command reads the new values.
-      for (const [k, v] of Object.entries(trimmed)) {
-        await invoke("set_setting", { key: SETTING_KEYS[k as keyof ApiKeys], value: v });
-      }
-      setApiKeys(trimmed);
+      await writeKeys(trimmed);
       void verify(provider);
     },
-    [setApiKeys, verify],
+    [verify],
   );
 
+  /** Clears the provider's keys. Keeps them, with an error toast, if the write fails. */
   const remove = React.useCallback(
-    (provider: KeyProvider) => {
+    async (provider: KeyProvider) => {
+      try {
+        await writeKeys(CLEARED[provider]);
+      } catch {
+        useToastStore.getState().addToast({ type: "error", message: `Couldn’t remove your ${KEY_NAMES[provider]}. Please try again.` });
+        return;
+      }
       runs.current[provider]++;
       setCheck(provider, undefined);
-      setApiKeys(CLEARED[provider]);
     },
-    [setApiKeys, setCheck],
+    [setCheck],
   );
 
   return { apiKeys, checks, save, remove };

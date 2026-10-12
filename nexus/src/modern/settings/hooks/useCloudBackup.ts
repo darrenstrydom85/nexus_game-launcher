@@ -23,6 +23,9 @@ export const BACKUP_FREQUENCIES: { value: BackupFrequency; label: string }[] = [
 
 export const BACKUP_RETENTION_OPTIONS = [3, 5, 10, 20] as const;
 
+/** How long "Connecting…" waits on the browser sign-in before giving up. */
+export const CONNECT_TIMEOUT_MS = 3 * 60_000;
+
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["day", 86_400],
   ["hour", 3_600],
@@ -48,6 +51,8 @@ export function useCloudBackup() {
   const [disconnecting, setDisconnecting] = React.useState(false);
   const [backingUp, setBackingUp] = React.useState(false);
   const addToast = useToastStore((s) => s.addToast);
+  // Bumped by Cancel and the timeout, so a sign-in the user gave up on can't flip the button back.
+  const connectAttempt = React.useRef(0);
 
   const loadStatus = React.useCallback(async () => {
     try {
@@ -64,17 +69,33 @@ export function useCloudBackup() {
   }, [loadStatus]);
 
   const connect = React.useCallback(async () => {
+    const attempt = ++connectAttempt.current;
+    const current = () => connectAttempt.current === attempt;
     setConnecting(true);
+    const timer = setTimeout(() => {
+      if (!current()) return;
+      connectAttempt.current++;
+      setConnecting(false);
+      addToast({ type: "info", message: "Google Drive sign-in timed out. Try connecting again.", duration: 5000 });
+    }, CONNECT_TIMEOUT_MS);
     try {
       await gdriveAuthStart();
+      // A sign-in finished after Cancel still connected, so show it either way.
       await loadStatus();
       addToast({ type: "success", message: "Connected to Google Drive.", duration: 3000 });
     } catch {
-      addToast({ type: "error", message: "Couldn’t connect to Google Drive.", duration: 5000 });
+      if (current()) addToast({ type: "error", message: "Couldn’t connect to Google Drive.", duration: 5000 });
     } finally {
-      setConnecting(false);
+      clearTimeout(timer);
+      if (current()) setConnecting(false);
     }
   }, [addToast, loadStatus]);
+
+  /** Stops waiting on a browser sign-in the user abandoned. */
+  const cancelConnect = React.useCallback(() => {
+    connectAttempt.current++;
+    setConnecting(false);
+  }, []);
 
   /** Signs out of Google Drive. Resolves to whether it worked. */
   const disconnect = React.useCallback(async () => {
@@ -140,6 +161,7 @@ export function useCloudBackup() {
     backingUp,
     reload: loadStatus,
     connect,
+    cancelConnect,
     disconnect,
     backUpNow,
     setFrequency,

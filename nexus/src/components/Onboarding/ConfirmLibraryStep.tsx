@@ -120,20 +120,30 @@ export function ConfirmLibraryStep() {
       };
     });
 
+    let saved: { id: string; isHidden?: boolean }[];
     try {
-      await invoke("confirm_games", { detectedGames });
-      await invoke("relink_play_sessions");
+      saved = await invoke<{ id: string; isHidden?: boolean }[]>("confirm_games", { detectedGames });
     } catch (err: unknown) {
       const msg = typeof err === "string" ? err : err instanceof Error ? err.message : JSON.stringify(err);
       setConfirmError(msg);
       setSaving(false);
       return;
     }
-    try {
-      await invoke("set_setting", { key: "onboarding_completed", value: "true" });
-    } catch {
-      // best-effort
-    }
+    // Games already in the library keep their old hidden flag through an import
+    // (so re-scans never undo a hide). Here the user just chose, so apply it.
+    await Promise.allSettled(
+      (saved ?? []).flatMap((game, i) =>
+        game && Boolean(game.isHidden) !== detectedGames[i]?.isHidden
+          ? [invoke("update_game", { id: game.id, fields: { isHidden: detectedGames[i].isHidden } })]
+          : [],
+      ),
+    );
+    // Re-linking old sessions helps, but isn't worth failing setup over.
+    await invoke("relink_play_sessions").catch(() => {});
+    // Without this flag the wizard returns next launch; try twice before moving on.
+    await invoke("set_setting", { key: "onboarding_completed", value: "true" }).catch(() =>
+      invoke("set_setting", { key: "onboarding_completed", value: "true" }).catch(() => {}),
+    );
     completeOnboarding();
   }, [games, excluded, rawDetectedGames, completeOnboarding]);
 

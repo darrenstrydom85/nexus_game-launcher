@@ -11,7 +11,7 @@ import {
   type TwitchDiagnostics,
   type TwitchTestConnectionResult,
 } from "@/lib/tauri";
-import { errorMessage } from "./useApiKeys";
+import { errorMessage } from "@/lib/utils";
 
 /** The signed-in Twitch account and the connect, disconnect and clear-cache actions. */
 export function useTwitchAccount() {

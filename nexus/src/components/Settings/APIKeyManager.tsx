@@ -153,7 +153,7 @@ export function APIKeyManager() {
           </span>
         </div>
         <KeyField
-          label="key"
+          label="SteamGridDB key"
           value={apiKeys.steamGridDbKey}
           settingKey="steamgrid_api_key"
           testId="steamgrid"

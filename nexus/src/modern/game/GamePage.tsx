@@ -108,7 +108,8 @@ function GamePageBody({ game, onStop, onForceIdentify, ...menu }: GamePageProps 
   const screenshots = game.screenshotUrls ?? [];
   const hasMedia = screenshots.length > 0 || !!youtubeId;
   const genres = Array.isArray(game.genres) ? game.genres : [];
-  const year = game.releaseDate ? new Date(game.releaseDate).getFullYear() : null;
+  const parsedYear = game.releaseDate ? new Date(game.releaseDate).getFullYear() : NaN;
+  const year = Number.isFinite(parsedYear) ? parsedYear : null;
   const art = game.heroUrl ?? game.coverUrl;
 
   const tabs = [

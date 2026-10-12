@@ -150,7 +150,11 @@ export function StreakCard({ allSessions, className }: { allSessions: SessionRec
   const weeks = React.useMemo(() => heatmapWeeks(allSessions, 26), [allSessions]);
   const daysPlayed = weeks.flat().filter((c) => c.seconds > 0).length;
   const started = streak?.currentStreak && streak.streakStartedAt
-    ? new Date(streak.streakStartedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+    ? // A bare "YYYY-MM-DD" parses as UTC midnight; read it as the local calendar day.
+      new Date(/^\d{4}-\d{2}-\d{2}$/.test(streak.streakStartedAt) ? `${streak.streakStartedAt}T00:00:00` : streak.streakStartedAt).toLocaleDateString(
+        undefined,
+        { day: "numeric", month: "short", year: "numeric" },
+      )
     : "—";
 
   return (

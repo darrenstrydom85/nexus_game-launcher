@@ -6,6 +6,8 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
 
 import { ThemeSection } from "@/modern/settings/sections/ThemeSection";
 import { BackupSection } from "@/modern/settings/sections/BackupSection";
+import { CONNECT_TIMEOUT_MS } from "@/modern/settings/hooks/useCloudBackup";
+import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { makeDefaultTheme, DEFAULT_FONT_SCALE, DEFAULT_RADIUS } from "@/lib/themeTypes";
 import type { BackupStatus } from "@/lib/tauri";
@@ -217,6 +219,45 @@ describe("v1 Settings › Cloud backup", () => {
       fireEvent.click(screen.getByRole("button", { name: "Connect Google Drive" }));
     });
     expect(mockInvoke).toHaveBeenCalledWith("gdrive_auth_start");
+  });
+
+  /** Google Drive not linked, and a browser sign-in that never comes back. */
+  function mockAbandonedSignIn() {
+    mockBackend(null);
+    const backend = mockInvoke.getMockImplementation()!;
+    mockInvoke.mockImplementation((cmd: string, args?: unknown) => (cmd === "gdrive_auth_start" ? new Promise(() => {}) : backend(cmd, args)));
+  }
+
+  it("cancels a sign-in left unfinished in the browser", async () => {
+    mockAbandonedSignIn();
+    await renderBackup();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect Google Drive" }));
+    expect(screen.getByTestId("backup-connect")).toHaveTextContent("Connecting…");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByTestId("backup-connect")).toHaveTextContent("Connect Google Drive");
+    expect(screen.getByTestId("backup-connect")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
+  it("stops waiting on the sign-in after a few minutes", async () => {
+    useToastStore.setState({ toasts: [] });
+    mockAbandonedSignIn();
+    vi.useFakeTimers();
+    try {
+      await renderBackup();
+      fireEvent.click(screen.getByRole("button", { name: "Connect Google Drive" }));
+      expect(screen.getByTestId("backup-connect")).toBeDisabled();
+
+      act(() => {
+        vi.advanceTimersByTime(CONNECT_TIMEOUT_MS);
+      });
+      expect(screen.getByTestId("backup-connect")).toBeEnabled();
+      expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "info", message: "Google Drive sign-in timed out. Try connecting again." });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("restoring a backup lists them and confirms before overwriting", async () => {

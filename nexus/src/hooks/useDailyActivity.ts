@@ -29,25 +29,30 @@ export function lastDays(count: number, today = new Date()): Date[] {
   });
 }
 
-/** Play time per day, refetched whenever a session ends. Null until loaded. */
-export function useDailyActivity(): Map<string, DayActivity> | null {
+/**
+ * Play time per day, refetched whenever a session ends. `days` is null until
+ * loaded; `failed` says the lookup errored, so callers don't show zeros.
+ */
+export function useDailyActivity(): { days: Map<string, DayActivity> | null; failed: boolean } {
   const sessionEnded = useGameStore((s) => s.lastSessionEndedAt);
   const [days, setDays] = React.useState<Map<string, DayActivity> | null>(null);
+  const [failed, setFailed] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
     invoke<ActivityBucket[]>("get_activity_data", { params: { period: "daily" } })
       .then((buckets) => {
         if (cancelled) return;
+        setFailed(false);
         setDays(new Map((buckets ?? []).map((b) => [b.period, { seconds: b.totalTime, sessions: b.sessionCount }])));
       })
       .catch(() => {
-        if (!cancelled) setDays(new Map());
+        if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, [sessionEnded]);
 
-  return days;
+  return { days, failed };
 }

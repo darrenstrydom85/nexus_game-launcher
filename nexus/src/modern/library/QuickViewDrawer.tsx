@@ -118,7 +118,8 @@ function DrawerBody({ game, onStop, ...menu }: QuickViewDrawerProps & { game: Ga
   const archived = game.status === "removed";
   const art = game.heroUrl ?? game.coverUrl;
   const genres = (Array.isArray(game.genres) ? game.genres : []).slice(0, 2);
-  const year = game.releaseDate ? new Date(game.releaseDate).getFullYear() : null;
+  const parsedYear = game.releaseDate ? new Date(game.releaseDate).getFullYear() : NaN;
+  const year = Number.isFinite(parsedYear) ? parsedYear : null;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">

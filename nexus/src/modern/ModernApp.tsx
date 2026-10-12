@@ -30,6 +30,9 @@ interface ModernAppProps {
   onOpenRandom: () => void;
 }
 
+// The shell remounts when leaving retro or switching layouts; only the first mount picks Home.
+let landedThisLaunch = false;
+
 /** v1.0 shell: top bar + now-playing strip, then the page with the quick view pushing in beside it. */
 export function ModernApp({
   page,
@@ -49,6 +52,8 @@ export function ModernApp({
   const openGameId = useUiStore((s) => s.detailOverlayGameId);
 
   React.useEffect(() => {
+    if (landedThisLaunch) return;
+    landedThisLaunch = true;
     useUiStore.getState().setActiveNav("home");
   }, []);
 

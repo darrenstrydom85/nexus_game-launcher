@@ -10,7 +10,7 @@ import { useQueueStore } from "@/stores/queueStore";
 import { useUiStore } from "@/stores/uiStore";
 import { placeholderGradient } from "@/components/GameCard/GameCard";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { criticsPicks } from "./homePicks";
+import { criticsPicks, visibleGames } from "./homePicks";
 
 interface SpotlightProps {
   onPlay: (game: Game) => void;
@@ -44,7 +44,7 @@ export function Spotlight({ onPlay, onStop }: SpotlightProps) {
   const runningId = session?.gameId ?? null;
 
   const { list, mode } = React.useMemo(
-    () => pickSpotlight(games.filter((g) => g.status !== "removed" && !hiddenIds.includes(g.id)), runningId),
+    () => pickSpotlight(visibleGames(games, hiddenIds), runningId),
     [games, hiddenIds, runningId],
   );
   const [index, setIndex] = React.useState(0);
@@ -209,12 +209,13 @@ export function Spotlight({ onPlay, onStop }: SpotlightProps) {
 function QueueToggle({ game }: { game: Game }) {
   const queued = useQueueStore((s) => s.entries.some((e) => e.gameId === game.id));
   const label = queued ? "Remove from play queue" : "Add to play queue";
+  const name = `Queue ${game.name}`;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label={label}
+          aria-label={name}
           aria-pressed={queued}
           data-testid="spotlight-queue"
           onClick={() => {

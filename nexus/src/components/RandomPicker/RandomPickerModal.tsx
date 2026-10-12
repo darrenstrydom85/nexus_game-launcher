@@ -117,6 +117,7 @@ export function RandomPickerModal({ open, onClose, onPlay, onViewDetails }: Rand
                 game={game}
                 phase={phase}
                 calm={calm}
+                canOpen={counts[packId] > 0}
                 onOpen={phase === "idle" ? rip : () => setPhase("revealed")}
               />
               {phase === "idle" && (
@@ -167,12 +168,14 @@ function Stage({
   game,
   phase,
   calm,
+  canOpen,
   onOpen,
 }: {
   pack: PackDef;
   game: Game | null;
   phase: Phase;
   calm: boolean;
+  canOpen: boolean;
   onOpen: () => void;
 }) {
   const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
@@ -200,7 +203,7 @@ function Stage({
         type="button"
         data-testid={phase === "idle" ? "picker-pack" : "picker-skip"}
         aria-label={phase === "idle" ? `Open the ${pack.name} pack` : phase === "revealed" ? `${game?.name ?? "Game"} card` : "Skip to the card"}
-        disabled={phase === "revealed"}
+        disabled={phase === "revealed" || (phase === "idle" && !canOpen)}
         onClick={onOpen}
         onPointerMove={(e) => {
           if (calm || phase !== "idle") return;

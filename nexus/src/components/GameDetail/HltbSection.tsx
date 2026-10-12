@@ -474,10 +474,10 @@ export function HltbSection({ game }: HltbSectionProps) {
       {max > 0 && (
         <div aria-hidden className="relative h-2 rounded-full bg-secondary">
           <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: pct(you) }} />
-          {game.hltbMainH && game.hltbMainH < max && (
+          {game.hltbMainH != null && game.hltbMainH > 0 && game.hltbMainH < max && (
             <span className="absolute -top-[3px] h-3.5 w-0.5 rounded-full bg-foreground/80" style={{ left: pct(game.hltbMainH) }} />
           )}
-          {game.hltbMainExtraH && game.hltbMainExtraH < max && (
+          {game.hltbMainExtraH != null && game.hltbMainExtraH > 0 && game.hltbMainExtraH < max && (
             <span className="absolute -top-[3px] h-3.5 w-0.5 rounded-full bg-foreground/45" style={{ left: pct(game.hltbMainExtraH) }} />
           )}
         </div>

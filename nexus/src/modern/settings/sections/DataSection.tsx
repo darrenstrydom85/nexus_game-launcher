@@ -11,7 +11,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { refreshGames, useGameStore } from "@/stores/gameStore";
 import { useToastStore } from "@/stores/toastStore";
 import { DANGER_BUTTON, SettingsCard, SettingsRow, ToggleRow } from "../SettingsKit";
-import { useDataManagement, type ResetMode, type ShortSessionsCount } from "../hooks/useDataManagement";
+import { importToast, useDataManagement, type ResetMode, type ShortSessionsCount } from "../hooks/useDataManagement";
 import { useDeadGameActions, useLibraryHealthCheck } from "../hooks/useLibraryHealth";
 import { useHiddenGames } from "../hooks/useHiddenGames";
 
@@ -108,11 +108,7 @@ function YourDataCard({ data }: { data: DataManagement }) {
   const handleImport = () => {
     data
       .importLibrary()
-      .then((count) => {
-        if (count === null) return;
-        void refreshGames();
-        addToast({ type: "success", message: `Imported ${plural(count, "game")}.` });
-      })
+      .then((result) => result && addToast(importToast(result)))
       .catch(() => addToast({ type: "error", message: "Couldn’t import that file. Check it’s a Nexus library export." }));
   };
 
@@ -156,15 +152,15 @@ function YourDataCard({ data }: { data: DataManagement }) {
   return (
     <SettingsCard title="Your data" data-testid="data-your-data">
       <SettingsRow label="Export library" description="Every game and its details as a JSON file">
-        <Button variant="outline" size="sm" data-testid="data-export" disabled={data.busy === "export"} onClick={handleExport}>
+        <Button variant="outline" size="sm" data-testid="data-export" disabled={data.isBusy("export")} onClick={handleExport}>
           <Download className="size-3.5" strokeWidth={1.75} />
           Export
         </Button>
       </SettingsRow>
       <SettingsRow label="Import library" description="Adds games from a Nexus library export and re-links their play history">
-        <Button variant="outline" size="sm" data-testid="data-import" disabled={data.busy === "import"} onClick={handleImport}>
+        <Button variant="outline" size="sm" data-testid="data-import" disabled={data.isBusy("import")} onClick={handleImport}>
           <Upload className="size-3.5" strokeWidth={1.75} />
-          {data.busy === "import" ? "Importing…" : "Import"}
+          {data.isBusy("import") ? "Importing…" : "Import"}
         </Button>
       </SettingsRow>
       <SettingsRow label="Remove short sessions" labelFor={thresholdId} description={`Sessions under ${thresholdLabel}`}>
@@ -185,15 +181,15 @@ function YourDataCard({ data }: { data: DataManagement }) {
           size="sm"
           className={DANGER_BUTTON}
           data-testid="data-short-sessions"
-          disabled={data.busy === "previewShort" || data.busy === "deleteShort"}
+          disabled={data.isBusy("previewShort") || data.isBusy("deleteShort")}
           onClick={handleFindShort}
         >
-          {data.busy === "deleteShort" ? "Removing…" : "Remove"}
+          {data.isBusy("deleteShort") ? "Removing…" : "Remove"}
         </Button>
       </SettingsRow>
       <SettingsRow label="Image cache" description={cacheDescription}>
-        <Button variant="outline" size="sm" data-testid="data-clear-cache" disabled={data.busy === "cache" || !data.cacheSize} onClick={handleClearCache}>
-          {data.busy === "cache" ? "Clearing…" : "Clear"}
+        <Button variant="outline" size="sm" data-testid="data-clear-cache" disabled={data.isBusy("cache") || !data.cacheSize} onClick={handleClearCache}>
+          {data.isBusy("cache") ? "Clearing…" : "Clear"}
         </Button>
       </SettingsRow>
       <SettingsRow
@@ -529,7 +525,7 @@ function DangerZoneCard({ data }: { data: DataManagement }) {
   const [open, setOpen] = React.useState(false);
   const [keepKeys, setKeepKeys] = React.useState(false);
   const keepKeysId = React.useId();
-  const resetting = data.busy === "reset";
+  const resetting = data.isBusy("reset");
 
   const ask = (next: DangerAction) => {
     setAction(next);
@@ -560,10 +556,10 @@ function DangerZoneCard({ data }: { data: DataManagement }) {
           size="sm"
           className={DANGER_BUTTON}
           data-testid="data-clear-history"
-          disabled={data.busy === "clearHistory"}
+          disabled={data.isBusy("clearHistory")}
           onClick={() => ask("clear")}
         >
-          {data.busy === "clearHistory" ? "Clearing…" : "Clear"}
+          {data.isBusy("clearHistory") ? "Clearing…" : "Clear"}
         </Button>
       </SettingsRow>
       <SettingsRow label="Reset library" description="Removes your games and settings but keeps play history and API keys.">

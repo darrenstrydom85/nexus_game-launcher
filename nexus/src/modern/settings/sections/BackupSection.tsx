@@ -36,11 +36,23 @@ export function BackupSection() {
   if (!status?.connected) {
     return (
       <SettingsCard title="Google Drive" data-testid="cloud-backup-settings">
-        <SettingsRow label="Not connected" description="Back up your library, collections, play history and settings to your Google Drive">
+        <SettingsRow
+          label="Not connected"
+          description={
+            backup.connecting
+              ? "Finish signing in to Google in your browser"
+              : "Back up your library, collections, play history and settings to your Google Drive"
+          }
+        >
           <Button size="sm" data-testid="backup-connect" disabled={backup.connecting} aria-busy={backup.connecting} onClick={backup.connect}>
             {backup.connecting && <Loader2 className="size-3.5 animate-spin" strokeWidth={2} aria-hidden />}
             {backup.connecting ? "Connecting…" : "Connect Google Drive"}
           </Button>
+          {backup.connecting && (
+            <Button variant="outline" size="sm" data-testid="backup-connect-cancel" onClick={backup.cancelConnect}>
+              Cancel
+            </Button>
+          )}
         </SettingsRow>
       </SettingsCard>
     );

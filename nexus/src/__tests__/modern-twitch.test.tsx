@@ -5,6 +5,7 @@ import { TwitchPage } from "@/modern/twitch/TwitchPage";
 import { useTwitchStore, type TwitchChannel } from "@/stores/twitchStore";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useToastStore } from "@/stores/toastStore";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 function channel(login: string, game: string | null, viewers = 10, isFavorite = false): TwitchChannel {
@@ -112,6 +113,23 @@ describe("v1 Twitch page", () => {
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: /^Watch BOB/ }));
     expect(invoke).toHaveBeenCalledWith("popout_stream", expect.objectContaining({ channelLogin: "bob", twitchGameName: "Celeste" }));
+  });
+
+  it("says so when the popout can't open", async () => {
+    useToastStore.setState({ toasts: [] });
+    const backend = vi.mocked(invoke).getMockImplementation()!;
+    vi.mocked(invoke).mockImplementation((cmd: string, args?: unknown) =>
+      cmd === "popout_stream" ? Promise.reject(new Error("window failed")) : backend(cmd, args as never),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Watch BOB/ }));
+    });
+
+    expect(useToastStore.getState().toasts[0]).toMatchObject({ type: "error", message: "Couldn’t open the stream." });
+    consoleError.mockRestore();
   });
 
   it("stops at 20 favourites", async () => {

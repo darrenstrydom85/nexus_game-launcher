@@ -1,13 +1,13 @@
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TwitchIcon } from "@/lib/source-icons/TwitchIcon";
 import { useSettingsStore, type ApiKeys } from "@/stores/settingsStore";
 import { DANGER_BUTTON, RowIcon, SettingsCard, SettingsRow, ToggleRow } from "../SettingsKit";
-import { errorMessage, maskKey, runSetupWizard, useApiKeys, type KeyCheck, type KeyProvider } from "../hooks/useApiKeys";
+import { maskKey, runSetupWizard, useApiKeys, type KeyCheck, type KeyProvider } from "../hooks/useApiKeys";
 import { fmtDurationSecs, fmtTimestamp, useTwitchAccount, useTwitchDiagnostics } from "../hooks/useTwitchSettings";
 
 const INPUT =
