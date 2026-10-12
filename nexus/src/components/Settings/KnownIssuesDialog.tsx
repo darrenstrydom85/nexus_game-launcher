@@ -73,7 +73,7 @@ export function KnownIssuesDialog({ open, onClose }: KnownIssuesDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-labelledby="known-issues-dialog-title"
@@ -83,7 +83,7 @@ export function KnownIssuesDialog({ open, onClose }: KnownIssuesDialogProps) {
     >
       <div
         ref={containerRef}
-        className="w-full max-w-md rounded-lg border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300"
+        className="w-full max-w-md rounded-lg border border-border bg-card p-4 shadow-xl animate-in fade-in zoom-in-95 duration-300"
       >
         <div className="flex items-center justify-between">
           <h2

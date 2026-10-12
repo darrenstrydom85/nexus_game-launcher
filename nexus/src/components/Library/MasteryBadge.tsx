@@ -70,7 +70,7 @@ export function MasteryBadge({ gameId, size = "card" }: MasteryBadgeProps) {
             data-testid={`mastery-badge-${gameId}`}
             className={cn(
               "relative flex items-center justify-center overflow-hidden rounded-md",
-              "bg-black/50 backdrop-blur-[4px]",
+              "bg-black/50",
             )}
             style={{
               width: px,

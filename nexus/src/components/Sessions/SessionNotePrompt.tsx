@@ -117,7 +117,7 @@ export function SessionNotePrompt({
           data-testid="session-note-prompt"
           className={cn(
             "fixed bottom-4 right-4 z-[25] w-80",
-            "rounded-lg border border-border bg-card/90 backdrop-blur-md",
+            "rounded-lg border border-border bg-card",
             "shadow-lg",
           )}
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}

@@ -74,7 +74,7 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-labelledby="close-confirm-dialog-title"
@@ -82,7 +82,7 @@ export function CloseConfirmDialog({ open, onClose }: CloseConfirmDialogProps) {
     >
       <div
         ref={containerRef}
-        className="w-full max-w-[460px] rounded-xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur-sm"
+        className="w-full max-w-[460px] rounded-xl border border-border bg-card p-6 shadow-xl"
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();

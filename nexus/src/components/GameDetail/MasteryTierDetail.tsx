@@ -40,7 +40,7 @@ export function MasteryTierDetail({ gameId }: MasteryTierDetailProps) {
         <div
           className={cn(
             "relative flex items-center justify-center overflow-hidden rounded-md",
-            "bg-black/50 backdrop-blur-[4px]",
+            "bg-black/50",
           )}
           style={{
             width: 32,
