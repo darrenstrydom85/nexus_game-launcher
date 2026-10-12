@@ -11,7 +11,8 @@ interface SegmentedOption<T extends string> {
 }
 
 interface SegmentedControlProps<T extends string> {
-  value: T;
+  /** null when none of the options applies (e.g. a custom range is active). */
+  value: T | null;
   onValueChange: (value: T) => void;
   options: SegmentedOption<T>[];
   "aria-label": string;
@@ -29,7 +30,7 @@ export function SegmentedControl<T extends string>({
   return (
     <Radix.ToggleGroup.Root
       type="single"
-      value={value}
+      value={value ?? ""}
       // Radix emits "" when the active item is pressed again; keep one selected.
       onValueChange={(v) => v && onValueChange(v as T)}
       aria-label={props["aria-label"]}

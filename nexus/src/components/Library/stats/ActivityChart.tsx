@@ -55,8 +55,10 @@ export function ActivityChart({ data, accentColor = DEFAULT_ACCENT }: ActivityCh
               contentStyle={rechartsTooltipContentStyle}
               labelStyle={rechartsTooltipLabelStyle}
               itemStyle={rechartsTooltipItemStyle}
+              isAnimationActive={false}
             />
             <Line
+              isAnimationActive={false}
               type="monotone"
               dataKey="minutes"
               stroke={stroke}
