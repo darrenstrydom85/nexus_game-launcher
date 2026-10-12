@@ -20,6 +20,7 @@ vi.mock("@/lib/statsExport", async (importOriginal) => {
 import { DataSection } from "@/modern/settings/sections/DataSection";
 import { ExportSection } from "@/modern/settings/sections/ExportSection";
 import { DeveloperSection } from "@/modern/settings/sections/DeveloperSection";
+import { importLibraryFile } from "@/modern/settings/hooks/useDataManagement";
 import { DataManagement } from "@/components/Settings/DataManagement";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -107,6 +108,18 @@ describe("v1 Data & health settings", () => {
     await waitFor(() => expect(invoked("relink_play_sessions")).toHaveLength(1));
     expect(mockInvoke).toHaveBeenCalledWith("confirm_games", { detectedGames: games });
     expect(readTextFile).toHaveBeenCalledWith("C:/nexus-library.json");
+  });
+
+  it("an import still succeeds when re-linking old sessions fails", async () => {
+    const games = [{ name: "Hades", source: "steam", sourceId: "1145360" }];
+    vi.mocked(openDialog).mockResolvedValue("C:/nexus-library.json");
+    vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(games));
+    const base = mockInvoke.getMockImplementation();
+    mockInvoke.mockImplementation((cmd: string, args?: unknown) =>
+      cmd === "relink_play_sessions" ? Promise.reject(new Error("db locked")) : base ? base(cmd, args) : Promise.resolve(undefined),
+    );
+    const result = await importLibraryFile();
+    expect(result).toMatchObject({ imported: 1 });
   });
 
   it("classic Data panel imports with the same corrected argument", async () => {

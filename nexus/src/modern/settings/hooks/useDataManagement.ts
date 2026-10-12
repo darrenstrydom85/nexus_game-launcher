@@ -96,7 +96,8 @@ export async function importLibraryFile(): Promise<ImportResult | null> {
     return fields ? [invoke("update_game", { id: saved[i].id, fields })] : [];
   });
   const results = await Promise.allSettled(restores);
-  await invoke("relink_play_sessions");
+  // The games are saved at this point; re-linking old sessions is a bonus, not a reason to report failure.
+  await invoke("relink_play_sessions").catch(() => {});
   await refreshGames();
   return { imported: games.length, detailsFailed: results.filter((r) => r.status === "rejected").length };
 }

@@ -24,7 +24,8 @@ export const BACKUP_FREQUENCIES: { value: BackupFrequency; label: string }[] = [
 export const BACKUP_RETENTION_OPTIONS = [3, 5, 10, 20] as const;
 
 /** How long "Connecting…" waits on the browser sign-in before giving up. */
-export const CONNECT_TIMEOUT_MS = 3 * 60_000;
+// Just past the backend's 5-minute callback wait (oauth.rs), so a late sign-in never reads as timed out.
+export const CONNECT_TIMEOUT_MS = 5 * 60_000 + 15_000;
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["day", 86_400],
