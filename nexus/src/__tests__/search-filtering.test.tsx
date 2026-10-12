@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import { SearchCommand } from "@/components/Search/SearchCommand";
 import { RandomPickerModal } from "@/components/RandomPicker/RandomPickerModal";
-import { PickerResult } from "@/components/RandomPicker/PickerResult";
-import { RouletteSpinner } from "@/components/RandomPicker/RouletteSpinner";
+import { rarityOf } from "@/components/RandomPicker/packs";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { useSearch } from "@/hooks/useSearch";
 import { useGameStore, type Game } from "@/stores/gameStore";
 import { useCollectionStore } from "@/stores/collectionStore";
@@ -117,9 +117,15 @@ describe("Story 11.1: SearchCommand component", () => {
   });
 });
 
-describe("Story 11.4: RandomPickerModal", () => {
+describe("Random picker: open a pack", () => {
   beforeEach(() => {
     useGameStore.setState({ games });
+    useSettingsStore.setState({ hiddenGameIds: [], enableAnimations: true, reducedMotion: false });
+    vi.spyOn(Math, "random").mockReturnValue(0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("renders nothing when closed", () => {
@@ -127,126 +133,79 @@ describe("Story 11.4: RandomPickerModal", () => {
     expect(screen.queryByTestId("random-picker-modal")).not.toBeInTheDocument();
   });
 
-  it("renders modal when open", () => {
-    render(<RandomPickerModal open onClose={() => {}} />);
-    expect(screen.getByTestId("random-picker-modal")).toBeInTheDocument();
-    expect(screen.getByTestId("picker-panel")).toBeInTheDocument();
-  });
-
-  it("shows pool count", () => {
-    render(<RandomPickerModal open onClose={() => {}} />);
-    expect(screen.getByTestId("picker-filters")).toHaveTextContent("4 games in pool");
-  });
-
-  it("excludes archived games from the pool", () => {
+  it("offers packs with their counts, leaving out archived and dropped games", () => {
     useGameStore.setState({
-      games: [...games, makeGame("g5", "Archived Game", { status: "removed" })],
+      games: [...games, makeGame("g5", "Archived", { status: "removed" }), makeGame("g6", "Dropped", { status: "dropped" }), makeGame("g7", "Short", { hltbMainH: 6 })],
     });
     render(<RandomPickerModal open onClose={() => {}} />);
-    expect(screen.getByTestId("picker-filters")).toHaveTextContent("4 games in pool");
+    expect(screen.getByTestId("picker-pack-all")).toHaveTextContent("5 games");
+    expect(screen.getByTestId("picker-pack-backlog")).toHaveTextContent("1 game");
+    expect(screen.getByTestId("picker-pack-quick")).toHaveTextContent("1 game");
   });
 
-  it("shows Spin button", () => {
+  it("disables packs with nothing in them", () => {
     render(<RandomPickerModal open onClose={() => {}} />);
-    expect(screen.getByTestId("picker-spin")).toBeInTheDocument();
+    expect(screen.getByTestId("picker-pack-quick")).toBeDisabled();
   });
 
   it("closes on Escape", () => {
     const onClose = vi.fn();
     render(<RandomPickerModal open onClose={onClose} />);
-    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.keyDown(screen.getByTestId("random-picker-modal"), { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("shows empty message when pool is empty", () => {
+  it("rips the pack open and reveals the pull", () => {
+    vi.useFakeTimers();
+    const onPlay = vi.fn();
+    const onViewDetails = vi.fn();
+    render(<RandomPickerModal open onClose={() => {}} onPlay={onPlay} onViewDetails={onViewDetails} />);
+    fireEvent.click(screen.getByTestId("picker-open"));
+    expect(screen.queryByTestId("picker-result")).not.toBeInTheDocument();
+    // tear, rise, flip: each step is scheduled after the previous one renders
+    for (const ms of [420, 560, 700]) act(() => vi.advanceTimersByTime(ms));
+    expect(screen.getByTestId("picker-result")).toHaveTextContent("Cyberpunk 2077");
+    fireEvent.click(screen.getByTestId("picker-play"));
+    expect(onPlay).toHaveBeenCalledWith(games[0]);
+    fireEvent.click(screen.getByTestId("picker-details"));
+    expect(onViewDetails).toHaveBeenCalledWith(games[0]);
+  });
+
+  it("skips straight to the card on click", () => {
+    vi.useFakeTimers();
+    render(<RandomPickerModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByTestId("picker-pack"));
+    fireEvent.click(screen.getByTestId("picker-skip"));
+    expect(screen.getByTestId("picker-result")).toBeInTheDocument();
+  });
+
+  it("reveals at once when animations are off", () => {
+    useSettingsStore.setState({ enableAnimations: false });
+    render(<RandomPickerModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByTestId("picker-open"));
+    expect(screen.getByTestId("picker-result")).toBeInTheDocument();
+  });
+
+  it("never pulls the same game twice in a session", () => {
+    useSettingsStore.setState({ enableAnimations: false });
+    render(<RandomPickerModal open onClose={() => {}} />);
+    fireEvent.click(screen.getByTestId("picker-pack-backlog"));
+    fireEvent.click(screen.getByTestId("picker-open"));
+    expect(screen.getByTestId("picker-result")).toHaveTextContent("Hades");
+    expect(screen.getByTestId("picker-another")).toBeDisabled();
+  });
+
+  it("frames the card by critic score", () => {
+    expect(rarityOf(makeGame("a", "a", { criticScore: 94.2 }))).toBe("legendary");
+    expect(rarityOf(makeGame("b", "b", { criticScore: 81 }))).toBe("epic");
+    expect(rarityOf(makeGame("c", "c", { criticScore: 70 }))).toBe("rare");
+    expect(rarityOf(makeGame("d", "d"))).toBe("common");
+  });
+
+  it("explains an empty library", () => {
     useGameStore.setState({ games: [] });
     render(<RandomPickerModal open onClose={() => {}} />);
     expect(screen.getByTestId("picker-empty")).toBeInTheDocument();
-  });
-});
-
-describe("Story 11.5: RouletteSpinner physics", () => {
-  it("RouletteSpinner component is importable", () => {
-    expect(RouletteSpinner).toBeDefined();
-    expect(typeof RouletteSpinner).toBe("function");
-  });
-
-  it("physics deceleration reaches stop within reasonable frames", () => {
-    const INITIAL_VELOCITY = 2800;
-    const FRICTION = 0.985;
-    const STOP_VELOCITY = 20;
-
-    let v = INITIAL_VELOCITY;
-    let frames = 0;
-    while (v > STOP_VELOCITY) { v *= FRICTION; frames++; }
-    expect(frames).toBeGreaterThan(50);
-    expect(frames).toBeLessThan(500);
-  });
-
-  it("friction decelerates velocity", () => {
-    const INITIAL_VELOCITY = 2800;
-    const FRICTION = 0.985;
-
-    let v = INITIAL_VELOCITY;
-    for (let i = 0; i < 100; i++) v *= FRICTION;
-    expect(v).toBeLessThan(INITIAL_VELOCITY);
-  });
-});
-
-describe("Story 11.6: PickerResult", () => {
-  const game = makeGame("g1", "Cyberpunk 2077", { coverUrl: "https://example.com/cover.jpg" });
-
-  it("renders result with game info", () => {
-    render(
-      <PickerResult game={game} onPlay={() => {}} onSpinAgain={() => {}} onViewDetails={() => {}} onReject={() => {}} />,
-    );
-    expect(screen.getByTestId("picker-result")).toBeInTheDocument();
-    expect(screen.getByTestId("result-name")).toHaveTextContent("Cyberpunk 2077");
-    expect(screen.getByTestId("result-cover")).toBeInTheDocument();
-  });
-
-  it("shows source and play time", () => {
-    render(
-      <PickerResult game={game} onPlay={() => {}} onSpinAgain={() => {}} onViewDetails={() => {}} onReject={() => {}} />,
-    );
-    expect(screen.getByTestId("result-source")).toHaveTextContent("steam");
-    expect(screen.getByTestId("result-playtime")).toBeInTheDocument();
-  });
-
-  it("Play Now calls onPlay", () => {
-    const onPlay = vi.fn();
-    render(
-      <PickerResult game={game} onPlay={onPlay} onSpinAgain={() => {}} onViewDetails={() => {}} onReject={() => {}} />,
-    );
-    fireEvent.click(screen.getByTestId("result-play"));
-    expect(onPlay).toHaveBeenCalledOnce();
-  });
-
-  it("Spin Again calls onSpinAgain", () => {
-    const onSpinAgain = vi.fn();
-    render(
-      <PickerResult game={game} onPlay={() => {}} onSpinAgain={onSpinAgain} onViewDetails={() => {}} onReject={() => {}} />,
-    );
-    fireEvent.click(screen.getByTestId("result-spin-again"));
-    expect(onSpinAgain).toHaveBeenCalledOnce();
-  });
-
-  it("View Details calls onViewDetails", () => {
-    const onViewDetails = vi.fn();
-    render(
-      <PickerResult game={game} onPlay={() => {}} onSpinAgain={() => {}} onViewDetails={onViewDetails} onReject={() => {}} />,
-    );
-    fireEvent.click(screen.getByTestId("result-details"));
-    expect(onViewDetails).toHaveBeenCalledOnce();
-  });
-
-  it("'Nah, not feeling it' calls onReject", () => {
-    const onReject = vi.fn();
-    render(
-      <PickerResult game={game} onPlay={() => {}} onSpinAgain={() => {}} onViewDetails={() => {}} onReject={onReject} />,
-    );
-    fireEvent.click(screen.getByTestId("result-reject"));
-    expect(onReject).toHaveBeenCalledOnce();
   });
 });
 
