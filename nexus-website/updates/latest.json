@@ -1,10 +1,10 @@
 {
     "version":  "1.0.0",
     "notes":  "Nexus 1.0: a new layout with a Home dashboard, game pages and a quick-view drawer; rebuilt Stats, Achievements, Twitch, Settings and onboarding; story-style Wrapped and a pack-opening game picker.",
-    "pub_date":  "2026-10-12T18:17:40Z",
+    "pub_date":  "2026-10-12T18:39:05Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1NXb2YyT29mRWhvbzMwbm9FNSt1SmIzVXIvRGxGUUFmdHR5VTJ1ZjRjMERuSlRhais1amJIWUluTjZWbHRYZkJFaEl4eTdLSE9ZVWdRQnlNa1AzV0FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODI5MDQ3CWZpbGU6TmV4dXNfMS4wLjBfeDY0LXNldHVwLmV4ZQppK3prY0ZENTZGR1NwM1FUeU15T0ZFSTRBS2pQeW1vS2tJb3ZpaHN1SnhESEhtYkVkMzhwekxrZWpBckJPV3Q5VThSTDJTS3FtK1g5bGg2QTdWODhEQT09Cg==",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2RFOWQvbkVhTGF2YUhWT0NEVFlUTEMyc2xYNVNDNC84anZybm5EQkNkdmN0Vy9ybWxNSjVRRklUUDdwYk9JZkduY2tQdE14NE95ajBkVUVFRFJTNHc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODMwMzMzCWZpbGU6TmV4dXNfMS4wLjBfeDY0LXNldHVwLmV4ZQpaT2ZHNkZiMFJTZjZwcTd5Umk2K1hqMTR1emFROFlaSExtNHhaRUcrUGw2dUlvY0JGcTI3Tlc2a09kSldLUWh3T2ZGc2pmcUtMcFBBN1Z3ZXNmd0dCQT09Cg==",
                                              "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.0_x64-setup.exe"
                                          }
                   }
