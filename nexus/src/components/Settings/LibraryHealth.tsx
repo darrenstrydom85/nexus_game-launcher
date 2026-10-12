@@ -1,10 +1,9 @@
 import * as React from "react";
-import { listen } from "@tauri-apps/api/event";
 import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { checkLibraryHealth, type DeadGame, type HealthCheckProgressEvent } from "@/lib/tauri";
+import { useLibraryHealthCheck } from "@/modern/settings/hooks/useLibraryHealth";
 import { HealthCheckModal } from "./HealthCheckModal";
 
 export function LibraryHealth() {
@@ -12,35 +11,9 @@ export function LibraryHealth() {
   const healthCheckIssueCount = useSettingsStore((s) => s.healthCheckIssueCount);
   const autoHealthCheck = useSettingsStore((s) => s.autoHealthCheck);
   const setAutoHealthCheck = useSettingsStore((s) => s.setAutoHealthCheck);
-  const setHealthCheckResult = useSettingsStore((s) => s.setHealthCheckResult);
 
-  const [running, setRunning] = React.useState(false);
-  const [progress, setProgress] = React.useState<{ checked: number; total: number } | null>(null);
-  const [deadGames, setDeadGames] = React.useState<DeadGame[]>([]);
+  const { running, progress, deadGames, setDeadGames, hasRun, run: handleRunCheck } = useLibraryHealthCheck();
   const [modalOpen, setModalOpen] = React.useState(false);
-  const [hasRun, setHasRun] = React.useState(false);
-
-  const handleRunCheck = React.useCallback(async () => {
-    setRunning(true);
-    setProgress(null);
-
-    const unlisten = await listen<HealthCheckProgressEvent>("health-check-progress", (event) => {
-      setProgress({ checked: event.payload.checked, total: event.payload.total });
-    });
-
-    try {
-      const report = await checkLibraryHealth();
-      setDeadGames(report.deadGames);
-      setHealthCheckResult(report.checkedAt, report.deadGames.length);
-      setHasRun(true);
-    } catch {
-      // best-effort
-    } finally {
-      unlisten();
-      setRunning(false);
-      setProgress(null);
-    }
-  }, [setHealthCheckResult]);
 
   const lastCheckLabel = React.useMemo(() => {
     if (!lastHealthCheckAt) return "Never checked";

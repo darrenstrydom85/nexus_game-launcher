@@ -1,38 +1,20 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
-import { formatBytes } from "@/lib/utils";
-
-interface CacheStats {
-  totalBytes: number;
-  gameBytes: number | null;
-}
-
-interface DbStatus {
-  connected: boolean;
-  version: number;
-  path: string;
-}
-
-interface ShortSessionsCount {
-  sessionsCount: number;
-  gamesAffected: number;
-}
-
-interface BulkDeleteResult {
-  sessionsRemoved: number;
-  gamesAffected: number;
-}
+import {
+  useDataManagement,
+  type BulkDeleteResult,
+  type ResetMode,
+  type ShortSessionsCount,
+} from "@/modern/settings/hooks/useDataManagement";
 
 export function DataManagement() {
-  const [cacheSize, setCacheSize] = React.useState("...");
-  const [dbPath, setDbPath] = React.useState("...");
+  const data = useDataManagement();
+  const cacheSize = data.cacheSize === undefined ? "..." : (data.cacheSize ?? "N/A");
+  const dbPath = data.dataFolder === undefined ? "..." : (data.dataFolder ?? "Unknown");
   const [confirmClear, setConfirmClear] = React.useState(false);
   const [confirmReset, setConfirmReset] = React.useState(0);
-  const [busy, setBusy] = React.useState<string | null>(null);
+  const [resetMode, setResetMode] = React.useState<ResetMode | null>(null);
 
   const [shortSessionOpen, setShortSessionOpen] = React.useState(false);
   const [threshold, setThreshold] = React.useState(60);
@@ -40,140 +22,67 @@ export function DataManagement() {
   const [preview, setPreview] = React.useState<ShortSessionsCount | null>(null);
   const [deleteResult, setDeleteResult] = React.useState<BulkDeleteResult | null>(null);
 
-  React.useEffect(() => {
-    invoke<CacheStats>("get_cache_stats", {}).then((stats) => {
-      setCacheSize(formatBytes(stats.totalBytes));
-    }).catch(() => setCacheSize("N/A"));
+  // Legacy busy keys, mapped from the shared hook.
+  const busy =
+    data.busy === "reset"
+      ? resetMode === "keepStats"
+        ? "resetKeepStats"
+        : resetMode === "keepKeys"
+          ? "resetKeepKeys"
+          : "reset"
+      : data.busy;
 
-    invoke<DbStatus>("get_db_status").then((status) => {
-      const dir = status.path.replace(/[/\\][^/\\]+$/, "");
-      setDbPath(dir);
-    }).catch(() => setDbPath("Unknown"));
-  }, []);
+  const handleExport = () => {
+    data.exportLibrary().catch(() => {});
+  };
 
-  const handleExport = React.useCallback(async () => {
-    setBusy("export");
-    try {
-      const games = await invoke<unknown[]>("get_games", { params: {} });
-      const json = JSON.stringify(games, null, 2);
-      const filePath = await save({
-        defaultPath: "nexus-library.json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (filePath) {
-        await writeTextFile(filePath, json);
-      }
-    } catch {
-      // user cancelled or write error
-    } finally {
-      setBusy(null);
-    }
-  }, []);
+  const handleImport = () => {
+    data.importLibrary().catch(() => {});
+  };
 
-  const handleImport = React.useCallback(async () => {
-    setBusy("import");
-    try {
-      const filePath = await openDialog({
-        multiple: false,
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (filePath) {
-        const content = await readTextFile(filePath as string);
-        const games = JSON.parse(content);
-        if (Array.isArray(games)) {
-          await invoke("confirm_games", { games });
-          await invoke("relink_play_sessions");
-        }
-      }
-    } catch {
-      // user cancelled or parse error
-    } finally {
-      setBusy(null);
-    }
-  }, []);
-
-  const handleClearHistory = React.useCallback(async () => {
-    setBusy("clearHistory");
-    try {
-      await invoke("clear_play_history");
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-      setConfirmClear(false);
-    }
-  }, []);
+  const handleClearHistory = () => {
+    data
+      .clearHistory()
+      .catch(() => {})
+      .finally(() => setConfirmClear(false));
+  };
 
   const thresholdSecs = thresholdUnit === "minutes" ? threshold * 60 : threshold;
 
-  const handlePreviewShortSessions = React.useCallback(async () => {
-    setBusy("previewShort");
+  const handlePreviewShortSessions = () => {
     setPreview(null);
     setDeleteResult(null);
-    try {
-      const result = await invoke<ShortSessionsCount>("count_short_sessions", { thresholdSecs });
-      setPreview(result);
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, [thresholdSecs]);
+    data
+      .countShortSessions(thresholdSecs)
+      .then(setPreview)
+      .catch(() => {});
+  };
 
-  const handleDeleteShortSessions = React.useCallback(async () => {
-    setBusy("deleteShort");
-    try {
-      const result = await invoke<BulkDeleteResult>("bulk_delete_short_sessions", { thresholdSecs });
-      setDeleteResult(result);
-      setPreview(null);
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, [thresholdSecs]);
+  const handleDeleteShortSessions = () => {
+    data
+      .deleteShortSessions(thresholdSecs)
+      .then((result) => {
+        setDeleteResult(result);
+        setPreview(null);
+      })
+      .catch(() => {});
+  };
 
-  const handleReset = React.useCallback(async (mode: "keepStats" | "keepKeys" | "all") => {
-    const busyKey = mode === "keepStats" ? "resetKeepStats" : mode === "keepKeys" ? "resetKeepKeys" : "reset";
-    setBusy(busyKey);
-    try {
-      const command = mode === "keepStats"
-        ? "reset_library_keep_stats"
-        : mode === "keepKeys"
-          ? "reset_keep_keys"
-          : "reset_all";
-      await invoke(command);
-      localStorage.clear();
-      window.location.reload();
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-      setConfirmReset(0);
-    }
-  }, []);
+  const handleReset = (mode: ResetMode) => {
+    setResetMode(mode);
+    data
+      .reset(mode)
+      .catch(() => {})
+      .finally(() => setConfirmReset(0));
+  };
 
-  const handleClearCache = React.useCallback(async () => {
-    setBusy("cache");
-    try {
-      await invoke("clear_cache");
-      setCacheSize("0 B");
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, []);
+  const handleClearCache = () => {
+    data.clearCache().catch(() => {});
+  };
 
-  const handleOpenDbFolder = React.useCallback(async () => {
-    if (dbPath && dbPath !== "..." && dbPath !== "Unknown") {
-      try {
-        await invoke("open_data_folder");
-      } catch {
-        // best-effort
-      }
-    }
-  }, [dbPath]);
+  const handleOpenDbFolder = () => {
+    data.openDataFolder().catch(() => {});
+  };
 
   return (
     <section data-testid="data-management">
