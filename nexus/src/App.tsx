@@ -421,7 +421,7 @@ function MainApp() {
       if (total === 0) return;
 
       if (completed < total) {
-        const message = `Fetching review scores... ${completed}/${total}`;
+        const message = `Fetching review scores and artwork... ${completed}/${total}`;
         if (backfillToastId.current) {
           removeToast(backfillToastId.current);
         }

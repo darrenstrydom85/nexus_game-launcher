@@ -25,6 +25,21 @@
         },
         {
           "url": "https://howlongtobeat.com/**"
+        },
+        {
+          "url": "https://store.steampowered.com/**"
+        },
+        {
+          "url": "https://www.gog.com/**"
+        },
+        {
+          "url": "https://store.epicgames.com/**"
+        },
+        {
+          "url": "https://www.epicgames.com/**"
+        },
+        {
+          "url": "https://www.igdb.com/games/**"
         }
       ]
     },

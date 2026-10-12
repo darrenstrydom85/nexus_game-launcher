@@ -119,6 +119,27 @@ export function clearHltbData(gameId: string): Promise<void> {
   return invoke<void>("clear_hltb_data", { gameId });
 }
 
+/** hltbId prefix marking time-to-beat rows that came from IGDB, not HowLongToBeat. */
+export const IGDB_TTB_PREFIX = "igdb:";
+
+/** Saves IGDB time-to-beat for the game; false when IGDB has none (fall back to HLTB). */
+export function fetchIgdbTimeToBeat(gameId: string): Promise<boolean> {
+  return invoke<boolean>("fetch_igdb_time_to_beat", { gameId });
+}
+
+// ── Similar Games ────────────────────────────────────────────────
+export interface SimilarGame {
+  igdbId: number;
+  name: string;
+  coverUrl: string | null;
+  igdbUrl: string | null;
+  stores: { store: string; url: string }[];
+}
+
+export function getSimilarGames(igdbId: number): Promise<SimilarGame[]> {
+  return invoke<SimilarGame[]>("get_similar_games", { igdbId });
+}
+
 // ── Score Backfill Progress Event ─────────────────────────────────
 export interface ScoreBackfillProgressEvent {
   completed: number;

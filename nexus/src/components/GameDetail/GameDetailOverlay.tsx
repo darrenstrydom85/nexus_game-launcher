@@ -150,7 +150,9 @@ export function GameDetailOverlay({ children }: GameDetailOverlayProps) {
             </div>
 
             {/* Scrollable content area */}
+            {/* Keyed so jumping to another game (e.g. from "More like this") starts at the top */}
             <div
+              key={game.id}
               data-testid="detail-overlay-content"
               className="flex-1 overflow-y-auto"
             >

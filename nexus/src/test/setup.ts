@@ -12,8 +12,14 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
+// Commands rendered by the game detail view need their real shapes; everything else gets {}.
+const invokeDefaults = vi.hoisted<Record<string, unknown>>(() => ({
+  get_similar_games: [],
+  fetch_igdb_time_to_beat: false,
+}));
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(() => Promise.resolve({})),
+  invoke: vi.fn((cmd: string) => Promise.resolve(cmd in invokeDefaults ? invokeDefaults[cmd] : {})),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({

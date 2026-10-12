@@ -3,7 +3,12 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { searchHltb, type HltbSearchResult } from "@/lib/hltb";
 import { RefreshCw, Search, ArrowRight, HelpCircle } from "lucide-react";
 import { cn, formatHltbTime, formatHltbDays } from "@/lib/utils";
-import { saveHltbData, clearHltbData } from "@/lib/tauri";
+import {
+  saveHltbData,
+  clearHltbData,
+  fetchIgdbTimeToBeat,
+  IGDB_TTB_PREFIX,
+} from "@/lib/tauri";
 import { refreshGames } from "@/stores/gameStore";
 import type { Game } from "@/stores/gameStore";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -80,6 +85,16 @@ export function HltbSection({ game }: HltbSectionProps) {
     async (signal: AbortSignal) => {
       setFetchState("loading");
       try {
+        // IGDB first: it's an official API. HLTB's scraped endpoint breaks every few months.
+        const fromIgdb = await fetchIgdbTimeToBeat(game.id).catch(() => false);
+        if (signal.aborted) return;
+        if (fromIgdb) {
+          await refreshGames();
+          setSearched(true);
+          setFetchState("done");
+          return;
+        }
+
         const results = await searchHltb(game.name, signal);
 
         if (signal.aborted) return;
@@ -430,7 +445,11 @@ export function HltbSection({ game }: HltbSectionProps) {
         <h3 className="text-sm font-semibold text-foreground">
           How Long to Beat
         </h3>
-        {game.hltbId && (
+        {game.hltbId?.startsWith(IGDB_TTB_PREFIX) ? (
+          <span data-testid="hltb-attribution" className="text-xs text-muted-foreground">
+            via IGDB
+          </span>
+        ) : game.hltbId && (
           <button
             data-testid="hltb-attribution"
             className={cn(

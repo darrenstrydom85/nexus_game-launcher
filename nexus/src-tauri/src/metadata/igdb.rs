@@ -6,11 +6,15 @@ const IGDB_BASE: &str = "https://api.igdb.com/v4";
 const TWITCH_TOKEN_URL: &str = "https://id.twitch.tv/oauth2/token";
 const MAX_CONCURRENT: usize = 8;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct IgdbGame {
     pub id: i64,
     #[serde(default)]
     pub name: String,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub alternative_names: Option<Vec<IgdbAlternativeName>>,
     #[serde(default)]
     pub summary: Option<String>,
     #[serde(default)]
@@ -26,6 +30,12 @@ pub struct IgdbGame {
     #[serde(default)]
     pub cover: Option<IgdbCover>,
     #[serde(default)]
+    pub artworks: Option<Vec<IgdbImage>>,
+    #[serde(default)]
+    pub websites: Option<Vec<IgdbWebsite>>,
+    #[serde(default)]
+    pub similar_games: Option<Vec<IgdbGame>>,
+    #[serde(default)]
     pub aggregated_rating: Option<f64>,
     #[serde(default)]
     pub aggregated_rating_count: Option<i64>,
@@ -37,6 +47,29 @@ pub struct IgdbGame {
     pub total_rating: Option<f64>,
     #[serde(default)]
     pub total_rating_count: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IgdbAlternativeName {
+    #[serde(default)]
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IgdbWebsite {
+    #[serde(default)]
+    pub url: String,
+}
+
+/// Average completion times in seconds, from IGDB's `game_time_to_beats`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct IgdbTimeToBeat {
+    #[serde(default)]
+    pub hastily: Option<i64>,
+    #[serde(default)]
+    pub normally: Option<i64>,
+    #[serde(default)]
+    pub completely: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +142,7 @@ pub struct GameMetadata {
     pub screenshot_urls: Vec<String>,
     pub trailer_url: Option<String>,
     pub cover_url: Option<String>,
+    pub hero_url: Option<String>,
     pub critic_score: Option<f64>,
     pub critic_score_count: Option<i64>,
     pub community_score: Option<f64>,
@@ -285,12 +319,74 @@ impl IgdbClient {
         Ok(true)
     }
 
-    const GAME_FIELDS: &str = "name,summary,first_release_date,\
+    const GAME_FIELDS: &str = "name,alternative_names.name,summary,first_release_date,\
              genres.name,involved_companies.developer,involved_companies.publisher,\
              involved_companies.company.name,screenshots.image_id,screenshots.url,\
-             videos.video_id,videos.name,cover.image_id,cover.url,\
+             videos.video_id,videos.name,cover.image_id,cover.url,artworks.image_id,\
              aggregated_rating,aggregated_rating_count,rating,rating_count,\
              total_rating,total_rating_count";
+
+    /// Exact lookup through IGDB's `external_games` for stores whose launcher id is the
+    /// same id IGDB stores as `uid` (Steam app id, GOG product id). Ok(None) for other
+    /// stores or when IGDB has no mapping, so the caller falls back to name search.
+    pub async fn find_game_by_store_id(
+        &self,
+        source: &str,
+        uid: &str,
+    ) -> Result<Option<IgdbGame>, String> {
+        let external_source = match source {
+            "steam" => 1,
+            "gog" => 5,
+            _ => return Ok(None),
+        };
+        // Both ids are numeric; anything else can't match and isn't safe to splice into the query.
+        if uid.is_empty() || !uid.chars().all(|c| c.is_ascii_digit()) {
+            return Ok(None);
+        }
+
+        let fields = Self::GAME_FIELDS
+            .split(',')
+            .map(|f| format!("game.{f}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let query = format!(
+            "fields {fields}; where external_game_source = {external_source} & uid = \"{uid}\"; limit 1;"
+        );
+
+        #[derive(Deserialize)]
+        struct ExternalGame {
+            game: Option<IgdbGame>,
+        }
+
+        let body = self.igdb_post("external_games", &query).await?;
+        let hits: Vec<ExternalGame> =
+            serde_json::from_str(&body).map_err(|e| format!("IGDB parse error: {e}"))?;
+        Ok(hits.into_iter().find_map(|h| h.game))
+    }
+
+    pub async fn time_to_beat(&self, igdb_id: i64) -> Result<Option<IgdbTimeToBeat>, String> {
+        let query =
+            format!("fields hastily,normally,completely; where game_id = {igdb_id}; limit 1;");
+        let body = self.igdb_post("game_time_to_beats", &query).await?;
+        let rows: Vec<IgdbTimeToBeat> =
+            serde_json::from_str(&body).map_err(|e| format!("IGDB parse error: {e}"))?;
+        Ok(rows.into_iter().next())
+    }
+
+    pub async fn similar_games(&self, igdb_id: i64) -> Result<Vec<IgdbGame>, String> {
+        let query = format!(
+            "fields similar_games.name,similar_games.url,similar_games.cover.image_id,\
+             similar_games.websites.url; where id = {igdb_id}; limit 1;"
+        );
+        let body = self.igdb_post("games", &query).await?;
+        let games: Vec<IgdbGame> =
+            serde_json::from_str(&body).map_err(|e| format!("IGDB parse error: {e}"))?;
+        Ok(games
+            .into_iter()
+            .next()
+            .and_then(|g| g.similar_games)
+            .unwrap_or_default())
+    }
 
     pub async fn search_game(&self, name: &str) -> Result<Vec<IgdbGame>, String> {
         let escaped = name.replace('"', "\\\"");
@@ -323,16 +419,27 @@ impl IgdbClient {
         }
 
         let query_lower = query.to_lowercase();
+        // Alternative names catch localized titles and abbreviations ("GTA V").
+        let names = |g: &'a IgdbGame| {
+            std::iter::once(g.name.to_lowercase()).chain(
+                g.alternative_names
+                    .iter()
+                    .flatten()
+                    .map(|a| a.name.to_lowercase()),
+            )
+        };
 
         for g in results {
-            if g.name.to_lowercase() == query_lower {
+            if names(g).any(|n| n == query_lower) {
                 return Some(g);
             }
         }
 
         let mut best: Option<(f64, &IgdbGame)> = None;
         for g in results {
-            let sim = strsim::jaro_winkler(&query_lower, &g.name.to_lowercase());
+            let sim = names(g)
+                .map(|n| strsim::jaro_winkler(&query_lower, &n))
+                .fold(0.0, f64::max);
             match best {
                 None => best = Some((sim, g)),
                 Some((prev, _)) if sim > prev => best = Some((sim, g)),
@@ -391,6 +498,7 @@ impl IgdbClient {
             .map(|c| igdb_image_url(&c.image_id, "cover_big"));
 
         GameMetadata {
+            hero_url: hero_url(game),
             igdb_id: game.id,
             description: game.summary.clone(),
             release_date,
@@ -408,8 +516,30 @@ impl IgdbClient {
     }
 }
 
-fn igdb_image_url(image_id: &str, size: &str) -> String {
+pub fn igdb_image_url(image_id: &str, size: &str) -> String {
     format!("https://images.igdb.com/igdb/image/upload/t_{size}/{image_id}.jpg")
+}
+
+/// Landscape banner for when SteamGridDB has no hero: key art first, else a screenshot.
+pub fn hero_url(game: &IgdbGame) -> Option<String> {
+    game.artworks
+        .iter()
+        .chain(game.screenshots.iter())
+        .flatten()
+        .next()
+        .map(|img| igdb_image_url(&img.image_id, "1080p"))
+}
+
+/// Store name for links we let the user open. Must stay in sync with the
+/// `opener:allow-open-url` scope in capabilities/default.json.
+pub fn store_name(url: &str) -> Option<&'static str> {
+    let host = url.strip_prefix("https://")?.split('/').next()?;
+    match host {
+        "store.steampowered.com" => Some("Steam"),
+        "www.gog.com" => Some("GOG"),
+        "store.epicgames.com" | "www.epicgames.com" => Some("Epic"),
+        _ => None,
+    }
 }
 
 fn epoch_to_date(epoch_secs: i64) -> String {
@@ -460,19 +590,15 @@ mod tests {
         IgdbGame {
             id,
             name: name.into(),
-            summary: None,
-            first_release_date: None,
-            genres: None,
-            involved_companies: None,
-            screenshots: None,
-            videos: None,
-            cover: None,
-            aggregated_rating: None,
-            aggregated_rating_count: None,
-            rating: None,
-            rating_count: None,
-            total_rating: None,
-            total_rating_count: None,
+            ..Default::default()
+        }
+    }
+
+    fn image(image_id: &str) -> IgdbImage {
+        IgdbImage {
+            id: 1,
+            image_id: image_id.into(),
+            url: None,
         }
     }
 
@@ -484,6 +610,43 @@ mod tests {
         ];
         let best = IgdbClient::best_match(&games, "Halo Infinite").unwrap();
         assert_eq!(best.id, 1);
+    }
+
+    #[test]
+    fn best_match_uses_alternative_names() {
+        let mut gta = make_igdb_game(1, "Grand Theft Auto V");
+        gta.alternative_names = Some(vec![IgdbAlternativeName {
+            name: "GTA V".into(),
+        }]);
+        let games = vec![make_igdb_game(2, "GTA: Vice City Stories"), gta];
+        let best = IgdbClient::best_match(&games, "GTA V").unwrap();
+        assert_eq!(best.id, 1);
+    }
+
+    #[test]
+    fn hero_url_prefers_artwork_then_screenshot() {
+        let mut game = make_igdb_game(1, "G");
+        assert!(hero_url(&game).is_none());
+
+        game.screenshots = Some(vec![image("ss1")]);
+        assert!(hero_url(&game).unwrap().ends_with("t_1080p/ss1.jpg"));
+
+        game.artworks = Some(vec![image("ar1")]);
+        assert!(hero_url(&game).unwrap().ends_with("t_1080p/ar1.jpg"));
+    }
+
+    #[test]
+    fn store_name_only_allows_known_https_store_hosts() {
+        assert_eq!(
+            store_name("https://store.steampowered.com/app/440"),
+            Some("Steam")
+        );
+        assert_eq!(store_name("https://www.gog.com/en/game/x"), Some("GOG"));
+        assert_eq!(store_name("https://store.epicgames.com/p/x"), Some("Epic"));
+        assert_eq!(store_name("http://store.steampowered.com/app/440"), None);
+        assert_eq!(store_name("https://store.steampowered.com.evil.io/"), None);
+        assert_eq!(store_name("https://twitter.com/x"), None);
+        assert_eq!(store_name("file:///C:/Windows"), None);
     }
 
     #[test]
@@ -550,6 +713,7 @@ mod tests {
             rating_count: Some(1500),
             total_rating: Some(80.1),
             total_rating_count: Some(1542),
+            ..Default::default()
         };
 
         let meta = IgdbClient::extract_metadata(&game);
