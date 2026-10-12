@@ -92,6 +92,7 @@ vi.mock("motion/react", () => {
   return {
     motion,
     AnimatePresence: ({ children }: React.PropsWithChildren) => React.createElement(React.Fragment, null, children),
+    MotionConfig: ({ children }: React.PropsWithChildren) => React.createElement(React.Fragment, null, children),
     useAnimation: () => ({ start: vi.fn(), stop: vi.fn() }),
     useMotionValue: (init: number) => ({ get: () => init, set: vi.fn() }),
     useTransform: (v: unknown) => v,

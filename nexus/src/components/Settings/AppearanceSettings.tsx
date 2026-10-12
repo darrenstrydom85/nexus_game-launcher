@@ -26,6 +26,8 @@ export function AppearanceSettings() {
   const setMilestoneNotifications = useSettingsStore((s) => s.setMilestoneNotificationsEnabled);
   const retroMode = useSettingsStore((s) => s.retroMode);
   const setRetroMode = useSettingsStore((s) => s.setRetroMode);
+  const layoutV1 = useSettingsStore((s) => s.layoutV1);
+  const setLayoutV1 = useSettingsStore((s) => s.setLayoutV1);
 
   return (
     <section data-testid="appearance-settings">
@@ -109,6 +111,21 @@ export function AppearanceSettings() {
         </label>
         <p id="retro-mode-desc" className="text-xs text-muted-foreground">
           Text-mode launcher straight out of 1992. Same library, same data — press F9 inside to find your way back.
+        </p>
+
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-foreground">New layout (preview)</span>
+          <input
+            data-testid="pref-layout-v1"
+            type="checkbox"
+            checked={layoutV1}
+            onChange={() => setLayoutV1(!layoutV1)}
+            className="size-4 rounded border-border"
+            aria-describedby="layout-v1-desc"
+          />
+        </label>
+        <p id="layout-v1-desc" className="text-xs text-muted-foreground">
+          The v1.0 top-bar layout while it’s being built. Switch back here or from Ctrl K any time.
         </p>
 
         <div className="flex flex-col gap-2 rounded-lg border border-border/60 p-3">

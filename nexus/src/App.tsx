@@ -72,6 +72,7 @@ import { useCeremonyStore } from "@/stores/ceremonyStore";
 import { RetirementCeremony } from "@/components/Ceremony/RetirementCeremony";
 import { RetroApp } from "@/retro/RetroApp";
 import { RetroExitScreen } from "@/retro/RetroExitScreen";
+import { ModernApp } from "@/modern/ModernApp";
 
 function SessionNotePromptWrapper() {
   const queue = useSessionNoteStore((s) => s.queue);
@@ -188,6 +189,8 @@ function MainApp() {
     useStreakStore.getState().fetchStreak();
     useMasteryStore.getState().fetchAll();
     useXpStore.getState().fetchXp();
+    // Bootstrapped here, not by the sidebar widget, so isQueued() is right in every shell.
+    useQueueStore.getState().fetch();
     useAchievementStore.getState().initBadgeCount().then(() => {
       useAchievementStore.getState().evaluate();
     });
@@ -629,6 +632,14 @@ function MainApp() {
   // All the effects above (settings load, sync, launch lifecycle, health check)
   // keep running — only the rendered shell changes.
   const retroMode = useSettingsStore((s) => s.retroMode);
+  // v1.0 top-bar shell, built behind a flag until it replaces AppShell.
+  const layoutV1 = useSettingsStore((s) => s.layoutV1);
+  React.useEffect(() => {
+    // The classic sidebar has no Home; land on Library when switching back.
+    if (!layoutV1 && useUiStore.getState().activeNav === "home") {
+      useUiStore.getState().setActiveNav("library");
+    }
+  }, [layoutV1]);
 
   // Leaving retro shows the amber shutdown screen for a beat first.
   const [retroExiting, setRetroExiting] = React.useState(false);
@@ -658,27 +669,7 @@ function MainApp() {
     return <RetroExitScreen onDone={() => setRetroExiting(false)} />;
   }
 
-  return (
-    <AppShell
-      onSettingsClick={() => setSettingsOpen(true)}
-      onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
-      onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
-      onDeleteCollection={(c) => {
-        invoke("delete_collection", { id: c.id })
-          .then(() => useCollectionStore.getState().removeCollection(c.id))
-          .catch(() => {});
-      }}
-      onPlayGame={(gameId) => {
-        const game = useGameStore.getState().games.find((g) => g.id === gameId);
-        if (game) launch(game);
-      }}
-      onStopGame={handleStopActiveGame}
-      onGameDetails={(gameId) => {
-        useUiStore.getState().setDetailOverlayGameId(gameId);
-      }}
-      onForceIdentify={handleForceIdentify}
-    >
-      {activeNav === "achievements" ? (
+  const pageContent = activeNav === "achievements" ? (
         <AchievementsView />
       ) : activeNav === "wrapped" ? (
         <WrappedView onClose={() => useUiStore.getState().setActiveNav("stats")} />
@@ -711,7 +702,9 @@ function MainApp() {
           activeCollectionName={activeManualCollectionName}
           collections={collectionLabels}
         />
-      )}
+      );
+
+  const gameDetail = (
       <GameDetailOverlay>
         {(game) => {
           const gameIsArchived = game.status === "removed";
@@ -798,6 +791,12 @@ function MainApp() {
           );
         }}
       </GameDetailOverlay>
+  );
+
+  // Dialogs, toasts and prompts for the modern shells (classic + v1).
+  // RetroApp renders its own versions, so these never mount in retro.
+  const overlays = (
+    <>
       {metadataSearchGame && (
         <MetadataSearchDialog
           open={metadataSearchGame !== null}
@@ -867,6 +866,10 @@ function MainApp() {
           else if (actionId === "action-random") setRandomPickerOpen(true);
           else if (actionId === "action-scan") handleResync();
           else if (actionId === "action-retro") useSettingsStore.getState().setRetroMode(true);
+          else if (actionId === "action-layout") {
+            const s = useSettingsStore.getState();
+            s.setLayoutV1(!s.layoutV1);
+          }
         }}
       />
       <HealthCheckModal
@@ -967,6 +970,48 @@ function MainApp() {
           setEditCollectionTarget(null);
         }}
       />
+    </>
+  );
+
+  if (layoutV1) {
+    return (
+      <ModernApp
+        page={pageContent}
+        gameDetail={gameDetail}
+        overlays={overlays}
+        onStopGame={handleStopActiveGame}
+        onForceIdentify={handleForceIdentify}
+        onResync={handleResync}
+        isSyncing={isSyncing}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenUpdate={() => setUpdateDialogOpen(true)}
+      />
+    );
+  }
+
+  return (
+    <AppShell
+      onSettingsClick={() => setSettingsOpen(true)}
+      onAddCollection={() => { setEditCollectionTarget(null); setCollectionEditorOpen(true); }}
+      onEditCollection={(c) => { setEditCollectionTarget(c); setCollectionEditorOpen(true); }}
+      onDeleteCollection={(c) => {
+        invoke("delete_collection", { id: c.id })
+          .then(() => useCollectionStore.getState().removeCollection(c.id))
+          .catch(() => {});
+      }}
+      onPlayGame={(gameId) => {
+        const game = useGameStore.getState().games.find((g) => g.id === gameId);
+        if (game) launch(game);
+      }}
+      onStopGame={handleStopActiveGame}
+      onGameDetails={(gameId) => {
+        useUiStore.getState().setDetailOverlayGameId(gameId);
+      }}
+      onForceIdentify={handleForceIdentify}
+    >
+      {pageContent}
+      {gameDetail}
+      {overlays}
     </AppShell>
   );
 }

@@ -14,7 +14,7 @@ export type SortField =
 export type SortDirection = "asc" | "desc";
 export type StatsScrollTarget = "xp" | "milestones";
 
-export type NavItem = "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements";
+export type NavItem = "home" | "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements";
 
 export interface UiState {
   selectedGameId: string | null;

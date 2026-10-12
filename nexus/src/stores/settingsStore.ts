@@ -87,6 +87,8 @@ export interface SettingsState {
   retroCrt: boolean;
   /** Retro mode: ANSI-dithered cover art in the title view. Default off (pure text). */
   retroCoverArt: boolean;
+  /** v1.0 top-bar layout (ModernApp). Off until the rebuild cuts over. */
+  layoutV1: boolean;
   _hydrated: boolean;
 }
 
@@ -134,6 +136,7 @@ export interface SettingsActions {
   setRetroSounds: (value: boolean) => void;
   setRetroCrt: (value: boolean) => void;
   setRetroCoverArt: (value: boolean) => void;
+  setLayoutV1: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -196,6 +199,7 @@ const initialState: SettingsState = {
   retroSounds: true,
   retroCrt: false,
   retroCoverArt: false,
+  layoutV1: false,
   _hydrated: false,
 };
 
@@ -322,6 +326,9 @@ export const useSettingsStore = create<SettingsStore>()(
             }
             if (settings.retro_mode !== undefined) {
               patch.retroMode = settings.retro_mode === "true";
+            }
+            if (settings.layout_v1 !== undefined) {
+              patch.layoutV1 = settings.layout_v1 === "true";
             }
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
@@ -537,6 +544,10 @@ export const useSettingsStore = create<SettingsStore>()(
         setRetroMode: (value) => {
           persistSetting("retro_mode", String(value));
           set({ retroMode: value }, false, "setRetroMode");
+        },
+        setLayoutV1: (value) => {
+          persistSetting("layout_v1", String(value));
+          set({ layoutV1: value }, false, "setLayoutV1");
         },
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);
