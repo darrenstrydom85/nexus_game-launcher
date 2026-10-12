@@ -120,6 +120,8 @@ export interface GameState {
   activeSession: ActiveSession | null;
   showProcessPicker: boolean;
   isLoading: boolean;
+  /** The library has been fetched at least once; tells "still loading" from "empty". */
+  hasLoaded: boolean;
   error: string | null;
   /**
    * Monotonic counter bumped each time a gaming session is ended on the
@@ -146,6 +148,7 @@ const initialState: GameState = {
   activeSession: null,
   showProcessPicker: false,
   isLoading: false,
+  hasLoaded: false,
   error: null,
   lastSessionEndedAt: 0,
 };
@@ -194,7 +197,7 @@ export const useGameStore = create<GameStore>()(
           milestonesJson: g.milestonesJson ?? null,
           completed: (g as any).completed ?? false,
         } as Game));
-        set({ games: mapped }, false, "setGames");
+        set({ games: mapped, hasLoaded: true }, false, "setGames");
         useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));
         useSettingsStore.getState().setRemovedGameIds(mapped.filter((g) => g.status === "removed").map((g) => g.id));
       },

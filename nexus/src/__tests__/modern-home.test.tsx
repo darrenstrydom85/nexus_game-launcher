@@ -56,16 +56,16 @@ describe("spotlight", () => {
     expect(pickSpotlight([older, newer, never], "Old").list.map((g) => g.id)).toEqual(["Old", "New"]);
   });
 
-  it("falls back to recently added when nothing has been played", () => {
-    const res = pickSpotlight([never, game("Older", { addedAt: "2026-01-01" })], null);
-    expect(res.mode).toBe("added");
-    expect(res.list[0].id).toBe("Fresh");
+  it("starts a fresh library on its best-rated unplayed games, artwork first", () => {
+    const res = pickSpotlight([never, game("Great", { criticScore: 92, heroUrl: "h.jpg" }), game("Good", { criticScore: 95 })], null);
+    expect(res.mode).toBe("picks");
+    expect(res.list.map((g) => g.id)).toEqual(["Great", "Good", "Fresh"]);
   });
 
   it("continues the last played game and switches with the thumbnails", () => {
     useGameStore.setState({ games: [older, newer] });
     const onPlay = vi.fn();
-    wrap(<Spotlight onPlay={onPlay} onStop={vi.fn()} onResync={vi.fn()} onOpenSettings={vi.fn()} />);
+    wrap(<Spotlight onPlay={onPlay} onStop={vi.fn()} />);
     expect(screen.getByTestId("spotlight-eyebrow")).toHaveTextContent(/Continue · last played/);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("New");
     fireEvent.click(screen.getByTestId("spotlight-thumb-Old"));
@@ -80,18 +80,12 @@ describe("spotlight", () => {
   it("shows the running game with a Stop button", () => {
     useGameStore.setState({ games: [older, newer], activeSession: session("Old") });
     const onStop = vi.fn();
-    wrap(<Spotlight onPlay={vi.fn()} onStop={onStop} onResync={vi.fn()} onOpenSettings={vi.fn()} />);
+    wrap(<Spotlight onPlay={vi.fn()} onStop={onStop} />);
     expect(screen.getByTestId("spotlight-eyebrow")).toHaveTextContent("Now playing");
     fireEvent.click(screen.getByTestId("spotlight-play"));
     expect(onStop).toHaveBeenCalledOnce();
   });
 
-  it("welcomes an empty library", () => {
-    const onResync = vi.fn();
-    wrap(<Spotlight onPlay={vi.fn()} onStop={vi.fn()} onResync={onResync} onOpenSettings={vi.fn()} />);
-    fireEvent.click(screen.getByText("Sync library"));
-    expect(onResync).toHaveBeenCalledOnce();
-  });
 });
 
 describe("tiles", () => {
@@ -128,7 +122,7 @@ describe("tiles", () => {
 
   it("Can't decide picks from the backlog and rerolls", () => {
     useGameStore.setState({ games: [game("A", { status: "backlog" }), game("B", { status: "backlog" }), game("Done", { status: "completed", completed: true })] });
-    wrap(<RandomTile onPlay={vi.fn()} onOpenWheel={vi.fn()} />);
+    wrap(<RandomTile onPlay={vi.fn()} onOpenPack={vi.fn()} />);
     const first = screen.getByTestId("random-pick").textContent;
     expect(["A", "B"]).toContain(first);
     fireEvent.click(screen.getByTestId("random-reroll"));

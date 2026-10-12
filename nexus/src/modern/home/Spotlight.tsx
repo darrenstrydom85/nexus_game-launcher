@@ -10,31 +10,34 @@ import { useQueueStore } from "@/stores/queueStore";
 import { useUiStore } from "@/stores/uiStore";
 import { placeholderGradient } from "@/components/GameCard/GameCard";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { criticsPicks } from "./homePicks";
 
 interface SpotlightProps {
   onPlay: (game: Game) => void;
   onStop: () => void;
-  onResync: () => void;
-  onOpenSettings: () => void;
 }
 
 const MAX = 5;
 
-/** Running game first, then most recently played; recently added for a fresh library. */
-export function pickSpotlight(games: Game[], runningId: string | null): { list: Game[]; mode: "played" | "added" } {
+/**
+ * Running game first, then most recently played. A fresh library, with nothing
+ * played yet, gets its best-rated unplayed games instead ("Start here").
+ */
+export function pickSpotlight(games: Game[], runningId: string | null): { list: Game[]; mode: "played" | "picks" } {
   const played = games
     .filter((g) => g.lastPlayedAt)
     .sort((a, b) => new Date(b.lastPlayedAt!).getTime() - new Date(a.lastPlayedAt!).getTime());
   const running = runningId ? games.find((g) => g.id === runningId) : undefined;
   if (played.length === 0 && !running) {
-    const added = [...games].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
-    return { list: added.slice(0, MAX), mode: "added" };
+    const picks = criticsPicks(games, 0);
+    const list = picks.length > 0 ? picks : [...games].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+    return { list: list.slice(0, MAX), mode: "picks" };
   }
   const list = running ? [running, ...played.filter((g) => g.id !== running.id)] : played;
   return { list: list.slice(0, MAX), mode: "played" };
 }
 
-export function Spotlight({ onPlay, onStop, onResync, onOpenSettings }: SpotlightProps) {
+export function Spotlight({ onPlay, onStop }: SpotlightProps) {
   const games = useGameStore((s) => s.games);
   const session = useGameStore((s) => s.activeSession);
   const hiddenIds = useSettingsStore((s) => s.hiddenGameIds);
@@ -49,7 +52,8 @@ export function Spotlight({ onPlay, onStop, onResync, onOpenSettings }: Spotligh
   React.useEffect(() => setIndex(0), [runningId]);
 
   const game = list[Math.min(index, list.length - 1)] ?? null;
-  if (!game) return <Welcome onResync={onResync} onOpenSettings={onOpenSettings} />;
+  // Home shows its own welcome for an empty library; nothing to spotlight here.
+  if (!game) return null;
 
   const running = session?.gameId === game.id;
   const art = game.heroUrl ?? game.coverUrl;
@@ -63,9 +67,18 @@ export function Spotlight({ onPlay, onStop, onResync, onOpenSettings }: Spotligh
     ? session?.processDetected
       ? "Now playing"
       : "Launching"
-    : mode === "added"
-      ? "Recently added"
+    : mode === "picks"
+      ? game.criticScore
+        ? `Start here · critics ${Math.round(game.criticScore)}%`
+        : "Start here"
       : `Continue · last played ${formatRelativeTime(game.lastPlayedAt)}`;
+  // Nothing played yet: say what the game is instead of empty play stats.
+  const intro = mode === "picks" && !running;
+  const facts = [
+    game.genres?.slice(0, 2).join(" · "),
+    game.hltbMainH ? `${Math.round(game.hltbMainH)}h to beat` : null,
+    game.releaseDate ? (/\d{4}/.exec(game.releaseDate)?.[0] ?? null) : null,
+  ].filter(Boolean);
 
   return (
     <section aria-label="Spotlight" data-testid="home-spotlight" className="relative flex h-[clamp(320px,50vh,500px)] flex-col justify-end overflow-hidden">
@@ -107,7 +120,13 @@ export function Spotlight({ onPlay, onStop, onResync, onOpenSettings }: Spotligh
           ) : (
             <h1 className="text-[52px] font-bold leading-[0.98] tracking-[-0.02em] text-foreground drop-shadow-lg">{game.name}</h1>
           )}
+          {intro && game.description && (
+            <p data-testid="spotlight-blurb" className="line-clamp-2 max-w-[520px] text-[15px] leading-relaxed text-foreground/85">
+              {game.description}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-foreground/80">
+            {intro && facts.map((f) => <span key={String(f)}>{f}</span>)}
             {game.totalPlayTimeS > 0 && (
               <span>
                 <b className="font-semibold text-foreground">{formatPlayTime(game.totalPlayTimeS)}</b> played
@@ -151,7 +170,7 @@ export function Spotlight({ onPlay, onStop, onResync, onOpenSettings }: Spotligh
 
         {list.length > 1 && (
           <div className="flex flex-col gap-2.5">
-            <span className="text-xs font-semibold text-foreground/70">{mode === "added" ? "Recently added" : "Recently played"}</span>
+            <span className="text-xs font-semibold text-foreground/70">{mode === "picks" ? "Top picks from your library" : "Recently played"}</span>
             <div role="radiogroup" aria-label="Spotlight game" className="flex gap-2.5">
               {list.map((g, i) => {
                 const thumb = g.heroUrl ?? g.coverUrl;
@@ -210,24 +229,5 @@ function QueueToggle({ game }: { game: Game }) {
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
-  );
-}
-
-function Welcome({ onResync, onOpenSettings }: { onResync: () => void; onOpenSettings: () => void }) {
-  return (
-    <section aria-label="Welcome" className="flex flex-col items-start gap-4 px-10 pb-6 pt-14">
-      <h1 className="text-[40px] font-bold leading-tight tracking-[-0.02em] text-foreground">Welcome to Nexus</h1>
-      <p className="max-w-md text-[15px] text-muted-foreground">
-        Your games from every launcher, in one place. Sync to pull in your library, or add folders in Settings.
-      </p>
-      <div className="flex gap-2">
-        <button type="button" onClick={onResync} className="pressable h-11 rounded-xl bg-primary px-5 text-[15px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring">
-          Sync library
-        </button>
-        <button type="button" onClick={onOpenSettings} className="pressable h-11 rounded-xl px-5 text-[15px] font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
-          Open settings
-        </button>
-      </div>
-    </section>
   );
 }

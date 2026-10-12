@@ -241,7 +241,7 @@ export function WeekTile() {
 
 /* ── Can't decide? ───────────────────────────────────────────────── */
 
-export function RandomTile({ onPlay, onOpenWheel }: { onPlay: (game: Game) => void; onOpenWheel: () => void }) {
+export function RandomTile({ onPlay, onOpenPack }: { onPlay: (game: Game) => void; onOpenPack: () => void }) {
   const games = useGameStore((s) => s.games);
   const hiddenIds = useSettingsStore((s) => s.hiddenGameIds);
   const pool = React.useMemo(() => {
@@ -265,7 +265,7 @@ export function RandomTile({ onPlay, onOpenWheel }: { onPlay: (game: Game) => vo
   const pick = pool.find((g) => g.id === pickId) ?? null;
 
   return (
-    <Tile id="random" title="Can’t decide?" action={<TileLink onClick={onOpenWheel}>Spin the wheel</TileLink>}>
+    <Tile id="random" title="Can’t decide?" action={<TileLink onClick={onOpenPack}>Open a pack</TileLink>}>
       {!pick ? (
         <p className="text-sm text-muted-foreground">Your backlog is clear. Nice.</p>
       ) : (
