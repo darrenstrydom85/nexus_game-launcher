@@ -98,6 +98,11 @@ vi.mock("motion/react", () => {
     useTransform: (v: unknown) => v,
     useSpring: (v: unknown) => v,
     useReducedMotion: __motionMock.useReducedMotion,
+    useReducedMotionConfig: __motionMock.useReducedMotion,
+    // Imperative animations never run in tests: values stay where they started.
+    animate: () => ({ stop: () => {}, pause: () => {}, play: () => {}, then: (cb?: () => void) => cb?.() }),
+    useMotionValueEvent: () => {},
+    useInView: () => true,
   };
 });
 

@@ -31,7 +31,7 @@ import { initSyncStore, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection, refreshCollections } from "@/stores/collectionStore";
 import { useCollections } from "@/hooks/useCollections";
-import { useUiStore } from "@/stores/uiStore";
+import { useUiStore, type SettingsCategory } from "@/stores/uiStore";
 import { navigateFromTrayTarget } from "@/lib/navigation";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useSettingsApplier } from "@/hooks/useSettingsApplier";
@@ -107,6 +107,11 @@ function MainApp() {
   const setSearchOpen = useUiStore((s) => s.setSearchOpen);
   const [randomPickerOpen, setRandomPickerOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  // The new shell has a Settings page; the classic shell keeps its sheet.
+  const openSettings = React.useCallback((category?: SettingsCategory) => {
+    if (useSettingsStore.getState().layoutV1) useUiStore.getState().openSettings(category);
+    else setSettingsOpen(true);
+  }, []);
   const [collectionEditorOpen, setCollectionEditorOpen] = React.useState(false);
   const [editCollectionTarget, setEditCollectionTarget] = React.useState<Collection | null>(null);
   const [editGameTarget, setEditGameTarget] = React.useState<Game | null>(null);
@@ -329,7 +334,7 @@ function MainApp() {
               if (useSettingsStore.getState().retroMode) {
                 useUpdateStore.setState({ popupDismissed: false });
               } else {
-                setSettingsOpen(true);
+                openSettings("about");
               }
             },
           },
@@ -337,7 +342,7 @@ function MainApp() {
       });
     }, HOUR_MS);
     return () => clearInterval(id);
-  }, [runUpdateCheck, addToast]);
+  }, [runUpdateCheck, addToast, openSettings]);
 
   // Read Twitch auth state on startup and fetch data if authenticated. The backend
   // TwitchTokenManager owns all token state and refresh; the frontend only ever
@@ -607,8 +612,9 @@ function MainApp() {
   // v1.0 top-bar shell, built behind a flag until it replaces AppShell.
   const layoutV1 = useSettingsStore((s) => s.layoutV1);
   React.useEffect(() => {
-    // The classic sidebar has no Home; land on Library when switching back.
-    if (!layoutV1 && useUiStore.getState().activeNav === "home") {
+    // The classic sidebar has no Home or Settings page; land on Library when switching back.
+    const nav = useUiStore.getState().activeNav;
+    if (!layoutV1 && (nav === "home" || nav === "settings")) {
       useUiStore.getState().setActiveNav("library");
     }
   }, [layoutV1]);
@@ -781,7 +787,7 @@ function MainApp() {
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         onSelectAction={(actionId) => {
-          if (actionId === "action-settings") setSettingsOpen(true);
+          if (actionId === "action-settings") openSettings();
           else if (actionId === "action-random") setRandomPickerOpen(true);
           else if (actionId === "action-scan") handleResync();
           else if (actionId === "action-retro") useSettingsStore.getState().setRetroMode(true);
@@ -916,8 +922,9 @@ function MainApp() {
           .then(() => useCollectionStore.getState().removeCollection(c.id))
           .catch(() => {});
       },
-      onOpenSettings: () => setSettingsOpen(true),
+      onOpenSettings: () => openSettings(),
       onResync: handleResync,
+      onOpenRandom: () => setRandomPickerOpen(true),
       syncResult,
     };
     return (
@@ -929,7 +936,7 @@ function MainApp() {
         onForceIdentify={handleForceIdentify}
         onResync={handleResync}
         isSyncing={isSyncing}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettings}
         onOpenUpdate={() => setUpdateDialogOpen(true)}
         onOpenRandom={() => setRandomPickerOpen(true)}
       />

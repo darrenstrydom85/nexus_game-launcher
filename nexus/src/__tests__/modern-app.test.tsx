@@ -14,6 +14,7 @@ const library = {
   onDeleteCollection: vi.fn(),
   onOpenSettings: vi.fn(),
   onResync: vi.fn(),
+  onOpenRandom: vi.fn(),
   syncResult: null,
 };
 
@@ -48,7 +49,7 @@ describe("v1 ModernApp shell", () => {
 
   it("renders pages not rebuilt yet inside one scroll container", () => {
     renderApp();
-    act(() => useUiStore.getState().setActiveNav("stats"));
+    act(() => useUiStore.getState().setActiveNav("wrapped"));
     expect(screen.getByTestId("modern-main")).toContainElement(screen.getByTestId("page"));
   });
 

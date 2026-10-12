@@ -157,7 +157,7 @@ describe("v1 TopBar", () => {
     const { onOpenSettings } = renderBar();
     expect(screen.getByTestId("top-settings-dot")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("top-settings"));
-    expect(onOpenSettings).toHaveBeenCalledOnce();
+    expect(onOpenSettings).toHaveBeenCalledWith("data");
   });
 
   describe("update pill", () => {

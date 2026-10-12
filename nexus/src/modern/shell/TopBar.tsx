@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUiStore, type NavItem } from "@/stores/uiStore";
+import { useUiStore, type NavItem, type SettingsCategory } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useGameStore } from "@/stores/gameStore";
 import { useStreakStore } from "@/stores/streakStore";
@@ -36,7 +36,7 @@ import nexusLogo20 from "@/assets/nexus-logo-20.png";
 interface TopBarProps {
   onResync: () => void;
   isSyncing: boolean;
-  onOpenSettings: () => void;
+  onOpenSettings: (category?: SettingsCategory) => void;
   onOpenUpdate: () => void;
 }
 
@@ -304,12 +304,15 @@ function IconButton({
   testId,
   onClick,
   disabled,
+  active,
   children,
 }: {
   label: string;
   testId: string;
   onClick: () => void;
   disabled?: boolean;
+  /** The page this button opens is showing. */
+  active?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -319,9 +322,13 @@ function IconButton({
           type="button"
           data-testid={testId}
           aria-label={label}
+          aria-current={active ? "page" : undefined}
           onClick={onClick}
           disabled={disabled}
-          className="pressable relative flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+          className={cn(
+            "pressable relative flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60",
+            active && "bg-accent text-foreground",
+          )}
         >
           {children}
         </button>
@@ -335,10 +342,11 @@ function SettingsButton({
   onOpenSettings,
   healthIssueCount,
 }: {
-  onOpenSettings: () => void;
+  onOpenSettings: (category?: SettingsCategory) => void;
   healthIssueCount: number;
 }) {
   const updateAvailable = useUpdateStore((s) => s.updateAvailable);
+  const onSettingsPage = useUiStore((s) => s.activeNav === "settings");
   const label =
     healthIssueCount > 0
       ? `Settings, ${healthIssueCount} library health issue${healthIssueCount === 1 ? "" : "s"}`
@@ -346,7 +354,13 @@ function SettingsButton({
         ? "Settings, update available"
         : "Settings";
   return (
-    <IconButton label={label} testId="top-settings" onClick={onOpenSettings}>
+    <IconButton
+      label={label}
+      testId="top-settings"
+      active={onSettingsPage}
+      // The dot says why; the click goes there.
+      onClick={() => onOpenSettings(healthIssueCount > 0 ? "data" : updateAvailable ? "about" : undefined)}
+    >
       <Settings className={ICON} strokeWidth={1.5} />
       {(healthIssueCount > 0 || updateAvailable) && (
         <span

@@ -14,10 +14,23 @@ describe("layoutV1 setting", () => {
     useSettingsStore.setState({ layoutV1: false });
   });
 
-  it("is off by default and persists to the backend when toggled", () => {
+  it("persists to the backend when toggled", () => {
     useSettingsStore.getState().setLayoutV1(true);
     expect(useSettingsStore.getState().layoutV1).toBe(true);
     expect(mockInvoke).toHaveBeenCalledWith("set_setting", { key: "layout_v1", value: "true" });
+  });
+
+  it("defaults to the new layout when nothing is saved, as after a reset", async () => {
+    mockInvoke.mockImplementation((cmd: string) => Promise.resolve(cmd === "get_settings" ? {} : []));
+    await useSettingsStore.getState().loadFromBackend();
+    expect(useSettingsStore.getState().layoutV1).toBe(true);
+  });
+
+  it("keeps the classic layout when it was chosen", async () => {
+    useSettingsStore.setState({ layoutV1: true });
+    mockInvoke.mockImplementation((cmd: string) => Promise.resolve(cmd === "get_settings" ? { layout_v1: "false" } : []));
+    await useSettingsStore.getState().loadFromBackend();
+    expect(useSettingsStore.getState().layoutV1).toBe(false);
   });
 
   it("loads from the backend", async () => {

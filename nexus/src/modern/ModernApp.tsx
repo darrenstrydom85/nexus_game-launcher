@@ -2,13 +2,18 @@ import * as React from "react";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSettingsStore } from "@/stores/settingsStore";
-import { useUiStore } from "@/stores/uiStore";
+import { useUiStore, type SettingsCategory } from "@/stores/uiStore";
 import { TopBar } from "./shell/TopBar";
 import { NowPlayingStrip } from "./shell/NowPlayingStrip";
+import { SyncStrip } from "./shell/SyncStrip";
 import { LibraryPage, type LibraryPageProps } from "./library/LibraryPage";
 import { QuickViewDrawer } from "./library/QuickViewDrawer";
 import { GamePage } from "./game/GamePage";
 import { HomePage } from "./home/HomePage";
+import { StatsPage } from "./stats/StatsPage";
+import { AchievementsPage } from "./achievements/AchievementsPage";
+import { TwitchPage } from "./twitch/TwitchPage";
+import { SettingsPage } from "./settings/SettingsPage";
 
 interface ModernAppProps {
   /** Page for nav items not rebuilt yet. Phases replace these one by one. */
@@ -20,7 +25,7 @@ interface ModernAppProps {
   onForceIdentify: () => void;
   onResync: () => void;
   isSyncing: boolean;
-  onOpenSettings: () => void;
+  onOpenSettings: (category?: SettingsCategory) => void;
   onOpenUpdate: () => void;
   onOpenRandom: () => void;
 }
@@ -39,6 +44,7 @@ export function ModernApp({
   onOpenRandom,
 }: ModernAppProps) {
   const enableAnimations = useSettingsStore((s) => s.enableAnimations);
+  const reduceMotion = useSettingsStore((s) => s.reducedMotion);
   const activeNav = useUiStore((s) => s.activeNav);
   const openGameId = useUiStore((s) => s.detailOverlayGameId);
 
@@ -49,7 +55,7 @@ export function ModernApp({
   const isLibrary = activeNav === "library" || activeNav === "completed" || activeNav === "archive";
 
   return (
-    <MotionConfig reducedMotion={enableAnimations ? "user" : "always"}>
+    <MotionConfig reducedMotion={enableAnimations && !reduceMotion ? "user" : "always"}>
       <TooltipProvider delayDuration={300}>
         <div data-testid="modern-app" className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
           <div className="shrink-0">
@@ -64,6 +70,7 @@ export function ModernApp({
               onForceIdentify={onForceIdentify}
               onQuickView={(id) => useUiStore.getState().setQuickViewGameId(id)}
             />
+            <SyncStrip />
           </div>
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             {/* Inert while a game page covers it, so Tab can't wander underneath. */}
@@ -80,9 +87,18 @@ export function ModernApp({
                   onOpenRandom={onOpenRandom}
                   onResync={onResync}
                   onOpenSettings={onOpenSettings}
+                  menu={library}
                 />
               ) : isLibrary ? (
                 <LibraryPage {...library} />
+              ) : activeNav === "stats" ? (
+                <StatsPage onOpenWrapped={() => useUiStore.getState().setActiveNav("wrapped")} />
+              ) : activeNav === "achievements" ? (
+                <AchievementsPage />
+              ) : activeNav === "twitch" ? (
+                <TwitchPage />
+              ) : activeNav === "settings" ? (
+                <SettingsPage />
               ) : (
                 page
               )}

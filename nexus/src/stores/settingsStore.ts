@@ -91,6 +91,8 @@ export interface SettingsState {
   layoutV1: boolean;
   /** v1 Home: show the This PC (CPU/GPU) tile. Default on. */
   showHardwareOnHome: boolean;
+  /** v1 Home: the "Get started" checklist was dismissed. */
+  homeChecklistDismissed: boolean;
   _hydrated: boolean;
 }
 
@@ -140,6 +142,7 @@ export interface SettingsActions {
   setRetroCoverArt: (value: boolean) => void;
   setLayoutV1: (value: boolean) => void;
   setShowHardwareOnHome: (value: boolean) => void;
+  setHomeChecklistDismissed: (value: boolean) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -202,8 +205,9 @@ const initialState: SettingsState = {
   retroSounds: true,
   retroCrt: false,
   retroCoverArt: false,
-  layoutV1: false,
+  layoutV1: true,
   showHardwareOnHome: true,
+  homeChecklistDismissed: false,
   _hydrated: false,
 };
 
@@ -237,7 +241,14 @@ export const useSettingsStore = create<SettingsStore>()(
               _hydrated: true,
             };
 
-            if (settings.steamgrid_api_key) {
+            // The database is what the metadata fetchers read, so it wins as soon as
+            // any key has been saved. Gating this on the SteamGridDB key alone hid
+            // IGDB keys saved without one.
+            if (
+              settings.steamgrid_api_key != null ||
+              settings.igdb_client_id != null ||
+              settings.igdb_client_secret != null
+            ) {
               patch.apiKeys = {
                 steamGridDbKey: settings.steamgrid_api_key ?? "",
                 igdbClientId: settings.igdb_client_id ?? "",
@@ -310,6 +321,16 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.show_card_progress !== undefined) {
               patch.showCardProgress = settings.show_card_progress !== "false";
             }
+            // Saved on change but never read back before v1: survived restarts only via localStorage.
+            if (settings.enable_animations != null) {
+              patch.enableAnimations = settings.enable_animations !== "false";
+            }
+            if (settings.window_transparency != null) {
+              patch.windowTransparency = settings.window_transparency !== "false";
+            }
+            if (settings.reduced_motion != null) {
+              patch.reducedMotion = settings.reduced_motion === "true";
+            }
             if (settings.milestone_sounds_enabled !== undefined) {
               patch.milestoneSoundsEnabled = settings.milestone_sounds_enabled !== "false";
             }
@@ -331,10 +352,10 @@ export const useSettingsStore = create<SettingsStore>()(
             if (settings.retro_mode !== undefined) {
               patch.retroMode = settings.retro_mode === "true";
             }
-            if (settings.layout_v1 !== undefined) {
-              patch.layoutV1 = settings.layout_v1 === "true";
-            }
+            // v1.0 layout is the default: only an explicit "false" keeps the classic shell.
+            patch.layoutV1 = settings.layout_v1 !== "false";
             patch.showHardwareOnHome = settings.show_hardware_on_home !== "false";
+            patch.homeChecklistDismissed = settings.home_checklist_dismissed === "true";
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
             }
@@ -430,8 +451,10 @@ export const useSettingsStore = create<SettingsStore>()(
           persistSetting("enable_animations", String(value));
           set({ enableAnimations: value }, false, "setEnableAnimations");
         },
-        setReducedMotion: (value) =>
-          set({ reducedMotion: value }, false, "setReducedMotion"),
+        setReducedMotion: (value) => {
+          persistSetting("reduced_motion", String(value));
+          set({ reducedMotion: value }, false, "setReducedMotion");
+        },
         hideGame: (gameId) =>
           set(
             (state) => ({
@@ -558,6 +581,10 @@ export const useSettingsStore = create<SettingsStore>()(
           persistSetting("show_hardware_on_home", String(value));
           set({ showHardwareOnHome: value }, false, "setShowHardwareOnHome");
         },
+        setHomeChecklistDismissed: (value) => {
+          persistSetting("home_checklist_dismissed", String(value));
+          set({ homeChecklistDismissed: value }, false, "setHomeChecklistDismissed");
+        },
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);
           set({ retroTheme: id }, false, "setRetroTheme");
@@ -577,13 +604,15 @@ export const useSettingsStore = create<SettingsStore>()(
       }),
       {
         name: "nexus-settings",
-        version: 1,
+        version: 2,
         // v0 -> v1: retroSounds default flipped to on. Earlier builds
         // persisted the old `false` default even when the user never chose
         // it, so migrate it to the new default once.
+        // v1 -> v2: the v1.0 layout became the default; same reasoning.
         migrate: (persisted, version) => {
           const state = persisted as Partial<SettingsState>;
           if (version === 0) state.retroSounds = true;
+          if (version < 2) state.layoutV1 = true;
           return state as SettingsState & SettingsActions;
         },
       },

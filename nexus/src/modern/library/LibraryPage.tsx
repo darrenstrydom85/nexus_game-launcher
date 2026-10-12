@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LayoutGrid, List, Plus } from "lucide-react";
+import { LayoutGrid, List, PackageOpen, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGames } from "@/hooks/useGames";
 import { useUiStore, type SortField } from "@/stores/uiStore";
@@ -10,7 +10,6 @@ import { useMasteryStore } from "@/stores/masteryStore";
 import { useCollectionStore, type Collection } from "@/stores/collectionStore";
 import { filterGames, hasActiveFilters, type LibraryFilters } from "@/lib/libraryFilter";
 import { sortGames, SORT_OPTIONS } from "@/components/Library/GameGrid";
-import { SyncProgressBanner } from "@/components/Library/SyncProgressBanner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ConfirmDialog } from "@/components/ui/alert-dialog";
@@ -28,6 +27,8 @@ export interface LibraryPageProps extends GameMenuHandlers {
   onDeleteCollection: (c: Collection) => void;
   onOpenSettings: () => void;
   onResync: () => void;
+  /** Open the "What should I play?" pack picker. */
+  onOpenRandom: () => void;
   syncResult: { added: number; updated: number } | null;
 }
 
@@ -39,6 +40,7 @@ export function LibraryPage({
   onDeleteCollection,
   onOpenSettings,
   onResync,
+  onOpenRandom,
   syncResult,
   ...menu
 }: LibraryPageProps) {
@@ -146,10 +148,6 @@ export function LibraryPage({
 
   return (
     <div data-testid="library-page" className="relative flex flex-col">
-      <div className="sticky top-0 z-[20] h-0 overflow-visible">
-        <SyncProgressBanner />
-      </div>
-
       <div className="flex flex-col gap-0 px-6 pt-6">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border">
           <div className="flex min-w-0 flex-col gap-3.5">
@@ -214,6 +212,15 @@ export function LibraryPage({
 
           {(tab.kind === "all" || tab.kind === "collection") && (
             <div className="flex items-center gap-2 pb-2.5">
+              <button
+                type="button"
+                data-testid="lib-open-pack"
+                onClick={onOpenRandom}
+                className="pressable flex h-9 items-center gap-2 whitespace-nowrap rounded-lg border border-input bg-background/60 px-3 text-sm font-medium text-foreground outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <PackageOpen className="size-4" strokeWidth={1.5} aria-hidden />
+                Open a pack
+              </button>
               <Select value={sortField} onValueChange={(v) => useUiStore.getState().setSortField(v as SortField)}>
                 <SelectTrigger aria-label="Sort games" data-testid="lib-sort" className="min-w-44">
                   <span className="text-muted-foreground">Sort</span>
@@ -320,12 +327,13 @@ export function LibraryPage({
   );
 }
 
-const TabButton = React.forwardRef<
+/** Underlined page tab with a muted count; also used by the Achievements page. */
+export const TabButton = React.forwardRef<
   HTMLButtonElement,
   {
     active: boolean;
     onClick: () => void;
-    count: number;
+    count: React.ReactNode;
     testId: string;
     children: React.ReactNode;
   } & React.ComponentPropsWithoutRef<"button">

@@ -47,6 +47,7 @@ function renderPage() {
     onDeleteCollection: vi.fn(),
     onOpenSettings: vi.fn(),
     onResync: vi.fn(),
+    onOpenRandom: vi.fn(),
     syncResult: null,
   };
   render(
@@ -58,6 +59,13 @@ function renderPage() {
 }
 
 describe("v1 Library page", () => {
+  it("opens a pack from the toolbar", () => {
+    const props = renderPage();
+    fireEvent.click(screen.getByTestId("lib-open-pack"));
+    expect(props.onOpenRandom).toHaveBeenCalledOnce();
+  });
+
+
   beforeEach(() => {
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue(undefined);
