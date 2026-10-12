@@ -162,7 +162,7 @@ export function WrappedShareModal({ report, onClose }: WrappedShareModalProps) {
       {/* Backdrop */}
       <div
         data-testid="share-modal-backdrop"
-        className="fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm"
+        className="fixed inset-0 z-[55] bg-black/70"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -191,6 +191,8 @@ export function WrappedShareModal({ report, onClose }: WrappedShareModalProps) {
               type="button"
               data-testid="share-modal-close"
               onClick={onClose}
+              // Move focus into the dialog so Esc and Tab act on it, not the story behind.
+              autoFocus
               aria-label="Close share modal"
               className={cn(
                 "flex size-8 items-center justify-center rounded-md",

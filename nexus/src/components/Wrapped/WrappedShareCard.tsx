@@ -6,6 +6,7 @@
  * No Tailwind classes, no CSS variables — only inline style objects.
  */
 import * as React from "react";
+import { CalendarDays, Flame, Gamepad2, Trophy } from "lucide-react";
 import nexusLogo from "@/assets/nexus-onboarding-logo.png";
 import type { WrappedReport } from "@/types/wrapped";
 import { formatDuration } from "@/lib/time";
@@ -32,6 +33,8 @@ function buildColors(accent: string) {
     glow1: `rgba(${r}, ${g}, ${b}, 0.22)`,
     glow2: `rgba(${r}, ${g}, ${b}, 0.12)`,
     border2: `rgba(${r}, ${g}, ${b}, 0.25)`,
+    // The accent mixed 55% toward white: readable on the near-black card.
+    ink: `rgb(${Math.round(r + (255 - r) * 0.55)}, ${Math.round(g + (255 - g) * 0.55)}, ${Math.round(b + (255 - b) * 0.55)})`,
   };
 }
 
@@ -197,14 +200,14 @@ function GameRow({ rank, name, coverUrl: _coverUrl, playTimeS, colors }: GameRow
 }
 
 interface HighlightTileProps {
-  emoji: string;
+  icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
   colors: ReturnType<typeof buildColors>;
 }
 
-function HighlightTile({ emoji, label, value, sub, colors }: HighlightTileProps) {
+function HighlightTile({ icon, label, value, sub, colors }: HighlightTileProps) {
   return (
     <div
       style={{
@@ -220,7 +223,7 @@ function HighlightTile({ emoji, label, value, sub, colors }: HighlightTileProps)
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 18, lineHeight: 1 }}>{emoji}</span>
+        <span style={{ display: "flex", color: colors.ink }}>{icon}</span>
         <span
           style={{
             fontFamily: FONTS.sans,
@@ -325,6 +328,20 @@ export const WrappedShareCard = React.forwardRef<
           height: 400,
           borderRadius: "50%",
           background: `radial-gradient(circle, ${colors.glow2} 0%, transparent 65%)`,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Second-hue glow, matching the story's layered colour moods */}
+      <div
+        style={{
+          position: "absolute",
+          top: 300,
+          right: -220,
+          width: 620,
+          height: 620,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(214, 64, 160, 0.16) 0%, transparent 65%)",
           pointerEvents: "none",
         }}
       />
@@ -449,7 +466,7 @@ export const WrappedShareCard = React.forwardRef<
         <div style={{ display: "flex", gap: 10 }}>
           {report.longestSession && (
             <HighlightTile
-              emoji="🔥"
+              icon={<Flame size={18} strokeWidth={2.25} />}
               label="Epic Binge"
               value={`${formatDuration(report.longestSession.durationS)} — ${report.longestSession.gameName}`}
               colors={colors}
@@ -457,7 +474,7 @@ export const WrappedShareCard = React.forwardRef<
           )}
           {report.longestStreakDays > 0 && (
             <HighlightTile
-              emoji="🏆"
+              icon={<Trophy size={18} strokeWidth={2.25} />}
               label="Longest Streak"
               value={`${report.longestStreakDays} day${report.longestStreakDays !== 1 ? "s" : ""} in a row`}
               colors={colors}
@@ -469,7 +486,7 @@ export const WrappedShareCard = React.forwardRef<
         <div style={{ display: "flex", gap: 10 }}>
           {report.mostPlayedGenre && (
             <HighlightTile
-              emoji="🎮"
+              icon={<Gamepad2 size={18} strokeWidth={2.25} />}
               label="Top Genre"
               value={report.mostPlayedGenre}
               colors={colors}
@@ -477,7 +494,7 @@ export const WrappedShareCard = React.forwardRef<
           )}
           {report.busiestDay && (
             <HighlightTile
-              emoji="📅"
+              icon={<CalendarDays size={18} strokeWidth={2.25} />}
               label="Busiest Day"
               value={formatDate(report.busiestDay)}
               sub={`${formatDuration(report.busiestDayPlayTimeS)} played`}

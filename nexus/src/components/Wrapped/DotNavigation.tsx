@@ -21,7 +21,7 @@ export function DotNavigation({ count, activeIndex, onDotClick }: DotNavigationP
           aria-current={activeIndex === i ? "true" : undefined}
           onClick={() => onDotClick(i)}
           className={cn(
-            "size-2 rounded-full transition-all duration-200",
+            "size-2 rounded-full transition-[scale,background-color] duration-150",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             activeIndex === i
               ? "scale-125 bg-primary"
