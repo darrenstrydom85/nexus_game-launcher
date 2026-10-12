@@ -120,7 +120,7 @@ export function TwitchLiveBadge({ gameName, className }: TwitchLiveBadgeProps) {
           data-testid="twitch-live-badge"
           className={cn(
             "absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full px-1.5 py-0.5",
-            "bg-black/70 text-[10px] font-medium tabular-nums text-white backdrop-blur-[4px]",
+            "bg-black/70 text-[10px] font-medium tabular-nums text-white",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "transition-opacity hover:opacity-90",
             className,

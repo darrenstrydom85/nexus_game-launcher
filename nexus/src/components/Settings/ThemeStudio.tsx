@@ -1,7 +1,4 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import {
   ChevronDown,
   Dices,
@@ -15,12 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ColorField } from "@/components/ui/color-field";
 import { FontCombobox } from "./FontCombobox";
 import { cn } from "@/lib/utils";
-import { useSettingsStore } from "@/stores/settingsStore";
-import { resolveEffectiveTheme } from "@/lib/theme";
-import { contrastRatio } from "@/lib/themeApply";
 import {
-  type CustomTheme,
-  type ThemeBase,
   ADVANCED_TOKENS,
   BUNDLED_MONO_FONTS,
   BUNDLED_SANS_FONTS,
@@ -31,157 +23,38 @@ import {
   FONT_SCALE_MIN,
   RADIUS_MAX,
   RADIUS_MIN,
-  cloneTheme,
-  makeDefaultTheme,
 } from "@/lib/themeTypes";
-import { THEME_PRESETS, randomTheme } from "@/lib/themePresets";
-import { parseThemeJson, serializeTheme } from "@/lib/themeSchema";
+import { THEME_PRESETS } from "@/lib/themePresets";
+import {
+  ACCENT_SWATCHES,
+  slugifyThemeName as slugify,
+  useThemeStudio,
+} from "@/modern/settings/hooks/useThemeStudio";
 
-const ACCENT_PRESETS = [
-  "#7600da",
-  "#22c55e",
-  "#eab308",
-  "#ef4444",
-  "#a855f7",
-  "#ec4899",
-  "#06b6d4",
-  "#f97316",
-];
-
-type Status = { kind: "ok" | "err"; msg: string } | null;
-
-function slugify(name: string): string {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "theme";
-}
+const ACCENT_PRESETS = ACCENT_SWATCHES.map((s) => s.hex);
 
 export function ThemeStudio() {
-  const customTheme = useSettingsStore((s) => s.customTheme);
-  const setCustomTheme = useSettingsStore((s) => s.setCustomTheme);
-  const accentColor = useSettingsStore((s) => s.accentColor);
-  const themeMode = useSettingsStore((s) => s.theme);
-
-  const [systemFonts, setSystemFonts] = React.useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
-  const [busy, setBusy] = React.useState<"import" | "export" | null>(null);
-  const [status, setStatus] = React.useState<Status>(null);
-
-  // Which base palette the user is editing — follows the active appearance.
-  const [base, setBase] = React.useState<ThemeBase>(() =>
-    resolveEffectiveTheme(
-      themeMode,
-      typeof window !== "undefined" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches,
-    ),
-  );
-
-  React.useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const update = () => setBase(resolveEffectiveTheme(themeMode, media.matches));
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, [themeMode]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    invoke<string[]>("list_system_fonts")
-      .then((fonts) => {
-        if (!cancelled && Array.isArray(fonts)) setSystemFonts(fonts);
-      })
-      .catch(() => {
-        /* font detection unavailable — bundled fonts still work */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // The theme currently being edited. When no custom theme exists yet, seed from
-  // the stock defaults but reflect the user's saved accent so the picker matches.
-  const working: CustomTheme = React.useMemo(() => {
-    if (customTheme) return customTheme;
-    const seeded = makeDefaultTheme();
-    seeded.colors.dark.primary = accentColor;
-    seeded.colors.light.primary = accentColor;
-    return seeded;
-  }, [customTheme, accentColor]);
-
-  const colors = working.colors[base];
-
-  const patchColor = (key: string, hex: string) => {
-    const next = cloneTheme(working);
-    next.colors[base][key] = hex;
-    setCustomTheme(next);
-  };
-
-  const patchFont = (kind: "sans" | "mono", value: string) => {
-    const next = cloneTheme(working);
-    next.fonts[kind] = value;
-    setCustomTheme(next);
-  };
-
-  const patchRadius = (radius: number) => {
-    const next = cloneTheme(working);
-    next.radius = radius;
-    setCustomTheme(next);
-  };
-
-  const patchScale = (fontScale: number) => {
-    const next = cloneTheme(working);
-    next.fontScale = fontScale;
-    setCustomTheme(next);
-  };
-
-  const applyPreset = (preset: CustomTheme) => {
-    setStatus(null);
-    setCustomTheme(cloneTheme(preset));
-  };
-
-  const reset = () => {
-    setStatus(null);
-    setCustomTheme(null);
-  };
-
-  const handleExport = async () => {
-    setBusy("export");
-    setStatus(null);
-    try {
-      const theme = customTheme ?? working;
-      const destPath = await save({
-        defaultPath: `${slugify(theme.name)}.nexustheme.json`,
-        filters: [{ name: "Nexus Theme", extensions: ["json"] }],
-      });
-      if (!destPath) return;
-      await writeTextFile(destPath, serializeTheme(theme));
-      setStatus({ kind: "ok", msg: "Theme exported." });
-    } catch {
-      setStatus({ kind: "err", msg: "Export failed. Please try again." });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleImport = async () => {
-    setBusy("import");
-    setStatus(null);
-    try {
-      const selected = await openDialog({
-        multiple: false,
-        filters: [{ name: "Nexus Theme", extensions: ["json"] }],
-      });
-      const path = Array.isArray(selected) ? selected[0] : selected;
-      if (!path) return;
-      const content = await readTextFile(path as string);
-      const theme = parseThemeJson(content);
-      setCustomTheme(theme);
-      setStatus({ kind: "ok", msg: `Imported "${theme.name}".` });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Import failed.";
-      setStatus({ kind: "err", msg });
-    } finally {
-      setBusy(null);
-    }
-  };
+  const {
+    base,
+    working,
+    colors,
+    customTheme,
+    systemFonts,
+    busy,
+    status,
+    contrast: fgBgContrast,
+    lowContrast,
+    patchColor,
+    patchFont,
+    patchRadius,
+    patchScale,
+    applyPreset,
+    applyRandom,
+    reset,
+    exportTheme: handleExport,
+    importTheme: handleImport,
+  } = useThemeStudio();
 
   const advancedSections = React.useMemo(() => {
     const map = new Map<string, typeof ADVANCED_TOKENS>();
@@ -192,9 +65,6 @@ export function ThemeStudio() {
     }
     return Array.from(map.entries());
   }, []);
-
-  const fgBgContrast = contrastRatio(colors.foreground, colors.background);
-  const lowContrast = fgBgContrast < 4.5;
 
   return (
     <section data-testid="theme-studio" className="flex flex-col gap-4">
@@ -219,10 +89,7 @@ export function ThemeStudio() {
           <button
             type="button"
             data-testid="theme-preset-random"
-            onClick={() => {
-              setStatus(null);
-              setCustomTheme(randomTheme());
-            }}
+            onClick={applyRandom}
             className="flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Dices className="size-3.5 text-primary" aria-hidden />

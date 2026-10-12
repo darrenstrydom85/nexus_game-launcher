@@ -67,9 +67,53 @@ beforeEach(() => {
   mockSearchHltb.mockResolvedValue([]);
   vi.mocked(invoke).mockImplementation((cmd: string) => {
     if (cmd === "get_games") return Promise.resolve([]);
+    if (cmd === "fetch_igdb_time_to_beat") return Promise.resolve(false);
     return Promise.resolve({});
   });
   useSettingsStore.setState({ hltbHoursPerDay: 1.5 });
+});
+
+describe("HltbSection — IGDB first, HLTB fallback", () => {
+  it("skips HLTB when IGDB has time-to-beat data", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_games") return Promise.resolve([]);
+      if (cmd === "fetch_igdb_time_to_beat") return Promise.resolve(true);
+      return Promise.resolve({});
+    });
+
+    render(<HltbSection game={makeGame({ hltbFetchedAt: staleDate })} />);
+
+    // Settles on the cached view (not HLTB's search mode) once the IGDB path completes.
+    await screen.findByText("No match found for this game.");
+    expect(vi.mocked(invoke)).toHaveBeenCalledWith("fetch_igdb_time_to_beat", { gameId: "g1" });
+    expect(mockSearchHltb).not.toHaveBeenCalled();
+  });
+
+  it("falls back to HLTB when IGDB has no data or fails", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) => {
+      if (cmd === "get_games") return Promise.resolve([]);
+      if (cmd === "fetch_igdb_time_to_beat") return Promise.reject(new Error("offline"));
+      return Promise.resolve({});
+    });
+
+    render(<HltbSection game={makeGame({ hltbFetchedAt: staleDate })} />);
+
+    await waitFor(() => {
+      expect(mockSearchHltb).toHaveBeenCalledWith("Hades", expect.anything());
+    });
+  });
+
+  it("credits IGDB, not HLTB, for IGDB-sourced times", async () => {
+    const game = makeGame({ hltbMainH: 20, hltbId: "igdb:1942", hltbFetchedAt: freshDate });
+
+    render(<HltbSection game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hltb-attribution")).toHaveTextContent("via IGDB");
+    });
+    fireEvent.click(screen.getByTestId("hltb-attribution"));
+    expect(openUrl).not.toHaveBeenCalled();
+  });
 });
 
 describe("HltbSection — cached data display", () => {

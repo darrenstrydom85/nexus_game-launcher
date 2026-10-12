@@ -61,33 +61,27 @@ fn get_setting_value(conn: &rusqlite::Connection, key: &str) -> Option<String> {
     .flatten()
 }
 
+/// IGDB client from the saved keys (reusing the cached token), or None when keys aren't set.
+pub fn igdb_client_from_settings(conn: &rusqlite::Connection) -> Option<IgdbClient> {
+    let non_empty = |key| get_setting_value(conn, key).filter(|v| !v.is_empty());
+    let id = non_empty(keys::IGDB_CLIENT_ID)?;
+    let secret = non_empty(keys::IGDB_CLIENT_SECRET)?;
+    let cached_token = get_setting_value(conn, keys::IGDB_ACCESS_TOKEN);
+    let cached_expires =
+        get_setting_value(conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
+
+    Some(match (cached_token, cached_expires) {
+        (Some(token), Some(expires)) => IgdbClient::with_cached_token(id, secret, token, expires),
+        _ => IgdbClient::new(id, secret),
+    })
+}
+
 fn build_context(db: &DbState) -> Result<FetchContext, String> {
     let conn = db.conn.lock().map_err(|e| format!("lock poisoned: {e}"))?;
 
-    let steamgrid = get_setting_value(&conn, keys::STEAMGRID_API_KEY).map(SteamGridDbClient::new);
-
-    let igdb = {
-        let client_id = get_setting_value(&conn, keys::IGDB_CLIENT_ID);
-        let client_secret = get_setting_value(&conn, keys::IGDB_CLIENT_SECRET);
-        let cached_token = get_setting_value(&conn, keys::IGDB_ACCESS_TOKEN);
-        let cached_expires =
-            get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
-
-        match (client_id, client_secret) {
-            (Some(id), Some(secret)) => {
-                if let (Some(token), Some(expires)) = (cached_token, cached_expires) {
-                    Some(IgdbClient::with_cached_token(id, secret, token, expires))
-                } else {
-                    Some(IgdbClient::new(id, secret))
-                }
-            }
-            _ => None,
-        }
-    };
-
     Ok(FetchContext {
-        steamgrid,
-        igdb,
+        steamgrid: get_setting_value(&conn, keys::STEAMGRID_API_KEY).map(SteamGridDbClient::new),
+        igdb: igdb_client_from_settings(&conn),
         http: reqwest::Client::new(),
     })
 }
@@ -173,7 +167,9 @@ pub async fn fetch_metadata_for_game(
 
     // Fetch IGDB metadata if available
     if let Some(ref igdb) = ctx.igdb {
-        match fetch_igdb_metadata(igdb, db, game_id, &search_name).await {
+        match fetch_igdb_metadata(igdb, db, game_id, &search_name, &source, source_id.as_deref())
+            .await
+        {
             Ok(()) => {
                 if let Some(info) = igdb.get_cached_token_info() {
                     save_igdb_token(db, &info.0, info.1);
@@ -202,11 +198,14 @@ pub async fn fetch_metadata_for_game(
                 .await
         {
             log::warn!("SteamGridDB artwork fetch failed for {game_name}: {e}");
-            return Err(MetadataSyncError {
-                source: "SteamGridDB".into(),
-                game_id: game_id.to_string(),
-                message: e,
-            });
+            // IGDB art already filled the gap; only a game left without a cover failed.
+            if !has_cover(db, game_id) {
+                return Err(MetadataSyncError {
+                    source: "SteamGridDB".into(),
+                    game_id: game_id.to_string(),
+                    message: e,
+                });
+            }
         }
     }
 
@@ -319,17 +318,50 @@ pub async fn fetch_metadata_for_game_with_igdb_id(
     Ok(())
 }
 
+fn has_cover(db: &DbState, game_id: &str) -> bool {
+    db.conn
+        .lock()
+        .ok()
+        .and_then(|conn| {
+            conn.query_row(
+                "SELECT cover_url IS NOT NULL FROM games WHERE id = ?1",
+                params![game_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .ok()
+        })
+        .unwrap_or(false)
+}
+
 async fn fetch_igdb_metadata(
     igdb: &IgdbClient,
     db: &DbState,
     game_id: &str,
     game_name: &str,
+    source: &str,
+    source_id: Option<&str>,
 ) -> Result<(), String> {
-    let results = igdb.search_game(game_name).await?;
-    let best = IgdbClient::best_match(&results, game_name)
-        .ok_or_else(|| format!("no IGDB match for {game_name}"))?;
+    // Store id is exact; name search is the fallback for other stores and unmapped games.
+    let by_store_id = match source_id {
+        Some(uid) => igdb
+            .find_game_by_store_id(source, uid)
+            .await
+            .unwrap_or_else(|e| {
+                log::warn!("IGDB store-id lookup failed for {game_name}: {e}");
+                None
+            }),
+        None => None,
+    };
 
-    let meta = IgdbClient::extract_metadata(best);
+    let meta = match by_store_id {
+        Some(game) => IgdbClient::extract_metadata(&game),
+        None => {
+            let results = igdb.search_game(game_name).await?;
+            let best = IgdbClient::best_match(&results, game_name)
+                .ok_or_else(|| format!("no IGDB match for {game_name}"))?;
+            IgdbClient::extract_metadata(best)
+        }
+    };
     apply_igdb_metadata_to_game(db, game_id, &meta).await
 }
 
@@ -389,24 +421,12 @@ async fn apply_igdb_metadata_to_game(
     )
     .map_err(|e| format!("failed to update game metadata: {e}"))?;
 
-    // If IGDB provided a cover and we don't have SteamGridDB artwork, use it
-    if let Some(ref cover_url) = meta.cover_url {
-        let existing_cover: Option<String> = conn
-            .query_row(
-                "SELECT cover_url FROM games WHERE id = ?1",
-                params![game_id],
-                |row| row.get(0),
-            )
-            .ok()
-            .flatten();
-
-        if existing_cover.is_none() {
-            let _ = conn.execute(
-                "UPDATE games SET cover_url = ?1 WHERE id = ?2",
-                params![cover_url, game_id],
-            );
-        }
-    }
+    // IGDB art only fills empty slots; SteamGridDB art (applied after this) wins when it exists.
+    let _ = conn.execute(
+        "UPDATE games SET cover_url = COALESCE(cover_url, ?1), \
+         hero_url = COALESCE(hero_url, ?2) WHERE id = ?3",
+        params![meta.cover_url, meta.hero_url, game_id],
+    );
 
     Ok(())
 }
@@ -471,9 +491,11 @@ fn apply_steamgrid_artwork_by_id<'a>(
         let hero_url = artwork.hero.clone().or(cached.hero_path);
         let logo_url = artwork.logo.clone().or(cached.logo_path);
 
+        // COALESCE: a SteamGridDB set missing a grid/hero must not wipe the IGDB fallback.
         conn.execute(
-            "UPDATE games SET steamgrid_id = ?1, cover_url = ?2, hero_url = ?3, \
-             logo_url = ?4, updated_at = ?5 WHERE id = ?6",
+            "UPDATE games SET steamgrid_id = ?1, cover_url = COALESCE(?2, cover_url), \
+             hero_url = COALESCE(?3, hero_url), logo_url = ?4, \
+             updated_at = ?5 WHERE id = ?6",
             params![
                 steamgrid_id,
                 cover_url,
@@ -708,11 +730,13 @@ pub struct ScoreBackfillProgressEvent {
 
 const BACKFILL_BATCH_SIZE: usize = 10;
 
-/// Returns (igdb_id, game_id) pairs for games that have an IGDB match but no critic score yet.
-pub fn find_games_needing_score_backfill(conn: &rusqlite::Connection) -> Vec<(i64, String)> {
+/// Returns (igdb_id, game_id) pairs for games that have an IGDB match but no critic score
+/// or no hero banner yet.
+pub fn find_games_needing_backfill(conn: &rusqlite::Connection) -> Vec<(i64, String)> {
     let mut stmt = match conn.prepare(
         "SELECT igdb_id, id FROM games \
-         WHERE igdb_id IS NOT NULL AND critic_score IS NULL AND is_hidden = 0",
+         WHERE igdb_id IS NOT NULL AND (critic_score IS NULL OR hero_url IS NULL) \
+         AND is_hidden = 0",
     ) {
         Ok(s) => s,
         Err(_) => return vec![],
@@ -728,7 +752,7 @@ pub fn find_games_needing_score_backfill(conn: &rusqlite::Connection) -> Vec<(i6
     rows.filter_map(|r| r.ok()).collect()
 }
 
-/// Fetches rating fields for up to `BACKFILL_BATCH_SIZE` IGDB IDs in a single request.
+/// Fetches rating and hero-art fields for up to `BACKFILL_BATCH_SIZE` IGDB IDs in one request.
 pub async fn fetch_scores_batch(
     igdb: &IgdbClient,
     igdb_ids: &[i64],
@@ -744,7 +768,8 @@ pub async fn fetch_scores_batch(
 
     let query = format!(
         "fields aggregated_rating,aggregated_rating_count,rating,rating_count,\
-         total_rating,total_rating_count; where id = ({ids_str}); limit {BACKFILL_BATCH_SIZE};"
+         total_rating,total_rating_count,artworks.image_id,screenshots.image_id; \
+         where id = ({ids_str}); limit {BACKFILL_BATCH_SIZE};"
     );
 
     let body = igdb.igdb_post_pub("games", &query).await?;
@@ -753,7 +778,7 @@ pub async fn fetch_scores_batch(
     Ok(games)
 }
 
-/// Persists score fields for a single game by IGDB ID.
+/// Persists score fields, and an IGDB hero if the game has none, for a single game.
 fn persist_scores(
     conn: &rusqlite::Connection,
     game_id: &str,
@@ -761,14 +786,15 @@ fn persist_scores(
 ) -> Result<(), String> {
     conn.execute(
         "UPDATE games SET critic_score = ?1, critic_score_count = ?2, \
-         community_score = ?3, community_score_count = ?4, updated_at = ?5 \
-         WHERE id = ?6",
+         community_score = ?3, community_score_count = ?4, updated_at = ?5, \
+         hero_url = COALESCE(hero_url, ?6) WHERE id = ?7",
         params![
             igdb_game.aggregated_rating,
             igdb_game.aggregated_rating_count,
             igdb_game.rating,
             igdb_game.rating_count,
             crate::commands::utils::now_iso(),
+            crate::metadata::igdb::hero_url(igdb_game),
             game_id,
         ],
     )
@@ -776,43 +802,22 @@ fn persist_scores(
     Ok(())
 }
 
-/// Runs the score backfill pipeline. Fetches rating fields for all library games that have
-/// an IGDB ID but no critic score yet. Runs at lower priority than the main metadata pipeline.
-/// Safe to call multiple times — idempotent (skips already-scored games).
+/// Runs the score backfill pipeline. Fetches rating fields (and a fallback hero) for all
+/// library games that have an IGDB ID but no critic score or hero yet. Runs at lower priority
+/// than the main metadata pipeline. Safe to call multiple times — idempotent.
 pub async fn run_score_backfill(db: Arc<DbState>, app_handle: tauri::AppHandle) {
     use tauri::Emitter;
 
-    // Build IGDB client — silently skip if keys are not configured.
-    let igdb = {
+    // Build IGDB client and collect games — silently skip if keys are not configured.
+    let (igdb, games_to_backfill) = {
         let conn = match db.conn.lock() {
             Ok(c) => c,
             Err(_) => return,
         };
-        let client_id = get_setting_value(&conn, keys::IGDB_CLIENT_ID);
-        let client_secret = get_setting_value(&conn, keys::IGDB_CLIENT_SECRET);
-        let cached_token = get_setting_value(&conn, keys::IGDB_ACCESS_TOKEN);
-        let cached_expires =
-            get_setting_value(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
-
-        match (client_id, client_secret) {
-            (Some(id), Some(secret)) => {
-                if let (Some(token), Some(expires)) = (cached_token, cached_expires) {
-                    IgdbClient::with_cached_token(id, secret, token, expires)
-                } else {
-                    IgdbClient::new(id, secret)
-                }
-            }
-            _ => return, // No IGDB keys — silent skip
+        match igdb_client_from_settings(&conn) {
+            Some(igdb) => (igdb, find_games_needing_backfill(&conn)),
+            None => return,
         }
-    };
-
-    // Collect games needing backfill.
-    let games_to_backfill: Vec<(i64, String)> = {
-        let conn = match db.conn.lock() {
-            Ok(c) => c,
-            Err(_) => return,
-        };
-        find_games_needing_score_backfill(&conn)
     };
 
     let total = games_to_backfill.len();
@@ -956,11 +961,52 @@ mod tests {
         critic_score: Option<f64>,
     ) {
         conn.execute(
-            "INSERT INTO games (id, name, source, status, igdb_id, critic_score, added_at, updated_at) \
-             VALUES (?1, ?2, 'steam', 'backlog', ?3, ?4, '2026-01-01', '2026-01-01')",
+            "INSERT INTO games (id, name, source, status, igdb_id, critic_score, hero_url, added_at, updated_at) \
+             VALUES (?1, ?2, 'steam', 'backlog', ?3, ?4, 'hero.jpg', '2026-01-01', '2026-01-01')",
             params![id, format!("Game {id}"), igdb_id, critic_score],
         )
         .unwrap();
+    }
+
+    #[test]
+    fn find_games_needing_backfill_returns_scored_games_missing_hero() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game_with_igdb(&conn, "g1", 100, Some(90.0));
+        conn.execute("UPDATE games SET hero_url = NULL WHERE id = 'g1'", [])
+            .unwrap();
+
+        let results = find_games_needing_backfill(&conn);
+        assert_eq!(results, vec![(100, "g1".to_string())]);
+    }
+
+    #[test]
+    fn persist_scores_fills_missing_hero_but_keeps_existing() {
+        let state = setup_db();
+        let conn = state.conn.lock().unwrap();
+        insert_game_with_igdb(&conn, "kept", 100, None);
+        insert_game_with_igdb(&conn, "filled", 200, None);
+        conn.execute("UPDATE games SET hero_url = NULL WHERE id = 'filled'", [])
+            .unwrap();
+
+        let igdb_game = crate::metadata::igdb::IgdbGame {
+            id: 100,
+            artworks: Some(vec![crate::metadata::igdb::IgdbImage {
+                id: 1,
+                image_id: "ar1".into(),
+                url: None,
+            }]),
+            ..Default::default()
+        };
+        persist_scores(&conn, "kept", &igdb_game).unwrap();
+        persist_scores(&conn, "filled", &igdb_game).unwrap();
+
+        let hero = |id: &str| -> String {
+            conn.query_row("SELECT hero_url FROM games WHERE id = ?1", [id], |r| r.get(0))
+                .unwrap()
+        };
+        assert_eq!(hero("kept"), "hero.jpg");
+        assert!(hero("filled").ends_with("t_1080p/ar1.jpg"));
     }
 
     fn insert_game_without_igdb(conn: &rusqlite::Connection, id: &str) {
@@ -980,7 +1026,7 @@ mod tests {
         insert_game_with_igdb(&conn, "g2", 200, Some(87.5)); // already scored
         insert_game_without_igdb(&conn, "g3"); // no igdb_id
 
-        let results = find_games_needing_score_backfill(&conn);
+        let results = find_games_needing_backfill(&conn);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].0, 100); // igdb_id
         assert_eq!(results[0].1, "g1"); // game_id
@@ -993,7 +1039,7 @@ mod tests {
         insert_game_with_igdb(&conn, "g1", 100, Some(90.0));
         insert_game_with_igdb(&conn, "g2", 200, Some(70.0));
 
-        let results = find_games_needing_score_backfill(&conn);
+        let results = find_games_needing_backfill(&conn);
         assert!(results.is_empty());
     }
 
@@ -1004,7 +1050,7 @@ mod tests {
         insert_game_without_igdb(&conn, "g1");
         insert_game_without_igdb(&conn, "g2");
 
-        let results = find_games_needing_score_backfill(&conn);
+        let results = find_games_needing_backfill(&conn);
         assert!(results.is_empty());
     }
 
@@ -1015,7 +1061,7 @@ mod tests {
         insert_game_with_igdb(&conn, "g1", 100, None);
 
         // First call — should find the game.
-        let first = find_games_needing_score_backfill(&conn);
+        let first = find_games_needing_backfill(&conn);
         assert_eq!(first.len(), 1);
 
         // Simulate scoring the game.
@@ -1023,7 +1069,7 @@ mod tests {
             .unwrap();
 
         // Second call — should find nothing (idempotent).
-        let second = find_games_needing_score_backfill(&conn);
+        let second = find_games_needing_backfill(&conn);
         assert!(second.is_empty());
     }
 
@@ -1035,7 +1081,7 @@ mod tests {
             insert_game_with_igdb(&conn, &format!("g{i}"), i as i64 * 10, None);
         }
 
-        let results = find_games_needing_score_backfill(&conn);
+        let results = find_games_needing_backfill(&conn);
         assert_eq!(results.len(), 12);
     }
 

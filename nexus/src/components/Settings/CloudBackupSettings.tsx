@@ -1,132 +1,36 @@
 import * as React from "react";
 import { CloudUpload, RefreshCw, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToastStore } from "@/stores/toastStore";
 import {
-  gdriveAuthStart,
-  gdriveAuthLogout,
-  getBackupStatus,
-  runBackup,
-  setBackupFrequency,
-  setBackupRetention,
-  type BackupStatus,
-} from "@/lib/tauri";
+  BACKUP_FREQUENCIES as FREQUENCY_OPTIONS,
+  BACKUP_RETENTION_OPTIONS as RETENTION_OPTIONS,
+  useCloudBackup,
+  type BackupFrequency,
+} from "@/modern/settings/hooks/useCloudBackup";
+import { formatRelativeTime } from "@/lib/time";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
 
-const FREQUENCY_OPTIONS = [
-  { value: "manual", label: "Manual only" },
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-] as const;
-
-const RETENTION_OPTIONS = [3, 5, 10, 20] as const;
-
-function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-}
-
 export function CloudBackupSettings() {
-  const [status, setStatus] = React.useState<BackupStatus | null>(null);
-  const [connecting, setConnecting] = React.useState(false);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = React.useState(false);
-  const [disconnecting, setDisconnecting] = React.useState(false);
-  const [backingUp, setBackingUp] = React.useState(false);
   const [restoreOpen, setRestoreOpen] = React.useState(false);
-  const addToast = useToastStore((s) => s.addToast);
+  const {
+    status,
+    connecting,
+    disconnecting,
+    backingUp,
+    reload: loadStatus,
+    connect: handleConnect,
+    disconnect,
+    backUpNow: handleBackup,
+    setFrequency,
+    setRetention: handleRetentionChange,
+  } = useCloudBackup();
 
-  const loadStatus = React.useCallback(async () => {
-    try {
-      const s = await getBackupStatus();
-      setStatus(s);
-    } catch {
-      // Not connected or not configured
-    }
-  }, []);
+  const handleDisconnectConfirm = async () => {
+    if (await disconnect()) setDisconnectDialogOpen(false);
+  };
 
-  React.useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
-
-  const handleConnect = React.useCallback(async () => {
-    setConnecting(true);
-    try {
-      await gdriveAuthStart();
-      await loadStatus();
-      addToast({ type: "success", message: "Connected to Google Drive.", duration: 3000 });
-    } catch {
-      addToast({
-        type: "error",
-        message: "Failed to connect to Google Drive.",
-        duration: 5000,
-      });
-    } finally {
-      setConnecting(false);
-    }
-  }, [addToast, loadStatus]);
-
-  const handleDisconnectConfirm = React.useCallback(async () => {
-    setDisconnecting(true);
-    try {
-      await gdriveAuthLogout();
-      setStatus(null);
-      setDisconnectDialogOpen(false);
-    } finally {
-      setDisconnecting(false);
-    }
-  }, []);
-
-  const handleBackup = React.useCallback(async () => {
-    setBackingUp(true);
-    try {
-      const result = await runBackup();
-      const sizeMB = (result.sizeBytes / (1024 * 1024)).toFixed(1);
-      addToast({
-        type: "success",
-        message: `Backup complete (${sizeMB} MB). ${result.prunedCount > 0 ? `${result.prunedCount} old backup(s) removed.` : ""}`,
-        duration: 5000,
-      });
-      await loadStatus();
-    } catch {
-      addToast({ type: "error", message: "Backup failed.", duration: 5000 });
-    } finally {
-      setBackingUp(false);
-    }
-  }, [addToast, loadStatus]);
-
-  const handleFrequencyChange = React.useCallback(
-    async (value: string) => {
-      try {
-        await setBackupFrequency(value);
-        setStatus((prev) =>
-          prev ? { ...prev, frequency: value as BackupStatus["frequency"] } : prev,
-        );
-      } catch {
-        addToast({ type: "error", message: "Failed to update frequency.", duration: 3000 });
-      }
-    },
-    [addToast],
-  );
-
-  const handleRetentionChange = React.useCallback(
-    async (value: number) => {
-      try {
-        await setBackupRetention(value);
-        setStatus((prev) => (prev ? { ...prev, retentionCount: value } : prev));
-      } catch {
-        addToast({ type: "error", message: "Failed to update retention.", duration: 3000 });
-      }
-    },
-    [addToast],
-  );
+  const handleFrequencyChange = (value: string) => setFrequency(value as BackupFrequency);
 
   return (
     <section data-testid="cloud-backup-settings" aria-labelledby="cloud-backup-heading">
@@ -287,7 +191,7 @@ export function CloudBackupSettings() {
       {/* Disconnect confirmation */}
       {disconnectDialogOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           role="dialog"
           aria-modal="true"
           aria-labelledby="gdrive-disconnect-title"

@@ -39,7 +39,7 @@ export function UpdateAvailableDialog({ open, onClose }: UpdateAvailableDialogPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-labelledby="update-dialog-title"

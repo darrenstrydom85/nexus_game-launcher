@@ -7,8 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-const MAX_FAVORITES = 20;
+import { MAX_FAVORITES } from "@/modern/twitch/useTwitchPanel";
 
 export interface TwitchChannelRowProps {
   channel: TwitchChannel;

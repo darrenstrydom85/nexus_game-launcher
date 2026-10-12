@@ -52,7 +52,7 @@ export function ScoreBadge({
         className={cn(
           "inline-flex items-center justify-center rounded-full border-2 font-semibold tabular-nums",
           "h-7 w-7 text-xs",
-          "bg-black/70 backdrop-blur-sm",
+          "bg-black/70",
           scoreColorTextBorder(score),
           className,
         )}

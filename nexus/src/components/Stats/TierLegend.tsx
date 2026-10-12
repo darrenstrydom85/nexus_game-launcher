@@ -75,7 +75,7 @@ function TierCard({
     >
       <div
         className={cn(
-          "relative flex items-center justify-center overflow-hidden rounded-md backdrop-blur-[2px]",
+          "relative flex items-center justify-center overflow-hidden rounded-md",
         )}
         style={iconWellStyle}
       >
@@ -268,7 +268,6 @@ export function TierLegend() {
   }, [tierMap]);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (total === 0) return null;
 
   const modalGames: TierGameEntry[] = React.useMemo(() => {
     if (!selectedTier) return [];
@@ -283,6 +282,9 @@ export function TierLegend() {
       };
     });
   }, [selectedTier, tierMap, games]);
+
+  // Below every hook: tiers load after mount, so an earlier return changed the hook count.
+  if (total === 0) return null;
 
   return (
     <>

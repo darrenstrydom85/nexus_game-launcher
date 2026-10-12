@@ -294,6 +294,8 @@ pub fn get_achievement_status(
         }
     }
 
+    let stats = fetch_library_stats(&conn);
+
     let statuses = ACHIEVEMENT_DEFINITIONS
         .iter()
         .map(|def| {
@@ -303,6 +305,12 @@ pub fn get_achievement_status(
                 } else {
                     (false, None, None)
                 };
+            // Progress only matters while locked; the yes/no checks have none.
+            let progress = if unlocked {
+                None
+            } else {
+                threshold_progress(def.id, &stats).or_else(|| counter_progress(def.id, &conn))
+            };
 
             AchievementStatus {
                 id: def.id.to_string(),
@@ -315,6 +323,8 @@ pub fn get_achievement_status(
                 unlocked,
                 unlocked_at,
                 context_json,
+                progress_current: progress.map(|(current, target)| current.min(target)),
+                progress_target: progress.map(|(_, target)| target),
             }
         })
         .collect();
@@ -386,29 +396,49 @@ fn fetch_library_stats(conn: &Connection) -> LibraryStats {
     }
 }
 
+/// (current, target) for the threshold achievements. The single source of
+/// their targets: `check_threshold` unlocks when current reaches target.
+fn threshold_progress(id: &str, stats: &LibraryStats) -> Option<(i64, i64)> {
+    let hours = stats.total_play_time_s / 3600;
+    Some(match id {
+        "library_starter_10" => (stats.game_count, 10),
+        "library_collector_50" => (stats.game_count, 50),
+        "library_hoarder_200" => (stats.game_count, 200),
+        "library_archivist_500" => (stats.game_count, 500),
+        "library_curator_10_collections" => (stats.collection_count, 10),
+        "play_first_launch" => (stats.session_count, 1),
+        "play_100_hours" => (hours, 100),
+        "play_500_hours" => (hours, 500),
+        "play_1000_hours" => (hours, 1000),
+        "play_100_sessions" => (stats.session_count, 100),
+        "play_500_sessions" => (stats.session_count, 500),
+        "complete_first" => (stats.completed_count, 1),
+        "complete_5" => (stats.completed_count, 5),
+        "complete_25" => (stats.completed_count, 25),
+        "streak_7" => (stats.current_streak, 7),
+        "streak_14" => (stats.current_streak, 14),
+        "streak_30" => (stats.current_streak, 30),
+        "streak_90" => (stats.current_streak, 90),
+        "streak_365" => (stats.current_streak, 365),
+        _ => return None,
+    })
+}
+
 fn check_threshold(def: &AchievementDefinition, stats: &LibraryStats) -> bool {
-    match def.id {
-        "library_starter_10" => stats.game_count >= 10,
-        "library_collector_50" => stats.game_count >= 50,
-        "library_hoarder_200" => stats.game_count >= 200,
-        "library_archivist_500" => stats.game_count >= 500,
-        "library_curator_10_collections" => stats.collection_count >= 10,
-        "play_first_launch" => stats.session_count >= 1,
-        "play_100_hours" => stats.total_play_time_s >= 360_000,
-        "play_500_hours" => stats.total_play_time_s >= 1_800_000,
-        "play_1000_hours" => stats.total_play_time_s >= 3_600_000,
-        "play_100_sessions" => stats.session_count >= 100,
-        "play_500_sessions" => stats.session_count >= 500,
-        "complete_first" => stats.completed_count >= 1,
-        "complete_5" => stats.completed_count >= 5,
-        "complete_25" => stats.completed_count >= 25,
-        "streak_7" => stats.current_streak >= 7,
-        "streak_14" => stats.current_streak >= 14,
-        "streak_30" => stats.current_streak >= 30,
-        "streak_90" => stats.current_streak >= 90,
-        "streak_365" => stats.current_streak >= 365,
-        _ => false,
-    }
+    threshold_progress(def.id, stats).is_some_and(|(current, target)| current >= target)
+}
+
+/// (current, target) for the counter-based custom checks. Backlog Slayer,
+/// Hidden Gem and Weekend Warrior are yes/no and report no progress.
+fn counter_progress(id: &str, conn: &Connection) -> Option<(i64, i64)> {
+    Some(match id {
+        "explore_5_genres" => (count_monthly_genres(conn), 5),
+        "explore_10_genres" => (count_all_time_genres(conn), 10),
+        "session_night_owl_10" => (count_night_owl_sessions(conn), 10),
+        "session_early_bird_10" => (count_early_bird_sessions(conn), 10),
+        "session_marathon_5" => (count_marathon_sessions(conn), 5),
+        _ => return None,
+    })
 }
 
 /// "Backlog Slayer" — completed games that had at least one session
@@ -812,4 +842,39 @@ pub fn evaluate_achievements(db: State<'_, DbState>) -> Result<Vec<NewlyUnlocked
     let conn = db.conn()?;
 
     evaluate_achievements_inner(&conn)
+}
+
+#[cfg(test)]
+mod progress_tests {
+    use super::*;
+
+    fn def(id: &str) -> &'static AchievementDefinition {
+        ACHIEVEMENT_DEFINITIONS.iter().find(|d| d.id == id).unwrap()
+    }
+
+    #[test]
+    fn threshold_progress_reports_current_and_target() {
+        let stats = LibraryStats {
+            game_count: 248,
+            total_play_time_s: 359_999,
+            current_streak: 39,
+            ..Default::default()
+        };
+        assert_eq!(threshold_progress("library_archivist_500", &stats), Some((248, 500)));
+        assert_eq!(threshold_progress("play_100_hours", &stats), Some((99, 100)));
+        assert_eq!(threshold_progress("streak_90", &stats), Some((39, 90)));
+        // Yes/no checks have no measurable progress.
+        assert_eq!(threshold_progress("complete_10_backlog", &stats), None);
+    }
+
+    #[test]
+    fn unlock_rule_follows_the_same_targets() {
+        let mut stats = LibraryStats { game_count: 200, total_play_time_s: 359_999, ..Default::default() };
+        assert!(check_threshold(def("library_hoarder_200"), &stats));
+        assert!(!check_threshold(def("library_archivist_500"), &stats));
+        // 99h59m59s is not 100 hours; the 100th hour is.
+        assert!(!check_threshold(def("play_100_hours"), &stats));
+        stats.total_play_time_s = 360_000;
+        assert!(check_threshold(def("play_100_hours"), &stats));
+    }
 }

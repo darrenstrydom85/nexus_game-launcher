@@ -51,7 +51,7 @@ export function TwitchToast({ toast, onDismiss, onOpenChannel }: TwitchToastProp
       onClick={handleBodyClick}
       onKeyDown={handleBodyKeyDown}
       className={cn(
-        "relative flex max-w-[360px] cursor-pointer gap-3 rounded-lg border shadow-lg backdrop-blur-[12px]",
+        "relative flex max-w-[360px] cursor-pointer gap-3 rounded-lg border shadow-lg",
         "border-[hsla(240,10%,20%,0.4)] bg-[hsla(240,10%,8%,0.85)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         toast.isFavorite && "border-l-2 border-l-yellow-500",

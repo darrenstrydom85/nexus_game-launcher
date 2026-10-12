@@ -23,8 +23,20 @@ export const STEP_LABELS: Record<OnboardingStep, string> = {
   steamgriddb: "Artwork",
   igdb: "Metadata",
   sources: "Sources",
-  confirm: "Confirm",
+  confirm: "Your library",
 };
+
+/** One-line hint under each label in the step rail. */
+export const STEP_SUBLABELS: Record<OnboardingStep, string> = {
+  welcome: "A quick hello",
+  steamgriddb: "SteamGridDB key",
+  igdb: "IGDB keys",
+  sources: "Launchers and folders",
+  confirm: "Review and import",
+};
+
+/** Steps the user may pass over with "Skip for now". */
+export const SKIPPABLE_STEPS: readonly OnboardingStep[] = ["steamgriddb", "igdb"];
 
 export interface DetectedGame {
   name: string;
@@ -52,6 +64,8 @@ export interface OnboardingActions {
   goBack: () => void;
   goToStep: (step: OnboardingStep) => void;
   skipStep: (step: OnboardingStep) => void;
+  /** "Skip for now": marks the current step skipped (not completed) and advances. */
+  skipCurrent: () => void;
   markStepCompleted: (step: OnboardingStep) => void;
   completeOnboarding: () => void;
   resetOnboarding: () => void;
@@ -133,6 +147,25 @@ export const useOnboardingStore = create<OnboardingStore>()(
           false,
           "skipStep",
         ),
+      skipCurrent: () => {
+        const { currentStep, completedSteps, skippedSteps } = get();
+        let nextIdx = STEP_ORDER.indexOf(currentStep) + 1;
+        while (nextIdx < STEP_ORDER.length - 1 && skippedSteps.includes(STEP_ORDER[nextIdx])) {
+          nextIdx++;
+        }
+        if (nextIdx >= STEP_ORDER.length) return;
+        set(
+          {
+            currentStep: STEP_ORDER[nextIdx],
+            skippedSteps: skippedSteps.includes(currentStep)
+              ? skippedSteps
+              : [...skippedSteps, currentStep],
+            completedSteps: completedSteps.filter((s) => s !== currentStep),
+          },
+          false,
+          "skipCurrent",
+        );
+      },
       markStepCompleted: (step) =>
         set(
           (state) => ({

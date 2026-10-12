@@ -18,8 +18,7 @@ import type { LiveStreamItem, TwitchChannel } from "@/stores/twitchStore";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUiStore } from "@/stores/uiStore";
-
-const MAX_FAVORITES = 20;
+import { MAX_FAVORITES } from "@/modern/twitch/useTwitchPanel";
 
 type TwitchTab = "live" | "trending";
 

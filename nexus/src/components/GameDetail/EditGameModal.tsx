@@ -133,7 +133,7 @@ export function EditGameModal({ game, open, onClose, onSave }: EditGameModalProp
         >
           <div
             data-testid="edit-modal-backdrop"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={onClose}
           />
 

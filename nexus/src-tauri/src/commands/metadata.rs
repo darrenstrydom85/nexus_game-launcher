@@ -118,32 +118,12 @@ pub async fn search_metadata(
         return Ok(Vec::new());
     }
 
-    let (client_id, client_secret) = {
+    let igdb = {
         let conn = db.conn()?;
-        let id = get_setting(&conn, keys::IGDB_CLIENT_ID);
-        let secret = get_setting(&conn, keys::IGDB_CLIENT_SECRET);
-        match (id, secret) {
-            (Some(id), Some(secret)) => (id, secret),
-            _ => return Ok(Vec::new()),
-        }
+        crate::metadata::pipeline::igdb_client_from_settings(&conn)
     };
-
-    let cached_token = {
-        let conn = db.conn()?;
-        let token = get_setting(&conn, keys::IGDB_ACCESS_TOKEN);
-        let expires =
-            get_setting(&conn, keys::IGDB_TOKEN_EXPIRES).and_then(|s| s.parse::<i64>().ok());
-        match (token, expires) {
-            (Some(t), Some(exp)) => Some((t, exp)),
-            _ => None,
-        }
-    };
-
-    let igdb = match cached_token {
-        Some((token, expires)) => {
-            IgdbClient::with_cached_token(client_id.clone(), client_secret.clone(), token, expires)
-        }
-        None => IgdbClient::new(client_id, client_secret),
+    let Some(igdb) = igdb else {
+        return Ok(Vec::new());
     };
 
     let games = igdb
@@ -331,7 +311,7 @@ pub async fn run_score_backfill(
 ) -> Result<usize, CommandError> {
     let games_needing_backfill = {
         let conn = db.conn()?;
-        crate::metadata::pipeline::find_games_needing_score_backfill(&conn)
+        crate::metadata::pipeline::find_games_needing_backfill(&conn)
     };
 
     let count = games_needing_backfill.len();
@@ -364,7 +344,17 @@ pub fn save_hltb_data(
     completionist_h: Option<f64>,
 ) -> Result<(), CommandError> {
     let conn = db.conn()?;
+    write_time_to_beat(&conn, &game_id, &hltb_id, main_h, main_extra_h, completionist_h)
+}
 
+fn write_time_to_beat(
+    conn: &rusqlite::Connection,
+    game_id: &str,
+    hltb_id: &str,
+    main_h: Option<f64>,
+    main_extra_h: Option<f64>,
+    completionist_h: Option<f64>,
+) -> Result<(), CommandError> {
     let fetched_at = super::utils::now_iso();
 
     conn.execute(
@@ -381,6 +371,123 @@ pub fn save_hltb_data(
     )?;
 
     Ok(())
+}
+
+/// IGDB seconds to hours rounded to 0.1, matching hltb.ts. Zero or missing means no data.
+fn seconds_to_hours(seconds: Option<i64>) -> Option<f64> {
+    seconds
+        .filter(|&s| s > 0)
+        .map(|s| (s as f64 / 360.0).round() / 10.0)
+}
+
+/// Fills the time-to-beat columns from IGDB's official data. Returns false when the game has
+/// no IGDB match or IGDB has no times, so the caller can fall back to HowLongToBeat.
+/// The hltb_id column holds `igdb:<id>` to tell the UI which source the times came from.
+#[tauri::command]
+pub async fn fetch_igdb_time_to_beat(
+    db: State<'_, DbState>,
+    game_id: String,
+) -> Result<bool, CommandError> {
+    let (igdb, igdb_id) = {
+        let conn = db.conn()?;
+        let igdb_id: Option<i64> = conn.query_row(
+            "SELECT igdb_id FROM games WHERE id = ?1",
+            params![game_id],
+            |row| row.get(0),
+        )?;
+        (crate::metadata::pipeline::igdb_client_from_settings(&conn), igdb_id)
+    };
+    let (Some(igdb), Some(igdb_id)) = (igdb, igdb_id) else {
+        return Ok(false);
+    };
+
+    let Some(ttb) = igdb
+        .time_to_beat(igdb_id)
+        .await
+        .map_err(CommandError::Unknown)?
+    else {
+        return Ok(false);
+    };
+    let main_h = seconds_to_hours(ttb.hastily);
+    let main_extra_h = seconds_to_hours(ttb.normally);
+    let completionist_h = seconds_to_hours(ttb.completely);
+    if main_h.is_none() && main_extra_h.is_none() && completionist_h.is_none() {
+        return Ok(false);
+    }
+
+    let conn = db.conn()?;
+    write_time_to_beat(
+        &conn,
+        &game_id,
+        &format!("igdb:{igdb_id}"),
+        main_h,
+        main_extra_h,
+        completionist_h,
+    )?;
+    Ok(true)
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoreLink {
+    pub store: &'static str,
+    pub url: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimilarGame {
+    pub igdb_id: i64,
+    pub name: String,
+    pub cover_url: Option<String>,
+    pub igdb_url: Option<String>,
+    pub stores: Vec<StoreLink>,
+}
+
+/// IGDB's "similar games" for a game, with links to the stores we allow opening.
+/// Empty when IGDB keys aren't configured.
+#[tauri::command]
+pub async fn get_similar_games(
+    db: State<'_, DbState>,
+    igdb_id: i64,
+) -> Result<Vec<SimilarGame>, CommandError> {
+    let igdb = {
+        let conn = db.conn()?;
+        crate::metadata::pipeline::igdb_client_from_settings(&conn)
+    };
+    let Some(igdb) = igdb else {
+        return Ok(Vec::new());
+    };
+
+    let games = igdb
+        .similar_games(igdb_id)
+        .await
+        .map_err(CommandError::Unknown)?;
+
+    Ok(games
+        .into_iter()
+        .map(|g| {
+            let mut stores: Vec<StoreLink> = Vec::new();
+            for site in g.websites.into_iter().flatten() {
+                if let Some(store) = crate::metadata::igdb::store_name(&site.url) {
+                    if !stores.iter().any(|s| s.store == store) {
+                        stores.push(StoreLink { store, url: site.url });
+                    }
+                }
+            }
+            SimilarGame {
+                igdb_id: g.id,
+                name: g.name,
+                cover_url: g
+                    .cover
+                    .map(|c| crate::metadata::igdb::igdb_image_url(&c.image_id, "cover_big")),
+                igdb_url: g
+                    .url
+                    .filter(|u| u.starts_with("https://www.igdb.com/games/")),
+                stores,
+            }
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -535,6 +642,14 @@ mod tests {
         assert_eq!(extra_h, None);
         assert_eq!(comp_h, None);
         assert_eq!(fetched_at, None);
+    }
+
+    #[test]
+    fn seconds_to_hours_rounds_and_drops_empty() {
+        assert_eq!(seconds_to_hours(Some(36_000)), Some(10.0));
+        assert_eq!(seconds_to_hours(Some(5_400)), Some(1.5));
+        assert_eq!(seconds_to_hours(Some(0)), None);
+        assert_eq!(seconds_to_hours(None), None);
     }
 
     #[test]

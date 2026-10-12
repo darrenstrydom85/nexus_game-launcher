@@ -1,15 +1,8 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { getVersion } from "@tauri-apps/api/app";
 import { FileCode2, FileJson, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
-import { useGameStore } from "@/stores/gameStore";
-import { getSystemHardware } from "@/lib/tauri";
 import {
   PRESETS,
   getPresetRange,
@@ -17,32 +10,7 @@ import {
   type StatsDateRange,
   type StatsPreset,
 } from "@/lib/statsRange";
-import {
-  buildStatsHtml,
-  buildStatsJson,
-  collectAssets,
-  mapRangeToPeriod,
-  type WrappedReport,
-} from "@/lib/statsExport";
-
-interface ExportZipResult {
-  assetsWritten: number;
-  assetsFailed: number;
-}
-
-interface ExportProgress {
-  current: number;
-  total: number;
-}
-
-const PROGRESS_EVENT = "nexus://stats-export-progress";
-
-type BusyKind = "html" | "json" | null;
-type Status = { kind: "ok" | "err"; msg: string } | null;
-
-function rangeSlug(range: StatsDateRange): string {
-  return range === "all" ? "all-time" : `${range.start}_to_${range.end}`;
-}
+import { useStatsExport } from "@/modern/settings/hooks/useStatsExport";
 
 /**
  * Settings section that exports the user's stats for a chosen date range as
@@ -56,9 +24,7 @@ export function StatsExport() {
   const [showCustom, setShowCustom] = React.useState(false);
   const [rangeStart, setRangeStart] = React.useState("");
   const [rangeEnd, setRangeEnd] = React.useState("");
-  const [busy, setBusy] = React.useState<BusyKind>(null);
-  const [status, setStatus] = React.useState<Status>(null);
-  const [progress, setProgress] = React.useState<ExportProgress | null>(null);
+  const { busy, status, progress, exportHtml: handleExportHtml, exportJson: handleExportJson, clearStatus } = useStatsExport(dateRange);
 
   const todayStr = React.useMemo(() => toDateStr(new Date()), []);
   const isValidRange =
@@ -67,129 +33,16 @@ export function StatsExport() {
   const handlePreset = (preset: StatsPreset) => {
     setActivePreset(preset);
     setShowCustom(false);
-    setStatus(null);
+    clearStatus();
     setDateRange(getPresetRange(preset));
   };
 
   const applyRange = () => {
     if (!isValidRange) return;
     setActivePreset(null);
-    setStatus(null);
+    clearStatus();
     setDateRange({ start: rangeStart, end: rangeEnd });
   };
-
-  const prepare = React.useCallback(async () => {
-    const resolved = mapRangeToPeriod(dateRange);
-    const [report, appVersion, hardware] = await Promise.all([
-      invoke<WrappedReport>("get_wrapped_report", { period: resolved.period }),
-      getVersion().catch(() => undefined),
-      getSystemHardware().catch(() => null),
-    ]);
-    const allGames = useGameStore.getState().games;
-    const completedGames = allGames.filter((g) => g.completed);
-    const playedGames = allGames.filter((g) => g.totalPlayTimeS > 0);
-    return {
-      resolved,
-      report,
-      appVersion,
-      completedGames,
-      playedGames,
-      hardware,
-    };
-  }, [dateRange]);
-
-  const handleExportHtml = React.useCallback(async () => {
-    setBusy("html");
-    setStatus(null);
-    setProgress(null);
-    let unlisten: UnlistenFn | null = null;
-    try {
-      const {
-        resolved,
-        report,
-        appVersion,
-        completedGames,
-        playedGames,
-        hardware,
-      } = await prepare();
-      const { assets, relPathFor, mostPlayedHero, mostPlayedLogo } =
-        collectAssets({ report, completedGames });
-      const html = buildStatsHtml({
-        report,
-        completedGames,
-        playedGames,
-        relPathFor,
-        mostPlayedHero,
-        mostPlayedLogo,
-        periodLabel: resolved.label,
-        generatedAt: new Date().toISOString(),
-        appVersion,
-        cpuName: hardware?.cpuBrand !== "unknown" ? hardware?.cpuName : undefined,
-        gpuName: hardware?.gpuBrand !== "unknown" ? hardware?.gpuName : undefined,
-      });
-      const destPath = await save({
-        defaultPath: `nexus-stats-${rangeSlug(dateRange)}.zip`,
-        filters: [{ name: "ZIP", extensions: ["zip"] }],
-      });
-      if (!destPath) return;
-      setProgress({ current: 0, total: assets.length });
-      unlisten = await listen<ExportProgress>(PROGRESS_EVENT, (event) => {
-        setProgress(event.payload);
-      });
-      const result = await invoke<ExportZipResult>("export_stats_zip", {
-        destPath,
-        html,
-        assets,
-      });
-      const skipped = result.assetsFailed
-        ? `, ${result.assetsFailed} skipped`
-        : "";
-      setStatus({
-        kind: "ok",
-        msg: `Exported HTML · ${result.assetsWritten} images packaged${skipped}.`,
-      });
-    } catch {
-      setStatus({ kind: "err", msg: "HTML export failed. Please try again." });
-    } finally {
-      if (unlisten) unlisten();
-      setProgress(null);
-      setBusy(null);
-    }
-  }, [dateRange, prepare]);
-
-  const handleExportJson = React.useCallback(async () => {
-    setBusy("json");
-    setStatus(null);
-    try {
-      const { resolved, report, appVersion, completedGames, playedGames, hardware } =
-        await prepare();
-      const json = buildStatsJson({
-        report,
-        completedGames,
-        playedGames,
-        hardware: hardware
-          ? {
-              cpu: hardware.cpuBrand !== "unknown" ? hardware.cpuName : null,
-              gpu: hardware.gpuBrand !== "unknown" ? hardware.gpuName : null,
-            }
-          : null,
-        period: resolved,
-        generatedAt: new Date().toISOString(),
-        appVersion,
-      });
-      const destPath = await save({
-        defaultPath: `nexus-stats-${rangeSlug(dateRange)}.json`,
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (!destPath) return;
-      await writeTextFile(destPath, json);
-      setStatus({ kind: "ok", msg: "Exported JSON." });
-    } catch {
-      setStatus({ kind: "err", msg: "JSON export failed. Please try again." });
-    } finally {
-      setBusy(null);
-    }
-  }, [dateRange, prepare]);
 
   return (
     <section data-testid="stats-export">

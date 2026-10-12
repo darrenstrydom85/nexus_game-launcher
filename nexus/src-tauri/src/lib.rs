@@ -66,7 +66,7 @@ use commands::{
     },
     mastery::{get_mastery_tier, get_mastery_tiers_bulk},
     metadata::{
-        apply_steamgrid_artwork, clear_cache, clear_hltb_data, fetch_all_metadata, fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, run_score_backfill, save_hltb_data, search_metadata,
+        apply_steamgrid_artwork, clear_cache, clear_hltb_data, fetch_all_metadata, fetch_igdb_time_to_beat, fetch_metadata, fetch_metadata_with_igdb_id, get_cache_stats, get_similar_games, run_score_backfill, save_hltb_data, search_metadata,
         search_steamgrid_artwork, verify_igdb_keys, verify_steamgrid_key,
     },
     milestones::{check_session_milestones, evaluate_milestones_batch},
@@ -455,6 +455,8 @@ pub fn run() {
             run_score_backfill,
             save_hltb_data,
             clear_hltb_data,
+            fetch_igdb_time_to_beat,
+            get_similar_games,
             check_library_health,
             get_system_hardware,
             twitch_auth_start,

@@ -1,11 +1,11 @@
 {
-    "version":  "0.5.5",
-    "notes":  "A security release: safer game launches, tighter file access, and Twitch and Google Drive sign-ins locked to your Windows account.",
-    "pub_date":  "2026-10-02T16:21:54Z",
+    "version":  "1.0.0",
+    "notes":  "Nexus 1.0: a new layout with a Home dashboard, game pages and a quick-view drawer; rebuilt Stats, Achievements, Twitch, Settings and onboarding; story-style Wrapped and a pack-opening game picker.",
+    "pub_date":  "2026-10-12T18:43:19Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2RMeFN6NGNlN2U3OVEvT0psN3lXdzhtYlQ2VUpubzlTUDRCL3V2UjRKckpnQkg3dWNud0VpanlncVd3ZS82dE1nWnpnVEUwSjd0Um4zRGhsRFR3SkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwOTU4MTAzCWZpbGU6TmV4dXNfMC41LjVfeDY0LXNldHVwLmV4ZQpWYWtDaDFsazZhUnl3VW1YZVY3K3JyTndvOUU0TXJZcTM0bHlwQXM0TnNHQUpRck5SaFRDVHNiVlNnWkhWQ01Pa01MaXhCYnpLWlNFSUlqM2ZSVndBUT09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_0.5.5_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1U4c0VLNFJaUUI3aVh4TUVWemFNR3V0ZjZTT2xCSVErd2o1L1hnTHpPbDF2Wm1NRFNQckZZak1TRVV3dWJVd0pmNkE3WEFheFlqWWUrQVFUbjJpaWdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODMwNTU4CWZpbGU6TmV4dXNfMS4wLjBfeDY0LXNldHVwLmV4ZQpRdmQ2bksvaXZEaElGRDJTaVhJNkZxV2UvQW5jOUV4clNQK2xiNE93bGo0ZHJKY3hSTVRsVk5mSTFpZGtCT1NiMDNPT2RpTXA0V01NYkNMbXRTQkNEdz09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.0_x64-setup.exe"
                                          }
                   }
 }

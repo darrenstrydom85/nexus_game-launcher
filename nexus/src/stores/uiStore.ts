@@ -14,7 +14,19 @@ export type SortField =
 export type SortDirection = "asc" | "desc";
 export type StatsScrollTarget = "xp" | "milestones";
 
-export type NavItem = "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements";
+export type NavItem = "home" | "library" | "stats" | "random" | "twitch" | "wrapped" | "completed" | "archive" | "achievements" | "settings";
+
+export type SettingsCategory =
+  | "library"
+  | "tags"
+  | "appearance"
+  | "theme"
+  | "integrations"
+  | "backup"
+  | "data"
+  | "export"
+  | "about"
+  | "developer";
 
 export interface UiState {
   selectedGameId: string | null;
@@ -26,6 +38,9 @@ export interface UiState {
   searchQuery: string;
   searchOpen: boolean;
   detailOverlayGameId: string | null;
+  /** v1 quick view drawer: open game, and the list order it steps through. */
+  quickViewGameId: string | null;
+  quickViewIds: string[];
   activeNav: NavItem;
   sourceFilter: string | null;
   genreFilter: string | null;
@@ -33,6 +48,8 @@ export interface UiState {
   twitchPanelScrollToGameName: string | null;
   /** When set, Stats scrolls to the requested section then clears. */
   statsScrollTarget: StatsScrollTarget | null;
+  /** v1 Settings page: the open category. */
+  settingsCategory: SettingsCategory;
 }
 
 export interface UiActions {
@@ -43,6 +60,8 @@ export interface UiActions {
   setSearchQuery: (query: string) => void;
   setSearchOpen: (open: boolean) => void;
   setDetailOverlayGameId: (id: string | null) => void;
+  setQuickViewGameId: (id: string | null) => void;
+  setQuickViewIds: (ids: string[]) => void;
   setActiveNav: (nav: NavItem) => void;
   setSourceFilter: (source: string | null) => void;
   toggleSourceFilter: (source: string) => void;
@@ -50,6 +69,9 @@ export interface UiActions {
   toggleGenreFilter: (genre: string) => void;
   setTwitchPanelScrollToGameName: (gameName: string | null) => void;
   setStatsScrollTarget: (target: StatsScrollTarget | null) => void;
+  /** v1 shell: go to the Settings page, optionally at a category. */
+  openSettings: (category?: SettingsCategory) => void;
+  setSettingsCategory: (category: SettingsCategory) => void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -64,11 +86,14 @@ const initialState: UiState = {
   searchQuery: "",
   searchOpen: false,
   detailOverlayGameId: null,
+  quickViewGameId: null,
+  quickViewIds: [],
   activeNav: "library",
   sourceFilter: null,
   genreFilter: null,
   twitchPanelScrollToGameName: null,
   statsScrollTarget: null,
+  settingsCategory: "library",
 };
 
 export const useUiStore = create<UiStore>()(
@@ -88,6 +113,10 @@ export const useUiStore = create<UiStore>()(
         set({ searchOpen: open }, false, "setSearchOpen"),
       setDetailOverlayGameId: (id) =>
         set({ detailOverlayGameId: id }, false, "setDetailOverlayGameId"),
+      setQuickViewGameId: (id) =>
+        set({ quickViewGameId: id }, false, "setQuickViewGameId"),
+      setQuickViewIds: (ids) =>
+        set({ quickViewIds: ids }, false, "setQuickViewIds"),
       setActiveNav: (nav) =>
         set({ activeNav: nav }, false, "setActiveNav"),
       setSourceFilter: (source) =>
@@ -110,6 +139,13 @@ export const useUiStore = create<UiStore>()(
           false,
           "toggleGenreFilter",
         ),
+      openSettings: (category) =>
+        set(
+          (s) => ({ activeNav: "settings", settingsCategory: category ?? s.settingsCategory, detailOverlayGameId: null }),
+          false,
+          "openSettings",
+        ),
+      setSettingsCategory: (category) => set({ settingsCategory: category }, false, "setSettingsCategory"),
       setTwitchPanelScrollToGameName: (gameName) =>
         set(
           { twitchPanelScrollToGameName: gameName },

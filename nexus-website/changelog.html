@@ -142,18 +142,18 @@
 
     <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
     <p class="lede" style="margin-top:var(--s3)">
-      Thirty-six releases and counting — what's new, what's improved, and what
+      Thirty-seven releases and counting — what's new, what's improved, and what
       got fixed in each version of Nexus.
     </p>
 
     <div class="hero-actions">
-      <a href="releases/Nexus_0.5.5_x64_en-US.msi" class="btn">
+      <a href="releases/Nexus_1.0.0_x64_en-US.msi" class="btn">
         <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v0.5.5
+        Download v1.0.0
       </a>
-      <a href="#v0.5.5" class="btn btn--ghost">
+      <a href="#v1.0.0" class="btn btn--ghost">
         <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v0.5.5
+        Latest · v1.0.0
       </a>
     </div>
   </div>
@@ -169,7 +169,11 @@
         <!-- Sticky version rail (desktop) -->
         <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
           <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v0.5.5">
+          <a class="changelog-rail-link is-latest" href="#v1.0.0">
+            <span class="changelog-rail-version">v1.0.0</span>
+            <span class="changelog-rail-date">Oct 12</span>
+          </a>
+          <a class="changelog-rail-link" href="#v0.5.5">
             <span class="changelog-rail-version">v0.5.5</span>
             <span class="changelog-rail-date">Oct 2</span>
           </a>
@@ -264,7 +268,8 @@
           <div class="changelog-rail-mobile">
             <select data-changelog-mobile-select aria-label="Jump to version">
               <option value="">Jump to version…</option>
-              <option value="v0.5.5">v0.5.5 — Oct 2, 2026 (Latest)</option>
+              <option value="v1.0.0">v1.0.0 — Oct 12, 2026 (Latest)</option>
+              <option value="v0.5.5">v0.5.5 — Oct 2, 2026</option>
               <option value="v0.5.4">v0.5.4 — Sep 27, 2026</option>
               <option value="v0.5.3">v0.5.3 — Aug 26, 2026</option>
               <option value="v0.5.2">v0.5.2 — Aug 3, 2026</option>
@@ -325,11 +330,67 @@
               <p>No releases match your filters.</p>
             </div>
 
-            <!-- ── v0.5.5 (latest) ── -->
-            <article class="changelog-entry changelog-entry--latest" id="v0.5.5">
+            <!-- ── v1.0.0 (latest) ── -->
+            <article class="changelog-entry changelog-entry--latest" id="v1.0.0">
+              <div class="changelog-entry-header">
+                <h2 class="changelog-entry-version">v1.0.0</h2>
+                <time class="changelog-entry-date" datetime="2026-10-12">Oct 12, 2026 · Latest</time>
+              </div>
+
+              <div class="changelog-entry-body">
+                <p>
+                  Nexus 1.0. The whole app is rebuilt around a new layout: a top
+                  bar replaces the sidebar, Home becomes a dashboard that
+                  spotlights what to play next, and every page &mdash; Library,
+                  the game page, Stats, Achievements, Twitch and Settings &mdash;
+                  has been redesigned. Retro mode is unchanged and still one
+                  click away, and the classic layout is a switch away in
+                  Settings.
+                </p>
+
+                <div class="changelog-category" data-type="added">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>New layout</strong> &mdash; A top bar with search, your streak and level, a Now Playing strip while a game runs, and a quick-view drawer that slides in beside the library.</li>
+                    <li><strong>Home</strong> &mdash; A spotlight on what you're playing (or the best game you haven't started), plus Up next, your week, streak, level, achievements, who's live, and shelves like Finish in a weekend and Critics' favourites.</li>
+                    <li><strong>Game page</strong> &mdash; A full page with a ratings scorecard, How Long to Beat, screenshots, similar games and Twitch.</li>
+                    <li><strong>Open a pack</strong> &mdash; &ldquo;What should I play?&rdquo; now rips open a pack and flips over a card with your next game.</li>
+                    <li><strong>Wrapped</strong> &mdash; Now a story you step through, with animated stats and optional autoplay.</li>
+                    <li><strong>Get started</strong> &mdash; A checklist and library overview for new libraries, and a proper welcome when the library is empty.</li>
+                    <li><strong>Sync progress everywhere</strong> &mdash; Artwork and metadata fetching shows under the top bar on every page.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="changed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--changed">Improved</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>Stats</strong> &mdash; Side-by-side cards, comparisons with the previous period, a new activity chart, a streak heatmap and mastery tiers.</li>
+                    <li><strong>Achievements</strong> &mdash; Progress towards locked achievements, an Almost there row, and rarity filters.</li>
+                    <li><strong>Twitch</strong> &mdash; A following list, a featured stream, game filters, and channel pages with more live streams and top clips.</li>
+                    <li><strong>Settings</strong> &mdash; A full page with search; every section rebuilt, with a confirmation before anything destructive.</li>
+                    <li><strong>Onboarding</strong> &mdash; A cleaner step-by-step setup.</li>
+                    <li><strong>Smoother dialogs</strong> &mdash; No more flicker behind pop-ups.</li>
+                  </ul>
+                </div>
+
+                <div class="changelog-category" data-type="fixed">
+                  <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--fixed">Fixed</span></h3>
+                  <ul class="changelog-list">
+                    <li><strong>API keys</strong> &mdash; SteamGridDB and IGDB keys can be added in Settings again.</li>
+                    <li><strong>Import library</strong> &mdash; Importing a library export works again.</li>
+                    <li><strong>Re-scan</strong> &mdash; Re-scanning no longer drops games found in your own folders.</li>
+                    <li><strong>Settings that didn't stick</strong> &mdash; Animations and window transparency now survive a restart.</li>
+                    <li><strong>Late-night sessions</strong> &mdash; Sessions near midnight count on the right day in Stats.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- ── v0.5.5 ── -->
+            <article class="changelog-entry" id="v0.5.5">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.5</h2>
-                <time class="changelog-entry-date" datetime="2026-10-02">Oct 2, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-10-02">Oct 2, 2026</time>
               </div>
 
               <div class="changelog-entry-body">

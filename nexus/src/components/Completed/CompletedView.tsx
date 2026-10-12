@@ -59,7 +59,7 @@ interface CompletedStats {
   topGenre: string | null;
 }
 
-function deriveStats(games: Game[]): CompletedStats {
+export function deriveStats(games: Game[]): CompletedStats {
   const totalPlayTimeS = games.reduce((sum, g) => sum + g.totalPlayTimeS, 0);
 
   const rated = games.filter((g) => g.rating != null && g.rating > 0);

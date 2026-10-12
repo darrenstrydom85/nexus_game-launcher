@@ -232,7 +232,7 @@ export function CertificateShareModal({ data, onClose }: CertificateShareModalPr
     <>
       <div
         data-testid="certificate-share-backdrop"
-        className="fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm"
+        className="fixed inset-0 z-[55] bg-black/70"
         onClick={onClose}
         aria-hidden="true"
       />

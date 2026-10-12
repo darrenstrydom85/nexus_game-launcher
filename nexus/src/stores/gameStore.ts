@@ -63,9 +63,11 @@ export interface Game {
   progress: number | null;
   milestonesJson: string | null;
   completed: boolean;
+  /** Cached screenshot URLs (backend stores them comma-joined). */
+  screenshotUrls?: string[];
 }
 
-interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt" | "progress" | "milestonesJson"> {
+interface BackendGame extends Omit<Game, "screenshotUrls" | "totalPlayTimeS" | "lastPlayedAt" | "playCount" | "genres" | "customCover" | "customHero" | "potentialExeNames" | "criticScore" | "criticScoreCount" | "communityScore" | "communityScoreCount" | "trailerUrl" | "hltbMainH" | "hltbMainExtraH" | "hltbCompletionistH" | "hltbId" | "hltbFetchedAt" | "progress" | "milestonesJson"> {
   totalPlayTime?: number;
   totalPlayTimeS?: number;
   lastPlayed?: string | null;
@@ -87,6 +89,7 @@ interface BackendGame extends Omit<Game, "totalPlayTimeS" | "lastPlayedAt" | "pl
   hltbFetchedAt?: string | null;
   progress?: number | null;
   milestonesJson?: string | null;
+  screenshotUrls?: string | null;
 }
 
 export interface Milestone {
@@ -117,6 +120,8 @@ export interface GameState {
   activeSession: ActiveSession | null;
   showProcessPicker: boolean;
   isLoading: boolean;
+  /** The library has been fetched at least once; tells "still loading" from "empty". */
+  hasLoaded: boolean;
   error: string | null;
   /**
    * Monotonic counter bumped each time a gaming session is ended on the
@@ -143,6 +148,7 @@ const initialState: GameState = {
   activeSession: null,
   showProcessPicker: false,
   isLoading: false,
+  hasLoaded: false,
   error: null,
   lastSessionEndedAt: 0,
 };
@@ -167,6 +173,10 @@ export const useGameStore = create<GameStore>()(
           heroUrl: resolveUrl(g.customHero ?? g.heroUrl),
           logoUrl: resolveUrl(g.logoUrl),
           iconUrl: resolveUrl(g.iconUrl),
+          screenshotUrls: (g.screenshotUrls ?? "")
+            .split(",")
+            .map((u) => resolveUrl(u.trim()))
+            .filter((u): u is string => !!u),
           totalPlayTimeS: g.totalPlayTime ?? g.totalPlayTimeS ?? 0,
           lastPlayedAt: g.lastPlayed ?? g.lastPlayedAt ?? null,
           playCount: g.playCount ?? 0,
@@ -187,7 +197,7 @@ export const useGameStore = create<GameStore>()(
           milestonesJson: g.milestonesJson ?? null,
           completed: (g as any).completed ?? false,
         } as Game));
-        set({ games: mapped }, false, "setGames");
+        set({ games: mapped, hasLoaded: true }, false, "setGames");
         useSettingsStore.getState().setHiddenGameIds(mapped.filter((g) => g.isHidden).map((g) => g.id));
         useSettingsStore.getState().setRemovedGameIds(mapped.filter((g) => g.status === "removed").map((g) => g.id));
       },

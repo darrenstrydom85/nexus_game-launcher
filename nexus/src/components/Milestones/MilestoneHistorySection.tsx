@@ -74,9 +74,10 @@ export function MilestoneHistorySection({
     }
   }, [sessionIds, loadHistory]);
 
+  // The store keeps the last range's history; a range with no sessions has none.
   const uniqueMilestones = React.useMemo(
-    () => aggregateMilestones(history),
-    [history],
+    () => (sessionIds.length > 0 ? aggregateMilestones(history) : []),
+    [history, sessionIds.length],
   );
 
   if (historyLoading) {
@@ -180,7 +181,7 @@ function MilestoneDetailDialog({ entry, onClose }: MilestoneDetailDialogProps) {
           aria-label={`${entry.milestone.title} milestone details`}
         >
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={onClose}
           />
 
@@ -188,7 +189,7 @@ function MilestoneDetailDialog({ entry, onClose }: MilestoneDetailDialogProps) {
             data-testid="milestone-detail-modal"
             className={cn(
               "relative z-10 flex w-full max-w-md flex-col rounded-xl",
-              "bg-[hsla(240,10%,7%,0.85)] backdrop-blur-[24px]",
+              "bg-card",
               "border border-border shadow-2xl",
             )}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}

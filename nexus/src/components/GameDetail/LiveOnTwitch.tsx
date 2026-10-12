@@ -43,9 +43,6 @@ export function LiveOnTwitch({ gameName }: LiveOnTwitchProps) {
   const streamsByGameError = useTwitchStore((s) => s.streamsByGameError);
   const fetchStreamsByGame = useTwitchStore((s) => s.fetchStreamsByGame);
 
-  // Story 19.11: hide section when offline (live streams are ephemeral; stale data is misleading)
-  if (!isOnline) return null;
-
   const key = gameName.trim();
   const entry = key ? streamsByGame[key] : null;
   const data = entry?.data ?? null;
@@ -102,13 +99,16 @@ export function LiveOnTwitch({ gameName }: LiveOnTwitchProps) {
   }, [key, data]);
 
   React.useEffect(() => {
-    if (!key || !isAuthenticated) return;
+    if (!key || !isAuthenticated || !isOnline) return;
     const t = setTimeout(() => {
       fetchStreamsByGame(key);
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [key, isAuthenticated, fetchStreamsByGame]);
+  }, [key, isAuthenticated, isOnline, fetchStreamsByGame]);
 
+  // Story 19.11: hide section when offline (live streams are ephemeral; stale data is misleading).
+  // Returns sit below every hook so going offline never changes the hook count.
+  if (!isOnline) return null;
   // Section only when authenticated and (we have data, or we're loading, or we have cache)
   if (!isAuthenticated) return null;
   if (error && !data) return null;

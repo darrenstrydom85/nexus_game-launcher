@@ -131,13 +131,13 @@ export function HealthCheckModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
           <motion.div
             data-testid="health-check-modal"
             className={cn(
               "relative z-10 flex max-h-[80vh] w-full max-w-[720px] flex-col rounded-xl",
-              "bg-[hsla(240,10%,7%,0.85)] backdrop-blur-[24px]",
+              "bg-card",
               "border border-border shadow-2xl",
             )}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}

@@ -1,38 +1,26 @@
 import * as React from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
-import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Trash2, AlertTriangle, FolderOpen, Loader2, Timer, Search } from "lucide-react";
-import { formatBytes } from "@/lib/utils";
+import {
+  importToast,
+  useDataManagement,
+  type BulkDeleteResult,
+  type ResetMode,
+  type ShortSessionsCount,
+} from "@/modern/settings/hooks/useDataManagement";
+import { useToastStore } from "@/stores/toastStore";
 
-interface CacheStats {
-  totalBytes: number;
-  gameBytes: number | null;
-}
-
-interface DbStatus {
-  connected: boolean;
-  version: number;
-  path: string;
-}
-
-interface ShortSessionsCount {
-  sessionsCount: number;
-  gamesAffected: number;
-}
-
-interface BulkDeleteResult {
-  sessionsRemoved: number;
-  gamesAffected: number;
+function toastError(message: string) {
+  return () => useToastStore.getState().addToast({ type: "error", message });
 }
 
 export function DataManagement() {
-  const [cacheSize, setCacheSize] = React.useState("...");
-  const [dbPath, setDbPath] = React.useState("...");
+  const data = useDataManagement();
+  const cacheSize = data.cacheSize === undefined ? "..." : (data.cacheSize ?? "N/A");
+  const dbPath = data.dataFolder === undefined ? "..." : (data.dataFolder ?? "Unknown");
   const [confirmClear, setConfirmClear] = React.useState(false);
   const [confirmReset, setConfirmReset] = React.useState(0);
-  const [busy, setBusy] = React.useState<string | null>(null);
+  const [resetMode, setResetMode] = React.useState<ResetMode | null>(null);
 
   const [shortSessionOpen, setShortSessionOpen] = React.useState(false);
   const [threshold, setThreshold] = React.useState(60);
@@ -40,140 +28,62 @@ export function DataManagement() {
   const [preview, setPreview] = React.useState<ShortSessionsCount | null>(null);
   const [deleteResult, setDeleteResult] = React.useState<BulkDeleteResult | null>(null);
 
-  React.useEffect(() => {
-    invoke<CacheStats>("get_cache_stats", {}).then((stats) => {
-      setCacheSize(formatBytes(stats.totalBytes));
-    }).catch(() => setCacheSize("N/A"));
+  const resetting = data.isBusy("reset");
 
-    invoke<DbStatus>("get_db_status").then((status) => {
-      const dir = status.path.replace(/[/\\][^/\\]+$/, "");
-      setDbPath(dir);
-    }).catch(() => setDbPath("Unknown"));
-  }, []);
+  const handleExport = () => {
+    data.exportLibrary().catch(toastError("Couldn’t export the library. Please try again."));
+  };
 
-  const handleExport = React.useCallback(async () => {
-    setBusy("export");
-    try {
-      const games = await invoke<unknown[]>("get_games", { params: {} });
-      const json = JSON.stringify(games, null, 2);
-      const filePath = await save({
-        defaultPath: "nexus-library.json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (filePath) {
-        await writeTextFile(filePath, json);
-      }
-    } catch {
-      // user cancelled or write error
-    } finally {
-      setBusy(null);
-    }
-  }, []);
+  const handleImport = () => {
+    data
+      .importLibrary()
+      .then((result) => result && useToastStore.getState().addToast(importToast(result)))
+      .catch(toastError("Couldn’t import that file. Check it’s a Nexus library export."));
+  };
 
-  const handleImport = React.useCallback(async () => {
-    setBusy("import");
-    try {
-      const filePath = await openDialog({
-        multiple: false,
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (filePath) {
-        const content = await readTextFile(filePath as string);
-        const games = JSON.parse(content);
-        if (Array.isArray(games)) {
-          await invoke("confirm_games", { games });
-          await invoke("relink_play_sessions");
-        }
-      }
-    } catch {
-      // user cancelled or parse error
-    } finally {
-      setBusy(null);
-    }
-  }, []);
-
-  const handleClearHistory = React.useCallback(async () => {
-    setBusy("clearHistory");
-    try {
-      await invoke("clear_play_history");
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-      setConfirmClear(false);
-    }
-  }, []);
+  const handleClearHistory = () => {
+    data
+      .clearHistory()
+      .catch(toastError("Couldn’t clear play history. Please try again."))
+      .finally(() => setConfirmClear(false));
+  };
 
   const thresholdSecs = thresholdUnit === "minutes" ? threshold * 60 : threshold;
 
-  const handlePreviewShortSessions = React.useCallback(async () => {
-    setBusy("previewShort");
+  const handlePreviewShortSessions = () => {
     setPreview(null);
     setDeleteResult(null);
-    try {
-      const result = await invoke<ShortSessionsCount>("count_short_sessions", { thresholdSecs });
-      setPreview(result);
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, [thresholdSecs]);
+    data
+      .countShortSessions(thresholdSecs)
+      .then(setPreview)
+      .catch(toastError("Couldn’t count short sessions. Please try again."));
+  };
 
-  const handleDeleteShortSessions = React.useCallback(async () => {
-    setBusy("deleteShort");
-    try {
-      const result = await invoke<BulkDeleteResult>("bulk_delete_short_sessions", { thresholdSecs });
-      setDeleteResult(result);
-      setPreview(null);
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, [thresholdSecs]);
+  const handleDeleteShortSessions = () => {
+    data
+      .deleteShortSessions(thresholdSecs)
+      .then((result) => {
+        setDeleteResult(result);
+        setPreview(null);
+      })
+      .catch(toastError("Couldn’t remove short sessions. Please try again."));
+  };
 
-  const handleReset = React.useCallback(async (mode: "keepStats" | "keepKeys" | "all") => {
-    const busyKey = mode === "keepStats" ? "resetKeepStats" : mode === "keepKeys" ? "resetKeepKeys" : "reset";
-    setBusy(busyKey);
-    try {
-      const command = mode === "keepStats"
-        ? "reset_library_keep_stats"
-        : mode === "keepKeys"
-          ? "reset_keep_keys"
-          : "reset_all";
-      await invoke(command);
-      localStorage.clear();
-      window.location.reload();
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-      setConfirmReset(0);
-    }
-  }, []);
+  const handleReset = (mode: ResetMode) => {
+    setResetMode(mode);
+    data
+      .reset(mode)
+      .catch(toastError("Couldn’t reset Nexus. Please try again."))
+      .finally(() => setConfirmReset(0));
+  };
 
-  const handleClearCache = React.useCallback(async () => {
-    setBusy("cache");
-    try {
-      await invoke("clear_cache");
-      setCacheSize("0 B");
-    } catch {
-      // best-effort
-    } finally {
-      setBusy(null);
-    }
-  }, []);
+  const handleClearCache = () => {
+    data.clearCache().catch(toastError("Couldn’t clear the image cache."));
+  };
 
-  const handleOpenDbFolder = React.useCallback(async () => {
-    if (dbPath && dbPath !== "..." && dbPath !== "Unknown") {
-      try {
-        await invoke("open_data_folder");
-      } catch {
-        // best-effort
-      }
-    }
-  }, [dbPath]);
+  const handleOpenDbFolder = () => {
+    data.openDataFolder().catch(toastError("Couldn’t open the data folder."));
+  };
 
   return (
     <section data-testid="data-management">
@@ -185,10 +95,10 @@ export function DataManagement() {
             variant="secondary"
             size="sm"
             className="flex-1 gap-1"
-            disabled={busy === "export"}
+            disabled={data.isBusy("export")}
             onClick={handleExport}
           >
-            {busy === "export" ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            {data.isBusy("export") ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
             Export Library
           </Button>
           <Button
@@ -196,10 +106,10 @@ export function DataManagement() {
             variant="secondary"
             size="sm"
             className="flex-1 gap-1"
-            disabled={busy === "import"}
+            disabled={data.isBusy("import")}
             onClick={handleImport}
           >
-            {busy === "import" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {data.isBusy("import") ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
             Import Library
           </Button>
         </div>
@@ -222,10 +132,10 @@ export function DataManagement() {
             <Button
               size="xs"
               variant="destructive"
-              disabled={busy === "clearHistory"}
+              disabled={data.isBusy("clearHistory")}
               onClick={handleClearHistory}
             >
-              {busy === "clearHistory" ? "Clearing..." : "Yes, clear"}
+              {data.isBusy("clearHistory") ? "Clearing..." : "Yes, clear"}
             </Button>
             <Button size="xs" variant="secondary" onClick={() => setConfirmClear(false)}>
               Cancel
@@ -307,10 +217,10 @@ export function DataManagement() {
                 size="xs"
                 variant="secondary"
                 className="gap-1"
-                disabled={busy === "previewShort"}
+                disabled={data.isBusy("previewShort")}
                 onClick={handlePreviewShortSessions}
               >
-                {busy === "previewShort" ? (
+                {data.isBusy("previewShort") ? (
                   <Loader2 className="size-3 animate-spin" />
                 ) : (
                   <Search className="size-3" />
@@ -341,10 +251,10 @@ export function DataManagement() {
                 <Button
                   size="xs"
                   variant="destructive"
-                  disabled={busy === "deleteShort"}
+                  disabled={data.isBusy("deleteShort")}
                   onClick={handleDeleteShortSessions}
                 >
-                  {busy === "deleteShort" ? "Removing..." : "Remove"}
+                  {data.isBusy("deleteShort") ? "Removing..." : "Remove"}
                 </Button>
               </div>
             )}
@@ -400,31 +310,31 @@ export function DataManagement() {
                 data-testid="data-reset-keep-stats"
                 size="xs"
                 variant="secondary"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("keepStats")}
                 className="w-full justify-center"
               >
-                {busy === "resetKeepStats" ? "Resetting..." : "Reset, keep play history & API keys"}
+                {resetting && resetMode === "keepStats" ? "Resetting..." : "Reset, keep play history & API keys"}
               </Button>
               <Button
                 data-testid="data-reset-keep-keys"
                 size="xs"
                 variant="secondary"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("keepKeys")}
                 className="w-full justify-center"
               >
-                {busy === "resetKeepKeys" ? "Resetting..." : "Reset, keep API keys only"}
+                {resetting && resetMode === "keepKeys" ? "Resetting..." : "Reset, keep API keys only"}
               </Button>
               <Button
                 data-testid="data-reset-everything"
                 size="xs"
                 variant="destructive"
-                disabled={busy !== null}
+                disabled={resetting}
                 onClick={() => handleReset("all")}
                 className="w-full justify-center"
               >
-                {busy === "reset" ? "Resetting..." : "Reset everything"}
+                {resetting && resetMode === "all" ? "Resetting..." : "Reset everything"}
               </Button>
               <Button size="xs" variant="ghost" onClick={() => setConfirmReset(0)} className="w-full justify-center">
                 Cancel
@@ -440,10 +350,10 @@ export function DataManagement() {
             data-testid="data-clear-cache"
             variant="ghost"
             size="xs"
-            disabled={busy === "cache"}
+            disabled={data.isBusy("cache")}
             onClick={handleClearCache}
           >
-            {busy === "cache" ? "Clearing..." : "Clear"}
+            {data.isBusy("cache") ? "Clearing..." : "Clear"}
           </Button>
         </div>
 

@@ -30,12 +30,8 @@ export function SourceToggles() {
     setRescanning(true);
     try {
       const result = await invoke<ScanResult>("scan_sources");
-      const enabledSet = new Set(
-        Object.entries(sourcesEnabled)
-          .filter(([, v]) => v)
-          .map(([k]) => k),
-      );
-      const filtered = result.games.filter((g) => enabledSet.has(g.source));
+      // Sources missing from the map (standalone, until toggled) count as enabled, as the checkboxes show.
+      const filtered = result.games.filter((g) => sourcesEnabled[g.source] ?? true);
       if (filtered.length > 0) {
         await invoke("confirm_games", { detectedGames: filtered });
         await invoke("relink_play_sessions");

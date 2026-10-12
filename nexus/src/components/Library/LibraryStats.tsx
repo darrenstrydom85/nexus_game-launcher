@@ -28,36 +28,19 @@ import {
 } from "@/lib/statsRange";
 
 export type { StatsDateRange } from "@/lib/statsRange";
+import {
+  EMPTY_STATS,
+  deriveStatsFromSessions,
+  deriveTopGamesFromSessions,
+  filterByDateRange,
+  filterSessionsByRange,
+  type ActivityDataPoint,
+  type PlayStats,
+  type SessionRecord,
+  type TopGame,
+} from "@/lib/statsData";
 
-export interface PlayStats {
-  totalPlayTimeS: number;
-  gamesPlayed: number;
-  gamesUnplayed: number;
-  mostPlayedGame: string | null;
-  weeklyPlayTimeS: number;
-}
-
-export interface ActivityDataPoint {
-  date: string;
-  minutes: number;
-}
-
-export interface TopGame {
-  id: string;
-  name: string;
-  coverUrl: string | null;
-  totalPlayTimeS: number;
-}
-
-export interface SessionRecord {
-  id: string;
-  gameId: string;
-  gameName: string;
-  startedAt: string;
-  endedAt: string;
-  durationS: number;
-  note: string | null;
-}
+export type { PlayStats, ActivityDataPoint, TopGame, SessionRecord } from "@/lib/statsData";
 
 // Raw shapes returned by the Tauri backend
 interface BackendLibraryStats {
@@ -132,86 +115,6 @@ interface LibraryStatsProps {
   onOpenWrapped?: () => void;
 }
 
-const DEFAULT_STATS: PlayStats = {
-  totalPlayTimeS: 0,
-  gamesPlayed: 0,
-  gamesUnplayed: 0,
-  mostPlayedGame: null,
-  weeklyPlayTimeS: 0,
-};
-
-function filterByDateRange<T extends { date: string }>(
-  items: T[],
-  range: StatsDateRange,
-): T[] {
-  if (range === "all") return items;
-  return items.filter((d) => d.date >= range.start && d.date <= range.end);
-}
-
-function filterSessionsByRange(
-  sessions: SessionRecord[],
-  range: StatsDateRange,
-): SessionRecord[] {
-  if (range === "all") return sessions;
-  return sessions.filter((s) => {
-    const date = s.startedAt.slice(0, 10);
-    return date >= range.start && date <= range.end;
-  });
-}
-
-function deriveStatsFromSessions(sessions: SessionRecord[], totalLibraryGames: number): PlayStats {
-  const totalPlayTimeS = sessions.reduce((sum, s) => sum + s.durationS, 0);
-  const gameIds = new Set(sessions.map((s) => s.gameId));
-  const byGame = new Map<string, { name: string; durationS: number }>();
-  for (const s of sessions) {
-    const cur = byGame.get(s.gameId);
-    if (!cur) byGame.set(s.gameId, { name: s.gameName, durationS: s.durationS });
-    else cur.durationS += s.durationS;
-  }
-  let mostPlayedGame: string | null = null;
-  let maxDuration = 0;
-  byGame.forEach((v, _k) => {
-    if (v.durationS > maxDuration) {
-      maxDuration = v.durationS;
-      mostPlayedGame = v.name;
-    }
-  });
-  const gamesPlayed = gameIds.size;
-  return {
-    totalPlayTimeS,
-    gamesPlayed,
-    gamesUnplayed: Math.max(0, totalLibraryGames - gamesPlayed),
-    mostPlayedGame,
-    weeklyPlayTimeS: totalPlayTimeS,
-  };
-}
-
-function deriveTopGamesFromSessions(
-  sessions: SessionRecord[],
-  coverByGameId: Map<string, string | null>,
-  coverByName: Map<string, string | null>,
-): TopGame[] {
-  const byGame = new Map<
-    string,
-    { name: string; totalPlayTimeS: number }
-  >();
-  for (const s of sessions) {
-    const cur = byGame.get(s.gameId);
-    if (!cur)
-      byGame.set(s.gameId, { name: s.gameName, totalPlayTimeS: s.durationS });
-    else cur.totalPlayTimeS += s.durationS;
-  }
-  const sorted = [...byGame.entries()]
-    .sort((a, b) => b[1].totalPlayTimeS - a[1].totalPlayTimeS)
-    .slice(0, 10);
-  return sorted.map(([id, v]) => ({
-    id,
-    name: v.name,
-    coverUrl: coverByGameId.get(id) ?? coverByName.get(v.name.toLowerCase()) ?? null,
-    totalPlayTimeS: v.totalPlayTimeS,
-  }));
-}
-
 export function LibraryStats({
   stats: statsProp,
   activityData: activityDataProp,
@@ -221,7 +124,7 @@ export function LibraryStats({
   initialDateRange,
   onOpenWrapped,
 }: LibraryStatsProps) {
-  const [stats, setStats] = React.useState<PlayStats>(statsProp ?? DEFAULT_STATS);
+  const [stats, setStats] = React.useState<PlayStats>(statsProp ?? EMPTY_STATS);
   const [activityData, setActivityData] = React.useState<ActivityDataPoint[]>(activityDataProp ?? []);
   const [topGames, setTopGames] = React.useState<TopGame[]>(topGamesProp ?? []);
   const [sessions, setSessions] = React.useState<SessionRecord[]>(sessionsProp ?? []);

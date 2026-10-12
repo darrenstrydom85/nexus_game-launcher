@@ -121,7 +121,7 @@ export function CollectionEditor({
         >
           <div
             data-testid="editor-backdrop"
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={onClose}
           />
           <motion.div

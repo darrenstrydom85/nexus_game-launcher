@@ -1,9 +1,8 @@
 import * as React from "react";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToastStore } from "@/stores/toastStore";
-import { listBackups, restoreBackup, type BackupEntry } from "@/lib/tauri";
 import { formatBytes } from "@/lib/utils";
+import { formatBackupDate as formatDate, useBackupList } from "@/modern/settings/hooks/useCloudBackup";
 
 interface RestoreBackupDialogProps {
   open: boolean;
@@ -11,46 +10,16 @@ interface RestoreBackupDialogProps {
   onRestoreComplete: () => void;
 }
 
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
-
 export function RestoreBackupDialog({
   open,
   onClose,
   onRestoreComplete,
 }: RestoreBackupDialogProps) {
-  const [backups, setBackups] = React.useState<BackupEntry[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { backups, loading, error, restoring, restore } = useBackupList(open);
   const [confirmId, setConfirmId] = React.useState<string | null>(null);
-  const [restoring, setRestoring] = React.useState(false);
-  const addToast = useToastStore((s) => s.addToast);
 
   React.useEffect(() => {
-    if (!open) {
-      setBackups([]);
-      setError(null);
-      setConfirmId(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    listBackups()
-      .then((entries) => setBackups(entries))
-      .catch(() => setError("Failed to load backups from Google Drive."))
-      .finally(() => setLoading(false));
+    if (!open) setConfirmId(null);
   }, [open]);
 
   React.useEffect(() => {
@@ -70,35 +39,21 @@ export function RestoreBackupDialog({
 
   const handleRestore = React.useCallback(
     async (backupId: string) => {
-      setRestoring(true);
-      try {
-        await restoreBackup(backupId);
-        addToast({
-          type: "success",
-          message: "Library restored from backup successfully.",
-          duration: 5000,
-        });
+      const ok = await restore(backupId);
+      setConfirmId(null);
+      if (ok) {
         onRestoreComplete();
         onClose();
-      } catch {
-        addToast({
-          type: "error",
-          message: "Restore failed. Your current library is unchanged.",
-          duration: 5000,
-        });
-      } finally {
-        setRestoring(false);
-        setConfirmId(null);
       }
     },
-    [addToast, onClose, onRestoreComplete],
+    [restore, onClose, onRestoreComplete],
   );
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-labelledby="restore-dialog-title"

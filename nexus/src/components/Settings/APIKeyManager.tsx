@@ -11,7 +11,7 @@ function maskKey(key: string): string {
 }
 
 function KeyField({
-  label: _label,
+  label,
   value,
   settingKey,
   testId,
@@ -31,8 +31,9 @@ function KeyField({
   const handleSave = React.useCallback(async () => {
     setSaving(true);
     try {
-      await invoke("set_setting", { key: settingKey, value: draft });
-      onSaved(draft);
+      const trimmed = draft.trim();
+      await invoke("set_setting", { key: settingKey, value: trimmed });
+      onSaved(trimmed);
       setEditing(false);
     } catch {
       // best-effort
@@ -51,6 +52,7 @@ function KeyField({
       <div className="mt-2 flex items-center gap-2">
         <input
           data-testid={`${testId}-input`}
+          aria-label={label}
           type="text"
           className="flex-1 rounded-md border border-border bg-input px-2 py-1 font-mono text-xs text-foreground"
           value={draft}
@@ -80,7 +82,24 @@ function KeyField({
     );
   }
 
-  if (!value) return null;
+  // No key yet: offer the editor. This used to return null, which left no way
+  // to add a key that had never been set.
+  if (!value) {
+    return (
+      <Button
+        data-testid={`${testId}-add`}
+        variant="ghost"
+        size="xs"
+        className="mt-2 gap-1 text-xs"
+        onClick={() => {
+          setDraft("");
+          setEditing(true);
+        }}
+      >
+        <Pencil className="size-3" /> Add {label}
+      </Button>
+    );
+  }
 
   return (
     <div className="mt-2 flex items-center gap-2">
@@ -134,29 +153,12 @@ export function APIKeyManager() {
           </span>
         </div>
         <KeyField
-          label="SteamGridDB Key"
+          label="SteamGridDB key"
           value={apiKeys.steamGridDbKey}
           settingKey="steamgrid_api_key"
           testId="steamgrid"
           onSaved={(v) => setApiKeys({ steamGridDbKey: v })}
         />
-        {!apiKeys.steamGridDbKey && (
-          <Button
-            data-testid="steamgrid-add"
-            variant="ghost"
-            size="xs"
-            className="mt-2 gap-1 text-xs"
-            onClick={() => {
-              const el = document.querySelector<HTMLInputElement>('[data-testid="steamgrid-input"]');
-              if (!el) {
-                setApiKeys({ steamGridDbKey: " " });
-                setTimeout(() => setApiKeys({ steamGridDbKey: "" }), 0);
-              }
-            }}
-          >
-            <Pencil className="size-3" /> Add Key
-          </Button>
-        )}
       </div>
 
       {/* IGDB */}
@@ -174,14 +176,14 @@ export function APIKeyManager() {
           </span>
         </div>
         <KeyField
-          label="Client ID"
+          label="client ID"
           value={apiKeys.igdbClientId}
           settingKey="igdb_client_id"
           testId="igdb-id"
           onSaved={(v) => setApiKeys({ igdbClientId: v })}
         />
         <KeyField
-          label="Client Secret"
+          label="client secret"
           value={apiKeys.igdbClientSecret}
           settingKey="igdb_client_secret"
           testId="igdb-secret"
@@ -195,8 +197,10 @@ export function APIKeyManager() {
         size="sm"
         className="w-full"
         onClick={() => {
-          invoke("set_setting", { key: "onboarding_completed", value: "false" }).catch(() => {});
-          window.location.reload();
+          // Wait for the write: reloading first can drop the IPC call.
+          invoke("set_setting", { key: "onboarding_completed", value: "false" })
+            .catch(() => {})
+            .finally(() => window.location.reload());
         }}
       >
         Run Setup Wizard

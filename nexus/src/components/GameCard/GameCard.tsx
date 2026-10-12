@@ -49,7 +49,7 @@ export function SourceBadge({ source }: { source: GameSource }) {
   return (
     <span
       data-testid="source-badge"
-      className="absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm"
+      className="absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white"
     >
       {SOURCE_SHORT[source]}
     </span>
@@ -187,7 +187,7 @@ export function GameCard({ game, onHover, onHoverEnd, onClick }: GameCardProps) 
       <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/60 to-transparent" />
 
       {/* Bottom info */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 rounded-b-lg bg-black/60 p-3 backdrop-blur-[2px]">
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 rounded-b-lg bg-black/60 p-3">
         <span
           data-testid={`game-card-name-${game.id}`}
           className="line-clamp-2 text-sm font-semibold leading-tight text-white"

@@ -101,6 +101,8 @@ beforeEach(() => {
     if (cmd === "get_play_stats") return Promise.resolve(mockPlayStats);
     if (cmd === "get_cache_stats") return Promise.resolve({ totalSizeBytes: 0, imageCount: 0 });
     if (cmd === "get_per_game_session_stats") return Promise.resolve(mockPerGameSessionStats);
+    if (cmd === "get_similar_games") return Promise.resolve([]);
+    if (cmd === "fetch_igdb_time_to_beat") return Promise.resolve(false);
     return Promise.resolve({});
   });
 });

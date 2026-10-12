@@ -6,6 +6,7 @@ import { GameTrailer } from "./GameTrailer";
 import { GameScreenshots } from "./GameScreenshots";
 import { GameNotes } from "./GameNotes";
 import { HltbSection } from "./HltbSection";
+import { SimilarGamesRow } from "./SimilarGamesRow";
 import { LiveOnTwitch } from "./LiveOnTwitch";
 import { TwitchClipsRow } from "./TwitchClipsRow";
 import { GameProgress } from "./GameProgress";
@@ -211,6 +212,8 @@ export function DetailContent({
               <GameScreenshots screenshots={screenshots} />
             </div>
           )}
+
+          <SimilarGamesRow igdbId={game.igdbId} />
         </div>
 
         {/* Right column — 40%: mastery + HLTB + play stats + trailer */}
