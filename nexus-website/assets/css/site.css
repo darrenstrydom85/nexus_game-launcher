@@ -58,6 +58,7 @@ a:hover { color: var(--accent-ink-hover); }
 h1, h2, h3, p, figure, ul, ol, dl, dd { margin: 0; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background: var(--chip); border: 1px solid var(--line-2); }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; border-radius: 10px; background: var(--fg); color: var(--bg); font-weight: 600; }
 .skip:focus { top: 12px; }
@@ -281,7 +282,6 @@ code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background:
 .list-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .featgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; list-style: none; padding: 0; }
 .featgrid li { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; background: var(--card-2); }
-.featgrid li[hidden] { display: none; }
 .featgrid b { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 14.5px; }
 .featgrid b small { color: var(--faint); font: 400 11.5px var(--mono); }
 .featgrid span { color: var(--muted); font-size: 13.5px; }
@@ -380,7 +380,6 @@ code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background:
 @media (max-width: 860px) {
   .rail { padding: 32px 0 8px; }
   .rail-sticky { position: static; }
-  .rail-list { flex-direction: row; overflow-x: auto; }
   .doc-main { padding-left: 0; border-left: 0; }
 }
 
@@ -418,7 +417,6 @@ code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background:
 .changelog-entry-title { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-bottom: -8px; }
 .changelog-tour { margin-left: auto; font-size: 13.5px; font-weight: 500; }
 .changelog-tag { height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(74, 222, 128, .14); color: #86efac; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; text-transform: uppercase; }
-.changelog-entry .changelog-tag + .version-badge, .changelog-entry .version-badge + .changelog-tag { margin-left: 0; }
 .rail-search { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2); color: var(--muted-2); margin-bottom: 10px; cursor: text; }
 .rail-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--fg); font: inherit; font-size: 14px; }
 .rail-list { display: flex; flex-direction: column; gap: 4px; max-height: calc(100vh - 230px); overflow-y: auto; }
@@ -440,7 +438,7 @@ code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background:
 .is-open .cl-summary { visibility: hidden; }
 .is-open .cl-chev { rotate: 180deg; }
 .is-collapsed.is-open .changelog-entry-body { padding: 12px 0 14px; }
-.changelog-entry[hidden], .cl-older[hidden] { display: none; }
+
 
 /* Legal pages (content markup kept from the previous site) */
 .legal-hero { padding: 64px 0 40px; border-bottom: 1px solid #1a1a1f; }

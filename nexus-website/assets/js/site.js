@@ -142,7 +142,7 @@
     }
     // Rail links and #hash links open a folded release.
     const openHash = () => {
-      const target = location.hash && document.getElementById(location.hash.slice(1));
+      const target = location.hash ? document.getElementById(location.hash.slice(1)) : null;
       if (target?.classList.contains("is-collapsed") && !target.classList.contains("is-open")) $(".cl-toggle", target)?.click();
     };
     addEventListener("hashchange", openHash);
