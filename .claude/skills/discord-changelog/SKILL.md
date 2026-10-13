@@ -81,7 +81,7 @@ After generating the Discord changelog, **also update the website changelog page
 
 ### If `changelog.html` does not exist yet
 
-Create it with the same HTML shell as `index.html` (same `<head>`, navbar, footer, Bootstrap/Lucide/Geist imports, and Obsidian theme CSS). The page body should contain:
+Create it with the same HTML shell as `index.html` (same `<head>`, top bar, footer, and `assets/css/site.css` + `assets/js/site.js`). The page body should contain:
 
 - A page heading: `Changelog`
 - A brief intro line (e.g. "Release notes for Nexus.")
@@ -92,8 +92,8 @@ Create it with the same HTML shell as `index.html` (same `<head>`, navbar, foote
 1. **Build an HTML entry** from the same categorised data used for the Discord changelog. Each entry should include:
    - Version number and date range as a heading (e.g. `v0.1.7 — Mar 1 - Mar 4, 2025`).
    - Category sub-headings (`New`, `Fixes`, `Improvements`) with bulleted lists matching the Discord output.
-   - Use the site's existing design-system classes (`type-*`, `text-muted-foreground`, `section-block`, etc.) so it matches the rest of the website.
-2. **Prepend** the new entry at the top of the entries container so the most recent release always appears first.
+   - Use the existing changelog markup exactly (`changelog-entry`, `changelog-entry-header`, `changelog-category`, `changelog-badge--added|changed|fixed`, `changelog-list` with `<li><strong>Name</strong> &mdash; text</li>`), styled by `assets/css/site.css`. See the version-increment-updater skill, step 5c, for the full shape.
+2. **Prepend** the new entry at the top of the `.changelog-timeline` container so the most recent release always appears first.
 3. **Do not remove or alter existing entries** — only add the new one above them.
 
 ### Styling guidelines

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -13,17 +13,17 @@
   <meta name="keywords" content="Nexus terms of service, game launcher terms, software license, free software">
   <meta name="author" content="Darren Strydom">
   <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#7600da">
+  <meta name="theme-color" content="#09090b">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nexus">
   <meta property="og:title" content="Terms of Service — Nexus">
   <meta property="og:description" content="Terms of Service for Nexus. Free for personal, non-commercial use.">
-  <meta property="og:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
-  <meta property="og:image:width" content="1920">
-  <meta property="og:image:height" content="1080">
-  <meta property="og:image:alt" content="Nexus game launcher showing a unified library with titles from Steam, Epic, and local sources">
+  <meta property="og:image" content="https://www.nexusgamelauncher.com/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Nexus 1.0 Home with a spotlight on the game you're playing">
   <meta property="og:url" content="https://www.nexusgamelauncher.com/terms.html">
   <meta property="og:locale" content="en_US">
 
@@ -31,8 +31,8 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Terms of Service — Nexus">
   <meta name="twitter:description" content="Terms of Service for Nexus. Free for personal, non-commercial use.">
-  <meta name="twitter:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
-  <meta name="twitter:image:alt" content="Nexus game launcher showing a unified library with titles from Steam, Epic, and local sources">
+  <meta name="twitter:image" content="https://www.nexusgamelauncher.com/assets/img/og.jpg">
+  <meta name="twitter:image:alt" content="Nexus 1.0 Home with a spotlight on the game you're playing">
 
   <!-- Structured Data — BreadcrumbList -->
   <script type="application/ld+json">
@@ -55,130 +55,74 @@
     gtag('config', 'G-867ZGB0GZY');
   </script>
 
-  <!-- Bootstrap 5.3 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-
-  <!-- Geist Sans & Geist Mono (Fontsource CDN) -->
-  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-sans:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/fontsource/fonts/geist-mono:vf@latest/latin-wght-normal.min.css" rel="stylesheet">
-
-  <!-- Nexus Obsidian theme v2 -->
-  <link href="assets/css/style.css?v=20260423" rel="stylesheet">
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <link rel="preload" href="assets/fonts/geist/geist-sans-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css?v=20261013">
+  <script src="assets/js/site.js?v=20261013" defer></script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-  <!-- Scroll progress bar -->
-  <div class="scroll-progress" aria-hidden="true"></div>
-
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- NAVBAR                                          -->
-  <!-- ════════════════════════════════════════════════ -->
-  <nav class="navbar navbar-nexus navbar-expand-md fixed-top" aria-label="Main navigation">
-    <div class="container">
-      <a class="navbar-brand" href="index.html">
-        <span class="brand-icon" aria-hidden="true">
-          <img src="assets/img/nexus-logo-32.png" alt="" width="16" height="16">
-        </span>
-        Nexus
-        <span class="nav-version-pill ms-2 d-none d-lg-inline-flex" aria-label="Current beta version">v0.5.1 · Beta</span>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Nexus home">
+      <img src="assets/img/nexus-logo.png" alt="" width="22" height="22">
+      Nexus
+      <span class="ver-chip">1.0</span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="whats-new.html">What’s new <span class="count-pill">1.0</span></a>
+      <a href="index.html#features">Features</a>
+      <a href="index.html#themes">Themes</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
+    </nav>
+    <div class="topbar-end">
+      <a class="btn btn-sm btn-accent" href="index.html#download">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Download
       </a>
-      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
-              aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
+      <button class="nav-toggle" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <div class="collapse navbar-collapse" id="navMain">
-        <ul class="navbar-nav ms-auto align-items-center gap-1">
-          <li class="nav-item"><a class="nav-link" href="index.html#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#showcase">Showcase</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.html#tech">Tech</a></li>
-          <li class="nav-item"><a class="nav-link" href="changelog.html">Changelog</a></li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
-          </li>
-          <li class="nav-item ms-md-2">
-            <a class="btn-nexus btn-nexus-sm" href="index.html#download">
-              <i data-lucide="download" class="icon-sm"></i>
-              Get Nexus
-            </a>
-          </li>
-        </ul>
-      </div>
     </div>
-  </nav>
+  </div>
+</header>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- CINEMATIC HEADER + PRINCIPLE CARDS              -->
-  <!-- ════════════════════════════════════════════════ -->
-  <header class="legal-hero">
-    <div class="hero-bg" aria-hidden="true">
-      <div class="hero-mesh"></div>
-      <div class="hero-grid"></div>
-      <div class="hero-fade"></div>
-    </div>
-
-    <div class="container">
-      <p class="type-eyebrow">Legal</p>
-      <h1 class="type-display">Terms in plain English.</h1>
-      <p class="type-body-lg text-muted-foreground" style="max-width: 620px; margin-top: var(--space-4);">
-        Nexus is free software for personal use. Use it as much as you like —
-        these are the ground rules.
-      </p>
-
-      <div class="legal-hero-meta">
-        <span class="legal-meta-pill">
-          <i data-lucide="calendar" class="icon-xs"></i>
-          Last updated · April 13, 2026
-        </span>
-        <span class="legal-meta-pill">
-          <i data-lucide="book-open" class="icon-xs"></i>
-          Read time · 5 min
-        </span>
-        <span class="legal-meta-pill">
-          <i data-lucide="map-pin" class="icon-xs"></i>
-          Governing law · South Africa
-        </span>
-      </div>
-
+<main id="main">
+  <section class="legal-hero">
+    <div class="wrap">
+      <nav class="legal-switch" aria-label="Legal"><a href="privacy.html">Privacy</a><a href="terms.html" aria-current="page">Terms</a></nav>
+      <h1>Terms in plain English.</h1>
+      <p class="lede">Nexus is free software for personal use. Use it as much as you like — these are the ground rules.</p>
+      <div class="legal-hero-meta"><span>Last updated · April 13, 2026</span><span>Read time · 5 min</span><span>Governing law · South Africa</span></div>
       <div class="principles">
         <div class="principle">
-          <span class="principle-icon"><i data-lucide="gift" class="icon-md"></i></span>
           <p class="principle-title">Free, forever</p>
           <p class="principle-desc">No license fees, subscriptions, or pay-walled features.</p>
         </div>
         <div class="principle">
-          <span class="principle-icon"><i data-lucide="user-check" class="icon-md"></i></span>
           <p class="principle-title">Personal use</p>
           <p class="principle-desc">For individuals — not for resale or commercial redistribution.</p>
         </div>
         <div class="principle">
-          <span class="principle-icon"><i data-lucide="alert-triangle" class="icon-md"></i></span>
           <p class="principle-title">As-is software</p>
           <p class="principle-desc">No warranties. We do our best, but use at your own risk.</p>
         </div>
         <div class="principle">
-          <span class="principle-icon"><i data-lucide="link-2" class="icon-md"></i></span>
           <p class="principle-title">Third parties apply</p>
           <p class="principle-desc">Steam, Epic, Twitch, Google — their terms still apply through Nexus.</p>
         </div>
       </div>
     </div>
-  </header>
+  </section>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- TOC + CONTENT                                   -->
-  <!-- ════════════════════════════════════════════════ -->
-  <div class="container">
-    <div class="legal-layout">
-
-      <!-- Sticky table of contents -->
-      <aside class="legal-toc" data-scrollspy=".legal-section" aria-label="On this page">
-        <div class="legal-toc-label">On this page</div>
-        <ol>
-          <li><a href="#acceptance"><span class="legal-toc-num">01</span><span>Acceptance of terms</span></a></li>
+  <div class="wrap doc">
+    <aside class="rail legal-toc" aria-label="On this page">
+      <div class="rail-sticky">
+        <span class="rail-label">On this page</span>
+        <ol class="rail-list">
+          <li><a class="is-current" href="#acceptance"><span class="legal-toc-num">01</span><span>Acceptance of terms</span></a></li>
           <li><a href="#service"><span class="legal-toc-num">02</span><span>Description of service</span></a></li>
           <li><a href="#license"><span class="legal-toc-num">03</span><span>License</span></a></li>
           <li><a href="#third-parties"><span class="legal-toc-num">04</span><span>Third-party services</span></a></li>
@@ -193,16 +137,14 @@
           <li><a href="#law"><span class="legal-toc-num">13</span><span>Governing law</span></a></li>
           <li><a href="#contact"><span class="legal-toc-num">14</span><span>Contact</span></a></li>
         </ol>
-      </aside>
-
-      <!-- Content -->
-      <article class="legal-content">
+      </div>
+    </aside>
+    <article class="doc-main legal-content" style="padding-bottom: 96px">
 
         <section class="legal-section" id="acceptance">
           <span class="legal-section-num">01 / Acceptance</span>
           <h2 class="type-title1">Acceptance of Terms</h2>
           <div class="legal-tldr">
-            <i data-lucide="check-circle" class="icon-md legal-tldr-icon"></i>
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
               <p class="legal-tldr-text">By installing or using Nexus, you agree to these terms. If you don't, please don't use the software.</p>
@@ -225,7 +167,6 @@
           <span class="legal-section-num">03 / License</span>
           <h2 class="type-title1">License</h2>
           <div class="legal-tldr">
-            <i data-lucide="key" class="icon-md legal-tldr-icon"></i>
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
               <p class="legal-tldr-text">Free for personal use on your own computer. Don't resell, redistribute, reverse-engineer, or use it for anything illegal.</p>
@@ -262,7 +203,6 @@
           <span class="legal-section-num">06 / User data</span>
           <h2 class="type-title1">User Data</h2>
           <div class="legal-tldr">
-            <i data-lucide="hard-drive" class="icon-md legal-tldr-icon"></i>
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
               <p class="legal-tldr-text">Your library data is yours and lives on your computer. Backups go to your own Google Drive — managing them is on you.</p>
@@ -277,7 +217,6 @@
           <span class="legal-section-num">07 / Warranty</span>
           <h2 class="type-title1">Disclaimer of Warranties</h2>
           <div class="legal-tldr">
-            <i data-lucide="alert-triangle" class="icon-md legal-tldr-icon"></i>
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
               <p class="legal-tldr-text">Software is free and provided as-is. We make no promises about uptime, fitness for any purpose, or zero bugs.</p>
@@ -300,7 +239,6 @@
           <span class="legal-section-num">09 / Game ownership</span>
           <h2 class="type-title1">Game Ownership</h2>
           <div class="legal-tldr">
-            <i data-lucide="shield" class="icon-md legal-tldr-icon"></i>
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
               <p class="legal-tldr-text">Nexus only manages games you already own through other platforms. It doesn't sell, distribute, or crack anything.</p>
@@ -357,69 +295,33 @@
             <span>The fastest way to reach us is on Discord.</span>
           </div>
           <div class="legal-questions-actions">
-            <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="btn-nexus btn-nexus-sm">
-              <i data-lucide="message-circle" class="icon-sm"></i>
+            <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-accent">
               Ask on Discord
             </a>
-            <a href="privacy.html" class="btn-ghost btn-ghost-sm">
-              <i data-lucide="shield" class="icon-sm"></i>
+            <a href="privacy.html" class="btn btn-sm btn-dark">
               Read Privacy Policy
             </a>
           </div>
         </div>
 
       </article>
-    </div>
   </div>
+</main>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- FOOTER                                          -->
-  <!-- ════════════════════════════════════════════════ -->
-  <footer class="footer-nexus">
-    <div class="container">
-      <div class="row align-items-center gy-4">
-        <div class="col-md-6">
-          <div class="d-flex align-items-center flex-wrap gap-3">
-            <span class="type-footnote text-muted-foreground">
-              &copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.
-            </span>
-          </div>
-          <span class="footer-built mt-3 d-inline-flex">
-            <span class="dot" aria-hidden="true"></span>
-            Made with Rust + Tauri
-          </span>
-        </div>
-        <div class="col-md-6 text-md-end">
-          <a href="https://paypal.me/darrenstrydom85" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Support this project">
-            <i data-lucide="heart" class="icon-md icon-footer"></i>
-            Support
-          </a>
-          <a href="https://discord.gg/dh2tDGJNYD" class="type-footnote me-4" target="_blank" rel="noopener noreferrer" aria-label="Join the community on Discord">
-            <i data-lucide="message-circle" class="icon-md icon-footer"></i>
-            Discord
-          </a>
-          <a href="changelog.html" class="type-footnote me-4" aria-label="Release notes">
-            <i data-lucide="file-text" class="icon-md icon-footer"></i>
-            Changelog
-          </a>
-          <a href="privacy.html" class="type-footnote me-4" aria-label="Privacy Policy">
-            <i data-lucide="shield" class="icon-md icon-footer"></i>
-            Privacy
-          </a>
-          <a href="terms.html" class="type-footnote" aria-label="Terms of Service">
-            <i data-lucide="scale" class="icon-md icon-footer"></i>
-            Terms
-          </a>
-        </div>
-      </div>
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-brand">
+      <img src="assets/img/nexus-logo.png" alt="" width="18" height="18">
+      © 2026 Nexus · Built by Darren Strydom in South Africa
     </div>
-  </footer>
-
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-
-  <!-- Nexus interactions -->
-  <script src="assets/js/app.js?v=20260423" defer></script>
+    <nav aria-label="Footer">
+      <a href="changelog.html">Changelog</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Discord</a>
+      <a href="https://paypal.me/darrenstrydom85" target="_blank" rel="noopener noreferrer">Support the project</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>

@@ -82,11 +82,12 @@ Update all version references in `nexus-website/` so the public site reflects th
 
 #### 5a. Download links (all HTML files)
 
-Scan **all `.html` files** in `nexus-website/` for download links and update them to point to the new MSI release (the MSI remains the manual/first-time download on the site).
+Scan **all `.html` files** in `nexus-website/` for download links and update them to point to the new release. The site's main "Download for Windows" buttons use the NSIS setup; the "MSI installer" button and the JSON-LD `downloadUrl` use the MSI.
 
 | Find | Replace with |
 |---|---|
-| Any `href` pointing to a previous `releases/*.msi` path (or any stale download URL) | `releases/Nexus_${VERSION}_x64_en-US.msi` |
+| Any `href` pointing to a previous `releases/*-setup.exe` path | `releases/Nexus_${VERSION}_x64-setup.exe` |
+| Any `href` (or JSON-LD `downloadUrl`) pointing to a previous `releases/*.msi` path | `releases/Nexus_${VERSION}_x64_en-US.msi` |
 
 Apply this to every occurrence in:
 
@@ -94,21 +95,27 @@ Apply this to every occurrence in:
 - `nexus-website/changelog.html`
 - Any other `.html` files in `nexus-website/`
 
-#### 5b. Version badge (`index.html`)
+#### 5b. Version details (`index.html`)
 
-Update the version badge text inside the `.version-badge` span (in the Download CTA section) to show the current version:
+Release details are marked with data attributes so they're easy to find:
 
-| Find | Replace with |
+| Element | Replace with |
 |---|---|
-| `v<OLD_VERSION> — Beta Access` (or whatever version string is there) | `v${VERSION} — Beta Access` |
+| Every element with `data-version` (hero meta line shows `v1.0.0`, the download panel's `.version-badge` shows `1.0.0`) | the new version, keeping each element's existing format (with or without the `v`) |
+| Every element with `data-release-date` | today's date as `Mon D, YYYY` (e.g. `Oct 12, 2026`) |
+| `data-size="setup"` / `data-size="msi"` | the new installer sizes in MB, one decimal for the setup (e.g. `11.8 MB`, `15 MB`) |
+| JSON-LD `softwareVersion` and `fileSize` | the new version and MSI size |
+
+The `1.0` chips in the top bar (`.ver-chip`, `.count-pill`) and the What's new page (`whats-new.html`) belong to the 1.0 milestone; leave them alone for patch releases and ask the user what to do for the next minor or major.
 
 #### 5c. Changelog (`changelog.html`)
 
-- **Demote the current "Latest" entry** — on the existing latest `<article>`, remove the `changelog-entry--latest` class and remove the `<span class="version-badge ...">Latest</span>` badge element.
+- **Demote the current "Latest" entry** — on the existing latest `<article>`, remove the `changelog-entry--latest` class, the `<span class="version-badge">Latest</span>` badge, and any `changelog-tour` link or `changelog-entry-title` heading.
 - **Add a new entry at the top** of the `.changelog-timeline` div for the new version. Use the same HTML structure as existing entries:
   - `<article class="changelog-entry changelog-entry--latest" id="v${VERSION}">`
-  - Include the "Latest" badge span.
-  - Set the `<time>` element to today's date.
+  - Header: `<h2 class="changelog-entry-version">v${VERSION}</h2>`, `<time class="changelog-entry-date" datetime="YYYY-MM-DD">Mon D, YYYY</time>`, then `<span class="version-badge">Latest</span>`.
+  - Body: a summary `<p>`, then one `<div class="changelog-category" data-type="added|changed|fixed">` per group, each with `<h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added|changed|fixed">New|Improved|Fixed</span></h3>` and a `<ul class="changelog-list">` of `<li><strong>Name</strong> &mdash; text</li>` items.
+  - The version rail, the two-column rows and the folding of older releases are built by `assets/js/site.js`; don't add them by hand.
   - For the entry body, write a short summary and list the changes from the current release. If the user provides release notes or a changelog in the chat, use those. Otherwise derive them from the git log since the previous release tag/version commit.
 - **Capture these release notes** — the short summary is reused as the `notes` field in the updater manifest (step 8).
 
