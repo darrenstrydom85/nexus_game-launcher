@@ -13,17 +13,17 @@
   <meta name="keywords" content="Nexus changelog, Nexus updates, game launcher release notes, Nexus version history, Nexus patch notes">
   <meta name="author" content="Darren Strydom">
   <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#05060e">
+  <meta name="theme-color" content="#09090b">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nexus">
   <meta property="og:title" content="Changelog — Nexus">
   <meta property="og:description" content="Full release history for Nexus. See what's new, improved, and fixed in every version.">
-  <meta property="og:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
-  <meta property="og:image:width" content="1920">
-  <meta property="og:image:height" content="1080">
-  <meta property="og:image:alt" content="Nexus game launcher showing a unified library with titles from Steam, Epic, and local sources">
+  <meta property="og:image" content="https://www.nexusgamelauncher.com/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Nexus 1.0 Home with a spotlight on the game you're playing">
   <meta property="og:url" content="https://www.nexusgamelauncher.com/changelog.html">
   <meta property="og:locale" content="en_US">
 
@@ -31,8 +31,8 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Changelog — Nexus">
   <meta name="twitter:description" content="Full release history for Nexus. See what's new, improved, and fixed in every version.">
-  <meta name="twitter:image" content="https://www.nexusgamelauncher.com/assets/img/screenshots/app-screenshot.png">
-  <meta name="twitter:image:alt" content="Nexus game launcher showing a unified library with titles from Steam, Epic, and local sources">
+  <meta name="twitter:image" content="https://www.nexusgamelauncher.com/assets/img/og.jpg">
+  <meta name="twitter:image:alt" content="Nexus 1.0 Home with a spotlight on the game you're playing">
 
   <!-- Structured Data — BreadcrumbList -->
   <script type="application/ld+json">
@@ -55,291 +55,68 @@
     gtag('config', 'G-867ZGB0GZY');
   </script>
 
-  <!-- Pixel type: Silkscreen (display + numerals), Pixelify Sans (UI).
-       Self-hosted — declared in pixel.css, no third-party font CDN. -->
-  <link rel="preload" href="assets/fonts/silkscreen-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/fonts/pixelify-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/img/hero-bg.webp" as="image">
-
-  <link href="assets/css/pixel.css?v=20260728c" rel="stylesheet">
+  <link rel="preload" href="assets/fonts/geist/geist-sans-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css?v=20261013">
+  <script src="assets/js/site.js?v=20261013" defer></script>
 </head>
 <body>
-
 <a class="skip" href="#main">Skip to content</a>
 
-<!-- ═══════════════════════════════════════════════════════════
-     PIXEL SPRITE — chrome subset. Entry bullets are pure CSS.
-     ═══════════════════════════════════════════════════════════ -->
-<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
-  <defs>
-    <symbol id="i-nexus" viewBox="0 0 16 16"><path d="M7 1h2v1h-2zM6 2h1v1h-1zM9 2h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM1 7h1v2h-1zM14 7h1v2h-1zM2 9h1v1h-1zM13 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM7 14h2v1h-2zM7 5h2v1h-2zM6 6h1v1h-1zM9 6h1v1h-1zM5 7h1v2h-1zM10 7h1v2h-1zM6 9h1v1h-1zM9 9h1v1h-1zM7 10h2v1h-2zM7 7h2v2h-2z"/></symbol>
-    <symbol id="i-download" viewBox="0 0 16 16"><path d="M7 1h2v5h-2zM4 6h8v1h-8zM5 7h6v1h-6zM6 8h4v1h-4zM7 9h2v1h-2zM3 12h10v2h-10z"/></symbol>
-    <symbol id="i-arrow-down" viewBox="0 0 16 16"><path d="M7 2h2v7h-2zM4 9h8v1h-8zM5 10h6v1h-6zM6 11h4v1h-4zM7 12h2v2h-2z"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 16 16"><path d="M2 3h12v2h-12zM2 7h12v2h-12zM2 11h12v2h-12z"/></symbol>
-    <symbol id="i-search" viewBox="0 0 16 16"><path d="M5 2h5v1h-5zM4 3h1v1h-1zM10 3h1v1h-1zM3 4h1v5h-1zM11 4h1v5h-1zM4 9h1v1h-1zM10 9h1v1h-1zM5 10h5v1h-5zM10 10h2v2h-2zM12 12h3v3h-3z"/></symbol>
-    <symbol id="i-heart" viewBox="0 0 16 16"><path d="M3 3h3v1h-3zM10 3h3v1h-3zM2 4h5v1h-5zM9 4h5v1h-5zM2 5h12v2h-12zM3 7h10v1h-10zM4 8h8v1h-8zM5 9h6v1h-6zM6 10h4v1h-4zM7 11h2v1h-2z"/></symbol>
-    <symbol id="i-chat" viewBox="0 0 16 16"><path d="M2 3h12v1h-12zM2 10h12v1h-12zM2 4h1v6h-1zM13 4h1v6h-1zM5 11h3v2h-3zM5 13h1v1h-1zM5 6h1v1h-1zM7 6h1v1h-1zM9 6h1v1h-1z"/></symbol>
-    <symbol id="i-doc" viewBox="0 0 16 16"><path d="M3 1h8v1h-8zM3 2h1v12h-1zM11 2h1v1h-1zM12 3h1v11h-1zM3 14h10v1h-10zM5 5h6v1h-6zM5 7h6v1h-6zM5 9h4v1h-4z"/></symbol>
-    <symbol id="i-lock" viewBox="0 0 16 16"><path d="M5 2h6v1h-6zM4 3h1v4h-1zM11 3h1v4h-1zM3 7h10v1h-10zM3 8h1v6h-1zM12 8h1v6h-1zM3 13h10v1h-10zM7 9h2v3h-2z"/></symbol>
-    <symbol id="i-scales" viewBox="0 0 16 16"><path d="M7 2h2v11h-2zM3 4h10v1h-10zM2 5h2v1h-2zM12 5h2v1h-2zM1 6h1v2h-1zM4 6h1v2h-1zM11 6h1v2h-1zM14 6h1v2h-1zM2 8h2v1h-2zM12 8h2v1h-2zM5 13h6v1h-6z"/></symbol>
-    <symbol id="i-bolt" viewBox="0 0 16 16"><path d="M8 1h4v6h-4zM4 7h8v2h-8zM4 9h4v6h-4z"/></symbol>
-  </defs>
-</svg>
-
-<!-- CRT shell -->
-<div class="progress" aria-hidden="true"></div>
-<div class="dust" aria-hidden="true"></div>
-<div class="crt-roll" aria-hidden="true"></div>
-<div class="crt-lines" aria-hidden="true"></div>
-<div class="crt-glass" aria-hidden="true"></div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     NAV
-     ═══════════════════════════════════════════════════════════ -->
-<nav class="nav" aria-label="Main navigation">
-  <div class="nav-inner">
-    <a class="brand" href="index.html">
-      <svg class="ico ico-24" aria-hidden="true"><use href="#i-nexus"></use></svg>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Nexus home">
+      <img src="assets/img/nexus-logo.png" alt="" width="22" height="22">
       Nexus
-      <span class="brand-ver">v0.5.1 Beta</span>
+      <span class="ver-chip">1.0</span>
     </a>
-
-    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
-      <svg class="ico" aria-hidden="true"><use href="#i-menu"></use></svg>
-    </button>
-
-    <div class="nav-menu" id="nav-menu">
-      <a class="nav-link" href="index.html#features"><span class="sel" aria-hidden="true"></span>Features</a>
-      <a class="nav-link" href="index.html#showcase"><span class="sel" aria-hidden="true"></span>Showcase</a>
-      <a class="nav-link" href="index.html#tech"><span class="sel" aria-hidden="true"></span>Tech</a>
-      <a class="nav-link" href="changelog.html" aria-current="page"><span class="sel" aria-hidden="true"></span>Changelog</a>
-      <a class="nav-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer"><span class="sel" aria-hidden="true"></span>Community</a>
-      <span class="nav-cta">
-        <a class="btn btn--sm" href="index.html#download">
-          <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-          Get Nexus
-        </a>
-      </span>
-    </div>
-  </div>
-</nav>
-
-<!-- ═══════════════════════════════════════════════════════════
-     HEADER — patch archive terminal
-     ═══════════════════════════════════════════════════════════ -->
-<header class="hero changelog-hero">
-  <div class="hero-bg" aria-hidden="true">
-    <img src="assets/img/hero-bg.webp" alt="" width="1920" height="823"
-         loading="eager" fetchpriority="high" decoding="async">
-    <div class="hero-shade"></div>
-  </div>
-
-  <div class="wrap hero-wrap">
-    <p class="boot">
-      <span data-boot="&gt; NEXUS.LOG — 33 RELEASES ARCHIVED — OK"></span>
-      <span class="caret" aria-hidden="true"></span>
-    </p>
-
-    <h1 class="display chroma-glow" style="margin-top:var(--s3)">Every patch,<br>in plain English.</h1>
-    <p class="lede" style="margin-top:var(--s3)">
-      Thirty-seven releases and counting — what's new, what's improved, and what
-      got fixed in each version of Nexus.
-    </p>
-
-    <div class="hero-actions">
-      <a href="releases/Nexus_1.0.0_x64_en-US.msi" class="btn">
-        <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-        Download v1.0.0
+    <nav class="nav" id="nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="whats-new.html">What’s new <span class="count-pill">1.0</span></a>
+      <a href="index.html#features">Features</a>
+      <a href="index.html#themes">Themes</a>
+      <a href="changelog.html" aria-current="page">Changelog</a>
+      <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Community</a>
+    </nav>
+    <div class="topbar-end">
+      <a class="btn btn-sm btn-accent" href="index.html#download">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Download
       </a>
-      <a href="#v1.0.0" class="btn btn--ghost">
-        <svg class="ico" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-        Latest · v1.0.0
-      </a>
+      <button class="nav-toggle" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
     </div>
   </div>
 </header>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- TWO-COLUMN LAYOUT — RAIL + STREAM               -->
-  <!-- ════════════════════════════════════════════════ -->
-  <main id="main">
-    <div class="wrap">
-      <div class="changelog-layout">
+<main id="main" class="wrap doc">
+  <aside class="rail" aria-label="Releases">
+    <div class="rail-sticky">
+      <h1>Changelog</h1>
+      <label class="rail-search">
+        <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="sr-only">Search releases</span>
+        <input type="search" placeholder="Search releases">
+      </label>
+      <nav class="rail-list" aria-label="Versions"></nav>
+    </div>
+  </aside>
 
-        <!-- Sticky version rail (desktop) -->
-        <aside class="changelog-rail" data-scrollspy=".changelog-entry" aria-label="Versions">
-          <div class="changelog-rail-label">Versions</div>
-          <a class="changelog-rail-link is-latest" href="#v1.0.0">
-            <span class="changelog-rail-version">v1.0.0</span>
-            <span class="changelog-rail-date">Oct 12</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.5">
-            <span class="changelog-rail-version">v0.5.5</span>
-            <span class="changelog-rail-date">Oct 2</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.4">
-            <span class="changelog-rail-version">v0.5.4</span>
-            <span class="changelog-rail-date">Sep 27</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.3">
-            <span class="changelog-rail-version">v0.5.3</span>
-            <span class="changelog-rail-date">Aug 26</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.2">
-            <span class="changelog-rail-version">v0.5.2</span>
-            <span class="changelog-rail-date">Aug 3</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.1">
-            <span class="changelog-rail-version">v0.5.1</span>
-            <span class="changelog-rail-date">Aug 3</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.5.0">
-            <span class="changelog-rail-version">v0.5.0</span>
-            <span class="changelog-rail-date">Jun 18</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.4.3">
-            <span class="changelog-rail-version">v0.4.3</span>
-            <span class="changelog-rail-date">Jun 18</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.4.2">
-            <span class="changelog-rail-version">v0.4.2</span>
-            <span class="changelog-rail-date">Jun 15</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.4.1">
-            <span class="changelog-rail-version">v0.4.1</span>
-            <span class="changelog-rail-date">Jun 15</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.4.0">
-            <span class="changelog-rail-version">v0.4.0</span>
-            <span class="changelog-rail-date">May 9</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.6">
-            <span class="changelog-rail-version">v0.3.6</span>
-            <span class="changelog-rail-date">May 2</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.5">
-            <span class="changelog-rail-version">v0.3.5</span>
-            <span class="changelog-rail-date">Apr 29</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.4">
-            <span class="changelog-rail-version">v0.3.4</span>
-            <span class="changelog-rail-date">Apr 27</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.3">
-            <span class="changelog-rail-version">v0.3.3</span>
-            <span class="changelog-rail-date">Apr 23</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.2">
-            <span class="changelog-rail-version">v0.3.2</span>
-            <span class="changelog-rail-date">Apr 23</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.1">
-            <span class="changelog-rail-version">v0.3.1</span>
-            <span class="changelog-rail-date">Apr 23</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.3.0">
-            <span class="changelog-rail-version">v0.3.0</span>
-            <span class="changelog-rail-date">Apr 16</span>
-          </a>
-          <a class="changelog-rail-link" href="#v0.2.1"><span class="changelog-rail-version">v0.2.1</span><span class="changelog-rail-date">Apr 15</span></a>
-          <a class="changelog-rail-link" href="#v0.2.0"><span class="changelog-rail-version">v0.2.0</span><span class="changelog-rail-date">Apr 13</span></a>
-          <a class="changelog-rail-link" href="#v0.1.21"><span class="changelog-rail-version">v0.1.21</span><span class="changelog-rail-date">Apr 06</span></a>
-          <a class="changelog-rail-link" href="#v0.1.20"><span class="changelog-rail-version">v0.1.20</span><span class="changelog-rail-date">Mar 25</span></a>
-          <a class="changelog-rail-link" href="#v0.1.19"><span class="changelog-rail-version">v0.1.19</span><span class="changelog-rail-date">Mar 19</span></a>
-          <a class="changelog-rail-link" href="#v0.1.18"><span class="changelog-rail-version">v0.1.18</span><span class="changelog-rail-date">Mar 16</span></a>
-          <a class="changelog-rail-link" href="#v0.1.17"><span class="changelog-rail-version">v0.1.17</span><span class="changelog-rail-date">Mar 13</span></a>
-          <a class="changelog-rail-link" href="#v0.1.16"><span class="changelog-rail-version">v0.1.16</span><span class="changelog-rail-date">Mar 11</span></a>
-          <a class="changelog-rail-link" href="#v0.1.15"><span class="changelog-rail-version">v0.1.15</span><span class="changelog-rail-date">Mar 11</span></a>
-          <a class="changelog-rail-link" href="#v0.1.14"><span class="changelog-rail-version">v0.1.14</span><span class="changelog-rail-date">Mar 10</span></a>
-          <a class="changelog-rail-link" href="#v0.1.13"><span class="changelog-rail-version">v0.1.13</span><span class="changelog-rail-date">Mar 09</span></a>
-          <a class="changelog-rail-link" href="#v0.1.12"><span class="changelog-rail-version">v0.1.12</span><span class="changelog-rail-date">Mar 09</span></a>
-          <a class="changelog-rail-link" href="#v0.1.11"><span class="changelog-rail-version">v0.1.11</span><span class="changelog-rail-date">Mar 09</span></a>
-          <a class="changelog-rail-link" href="#v0.1.10"><span class="changelog-rail-version">v0.1.10</span><span class="changelog-rail-date">Mar 08</span></a>
-          <a class="changelog-rail-link" href="#v0.1.9"><span class="changelog-rail-version">v0.1.9</span><span class="changelog-rail-date">Mar 07</span></a>
-          <a class="changelog-rail-link" href="#v0.1.8"><span class="changelog-rail-version">v0.1.8</span><span class="changelog-rail-date">Mar 06</span></a>
-          <a class="changelog-rail-link" href="#v0.1.7"><span class="changelog-rail-version">v0.1.7</span><span class="changelog-rail-date">Mar 05</span></a>
-          <a class="changelog-rail-link" href="#v0.1.6"><span class="changelog-rail-version">v0.1.6</span><span class="changelog-rail-date">Mar 05</span></a>
-          <a class="changelog-rail-link" href="#v0.1.5"><span class="changelog-rail-version">v0.1.5</span><span class="changelog-rail-date">Mar 04</span></a>
-        </aside>
-
-        <!-- Stream -->
-        <div>
-          <!-- Mobile version dropdown -->
-          <div class="changelog-rail-mobile">
-            <select data-changelog-mobile-select aria-label="Jump to version">
-              <option value="">Jump to version…</option>
-              <option value="v1.0.0">v1.0.0 — Oct 12, 2026 (Latest)</option>
-              <option value="v0.5.5">v0.5.5 — Oct 2, 2026</option>
-              <option value="v0.5.4">v0.5.4 — Sep 27, 2026</option>
-              <option value="v0.5.3">v0.5.3 — Aug 26, 2026</option>
-              <option value="v0.5.2">v0.5.2 — Aug 3, 2026</option>
-              <option value="v0.5.1">v0.5.1 — Aug 3, 2026</option>
-              <option value="v0.5.0">v0.5.0 — Jun 18, 2026</option>
-              <option value="v0.4.3">v0.4.3 — Jun 18, 2026</option>
-              <option value="v0.4.2">v0.4.2 — Jun 15, 2026</option>
-              <option value="v0.4.1">v0.4.1 — Jun 15, 2026</option>
-              <option value="v0.4.0">v0.4.0 — May 9, 2026</option>
-              <option value="v0.3.6">v0.3.6 — May 2, 2026</option>
-              <option value="v0.3.5">v0.3.5 — Apr 29, 2026</option>
-              <option value="v0.3.4">v0.3.4 — Apr 27, 2026</option>
-              <option value="v0.3.3">v0.3.3 — Apr 23, 2026</option>
-              <option value="v0.3.2">v0.3.2 — Apr 23, 2026</option>
-              <option value="v0.3.1">v0.3.1 — Apr 23, 2026</option>
-              <option value="v0.3.0">v0.3.0 — Apr 16, 2026</option>
-              <option value="v0.2.1">v0.2.1 — Apr 15, 2026</option>
-              <option value="v0.2.0">v0.2.0 — Apr 13, 2026</option>
-              <option value="v0.1.21">v0.1.21 — Apr 6, 2026</option>
-              <option value="v0.1.20">v0.1.20 — Mar 25, 2026</option>
-              <option value="v0.1.19">v0.1.19 — Mar 19, 2026</option>
-              <option value="v0.1.18">v0.1.18 — Mar 16, 2026</option>
-              <option value="v0.1.17">v0.1.17 — Mar 13, 2026</option>
-              <option value="v0.1.16">v0.1.16 — Mar 11, 2026</option>
-              <option value="v0.1.15">v0.1.15 — Mar 11, 2026</option>
-              <option value="v0.1.14">v0.1.14 — Mar 10, 2026</option>
-              <option value="v0.1.13">v0.1.13 — Mar 9, 2026</option>
-              <option value="v0.1.12">v0.1.12 — Mar 9, 2026</option>
-              <option value="v0.1.11">v0.1.11 — Mar 9, 2026</option>
-              <option value="v0.1.10">v0.1.10 — Mar 8, 2026</option>
-              <option value="v0.1.9">v0.1.9 — Mar 7, 2026</option>
-              <option value="v0.1.8">v0.1.8 — Mar 6, 2026</option>
-              <option value="v0.1.7">v0.1.7 — Mar 5, 2026</option>
-              <option value="v0.1.6">v0.1.6 — Mar 5, 2026</option>
-              <option value="v0.1.5">v0.1.5 — Mar 4, 2026</option>
-            </select>
-          </div>
-
-          <!-- Sticky filter toolbar -->
-          <div class="changelog-toolbar" role="search" aria-label="Filter changelog">
-            <div class="changelog-search">
-              <svg class="ico changelog-search-icon" aria-hidden="true"><use href="#i-search"></use></svg>
-              <input type="search" data-changelog-search placeholder="Search every release…" aria-label="Search the changelog">
-            </div>
-            <div class="tabs" role="group" aria-label="Filter by change type">
-              <button type="button" class="tab" data-changelog-type="all" aria-pressed="true">All</button>
-              <button type="button" class="tab" data-changelog-type="added" aria-pressed="false">New</button>
-              <button type="button" class="tab" data-changelog-type="changed" aria-pressed="false">Improved</button>
-              <button type="button" class="tab" data-changelog-type="fixed" aria-pressed="false">Fixed</button>
-            </div>
-          </div>
-
-          <!-- Stream of entries -->
-          <div class="changelog-stream" data-changelog-stream>
-
-            <div class="changelog-empty">
-              <svg class="ico ico-32" aria-hidden="true"><use href="#i-search"></use></svg>
-              <p>No releases match your filters.</p>
-            </div>
-
-            <!-- ── v1.0.0 (latest) ── -->
+  <div class="doc-main" style="padding-bottom: 96px">
+    <p class="changelog-intro">Every Nexus release, newest first. Nexus updates itself, so you’re likely already on the latest.</p>
+    <div class="changelog-timeline">
             <article class="changelog-entry changelog-entry--latest" id="v1.0.0">
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v1.0.0</h2>
-                <time class="changelog-entry-date" datetime="2026-10-12">Oct 12, 2026 · Latest</time>
+                <time class="changelog-entry-date" datetime="2026-10-12">Oct 12, 2026</time>
+                <span class="version-badge">Latest</span>
+                <a class="changelog-tour" href="whats-new.html">Take the tour</a>
               </div>
 
               <div class="changelog-entry-body">
+                <h3 class="changelog-entry-title">Nexus 1.0</h3>
                 <p>
-                  Nexus 1.0. The whole app is rebuilt around a new layout: a top
+                  The whole app is rebuilt around a new layout: a top
                   bar replaces the sidebar, Home becomes a dashboard that
                   spotlights what to play next, and every page &mdash; Library,
                   the game page, Stats, Achievements, Twitch and Settings &mdash;
@@ -347,6 +124,8 @@
                   click away, and the classic layout is a switch away in
                   Settings.
                 </p>
+
+                <img src="assets/img/v1/home.webp" alt="The new Home in Nexus 1.0" width="2000" height="1250" loading="lazy">
 
                 <div class="changelog-category" data-type="added">
                   <h3 class="changelog-category-title"><span class="changelog-badge changelog-badge--added">New</span></h3>
@@ -391,6 +170,7 @@
               <div class="changelog-entry-header">
                 <h2 class="changelog-entry-version">v0.5.5</h2>
                 <time class="changelog-entry-date" datetime="2026-10-02">Oct 2, 2026</time>
+                <span class="changelog-tag">Security</span>
               </div>
 
               <div class="changelog-entry-body">
@@ -1578,41 +1358,24 @@
                 </div>
               </div>
             </article>
-
-          </div>
-        </div>
-
-      </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <!-- ════════════════════════════════════════════════ -->
-  <!-- FOOTER                                          -->
-  <!-- ════════════════════════════════════════════════ -->
-  <footer class="foot">
-    <div class="wrap foot-grid">
-      <div>
-        <p class="foot-note">&copy; 2026 Nexus · Built with love by Darren Strydom in sunny South Africa.</p>
-        <span class="chip chip--amber foot-badge">
-          <svg class="ico" aria-hidden="true"><use href="#i-bolt"></use></svg>
-          Made with Rust + Tauri
-        </span>
-      </div>
-      <nav class="foot-links" aria-label="Footer">
-        <a class="foot-link" href="https://paypal.me/darrenstrydom85" target="_blank" rel="noopener noreferrer">
-          <svg class="ico" aria-hidden="true"><use href="#i-heart"></use></svg>Support</a>
-        <a class="foot-link" href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">
-          <svg class="ico" aria-hidden="true"><use href="#i-chat"></use></svg>Discord</a>
-        <a class="foot-link" href="changelog.html" aria-current="page">
-          <svg class="ico" aria-hidden="true"><use href="#i-doc"></use></svg>Changelog</a>
-        <a class="foot-link" href="privacy.html">
-          <svg class="ico" aria-hidden="true"><use href="#i-lock"></use></svg>Privacy</a>
-        <a class="foot-link" href="terms.html">
-          <svg class="ico" aria-hidden="true"><use href="#i-scales"></use></svg>Terms</a>
-      </nav>
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-brand">
+      <img src="assets/img/nexus-logo.png" alt="" width="18" height="18">
+      © 2026 Nexus · Built by Darren Strydom in South Africa
     </div>
-  </footer>
-
-<script src="assets/js/pixel.js?v=20260728c" defer></script>
+    <nav aria-label="Footer">
+      <a href="changelog.html">Changelog</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer">Discord</a>
+      <a href="https://paypal.me/darrenstrydom85" target="_blank" rel="noopener noreferrer">Support the project</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>
