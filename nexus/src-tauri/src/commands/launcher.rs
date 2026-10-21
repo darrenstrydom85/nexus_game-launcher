@@ -203,12 +203,41 @@ fn launch_direct_exe(exe_path: &str) -> Result<(), String> {
     }
     match cmd.spawn() {
         Ok(_) => Ok(()),
-        // CreateProcess can't do UAC elevation (os error 740) or .lnk files;
-        // ShellExecute can.
-        // ponytail: ShellExecute fallback inherits Nexus's cwd, not the game dir.
-        Err(_) => tauri_plugin_opener::open_path(path, None::<&str>)
-            .map_err(|e| format!("Failed to launch: {e}")),
+        // CreateProcess can't do UAC elevation (os error 740, e.g. a RUNASADMIN
+        // compat flag) or .lnk files; ShellExecute can.
+        Err(_) => shell_execute(path, path.parent()).map_err(|e| format!("Failed to launch: {e}")),
     }
+}
+
+/// ShellExecuteEx with the game folder as working directory. The opener
+/// plugin's `open_path` passes none, so elevated games inherited Nexus's cwd
+/// and engines that load data relative to cwd failed to start.
+fn shell_execute(file: &std::path::Path, dir: Option<&std::path::Path>) -> std::io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::Shell::{
+        ShellExecuteExW, SEE_MASK_FLAG_NO_UI, SEE_MASK_NOASYNC, SHELLEXECUTEINFOW,
+    };
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let wide = |p: &std::path::Path| p.as_os_str().encode_wide().chain(Some(0)).collect::<Vec<u16>>();
+    let file = wide(file);
+    let dir = dir.map(wide);
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI,
+        lpFile: file.as_ptr(),
+        lpDirectory: dir.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
+        nShow: SW_SHOWNORMAL,
+        ..Default::default()
+    };
+    // SAFETY: `file` and `dir` are NUL-terminated and outlive the call. No
+    // process handle is requested, so there is nothing to close.
+    // ponytail: no CoInitializeEx; fine for .exe/.lnk, add it if a shell
+    // extension target ever needs an STA.
+    if unsafe { ShellExecuteExW(&mut info) } == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
 }
 
 fn launch_url(scheme: &str, url: &str) -> Result<(), String> {
@@ -593,6 +622,25 @@ mod tests {
         assert!(launch_direct_exe("").is_err());
         assert!(launch_direct_exe("a&calc.exe").is_err());
         assert!(launch_direct_exe("C:\\definitely\\missing\\game.exe").is_err());
+    }
+
+    #[test]
+    fn shell_execute_runs_in_given_dir() {
+        // A batch file writes its cwd next to itself; it must be its own folder.
+        let tmp = tempfile::tempdir().unwrap();
+        let bat = tmp.path().join("cwd.bat");
+        let out = tmp.path().join("out.txt");
+        std::fs::write(&bat, "@cd > \"%~dp0out.txt\"\r\n").unwrap();
+        shell_execute(&bat, Some(tmp.path())).unwrap();
+        let mut cwd = String::new();
+        for _ in 0..50 {
+            cwd = std::fs::read_to_string(&out).unwrap_or_default();
+            if !cwd.is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        assert_eq!(cwd.trim(), tmp.path().to_str().unwrap());
     }
 
     #[test]

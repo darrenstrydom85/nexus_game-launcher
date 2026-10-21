@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.0",
-    "notes":  "Nexus 1.0: a new layout with a Home dashboard, game pages and a quick-view drawer; rebuilt Stats, Achievements, Twitch, Settings and onboarding; story-style Wrapped and a pack-opening game picker.",
-    "pub_date":  "2026-10-12T18:43:19Z",
+    "version":  "1.0.1",
+    "notes":  "Games set to run as administrator now start from their own folder when launched from Nexus, so they no longer show an error on start.",
+    "pub_date":  "2026-10-21T04:48:46Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1U4c0VLNFJaUUI3aVh4TUVWemFNR3V0ZjZTT2xCSVErd2o1L1hnTHpPbDF2Wm1NRFNQckZZak1TRVV3dWJVd0pmNkE3WEFheFlqWWUrQVFUbjJpaWdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxODMwNTU4CWZpbGU6TmV4dXNfMS4wLjBfeDY0LXNldHVwLmV4ZQpRdmQ2bksvaXZEaElGRDJTaVhJNkZxV2UvQW5jOUV4clNQK2xiNE93bGo0ZHJKY3hSTVRsVk5mSTFpZGtCT1NiMDNPT2RpTXA0V01NYkNMbXRTQkNEdz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.0_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1NyalU5Mk1MWXI1V0F5OWRaYmN2d3dYVFliNFQyWkZieEFJbU55NGREdmh1YnlTR0dJbE0wM1hxTXZLYXVyK2wvNmFsZnpncDNTc0hEcUI4cmw0N3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTU4MDkxCWZpbGU6TmV4dXNfMS4wLjFfeDY0LXNldHVwLmV4ZQpGWnloRGFYb2JoV1RrcTJMRkNrRzZxT3NXS0JaOGY5M2ZpSXBSNGpMYjl4REhlUmVSM2ZINUIyQUtKa3B0aGRxbk8remNVUHZ3UTFLMWhsQVQybTVEdz09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.1_x64-setup.exe"
                                          }
                   }
 }
