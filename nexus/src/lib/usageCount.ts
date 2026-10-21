@@ -7,7 +7,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
  * ID, so the server can count opens but can't tell one install from another.
  *
  * Nothing is sent until the user has answered the notice, or while it's off.
- * Server code: nexus-stats/src/index.js. Everything it stores: GET USAGE_COUNT_URL.
+ * Server code: nexus-stats/src/index.js. USAGE_COUNT_URL is also a public
+ * dashboard; its /raw path returns everything stored.
  */
 export const USAGE_COUNT_URL = "https://stats.nexusgamelauncher.com/";
 export const USAGE_COUNT_SOURCE_URL =

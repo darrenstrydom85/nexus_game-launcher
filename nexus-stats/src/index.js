@@ -2,7 +2,10 @@
 //
 // Once a day the app POSTs { version, firstOpenThisWeek, firstOpenThisMonth }.
 // This Worker adds 1 to a few counters and stores nothing else: no ID, no IP,
-// no time beyond the day. GET returns the whole database, so anyone can check.
+// no time beyond the day. GET /raw returns the whole database, so anyone can
+// check; GET / shows the same rows as a dashboard (dashboard.js).
+
+import { renderDashboard } from "./dashboard.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +36,14 @@ export default {
       const { results } = await env.DB.prepare(
         "SELECT metric, period, n FROM counts ORDER BY period DESC, metric",
       ).all();
-      return json(results);
+      if (new URL(request.url).pathname === "/raw") return json(results);
+      return new Response(renderDashboard(results, new Date(), weekOf), {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          // No scripts, no outside requests: the page can't track anyone.
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+        },
+      });
     }
 
     if (request.method !== "POST") return json({ error: "method not allowed" }, 405);

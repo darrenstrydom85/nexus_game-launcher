@@ -62,9 +62,18 @@ test("bad input writes nothing", async () => {
   assert.equal(DB.counts.size, 0);
 });
 
-test("GET returns every stored row", async () => {
+test("GET /raw returns every stored row; GET / renders them", async () => {
   const DB = fakeDb();
   await worker.fetch(post({ version: "1.0.2", firstOpenThisWeek: false, firstOpenThisMonth: true }), { DB });
-  const rows = await (await worker.fetch(new Request("https://stats.nexusgamelauncher.com/"), { DB })).json();
+  await worker.fetch(post({ version: "1.0.2", firstOpenThisWeek: false, firstOpenThisMonth: false }), { DB });
+
+  const rows = await (await worker.fetch(new Request("https://stats.nexusgamelauncher.com/raw"), { DB })).json();
   assert.equal(rows.length, 3);
+
+  const page = await worker.fetch(new Request("https://stats.nexusgamelauncher.com/"), { DB });
+  assert.match(page.headers.get("content-type"), /text\/html/);
+  const html = await page.text();
+  assert.match(html, /<span class="label">Today<\/span><strong>2<\/strong>/);
+  assert.match(html, /v1\.0\.2/);
+  assert.match(html, /href="\/raw"/);
 });
