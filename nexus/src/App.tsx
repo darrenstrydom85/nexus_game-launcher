@@ -53,6 +53,8 @@ import { twitchAuthStatus } from "@/lib/tauri";
 import { useUpdateStore } from "@/stores/updateStore";
 import { CloseDialogHost } from "@/components/Settings/CloseDialogHost";
 import { UpdateAvailableDialog } from "@/components/Settings/UpdateAvailableDialog";
+import { UsageCountNotice } from "@/components/Settings/UsageCountNotice";
+import { sendUsageCountIfDue } from "@/lib/usageCount";
 import { ProcessPickerModal } from "@/components/shared/ProcessPickerModal";
 import { SessionNotePrompt } from "@/components/Sessions/SessionNotePrompt";
 import { useSessionNoteStore } from "@/stores/sessionNoteStore";
@@ -189,7 +191,7 @@ function MainApp() {
   }, [activeSession?.processDetected, activeSession?.exeName, showProcessPicker, addToast]);
 
   React.useEffect(() => {
-    loadSettings();
+    loadSettings().then(() => sendUsageCountIfDue());
   }, [loadSettings]);
 
   React.useEffect(() => {
@@ -389,6 +391,8 @@ function MainApp() {
       lastVisibilityCheck.current = now;
 
       useConnectivityStore.getState().checkConnectivity();
+      // Brought back from the tray on a new day counts as opening Nexus.
+      sendUsageCountIfDue();
 
       if (!useTwitchStore.getState().isAuthenticated) return;
       twitchAuthStatus()
@@ -806,6 +810,7 @@ function MainApp() {
         open={updateDialogOpen}
         onClose={() => setUpdateDialogOpen(false)}
       />
+      <UsageCountNotice />
       <ProcessPickerModal
         open={showProcessPicker}
         gameName={activeSession?.gameName ?? ""}

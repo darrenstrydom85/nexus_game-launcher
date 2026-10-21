@@ -7,6 +7,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { getHardwareCached, trimCpuName, trimGpuName } from "@/lib/hardware";
 import type { HardwareInfo } from "@/lib/tauri";
 import { KnownIssuesDialog } from "@/components/Settings/KnownIssuesDialog";
+import { USAGE_COUNT_SOURCE_URL, USAGE_COUNT_URL } from "@/lib/usageCount";
 import { RowIcon, SettingsCard, SettingsRow, ToggleRow } from "../SettingsKit";
 
 const DISCORD = "https://discord.gg/dh2tDGJNYD";
@@ -39,6 +40,9 @@ export function AboutSection() {
   const { updateAvailable, latestVersion, notes, phase, downloadedBytes, totalBytes, runCheck, downloadAndInstall, restart } = useUpdateStore();
   const showOnHome = useSettingsStore((s) => s.showHardwareOnHome);
   const setShowOnHome = useSettingsStore((s) => s.setShowHardwareOnHome);
+  const usageEnabled = useSettingsStore((s) => s.usageCountEnabled);
+  const setUsageEnabled = useSettingsStore((s) => s.setUsageCountEnabled);
+  const lastSent = useSettingsStore((s) => s.usageCountLastSent);
   const [hw, setHw] = React.useState<HardwareInfo | null>(null);
 
   React.useEffect(() => {
@@ -119,6 +123,39 @@ export function AboutSection() {
           <span data-testid="about-license" className="text-[13px] text-muted-foreground">
             MIT
           </span>
+        </SettingsRow>
+      </SettingsCard>
+
+      <SettingsCard title="Usage count" data-testid="about-usage-count">
+        <ToggleRow
+          data-testid="pref-usage-count"
+          label="Count me as a user"
+          description="Once a day, Nexus sends an anonymous “opened today” count and the app version to nexusgamelauncher.com. Nothing else."
+          checked={usageEnabled}
+          onCheckedChange={setUsageEnabled}
+        />
+        <SettingsRow
+          label="Last request sent"
+          description={
+            lastSent ? (
+              <>
+                {new Date(lastSent.sentAt).toLocaleString()}
+                <pre data-testid="about-usage-last-sent" className="mt-2 overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs text-foreground">
+                  {JSON.stringify(lastSent.payload, null, 2)}
+                </pre>
+              </>
+            ) : (
+              "Nothing sent yet"
+            )
+          }
+        />
+        <SettingsRow label="Check it yourself" description="The code is open source and every stored number is public">
+          <LinkButton href={USAGE_COUNT_SOURCE_URL} data-testid="about-usage-code">
+            Read the code
+          </LinkButton>
+          <LinkButton href={USAGE_COUNT_URL} data-testid="about-usage-data">
+            All stored data
+          </LinkButton>
         </SettingsRow>
       </SettingsCard>
 

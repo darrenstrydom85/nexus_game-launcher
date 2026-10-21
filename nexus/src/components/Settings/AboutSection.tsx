@@ -3,6 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { Bug, CircleAlert, Download, Heart, MessageCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpdateStore } from "@/stores/updateStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { KnownIssuesDialog } from "./KnownIssuesDialog";
 
 export function AboutSection() {
@@ -13,6 +14,8 @@ export function AboutSection() {
   const runCheck = useUpdateStore((s) => s.runCheck);
   const downloadAndInstall = useUpdateStore((s) => s.downloadAndInstall);
   const restart = useUpdateStore((s) => s.restart);
+  const usageEnabled = useSettingsStore((s) => s.usageCountEnabled);
+  const setUsageEnabled = useSettingsStore((s) => s.setUsageCountEnabled);
 
   React.useEffect(() => {
     getVersion().then(setVersion).catch(() => setVersion("0.1.0"));
@@ -92,6 +95,16 @@ export function AboutSection() {
         >
           <Heart className="size-3.5" /> Support this project
         </a>
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            data-testid="about-usage-count"
+            className="accent-primary"
+            checked={usageEnabled}
+            onChange={(e) => setUsageEnabled(e.target.checked)}
+          />
+          Count me as a user (one anonymous count a day)
+        </label>
         <span data-testid="about-license" className="text-xs">MIT License</span>
       </div>
       <KnownIssuesDialog

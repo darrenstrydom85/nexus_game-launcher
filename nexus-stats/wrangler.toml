@@ -1,0 +1,16 @@
+name = "nexus-stats"
+main = "src/index.js"
+compatibility_date = "2026-10-06"
+
+# One public address only.
+workers_dev = false
+routes = [{ pattern = "stats.nexusgamelauncher.com", custom_domain = true }]
+
+# No Workers Logs: requests are counted, never logged.
+[observability]
+enabled = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nexus-stats"
+database_id = "ace6b719-627f-4dd6-82d2-2f7a47a98e95"
