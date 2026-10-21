@@ -40,6 +40,24 @@
         },
         {
           "url": "https://www.igdb.com/games/**"
+        },
+        {
+          "url": "https://www.steamgriddb.com/*"
+        },
+        {
+          "url": "https://dev.twitch.tv/*"
+        },
+        {
+          "url": "https://discord.gg/*"
+        },
+        {
+          "url": "https://paypal.me/*"
+        },
+        {
+          "url": "https://github.com/darrenstrydom85/nexus_game-launcher/*"
+        },
+        {
+          "url": "https://stats.nexusgamelauncher.com/*"
         }
       ]
     },

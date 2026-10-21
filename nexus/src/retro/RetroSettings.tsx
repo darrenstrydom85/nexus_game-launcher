@@ -58,6 +58,11 @@ export function RetroSettings({ enabled, onBack, onExit }: RetroSettingsProps) {
         value: settings.autoHealthCheck ? "ON" : "OFF",
         run: () => settings.setAutoHealthCheck(!settings.autoHealthCheck),
       },
+      {
+        label: "ANONYMOUS DAILY USER COUNT",
+        value: settings.usageCountEnabled ? "ON" : "OFF",
+        run: () => settings.setUsageCountEnabled(!settings.usageCountEnabled),
+      },
     ],
     [settings, onExit],
   );

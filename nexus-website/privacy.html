@@ -56,7 +56,7 @@
   </script>
 
   <link rel="preload" href="assets/fonts/geist/geist-sans-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/css/site.css?v=20261013">
+  <link rel="stylesheet" href="assets/css/site.css?v=20261021">
   <script src="assets/js/site.js?v=20261013" defer></script>
 </head>
 <body>
@@ -94,16 +94,16 @@
     <div class="wrap">
       <nav class="legal-switch" aria-label="Legal"><a href="privacy.html" aria-current="page">Privacy</a><a href="terms.html">Terms</a></nav>
       <h1>Privacy in plain English.</h1>
-      <p class="lede">Nexus is a local-first desktop app. There are no accounts, no servers, and no telemetry. Here's exactly what that means.</p>
-      <div class="legal-hero-meta"><span>Last updated · April 13, 2026</span><span>Read time · 4 min</span><span>Applies to · Desktop app + website</span></div>
+      <p class="lede">Nexus is a local-first desktop app. There are no accounts, and nothing about you leaves your PC. The one thing it sends us is an anonymous daily count, and you can check that for yourself. Here's exactly what that means.</p>
+      <div class="legal-hero-meta"><span>Last updated · October 21, 2026</span><span>Read time · 5 min</span><span>Applies to · Desktop app + website</span></div>
       <div class="principles">
         <div class="principle">
           <p class="principle-title">100% local-first</p>
           <p class="principle-desc">All data lives on your machine in a SQLite file you control.</p>
         </div>
         <div class="principle">
-          <p class="principle-title">No telemetry, ever</p>
-          <p class="principle-desc">The desktop app sends zero analytics, ever, to anyone.</p>
+          <p class="principle-title">One anonymous count</p>
+          <p class="principle-desc">A daily “someone opened Nexus” tick. No ID. One switch turns it off.</p>
         </div>
         <div class="principle">
           <p class="principle-title">No account required</p>
@@ -123,14 +123,15 @@
         <span class="rail-label">On this page</span>
         <ol class="rail-list">
           <li><a class="is-current" href="#overview"><span class="legal-toc-num">01</span><span>Overview</span></a></li>
-          <li><a href="#not-collected"><span class="legal-toc-num">02</span><span>Data we don't collect</span></a></li>
-          <li><a href="#stored-locally"><span class="legal-toc-num">03</span><span>Data stored locally</span></a></li>
-          <li><a href="#third-parties"><span class="legal-toc-num">04</span><span>Third-party services</span></a></li>
-          <li><a href="#analytics"><span class="legal-toc-num">05</span><span>Website analytics</span></a></li>
-          <li><a href="#cookies"><span class="legal-toc-num">06</span><span>Cookies</span></a></li>
-          <li><a href="#children"><span class="legal-toc-num">07</span><span>Children's privacy</span></a></li>
-          <li><a href="#changes"><span class="legal-toc-num">08</span><span>Changes to this policy</span></a></li>
-          <li><a href="#contact"><span class="legal-toc-num">09</span><span>Contact</span></a></li>
+          <li><a href="#usage-count"><span class="legal-toc-num">02</span><span>The anonymous usage count</span></a></li>
+          <li><a href="#not-collected"><span class="legal-toc-num">03</span><span>Data we don't collect</span></a></li>
+          <li><a href="#stored-locally"><span class="legal-toc-num">04</span><span>Data stored locally</span></a></li>
+          <li><a href="#third-parties"><span class="legal-toc-num">05</span><span>Third-party services</span></a></li>
+          <li><a href="#analytics"><span class="legal-toc-num">06</span><span>Website analytics</span></a></li>
+          <li><a href="#cookies"><span class="legal-toc-num">07</span><span>Cookies</span></a></li>
+          <li><a href="#children"><span class="legal-toc-num">08</span><span>Children's privacy</span></a></li>
+          <li><a href="#changes"><span class="legal-toc-num">09</span><span>Changes to this policy</span></a></li>
+          <li><a href="#contact"><span class="legal-toc-num">10</span><span>Contact</span></a></li>
         </ol>
       </div>
     </aside>
@@ -142,16 +143,49 @@
           <div class="legal-tldr">
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
-              <p class="legal-tldr-text">Your library lives in a single SQLite file on your computer. Nexus runs no servers and stores nothing about you anywhere else.</p>
+              <p class="legal-tldr-text">Your library lives in a single SQLite file on your computer. Nothing about you is stored anywhere else. The only thing Nexus sends us is an anonymous daily count with no ID.</p>
             </div>
           </div>
           <p>
-            Nexus is a local-first desktop application. Your game library, play sessions, collections, notes, tags, and all personal data are stored in a local SQLite database on your computer. We do not operate user accounts, cloud servers, or backend databases that store your information. An optional Google Drive backup feature lets you store encrypted copies of your database in your own Google account — this is entirely opt-in.
+            Nexus is a local-first desktop application. Your game library, play sessions, collections, notes, tags, and all personal data are stored in a local SQLite database on your computer. We do not operate user accounts or databases that store your information. The one thing we run is a tiny anonymous counter, described in full below. An optional Google Drive backup feature lets you store encrypted copies of your database in your own Google account — this is entirely opt-in.
           </p>
         </section>
 
+        <section class="legal-section" id="usage-count">
+          <span class="legal-section-num">02 / Usage count</span>
+          <h2 class="type-title1">The Anonymous Usage Count</h2>
+          <div class="legal-tldr">
+            <div class="legal-tldr-body">
+              <span class="legal-tldr-label">TL;DR</span>
+              <p class="legal-tldr-text">Once a day, Nexus sends an anonymous “someone opened Nexus today” count and its version number. No ID, nothing about you. One switch turns it off, and you can verify every word of this.</p>
+            </div>
+          </div>
+          <p>
+            Nexus is built by one developer. Without this, there's no way to know how many people actually use it: the Discord is the only other clue, and most people never join. So the first time you open Nexus each day, it sends one small request to <code>stats.nexusgamelauncher.com</code>. This is the entire request:
+          </p>
+          <pre class="legal-code">{ "version": "1.0.2", "firstOpenThisWeek": true, "firstOpenThisMonth": false }</pre>
+          <p>
+            The counter adds 1 to that day's total and to that version's total, and, when flagged, to the week's and month's totals. That is all it stores. Nexus has no way to tell one user from another, because nothing that could tell them apart is ever sent.
+          </p>
+          <ul class="legal-list">
+            <li><strong>Nothing before you've answered.</strong> Nexus asks once, the first time you open it, and sends nothing until you've chosen.</li>
+            <li><strong>Off means off.</strong> Settings › About › Count me as a user. When it's off, Nexus sends nothing.</li>
+            <li><strong>No background pings.</strong> One request on the first open of the day (UTC). Nothing on a timer.</li>
+            <li><strong>No IP addresses stored.</strong> The counter keeps no request logs. Like any web request, it passes through Cloudflare, which hosts the counter, and <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" class="legal-link">Cloudflare's privacy policy</a> applies to that.</li>
+          </ul>
+          <div class="legal-subsection">
+            <h3 class="type-title2">Verify it yourself</h3>
+            <ol class="legal-list">
+              <li><strong>Read the code.</strong> Nexus is open source (MIT). The app side is <a href="https://github.com/darrenstrydom85/nexus_game-launcher/blob/main/nexus/src/lib/usageCount.ts" target="_blank" rel="noopener noreferrer" class="legal-link">usageCount.ts</a>; the counter is <a href="https://github.com/darrenstrydom85/nexus_game-launcher/blob/main/nexus-stats/src/index.js" target="_blank" rel="noopener noreferrer" class="legal-link">about 60 lines</a>.</li>
+              <li><strong>See what your copy sent.</strong> Settings › About › Last request sent shows the exact request and when it went.</li>
+              <li><strong>See everything stored.</strong> <a href="https://stats.nexusgamelauncher.com" target="_blank" rel="noopener noreferrer" class="legal-link">stats.nexusgamelauncher.com</a> shows the numbers, and its <em>View raw data</em> button returns the whole database, live: dates, versions and counts. Nothing else is in there.</li>
+              <li><strong>Watch the traffic.</strong> A tool like Fiddler shows one request a day to <code>stats.nexusgamelauncher.com</code> carrying the JSON above, and none at all when the setting is off.</li>
+            </ol>
+          </div>
+        </section>
+
         <section class="legal-section" id="not-collected">
-          <span class="legal-section-num">02 / What we don't collect</span>
+          <span class="legal-section-num">03 / What we don't collect</span>
           <h2 class="type-title1">Data We Do Not Collect</h2>
           <div class="legal-tldr">
             <div class="legal-tldr-body">
@@ -169,11 +203,13 @@
             <li>Play session data or statistics</li>
             <li>Screenshots, artwork, or media files</li>
             <li>System hardware information</li>
+            <li>Any identifier for you, your PC or your install</li>
+            <li>Your IP address</li>
           </ul>
         </section>
 
         <section class="legal-section" id="stored-locally">
-          <span class="legal-section-num">03 / Local data</span>
+          <span class="legal-section-num">04 / Local data</span>
           <h2 class="type-title1">Data Stored Locally</h2>
           <div class="legal-tldr">
             <div class="legal-tldr-body">
@@ -197,7 +233,7 @@
         </section>
 
         <section class="legal-section" id="third-parties">
-          <span class="legal-section-num">04 / Third parties</span>
+          <span class="legal-section-num">05 / Third parties</span>
           <h2 class="type-title1">Third-Party Services</h2>
           <div class="legal-tldr">
             <div class="legal-tldr-body">
@@ -246,27 +282,27 @@
           <div class="legal-subsection">
             <h3 class="type-title2">Update Checks</h3>
             <p>
-              Nexus periodically checks GitHub for new releases. These requests include standard HTTP headers (user agent, IP address) as part of normal web traffic. No personal data is sent.
+              Nexus checks <code>nexusgamelauncher.com</code> for new releases when it starts and once an hour while it's open, and fetches the Known issues list from the same site when you open it. These requests include standard HTTP headers (user agent, IP address) as part of normal web traffic. No personal data is sent.
             </p>
           </div>
         </section>
 
         <section class="legal-section" id="analytics">
-          <span class="legal-section-num">05 / Analytics</span>
+          <span class="legal-section-num">06 / Analytics</span>
           <h2 class="type-title1">Website Analytics</h2>
           <div class="legal-tldr">
             <div class="legal-tldr-body">
               <span class="legal-tldr-label">TL;DR</span>
-              <p class="legal-tldr-text">This website uses Google Analytics. The desktop app does not.</p>
+              <p class="legal-tldr-text">This website uses Google Analytics. The desktop app does not; its only count is the anonymous one described above.</p>
             </div>
           </div>
           <p>
-            The Nexus website (<a href="https://www.nexusgamelauncher.com" class="legal-link">nexusgamelauncher.com</a>) uses <strong>Google Analytics</strong> to understand how visitors find and use the site. Google Analytics collects anonymised usage data such as page views, referral sources, and general geographic region. This data is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="legal-link">Google's Privacy Policy</a>. The Nexus desktop application does not include any analytics or telemetry.
+            The Nexus website (<a href="https://www.nexusgamelauncher.com" class="legal-link">nexusgamelauncher.com</a>) uses <strong>Google Analytics</strong> to understand how visitors find and use the site. Google Analytics collects anonymised usage data such as page views, referral sources, and general geographic region. This data is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="legal-link">Google's Privacy Policy</a>. The Nexus desktop application includes no analytics library; the <a href="#usage-count" class="legal-link">anonymous usage count</a> is the only thing it sends us.
           </p>
         </section>
 
         <section class="legal-section" id="cookies">
-          <span class="legal-section-num">06 / Cookies</span>
+          <span class="legal-section-num">07 / Cookies</span>
           <h2 class="type-title1">Cookies</h2>
           <div class="legal-tldr">
             <div class="legal-tldr-body">
@@ -280,7 +316,7 @@
         </section>
 
         <section class="legal-section" id="children">
-          <span class="legal-section-num">07 / Children's privacy</span>
+          <span class="legal-section-num">08 / Children's privacy</span>
           <h2 class="type-title1">Children's Privacy</h2>
           <p>
             Nexus is not directed at children under the age of 13. We do not knowingly collect personal information from children. Since Nexus does not collect personal information from any user, this concern does not apply in practice.
@@ -288,7 +324,7 @@
         </section>
 
         <section class="legal-section" id="changes">
-          <span class="legal-section-num">08 / Changes</span>
+          <span class="legal-section-num">09 / Changes</span>
           <h2 class="type-title1">Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of Nexus after changes constitutes acceptance of the revised policy.
@@ -296,7 +332,7 @@
         </section>
 
         <section class="legal-section" id="contact">
-          <span class="legal-section-num">09 / Contact</span>
+          <span class="legal-section-num">10 / Contact</span>
           <h2 class="type-title1">Contact</h2>
           <p>
             If you have questions about this Privacy Policy, you can reach us on the <a href="https://discord.gg/dh2tDGJNYD" target="_blank" rel="noopener noreferrer" class="legal-link">Nexus Discord community</a>.

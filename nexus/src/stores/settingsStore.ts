@@ -5,6 +5,7 @@ import { emit } from "@tauri-apps/api/event";
 import { type ThemeMode, isThemeMode } from "@/lib/theme";
 import type { CustomTheme } from "@/lib/themeTypes";
 import { parseTheme } from "@/lib/themeSchema";
+import type { UsageCountRecord } from "@/lib/usageCount";
 
 export interface ApiKeys {
   steamGridDbKey: string;
@@ -93,6 +94,10 @@ export interface SettingsState {
   showHardwareOnHome: boolean;
   /** v1 Home: the "Get started" checklist was dismissed. */
   homeChecklistDismissed: boolean;
+  /** Anonymous daily usage count (see lib/usageCount). Default on, but nothing is sent before the notice is answered. */
+  usageCountEnabled: boolean;
+  usageCountNoticeSeen: boolean;
+  usageCountLastSent: UsageCountRecord | null;
   _hydrated: boolean;
 }
 
@@ -143,6 +148,9 @@ export interface SettingsActions {
   setLayoutV1: (value: boolean) => void;
   setShowHardwareOnHome: (value: boolean) => void;
   setHomeChecklistDismissed: (value: boolean) => void;
+  setUsageCountEnabled: (value: boolean) => void;
+  setUsageCountNoticeSeen: (value: boolean) => void;
+  setUsageCountLastSent: (record: UsageCountRecord) => void;
   loadFromBackend: () => Promise<void>;
 }
 
@@ -208,6 +216,9 @@ const initialState: SettingsState = {
   layoutV1: true,
   showHardwareOnHome: true,
   homeChecklistDismissed: false,
+  usageCountEnabled: true,
+  usageCountNoticeSeen: false,
+  usageCountLastSent: null,
   _hydrated: false,
 };
 
@@ -356,6 +367,15 @@ export const useSettingsStore = create<SettingsStore>()(
             patch.layoutV1 = settings.layout_v1 !== "false";
             patch.showHardwareOnHome = settings.show_hardware_on_home !== "false";
             patch.homeChecklistDismissed = settings.home_checklist_dismissed === "true";
+            patch.usageCountEnabled = settings.usage_count_enabled !== "false";
+            patch.usageCountNoticeSeen = settings.usage_count_notice_seen === "true";
+            if (settings.usage_count_last_sent) {
+              try {
+                patch.usageCountLastSent = JSON.parse(settings.usage_count_last_sent) as UsageCountRecord;
+              } catch {
+                // Corrupt record: treat as never sent.
+              }
+            }
             if (settings.retro_theme) {
               patch.retroTheme = settings.retro_theme;
             }
@@ -584,6 +604,18 @@ export const useSettingsStore = create<SettingsStore>()(
         setHomeChecklistDismissed: (value) => {
           persistSetting("home_checklist_dismissed", String(value));
           set({ homeChecklistDismissed: value }, false, "setHomeChecklistDismissed");
+        },
+        setUsageCountEnabled: (value) => {
+          persistSetting("usage_count_enabled", String(value));
+          set({ usageCountEnabled: value }, false, "setUsageCountEnabled");
+        },
+        setUsageCountNoticeSeen: (value) => {
+          persistSetting("usage_count_notice_seen", String(value));
+          set({ usageCountNoticeSeen: value }, false, "setUsageCountNoticeSeen");
+        },
+        setUsageCountLastSent: (record) => {
+          persistSetting("usage_count_last_sent", JSON.stringify(record));
+          set({ usageCountLastSent: record }, false, "setUsageCountLastSent");
         },
         setRetroTheme: (id) => {
           persistSetting("retro_theme", id);

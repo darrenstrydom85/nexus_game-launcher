@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.1",
-    "notes":  "Games set to run as administrator now start from their own folder when launched from Nexus, so they no longer show an error on start.",
-    "pub_date":  "2026-10-21T04:48:46Z",
+    "version":  "1.0.2",
+    "notes":  "Adds an anonymous daily usage count, so we can see how many people use Nexus: no ID and nothing about you, and Settings \u003e About turns it off. Also fixes links in Settings and setup that didn\u0027t open.",
+    "pub_date":  "2026-10-21T16:13:04Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1NyalU5Mk1MWXI1V0F5OWRaYmN2d3dYVFliNFQyWkZieEFJbU55NGREdmh1YnlTR0dJbE0wM1hxTXZLYXVyK2wvNmFsZnpncDNTc0hEcUI4cmw0N3dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTU4MDkxCWZpbGU6TmV4dXNfMS4wLjFfeDY0LXNldHVwLmV4ZQpGWnloRGFYb2JoV1RrcTJMRkNrRzZxT3NXS0JaOGY5M2ZpSXBSNGpMYjl4REhlUmVSM2ZINUIyQUtKa3B0aGRxbk8remNVUHZ3UTFLMWhsQVQybTVEdz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.1_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1ZOL1MxL1YxdllzMmlLRkJkZG9lNWVndGFVUEdDWml1cko5QXhhNXRtanFrSTVMakwxVHhCTFZGK3Q4dVdLZW5CYUx3SlAra0FJMCtSL1ZyNVM2ZFEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTk5MTQyCWZpbGU6TmV4dXNfMS4wLjJfeDY0LXNldHVwLmV4ZQpPQlZkZUdsN25GcDBiOTdLYWtSa0NESHdKQmJ4bDIxSiswOGYxakw2T25LdWd2WkNoUEs3RVhmUWJNNVNIZFhtSzZDSUZtTCtIZkY0VW9pRGlZblpCZz09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.2_x64-setup.exe"
                                          }
                   }
 }

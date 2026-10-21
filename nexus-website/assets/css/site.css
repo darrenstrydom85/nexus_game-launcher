@@ -467,6 +467,7 @@ code { font: .9em var(--mono); padding: 1px 5px; border-radius: 5px; background:
 .legal-tldr-label { color: var(--accent-ink); font-size: 11.5px; font-weight: 700; letter-spacing: .08em; }
 .legal-section .legal-tldr-text { color: #e4e4ea; font-size: 15px; }
 .legal-list { padding-left: 20px; }
+.legal-code { margin: 0; padding: 14px 18px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--line); color: #e4e4ea; font: 13.5px/1.6 var(--mono); overflow-x: auto; }
 .legal-subsection { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); }
 .legal-questions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
 .legal-questions-actions { display: flex; flex-wrap: wrap; gap: 8px; }
