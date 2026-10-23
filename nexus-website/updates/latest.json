@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.2",
-    "notes":  "Adds an anonymous daily usage count, so we can see how many people use Nexus: no ID and nothing about you, and Settings \u003e About turns it off. Also fixes links in Settings and setup that didn\u0027t open.",
-    "pub_date":  "2026-10-21T16:13:04Z",
+    "version":  "1.0.3",
+    "notes":  "Adds a small Now playing card on your desktop while Nexus is minimized: it shows the game, a timer and a Stop button, and clicking it takes you back to the game\u0027s page.",
+    "pub_date":  "2026-10-23T07:58:45Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1ZOL1MxL1YxdllzMmlLRkJkZG9lNWVndGFVUEdDWml1cko5QXhhNXRtanFrSTVMakwxVHhCTFZGK3Q4dVdLZW5CYUx3SlAra0FJMCtSL1ZyNVM2ZFEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTk5MTQyCWZpbGU6TmV4dXNfMS4wLjJfeDY0LXNldHVwLmV4ZQpPQlZkZUdsN25GcDBiOTdLYWtSa0NESHdKQmJ4bDIxSiswOGYxakw2T25LdWd2WkNoUEs3RVhmUWJNNVNIZFhtSzZDSUZtTCtIZkY0VW9pRGlZblpCZz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.2_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1EwMVhPdDJzWElvWERTS1Rzamc5M0FWazByZjh4WEVBNEZyaUhud0FFT1pFVVhYRzRXWjJ6N29FUE9QYTdFUXd2aHpHZlVYQVR1aVlDdnFva3IzU3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNzQyMzExCWZpbGU6TmV4dXNfMS4wLjNfeDY0LXNldHVwLmV4ZQpGaXBVRml3MmNoUVZzSWJITWNpVHltV3lUeGk0UGp3dDJEcUIvMkcyYmtWU1F5cDJoWE5FWFdldlRsdUtnRXBrakJiNFhzTlJlWnI2b3ZqR2ZidVRDdz09Cg==",
+                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.3_x64-setup.exe"
                                          }
                   }
 }
