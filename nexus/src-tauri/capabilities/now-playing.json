@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "now-playing",
+  "description": "Capability for the now-playing desktop widget. Events only: it renders the session the main window sends and emits its clicks back.",
+  "windows": [
+    "now-playing"
+  ],
+  "permissions": [
+    "core:event:default"
+  ]
+}

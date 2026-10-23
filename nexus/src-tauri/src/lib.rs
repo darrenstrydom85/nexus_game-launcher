@@ -96,7 +96,10 @@ use commands::{
         set_twitch_favorite, twitch_auth_logout, twitch_auth_start, twitch_auth_status,
         twitch_test_connection, validate_twitch_token, TwitchEmbedBaseUrl, TwitchEmbedTheme,
     },
-    window::{confirm_app_close, hide_main_window, show_main_window},
+    window::{
+        confirm_app_close, hide_main_window, set_now_playing_widget, show_main_window,
+        NOW_PLAYING_WIDGET,
+    },
     wrapped::{get_available_wrapped_periods, get_wrapped_report},
     xp::{award_xp, get_xp_breakdown, get_xp_history, get_xp_summary},
 };
@@ -283,6 +286,15 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .on_window_event(|window, event| {
+            // The now-playing widget is useless without the main window and
+            // would otherwise keep the app alive after it closes.
+            if let WindowEvent::Destroyed = event {
+                if window.label() == "main" {
+                    if let Some(widget) = window.app_handle().get_webview_window(NOW_PLAYING_WIDGET) {
+                        let _ = widget.close();
+                    }
+                }
+            }
             if let WindowEvent::CloseRequested { api, .. } = event {
                 // The close-to-tray confirmation dialog is owned by the main
                 // window only. Auxiliary windows (e.g. the Twitch pop-out
@@ -480,6 +492,7 @@ pub fn run() {
             confirm_app_close,
             hide_main_window,
             show_main_window,
+            set_now_playing_widget,
             get_play_queue,
             add_to_play_queue,
             remove_from_play_queue,

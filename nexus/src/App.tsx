@@ -24,6 +24,7 @@ import { CollectionEditor } from "@/components/Collections/CollectionEditor";
 import { SearchCommand } from "@/components/Search/SearchCommand";
 import { useLaunchLifecycle } from "@/hooks/useLaunchLifecycle";
 import { useNativeNotificationActions } from "@/hooks/useNativeNotificationActions";
+import { useNowPlayingWidget } from "@/hooks/useNowPlayingWidget";
 import { setRunningGame } from "@/lib/launcher";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
@@ -602,6 +603,7 @@ function MainApp() {
       });
     }
   }, []);
+  useNowPlayingWidget(handleStopActiveGame);
   const activeCollectionId = useCollectionStore((s) => s.activeCollectionId);
   const activeManualCollectionName = React.useMemo(() => {
     const active = collections.find((c) => c.id === activeCollectionId);

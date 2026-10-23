@@ -32,10 +32,15 @@ import "@fontsource/fira-code/500.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { applyPersistedCustomThemeSync } from "./lib/theme";
 import App from "./App";
+import { NowPlayingWidget } from "./components/shared/NowPlayingWidget";
 
 applyPersistedCustomThemeSync();
+
+// The now-playing desktop widget (see `set_now_playing_widget`) runs this bundle in its own window.
+const isNowPlayingWidget = getCurrentWindow().label === "now-playing";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -62,7 +67,7 @@ class ErrorBoundary extends React.Component<
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      {isNowPlayingWidget ? <NowPlayingWidget /> : <App />}
     </ErrorBoundary>
   </React.StrictMode>,
 );
