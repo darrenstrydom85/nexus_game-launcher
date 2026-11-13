@@ -23,6 +23,8 @@ All paths relative to the repo root (`D:\Development\game-launcher\game-launcher
 - **App source:** `nexus/` (Tauri + React project).
 - **Website:** `nexus-website/` (static HTML site).
 - **Domain:** `https://www.nexusgamelauncher.com` — all absolute URLs in the website HTML must use this domain.
+- **Hosting:** GitHub Pages. The `Deploy website` workflow (`.github/workflows/pages.yml`) publishes `nexus-website/` every time a change to it lands on `main`. There is no manual deploy step: merging the release PR is the deploy.
+- **`main` is protected:** changes arrive by pull request only, and the owner merges. This skill ends at an open PR (step 9).
 - **Releases folder:** `nexus-website/releases/` (created if it doesn't exist).
 - **Updater manifest:** `nexus-website/updates/latest.json`.
 - **Signing key (private, outside the repo):** `D:\Development\game-launcher\.secrets\nexus_updater.key`.
@@ -43,6 +45,15 @@ All paths relative to the repo root (`D:\Development\game-launcher\game-launcher
 > `[System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))`.
 
 ## Steps (in order)
+
+### 0. Start from a fresh `main`
+
+```powershell
+git checkout main
+git pull
+```
+
+If there are uncommitted changes that aren't part of this release, stop and ask before going on.
 
 ### 1. Build the project
 
@@ -176,6 +187,11 @@ Copy-Item "nexus/src-tauri/target/release/bundle/nsis/Nexus_${VERSION}_x64-setup
 - Verify the MSI filename matches the download links updated in step 5a.
 - Verify the `-setup.exe` filename matches the `url` written to the manifest in step 8.
 
+**Prune old installers.** Keep only this release and the one before it in
+`nexus-website/releases/`; delete older `Nexus_*` files. Everything in that
+folder is published to GitHub Pages (1 GB site limit), and each release adds
+about 27 MB. The updater only ever needs the latest `-setup.exe`.
+
 ### 8. Regenerate the updater manifest (`updates/latest.json`)
 
 Read the **contents** of the signature file and write the manifest so existing
@@ -207,7 +223,31 @@ Then write `nexus-website/updates/latest.json` with this exact shape:
 - `url` must point at the `-setup.exe` copied in step 7 (NOT the MSI).
 - Validate the file is well-formed JSON before finishing.
 
-### 9. Report
+### 9. Open the release PR
+
+Commit everything on a release branch and open a PR against `main`:
+
+```powershell
+git checkout -b release/v$VERSION
+git add nexus/package.json nexus/package-lock.json nexus/src-tauri/Cargo.toml nexus/src-tauri/Cargo.lock nexus/src-tauri/tauri.conf.json README.md nexus-website
+git commit -m "release: v$VERSION - <one-line summary>"
+git push -u origin release/v$VERSION
+gh pr create --base main --title "release: v$VERSION - <one-line summary>" --body "<release notes from step 5c>"
+```
+
+- `git add nexus-website` also stages the installers pruned in step 7.
+- Stop at the open PR. Don't merge it: the owner does.
+- **Merging is the deploy.** When the PR merges, the `Deploy website` workflow publishes the site, the installers and `updates/latest.json` to GitHub Pages, usually within two minutes. Existing installs pick up the update on their next launch.
+- After the owner merges, confirm it went live:
+
+  ```powershell
+  gh run list --workflow pages.yml --limit 1
+  curl.exe -s https://www.nexusgamelauncher.com/updates/latest.json
+  ```
+
+  The run should be `completed success` and `latest.json` should show the new version. If the run failed, open it with `gh run view <id> --log-failed` and fix it before telling the user the release is out.
+
+### 10. Report
 
 Print a summary:
 
@@ -218,7 +258,8 @@ Print a summary:
 - `updates/latest.json` updated: version, pub_date, and that the signature + url were written
 - Number of download links updated and which HTML files were changed
 - Whether a new changelog entry was added
-- Reminder: deploy the website so `releases/` and `updates/latest.json` go live; existing users update on their next launch.
+- Which old installers were pruned
+- The release PR URL, and that merging it publishes the website and the update (no separate deploy)
 
 ## Fail fast
 

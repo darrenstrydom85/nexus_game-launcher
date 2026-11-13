@@ -95,6 +95,7 @@ Create it with the same HTML shell as `index.html` (same `<head>`, top bar, foot
    - Use the existing changelog markup exactly (`changelog-entry`, `changelog-entry-header`, `changelog-category`, `changelog-badge--added|changed|fixed`, `changelog-list` with `<li><strong>Name</strong> &mdash; text</li>`), styled by `assets/css/site.css`. See the version-increment-updater skill, step 5c, for the full shape.
 2. **Prepend** the new entry at the top of the `.changelog-timeline` container so the most recent release always appears first.
 3. **Do not remove or alter existing entries** — only add the new one above them.
+4. **It goes live on merge.** `main` is protected, so the change needs a PR. Once merged, the `Deploy website` workflow (`.github/workflows/pages.yml`) publishes it to GitHub Pages; there's no manual deploy.
 
 ### Styling guidelines
 
