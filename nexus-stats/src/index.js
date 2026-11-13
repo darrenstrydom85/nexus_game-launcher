@@ -40,8 +40,9 @@ export default {
       return new Response(renderDashboard(results, new Date(), weekOf), {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          // No scripts, no outside requests: the page can't track anyone.
-          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+          // No scripts, and fonts and images only from this address (public/):
+          // the page can't track anyone or send anything anywhere.
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'",
         },
       });
     }
