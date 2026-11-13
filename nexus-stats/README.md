@@ -1,6 +1,6 @@
 # nexus-stats
 
-The anonymous counter behind Nexus's "Count me as a user" setting. `src/index.js` is the whole server, `src/dashboard.js` renders the public page at `/`, and `schema.sql` is the whole database. `/raw` returns every stored row as JSON. The app side is `nexus/src/lib/usageCount.ts`.
+The anonymous counter behind Nexus's "Count me as a user" setting. `src/index.js` is the whole server, `src/dashboard.js` renders the public page at `/`, `public/` holds the page's logo and Geist fonts (served from the same address), and `schema.sql` is the whole database. `/raw` returns every stored row as JSON. The app side is `nexus/src/lib/usageCount.ts`.
 
 ## Deploy
 

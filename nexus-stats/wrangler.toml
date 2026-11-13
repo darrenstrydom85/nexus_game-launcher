@@ -6,6 +6,11 @@ compatibility_date = "2026-10-06"
 workers_dev = false
 routes = [{ pattern = "stats.nexusgamelauncher.com", custom_domain = true }]
 
+# The page's logo and fonts, served from this address so it makes no outside
+# requests. Anything that isn't a file here (/, /raw, every POST) goes to the Worker.
+[assets]
+directory = "./public"
+
 # No Workers Logs: requests are counted, never logged.
 [observability]
 enabled = false
