@@ -1,0 +1,10 @@
+{
+  "baseBranch": "main",
+  "checks": {
+    "build": "npm --prefix nexus run build",
+    "test": "npm --prefix nexus test",
+    "clippy": "cargo clippy --lib --all-targets --manifest-path nexus/src-tauri/Cargo.toml -- -D warnings",
+    "rust-test": "cargo test --lib --manifest-path nexus/src-tauri/Cargo.toml",
+    "stats-test": "npm --prefix nexus-stats test"
+  }
+}
