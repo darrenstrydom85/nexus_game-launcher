@@ -553,6 +553,35 @@ mod tests {
 
     // -- Task 1: Watched folder scanning --
 
+    /// Scanning must never touch files: a Downloads folder full of repack
+    /// archives (.bin + setup.exe + MD5) keeps every file, byte for byte.
+    #[test]
+    fn scan_leaves_repack_archives_untouched() {
+        let tmp = TempDir::new().unwrap();
+        let files = [
+            tmp.path().join("Game A [FitGirl Repack]").join("setup.exe"),
+            tmp.path().join("Game A [FitGirl Repack]").join("fg-01.bin"),
+            tmp.path().join("Game A [FitGirl Repack]").join("fg-optional-bonus.bin"),
+            tmp.path().join("Game A [FitGirl Repack]").join("MD5").join("fitgirl-bins.md5"),
+            tmp.path().join("Game A [FitGirl Repack]").join("MD5").join("QuickSFV.EXE"),
+            tmp.path().join("Game B").join("game.exe"),
+            tmp.path().join("Game B").join("data").join("disc.bin"),
+            tmp.path().join("Game B").join("data").join("disc.cue"),
+        ];
+        for f in &files {
+            create_file_with_size(f, 4096);
+        }
+
+        let mut scanner = StandaloneScanner::new();
+        scanner.set_watched_folders(vec![tmp.path().to_path_buf()]);
+        scanner.scan().unwrap();
+        scanner.scan().unwrap();
+
+        for f in &files {
+            assert_eq!(fs::metadata(f).unwrap().len(), 4096, "{} changed", f.display());
+        }
+    }
+
     #[test]
     fn scanner_with_no_folders_returns_empty() {
         let scanner = StandaloneScanner::new();
