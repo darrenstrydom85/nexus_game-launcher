@@ -558,27 +558,43 @@ mod tests {
     #[test]
     fn scan_leaves_repack_archives_untouched() {
         let tmp = TempDir::new().unwrap();
-        let files = [
-            tmp.path().join("Game A [FitGirl Repack]").join("setup.exe"),
-            tmp.path().join("Game A [FitGirl Repack]").join("fg-01.bin"),
-            tmp.path().join("Game A [FitGirl Repack]").join("fg-optional-bonus.bin"),
-            tmp.path().join("Game A [FitGirl Repack]").join("MD5").join("fitgirl-bins.md5"),
-            tmp.path().join("Game A [FitGirl Repack]").join("MD5").join("QuickSFV.EXE"),
-            tmp.path().join("Game B").join("game.exe"),
-            tmp.path().join("Game B").join("data").join("disc.bin"),
-            tmp.path().join("Game B").join("data").join("disc.cue"),
+        let rel = [
+            // Loose at the watched root, like a file sitting in Downloads.
+            "loose-archive.bin",
+            // Un-installed repack: only blocklisted exes, so no game is detected.
+            "Game A [FitGirl Repack]/setup.exe",
+            "Game A [FitGirl Repack]/fg-01.bin",
+            "Game A [FitGirl Repack]/MD5/fitgirl-bins.md5",
+            "Game A [FitGirl Repack]/MD5/QuickSFV.EXE",
+            // Detected game with a bin/cue pair below the exe.
+            "Game B/game.exe",
+            "Game B/data/disc.bin",
+            "Game B/data/disc.cue",
+            // Detected game with an archive beside the exe. No repack marker
+            // file, so the origin-hint pass walks every entry and opens
+            // steam_api.ini, the one place the scanner reads file contents.
+            "Game C/game.exe",
+            "Game C/fg-01.bin",
+            "Game C/steam_api.ini",
         ];
-        for f in &files {
-            create_file_with_size(f, 4096);
+        let files: Vec<(PathBuf, Vec<u8>)> = rel
+            .iter()
+            .map(|r| (tmp.path().join(r), r.repeat(64).into_bytes()))
+            .collect();
+        for (path, body) in &files {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, body).unwrap();
         }
 
         let mut scanner = StandaloneScanner::new();
         scanner.set_watched_folders(vec![tmp.path().to_path_buf()]);
-        scanner.scan().unwrap();
-        scanner.scan().unwrap();
+        for _ in 0..2 {
+            let games = scanner.scan().unwrap();
+            assert_eq!(games.len(), 2, "scan must still reach Game B and Game C");
+        }
 
-        for f in &files {
-            assert_eq!(fs::metadata(f).unwrap().len(), 4096, "{} changed", f.display());
+        for (path, body) in &files {
+            assert_eq!(&fs::read(path).unwrap(), body, "{} changed", path.display());
         }
     }
 
