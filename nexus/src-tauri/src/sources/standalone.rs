@@ -570,11 +570,11 @@ mod tests {
             "Game B/game.exe",
             "Game B/data/disc.bin",
             "Game B/data/disc.cue",
-            // Detected game with archives beside the exe: runs scoring and the
-            // origin-hint pass (which reads steam_api.ini) over the .bin files.
+            // Detected game with an archive beside the exe. No repack marker
+            // file, so the origin-hint pass walks every entry and opens
+            // steam_api.ini, the one place the scanner reads file contents.
             "Game C/game.exe",
             "Game C/fg-01.bin",
-            "Game C/fitgirl-bins.md5",
             "Game C/steam_api.ini",
         ];
         let files: Vec<(PathBuf, Vec<u8>)> = rel
