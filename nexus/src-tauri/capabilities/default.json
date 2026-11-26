@@ -12,6 +12,7 @@
     "core:window:allow-close",
     "core:window:allow-is-maximized",
     "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
     "core:event:default",
     "notification:default",
     {

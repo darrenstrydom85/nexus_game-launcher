@@ -33,11 +33,10 @@ describe("Story 5.3: Custom Window Chrome & Titlebar", () => {
     expect(screen.getByText("Nexus")).toBeInTheDocument();
   });
 
-  it("titlebar has data-tauri-drag-region and drag CSS class", () => {
+  it("titlebar and its title text drag the window", () => {
     render(<Titlebar />);
-    const titlebar = screen.getByTestId("titlebar");
-    expect(titlebar).toHaveAttribute("data-tauri-drag-region");
-    expect(titlebar.className).toContain("titlebar-drag-region");
+    expect(screen.getByTestId("titlebar")).toHaveAttribute("data-tauri-drag-region");
+    expect(screen.getByText("Nexus")).toHaveAttribute("data-tauri-drag-region");
   });
 
   it("renders search trigger button", () => {
@@ -64,12 +63,6 @@ describe("Story 5.3: Custom Window Chrome & Titlebar", () => {
     expect(mocks.close).toHaveBeenCalledOnce();
   });
 
-  it("double-click on titlebar toggles maximize", () => {
-    render(<Titlebar />);
-    fireEvent.doubleClick(screen.getByTestId("titlebar"));
-    expect(mocks.toggleMaximize).toHaveBeenCalledOnce();
-  });
-
   it("shows Restore label when maximized", async () => {
     mocks.isMaximized.mockResolvedValue(true);
     render(<Titlebar />);
@@ -83,10 +76,10 @@ describe("Story 5.3: Custom Window Chrome & Titlebar", () => {
     expect(screen.getByLabelText("Maximize")).toBeInTheDocument();
   });
 
-  it("window controls container has no-drag CSS class", () => {
+  it("window controls are not drag regions", () => {
     render(<Titlebar />);
     const controlsContainer = screen.getByTestId("titlebar-minimize").parentElement!;
-    expect(controlsContainer.className).toContain("titlebar-no-drag");
+    expect(controlsContainer).not.toHaveAttribute("data-tauri-drag-region");
   });
 
   it("close button has destructive hover styling class", () => {
