@@ -25,6 +25,8 @@ export interface SyncState {
   overallTotal: number;
   trigger: "onboarding" | "resync" | "auto" | null;
   startedAt: number | null;
+  /** Library scan from Sync Library: null when none is running, else what it's reading. */
+  scan: { folder: string | null } | null;
 }
 
 /** Event payload shape after Story 18.2 enrichment (camelCase from Rust). */
@@ -56,6 +58,7 @@ const initialState: SyncState = {
   overallTotal: 0,
   trigger: null,
   startedAt: null,
+  scan: null,
 };
 
 export const useSyncStore = create<SyncStore>()(
@@ -114,6 +117,27 @@ export const useSyncStore = create<SyncStore>()(
     { name: "SyncStore", enabled: import.meta.env.DEV },
   ),
 );
+
+// ── Library scan (scan_sources + confirm_games emit `library-scan-folder`) ────
+
+let unlistenScan: Promise<UnlistenFn> | null = null;
+
+/** Shows the scan in the sync strip until `endLibraryScan`. Await it so no early folder is missed. */
+export async function startLibraryScan(): Promise<void> {
+  useSyncStore.setState({ scan: { folder: null } });
+  unlistenScan ??= listen<string>("library-scan-folder", (event) => {
+    // A late event after the scan ended must not bring the strip back.
+    if (useSyncStore.getState().scan) useSyncStore.setState({ scan: { folder: event.payload } });
+  });
+  // No folder names is fine; the sync itself must still run.
+  await unlistenScan.catch(() => {});
+}
+
+export function endLibraryScan() {
+  unlistenScan?.then((fn) => fn(), () => {});
+  unlistenScan = null;
+  useSyncStore.setState({ scan: null });
+}
 
 // ── Listener registration (single Tauri listener for metadata-progress) ───────
 

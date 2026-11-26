@@ -1,11 +1,11 @@
 {
-    "version":  "1.0.3",
-    "notes":  "Adds a small Now playing card on your desktop while Nexus is minimized: it shows the game, a timer and a Stop button, and clicking it takes you back to the game\u0027s page.",
-    "pub_date":  "2026-10-23T07:58:45Z",
-    "platforms":  {
-                      "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES1EwMVhPdDJzWElvWERTS1Rzamc5M0FWazByZjh4WEVBNEZyaUhud0FFT1pFVVhYRzRXWjJ6N29FUE9QYTdFUXd2aHpHZlVYQVR1aVlDdnFva3IzU3d3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNzQyMzExCWZpbGU6TmV4dXNfMS4wLjNfeDY0LXNldHVwLmV4ZQpGaXBVRml3MmNoUVZzSWJITWNpVHltV3lUeGk0UGp3dDJEcUIvMkcyYmtWU1F5cDJoWE5FWFdldlRsdUtnRXBrakJiNFhzTlJlWnI2b3ZqR2ZidVRDdz09Cg==",
-                                             "url":  "https://www.nexusgamelauncher.com/releases/Nexus_1.0.3_x64-setup.exe"
-                                         }
-                  }
+    "version": "1.0.4",
+    "notes": "Syncing your library no longer freezes Nexus, and a strip under the top bar shows which store or game folder it's scanning while it works.",
+    "pub_date": "2026-11-26T17:49:53Z",
+    "platforms": {
+        "windows-x86_64": {
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSL3p5bENUcytES2NEc216MnArR2xNQzIyVXJ6aTdUVTJnVzN0L016SmhJcWMvcXRWei9KTFJBY002SjAxdVQ3N2xkMDBKY3FDZWY5Mkx3ckRmM3F5RUdUcFo5WjZpUkFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzE1MzY0CWZpbGU6TmV4dXNfMS4wLjRfeDY0LXNldHVwLmV4ZQpWQmpsRTNPRlQ5VVE2QnlVaGJsZDdlbWlOVjIrbEsrZjlOMncxV0hrekcxQUtHeCt3Rm5hVG5nTVFoQXVIT21IcFUxTllpRkU0cTRzcU8xbEdoQllEZz09Cg==",
+            "url": "https://www.nexusgamelauncher.com/releases/Nexus_1.0.4_x64-setup.exe"
+        }
+    }
 }

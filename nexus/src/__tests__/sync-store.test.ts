@@ -5,7 +5,13 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 import { listen } from "@tauri-apps/api/event";
-import { useSyncStore, type MetadataProgressPayload, type SyncPhase } from "@/stores/syncStore";
+import {
+  endLibraryScan,
+  startLibraryScan,
+  useSyncStore,
+  type MetadataProgressPayload,
+  type SyncPhase,
+} from "@/stores/syncStore";
 
 const mockListen = vi.mocked(listen);
 
@@ -16,6 +22,7 @@ const initialSyncState = {
   overallTotal: 0,
   trigger: null as "onboarding" | "resync" | "auto" | null,
   startedAt: null as number | null,
+  scan: null,
 };
 
 beforeEach(() => {
@@ -157,5 +164,27 @@ describe("SyncStore", () => {
     expect(state.trigger).toBe("resync");
 
     initPromise(); // unlisten
+  });
+
+  it("library scan tracks the folder until it ends, then ignores late events", async () => {
+    let handler: ((ev: { payload: string }) => void) | null = null;
+    const unlisten = vi.fn();
+    mockListen.mockImplementation(((_name: string, h: (ev: { payload: string }) => void) => {
+      handler = h;
+      return Promise.resolve(unlisten);
+    }) as unknown as typeof listen);
+
+    await startLibraryScan();
+    expect(mockListen).toHaveBeenCalledWith("library-scan-folder", expect.any(Function));
+    expect(useSyncStore.getState().scan).toEqual({ folder: null });
+
+    handler!({ payload: "D:\Games\FitGirl\Toto's Journey" });
+    expect(useSyncStore.getState().scan).toEqual({ folder: "D:\Games\FitGirl\Toto's Journey" });
+
+    endLibraryScan();
+    handler!({ payload: "late" });
+    expect(useSyncStore.getState().scan).toBeNull();
+    await Promise.resolve();
+    expect(unlisten).toHaveBeenCalled();
   });
 });

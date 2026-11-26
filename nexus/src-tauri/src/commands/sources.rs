@@ -7,11 +7,14 @@ use crate::db::DbState;
 use crate::sources::battlenet::BattleNetScanner;
 use crate::sources::epic::EpicScanner;
 use crate::sources::gog::GogScanner;
-use crate::sources::standalone::StandaloneScanner;
+use crate::sources::standalone::{OnFolder, StandaloneScanner};
 use crate::sources::steam::SteamScanner;
 use crate::sources::ubisoft::UbisoftScanner;
 use crate::sources::xbox::XboxScanner;
 use crate::sources::{DetectedGame, GameSource, LauncherInfo, ScanProgress, ScanStatus};
+
+/// What a library sync is reading right now: a source name or a game folder path.
+pub(crate) const SCAN_FOLDER_EVENT: &str = "library-scan-folder";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,7 +84,11 @@ pub async fn scan_sources(
     db: State<'_, DbState>,
 ) -> Result<ScanSourcesResult, CommandError> {
     let watched_folders = load_watched_folders(&db)?;
-    let mut sources = get_registered_sources(watched_folders);
+    let folder_app = app.clone();
+    let on_folder: OnFolder = Box::new(move |path| {
+        let _ = folder_app.emit(SCAN_FOLDER_EVENT, path.display().to_string());
+    });
+    let mut sources = get_registered_sources(watched_folders, Some(on_folder));
 
     for source in sources.iter_mut() {
         load_override_for_source(&db, source.as_mut())?;
@@ -115,6 +122,7 @@ pub async fn scan_sources(
                 status: ScanStatus::Scanning,
             },
         );
+        let _ = app.emit(SCAN_FOLDER_EVENT, &source_name);
 
         match source.detect_games() {
             Ok(games) => {
@@ -162,7 +170,7 @@ pub async fn scan_sources(
 #[tauri::command]
 pub async fn detect_launchers(db: State<'_, DbState>) -> Result<Vec<LauncherInfo>, CommandError> {
     let watched_folders = load_watched_folders(&db)?;
-    let mut sources = get_registered_sources(watched_folders);
+    let mut sources = get_registered_sources(watched_folders, None);
 
     for source in sources.iter_mut() {
         load_override_for_source(&db, source.as_mut())?;
@@ -217,9 +225,13 @@ fn determine_detection_method(source: &dyn GameSource) -> crate::sources::Detect
 /// The `watched_folders` parameter is injected into the standalone scanner.
 /// New scanners are added here as they are implemented in future stories
 /// (3.4 Steam, 3.5 Epic, etc.).
-fn get_registered_sources(watched_folders: Vec<std::path::PathBuf>) -> Vec<Box<dyn GameSource>> {
+fn get_registered_sources(
+    watched_folders: Vec<std::path::PathBuf>,
+    on_folder: Option<OnFolder>,
+) -> Vec<Box<dyn GameSource>> {
     let mut standalone = StandaloneScanner::new();
     standalone.set_watched_folders(watched_folders);
+    standalone.set_on_folder(on_folder);
 
     vec![
         Box::new(standalone),
@@ -301,7 +313,7 @@ mod tests {
 
     #[test]
     fn get_registered_sources_includes_all_scanners() {
-        let sources = get_registered_sources(vec![]);
+        let sources = get_registered_sources(vec![], None);
         assert_eq!(sources.len(), 7);
         assert_eq!(sources[0].id(), "standalone");
         assert_eq!(sources[1].id(), "steam");

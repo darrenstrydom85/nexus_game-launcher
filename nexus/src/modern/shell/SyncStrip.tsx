@@ -4,6 +4,9 @@ import { useSyncStore, type SyncPhase } from "@/stores/syncStore";
 import { SyncErrorPopover } from "@/components/Library/SyncErrorPopover";
 
 const DONE_MS = 3000;
+const STRIP = "relative flex min-h-11 flex-wrap items-center gap-x-3.5 gap-y-1 border-b border-primary/20 bg-primary/[0.06] py-1.5 pl-5 pr-3";
+const SPINNER = "size-4 shrink-0 animate-spin text-primary [animation-duration:1.4s]";
+const LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-primary";
 
 function activePhase(phases: SyncPhase[]): SyncPhase | null {
   const running = phases.filter((p) => p.total > 0 && p.completed < p.total);
@@ -21,6 +24,7 @@ export function SyncStrip() {
   const completed = useSyncStore((s) => s.overallCompleted);
   const total = useSyncStore((s) => s.overallTotal);
   const startedAt = useSyncStore((s) => s.startedAt);
+  const scan = useSyncStore((s) => s.scan);
   const [hiddenRun, setHiddenRun] = React.useState<number | null>(null);
   const [done, setDone] = React.useState<{ games: number } | null>(null);
   const wasActive = React.useRef(isActive);
@@ -37,6 +41,26 @@ export function SyncStrip() {
   }, [isActive, completed, hiddenRun, startedAt]);
 
   const errors = React.useMemo(() => phases.flatMap((p) => p.errors), [phases]);
+
+  // Sync Library reading disk: no count to show, just where it is.
+  if (scan) {
+    return (
+      <div role="status" aria-label="Scanning library" data-testid="sync-strip" data-state="scanning" className={STRIP}>
+        <RefreshCw className={SPINNER} strokeWidth={2} aria-hidden />
+        <span className={LABEL}>Scanning library</span>
+        {scan.folder && (
+          <span
+            data-testid="sync-strip-folder"
+            title={scan.folder}
+            className="min-w-0 flex-1 truncate text-sm text-muted-foreground"
+          >
+            {scan.folder}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   const hidden = hiddenRun !== null && hiddenRun === startedAt;
   if ((!isActive || hidden) && !done) return null;
 
@@ -50,14 +74,14 @@ export function SyncStrip() {
       aria-label={done ? `Library updated, ${done.games} games` : `${label}: ${completed} of ${total} games`}
       data-testid="sync-strip"
       data-state={done ? "done" : "active"}
-      className="relative flex min-h-11 flex-wrap items-center gap-x-3.5 gap-y-1 border-b border-primary/20 bg-primary/[0.06] py-1.5 pl-5 pr-3"
+      className={STRIP}
     >
       {done ? (
         <CheckCircle2 className="size-4 shrink-0 text-green-700 dark:text-green-400" strokeWidth={2} aria-hidden />
       ) : (
-        <RefreshCw className="size-4 shrink-0 animate-spin text-primary [animation-duration:1.4s]" strokeWidth={2} aria-hidden />
+        <RefreshCw className={SPINNER} strokeWidth={2} aria-hidden />
       )}
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">{label}</span>
+      <span className={LABEL}>{label}</span>
       {!done && phase?.currentGame && (
         <span data-testid="sync-strip-game" className="min-w-0 max-w-[40ch] truncate text-sm text-muted-foreground">
           {phase.currentGame}

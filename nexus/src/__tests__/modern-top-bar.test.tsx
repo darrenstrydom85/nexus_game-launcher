@@ -21,6 +21,7 @@ import { useTwitchStore } from "@/stores/twitchStore";
 import { useStreakStore } from "@/stores/streakStore";
 import { useXpStore } from "@/stores/xpStore";
 import { useUpdateStore } from "@/stores/updateStore";
+import globalsCss from "@/globals.css?raw";
 
 function renderBar(props: Partial<React.ComponentProps<typeof TopBar>> = {}) {
   const handlers = {
@@ -51,11 +52,14 @@ describe("v1 TopBar", () => {
     useUpdateStore.setState({ phase: "idle", updateAvailable: false, popupDismissed: false });
   });
 
-  it("is a drag region with the window drag class", () => {
+  it("drags the window from empty bar space only, never via CSS app-region", () => {
     renderBar();
-    const bar = screen.getByTestId("top-bar");
-    expect(bar).toHaveAttribute("data-tauri-drag-region");
-    expect(bar.className).toContain("titlebar-drag-region");
+    expect(screen.getByTestId("top-bar")).toHaveAttribute("data-tauri-drag-region");
+    // Tauri's drag handler only acts on the element itself, so the space around search needs it too.
+    expect(screen.getByTestId("top-search").parentElement).toHaveAttribute("data-tauri-drag-region");
+    expect(screen.getByTestId("top-tab-stats")).not.toHaveAttribute("data-tauri-drag-region");
+    // CSS app-region makes WebView2 rebuild native drag windows on the UI thread every animation frame.
+    expect(globalsCss).not.toMatch(/app-region\s*:\s*drag/);
   });
 
   it("navigates with the tabs and marks the current one", () => {
@@ -101,14 +105,6 @@ describe("v1 TopBar", () => {
     expect(win.minimize).toHaveBeenCalledOnce();
     expect(win.toggleMaximize).toHaveBeenCalledOnce();
     expect(win.close).toHaveBeenCalledOnce();
-  });
-
-  it("maximises on double-click of empty bar space but not of a control", () => {
-    renderBar();
-    fireEvent.doubleClick(screen.getByTestId("top-tab-stats"));
-    expect(win.toggleMaximize).not.toHaveBeenCalled();
-    fireEvent.doubleClick(screen.getByTestId("top-bar"));
-    expect(win.toggleMaximize).toHaveBeenCalledOnce();
   });
 
   it("shows the streak only while one is running", () => {

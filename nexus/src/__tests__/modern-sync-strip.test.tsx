@@ -17,7 +17,7 @@ const running = (completed: number, startedAt = 1) =>
 const show = () => render(<SyncStrip />, { wrapper: TooltipProvider });
 
 describe("v1 sync strip", () => {
-  beforeEach(() => useSyncStore.setState({ isActive: false, phases: [], overallCompleted: 0, overallTotal: 0, trigger: null, startedAt: null }));
+  beforeEach(() => useSyncStore.setState({ isActive: false, phases: [], overallCompleted: 0, overallTotal: 0, trigger: null, startedAt: null, scan: null }));
   afterEach(() => vi.useRealTimers());
 
   it("stays out of the way when nothing is syncing", () => {
@@ -41,6 +41,16 @@ describe("v1 sync strip", () => {
     expect(screen.queryByTestId("sync-strip")).not.toBeInTheDocument();
     act(() => running(0, 2));
     expect(screen.getByTestId("sync-strip")).toBeInTheDocument();
+  });
+
+  it("shows which folder a library scan is reading, then goes", () => {
+    useSyncStore.setState({ scan: { folder: null } });
+    show();
+    expect(screen.getByTestId("sync-strip")).toHaveTextContent("Scanning library");
+    act(() => useSyncStore.setState({ scan: { folder: "D:\\Games\\FitGirl\\Toto's Journey" } }));
+    expect(screen.getByTestId("sync-strip-folder")).toHaveTextContent("D:\\Games\\FitGirl\\Toto's Journey");
+    act(() => useSyncStore.setState({ scan: null }));
+    expect(screen.queryByTestId("sync-strip")).not.toBeInTheDocument();
   });
 
   it("says the library was updated, then goes", () => {

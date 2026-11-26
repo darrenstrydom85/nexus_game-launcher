@@ -42,10 +42,6 @@ export function Titlebar() {
     };
   }, []);
 
-  const handleDoubleClick = React.useCallback(() => {
-    appWindowRef.current.toggleMaximize();
-  }, []);
-
   React.useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -58,21 +54,20 @@ export function Titlebar() {
   }, [setSearchOpen]);
 
   return (
+    // Drag and double-click maximise come from data-tauri-drag-region on each element (see TopBar).
     <header
       data-testid="titlebar"
       data-tauri-drag-region
       className={cn(
         "flex h-10 shrink-0 select-none items-center justify-between",
         "border-b border-border bg-background/80 backdrop-blur-sm",
-        "titlebar-drag-region",
       )}
-      onDoubleClick={handleDoubleClick}
     >
       {/* Left: Logo + Title */}
-      <div className="flex items-center gap-2 pl-3">
+      <div data-tauri-drag-region className="flex items-center gap-2 pl-3">
         <button
           type="button"
-          className="titlebar-no-drag flex size-5 shrink-0 items-center justify-center rounded transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex size-5 shrink-0 items-center justify-center rounded transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => setActiveNav("library")}
           aria-label="Go to Library"
         >
@@ -84,16 +79,16 @@ export function Titlebar() {
             className="size-5"
           />
         </button>
-        <span className="text-sm font-semibold tracking-tight text-foreground">
+        <span data-tauri-drag-region className="text-sm font-semibold tracking-tight text-foreground">
           Nexus
         </span>
-        <span className="rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary/70">
+        <span data-tauri-drag-region className="rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary/70">
           Beta
         </span>
       </div>
 
       {/* Right: Search + Window Controls */}
-      <div className="flex items-center titlebar-no-drag">
+      <div className="flex items-center">
 
         <button
           data-testid="titlebar-retro"

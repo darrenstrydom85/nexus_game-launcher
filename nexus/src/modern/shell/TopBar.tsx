@@ -98,12 +98,6 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
     return () => document.removeEventListener("keydown", onKey);
   }, [setSearchOpen]);
 
-  // Double-click on empty bar space maximises; never when the click came from a control.
-  const onDoubleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(".titlebar-no-drag")) return;
-    appWindowRef.current.toggleMaximize();
-  };
-
   const tabs: Tab[] = [
     { id: "home", label: "Home", icon: <Home className={ICON} strokeWidth={1.5} /> },
     { id: "library", label: "Library", icon: <Library className={ICON} strokeWidth={1.5} /> },
@@ -117,17 +111,19 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
   const showLive = twitchAuthed && liveCount > 0;
 
   return (
+    // Drag and double-click maximise come from Tauri's data-tauri-drag-region, which only acts on
+    // the element itself, so empty wrappers carry it too. Never CSS app-region: WebView2 then
+    // rebuilds native drag windows on the UI thread every animation frame and the app hangs.
     <header
       data-testid="top-bar"
       data-tauri-drag-region
-      onDoubleClick={onDoubleClick}
-      className="titlebar-drag-region flex h-14 shrink-0 select-none items-center gap-4 border-b border-border bg-sidebar pl-4"
+      className="flex h-14 shrink-0 select-none items-center gap-4 border-b border-border bg-sidebar pl-4"
     >
       <button
         type="button"
         onClick={() => setActiveNav("home")}
         aria-label="Nexus home"
-        className="titlebar-no-drag pressable flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="pressable flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <img src={nexusLogo20} alt="" width={20} height={20} className="size-5" />
         <span className="text-[15px] font-semibold tracking-tight text-foreground max-[900px]:sr-only">
@@ -135,7 +131,7 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
         </span>
       </button>
 
-      <nav aria-label="Main" className="titlebar-no-drag flex items-center gap-0.5">
+      <nav aria-label="Main" className="flex items-center gap-0.5">
         {tabs.map((tab) => {
           const active = currentTab === tab.id;
           const badge =
@@ -186,14 +182,14 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
         })}
       </nav>
 
-      <div className="flex min-w-0 flex-1 justify-center">
+      <div data-tauri-drag-region className="flex min-w-0 flex-1 justify-center">
         <button
           type="button"
           data-testid="top-search"
           onClick={() => setSearchOpen(true)}
           aria-label="Search (Ctrl K)"
           className={cn(
-            "@container titlebar-no-drag pressable flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background/60 px-3 text-left text-sm text-muted-foreground outline-none",
+            "@container pressable flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background/60 px-3 text-left text-sm text-muted-foreground outline-none",
             "max-w-[420px] hover:border-ring/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             "max-[900px]:size-9 max-[900px]:flex-none max-[900px]:justify-center max-[900px]:px-0",
           )}
@@ -209,7 +205,7 @@ export function TopBar({ onResync, isSyncing, onOpenSettings, onOpenUpdate }: To
         </button>
       </div>
 
-      <div className="titlebar-no-drag flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <UpdatePill onOpenUpdate={onOpenUpdate} />
 
         {streak && streak.currentStreak > 0 && (
