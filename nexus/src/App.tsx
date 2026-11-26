@@ -28,7 +28,7 @@ import { useNowPlayingWidget } from "@/hooks/useNowPlayingWidget";
 import { setRunningGame } from "@/lib/launcher";
 import { buildLaunchErrorInfo } from "@/lib/launch-errors";
 import { useTauriEvent } from "@/hooks/use-tauri-event";
-import { initSyncStore, useSyncStore } from "@/stores/syncStore";
+import { endLibraryScan, initSyncStore, startLibraryScan, useSyncStore } from "@/stores/syncStore";
 import { useGameStore, type Game, type GameStatus, refreshGames } from "@/stores/gameStore";
 import { useCollectionStore, type Collection, refreshCollections } from "@/stores/collectionStore";
 import { useCollections } from "@/hooks/useCollections";
@@ -489,6 +489,7 @@ function MainApp() {
     setIsSyncing(true);
     setSyncResult(null);
     try {
+      await startLibraryScan();
       const existingGames = useGameStore.getState().games;
       const existingIds = new Set(existingGames.map((g) => g.id));
       const scanResult = await invoke<{ games: unknown[] }>("scan_sources");
@@ -502,6 +503,7 @@ function MainApp() {
     } catch {
       // best-effort
     } finally {
+      endLibraryScan();
       setIsSyncing(false);
     }
   }, []);

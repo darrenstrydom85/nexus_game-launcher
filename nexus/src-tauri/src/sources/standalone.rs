@@ -6,6 +6,9 @@ use super::{DetectedGame, GameSource, SourceError};
 use regex_lite::Regex;
 use std::sync::LazyLock;
 
+/// Called with each game folder as the scanner reaches it, so the UI can say what it's reading.
+pub type OnFolder = Box<dyn Fn(&Path) + Send + Sync>;
+
 /// Standalone / Repack game scanner.
 ///
 /// Scans user-specified watched folders for games installed outside of store
@@ -13,6 +16,7 @@ use std::sync::LazyLock;
 pub struct StandaloneScanner {
     watched_folders: Vec<PathBuf>,
     path_override: Option<PathBuf>,
+    on_folder: Option<OnFolder>,
 }
 
 impl StandaloneScanner {
@@ -20,11 +24,16 @@ impl StandaloneScanner {
         Self {
             watched_folders: Vec::new(),
             path_override: None,
+            on_folder: None,
         }
     }
 
     pub fn set_watched_folders(&mut self, folders: Vec<PathBuf>) {
         self.watched_folders = folders;
+    }
+
+    pub fn set_on_folder(&mut self, on_folder: Option<OnFolder>) {
+        self.on_folder = on_folder;
     }
 
     /// Main scan entry point: iterate each watched folder and collect detected games.
@@ -42,6 +51,9 @@ impl StandaloneScanner {
 
             let subdirs = enumerate_subdirectories(folder)?;
             for subdir in subdirs {
+                if let Some(on_folder) = &self.on_folder {
+                    on_folder(&subdir);
+                }
                 if let Some(game) = scan_game_directory(&subdir) {
                     games.push(game);
                 }

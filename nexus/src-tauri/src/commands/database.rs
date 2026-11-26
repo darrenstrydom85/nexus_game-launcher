@@ -136,7 +136,7 @@ pub struct RelinkResult {
 /// After a library re-import, matches orphaned play sessions back to the new
 /// game rows using the stable (game_source, game_source_id) natural key, then
 /// recomputes the denormalized stats on every game.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn relink_play_sessions(db: State<'_, DbState>) -> Result<RelinkResult, CommandError> {
     relink_play_sessions_impl(&db)
 }

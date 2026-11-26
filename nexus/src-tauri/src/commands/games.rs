@@ -1,7 +1,7 @@
 use rusqlite::{params, OptionalExtension};
 use serde::Deserialize;
 use std::collections::HashSet;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
 
 use super::error::CommandError;
@@ -310,15 +310,32 @@ fn merge_potential_exe_names(existing: Option<&str>, scanned: Option<&str>) -> O
 }
 
 /// Core confirm_games logic. Used by the Tauri command and by tests.
+/// `on_folder` hears each game folder this reads from disk.
 pub(crate) fn confirm_games_impl(
     db: &DbState,
     detected_games: Vec<DetectedGame>,
+    on_folder: &dyn Fn(&str),
 ) -> Result<Vec<Game>, CommandError> {
-    let conn = db.conn()?;
-
     for g in &detected_games {
         GameSource::from_str(&g.source).map_err(CommandError::Parse)?;
     }
+
+    // Derive potential exe names from folder_path if not already provided.
+    // This covers store-based sources (Steam, Epic, GOG, etc.) that supply
+    // a folder_path but don't scan for executables themselves. Done before
+    // taking the DB lock: on a cold disk this walk is the slow part.
+    let exe_names: Vec<Option<String>> = detected_games
+        .iter()
+        .map(|g| {
+            g.potential_exe_names.clone().or_else(|| {
+                let folder = g.folder_path.as_deref()?;
+                on_folder(folder);
+                derive_potential_exe_names(std::path::Path::new(folder))
+            })
+        })
+        .collect();
+
+    let conn = db.conn()?;
 
     // Build set of (source, identifier) for all detected games so we can mark
     // no-longer-detected games as removed. Identifier is source_id or folder_path.
@@ -342,16 +359,7 @@ pub(crate) fn confirm_games_impl(
     let tx = conn
         .unchecked_transaction()?;
 
-    for g in &detected_games {
-        // Derive potential exe names from folder_path if not already provided.
-        // This covers store-based sources (Steam, Epic, GOG, etc.) that supply
-        // a folder_path but don't scan for executables themselves.
-        let potential_exe_names = g.potential_exe_names.clone().or_else(|| {
-            g.folder_path
-                .as_ref()
-                .and_then(|p| derive_potential_exe_names(std::path::Path::new(p)))
-        });
-
+    for (g, potential_exe_names) in detected_games.iter().zip(exe_names) {
         // Check if a game with the same source+source_id already exists.
         // For standalone games (no source_id), match on folder_path instead.
         let existing: Option<(String, Option<String>)> = if let Some(ref sid) = g.source_id {
@@ -484,12 +492,17 @@ pub(crate) fn confirm_games_impl(
     Ok(results)
 }
 
-#[tauri::command]
+// Off the main thread: walks every game folder for exes and writes the library,
+// so a slow disk or a busy DB must not freeze the window.
+#[tauri::command(async)]
 pub fn confirm_games(
+    app: AppHandle,
     db: State<'_, DbState>,
     detected_games: Vec<DetectedGame>,
 ) -> Result<Vec<Game>, CommandError> {
-    confirm_games_impl(&db, detected_games)
+    confirm_games_impl(&db, detected_games, &|folder| {
+        let _ = app.emit(super::sources::SCAN_FOLDER_EVENT, folder);
+    })
 }
 
 #[cfg(test)]
@@ -781,7 +794,7 @@ mod tests {
             },
         ];
 
-        let games = confirm_games_impl(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected, &|_| {}).unwrap();
         assert_eq!(games.len(), 2);
         assert_eq!(games[0].name, "Game A");
         assert_eq!(games[0].source, "steam");
@@ -823,7 +836,7 @@ mod tests {
             },
         ];
 
-        let games = confirm_games_impl(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected, &|_| {}).unwrap();
         assert_ne!(games[0].id, games[1].id);
     }
 
@@ -844,15 +857,42 @@ mod tests {
             is_hidden: false,
         }];
 
-        let result = confirm_games_impl(&state, detected);
+        let result = confirm_games_impl(&state, detected, &|_| {});
         assert!(result.is_err());
     }
 
     #[test]
     fn confirm_games_empty_list() {
         let state = setup_db();
-        let games = confirm_games_impl(&state, vec![]).unwrap();
+        let games = confirm_games_impl(&state, vec![], &|_| {}).unwrap();
         assert!(games.is_empty());
+    }
+
+    #[test]
+    fn confirm_games_reports_only_folders_it_reads() {
+        let state = setup_db();
+        let game = |name: &str, folder: Option<&str>, exe_names: Option<&str>| DetectedGame {
+            name: name.into(),
+            source: "steam".into(),
+            source_id: Some(name.into()),
+            source_hint: None,
+            folder_path: folder.map(Into::into),
+            exe_path: None,
+            exe_name: None,
+            launch_url: None,
+            source_folder_id: None,
+            potential_exe_names: exe_names.map(Into::into),
+            is_hidden: false,
+        };
+        let detected = vec![
+            game("Walked", Some("C:\\NoSuchDir\\Walked"), None),
+            game("Known", Some("C:\\NoSuchDir\\Known"), Some("known.exe")),
+            game("NoFolder", None, None),
+        ];
+
+        let seen = std::cell::RefCell::new(Vec::new());
+        confirm_games_impl(&state, detected, &|f| seen.borrow_mut().push(f.to_string())).unwrap();
+        assert_eq!(seen.into_inner(), vec!["C:\\NoSuchDir\\Walked".to_string()]);
     }
 
     #[test]
@@ -881,7 +921,7 @@ mod tests {
             is_hidden: false,
         }];
 
-        let games = confirm_games_impl(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected, &|_| {}).unwrap();
         assert_eq!(games.len(), 1);
         assert_eq!(games[0].id, "existing-id");
         assert_eq!(
@@ -913,7 +953,7 @@ mod tests {
             ..Default::default()
         }];
 
-        let games = confirm_games_impl(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected, &|_| {}).unwrap();
         assert_eq!(games.len(), 1);
         assert_eq!(
             games[0].exe_path.as_deref(),
@@ -964,7 +1004,7 @@ mod tests {
             ..Default::default()
         }];
 
-        let games = confirm_games_impl(&state, detected).unwrap();
+        let games = confirm_games_impl(&state, detected, &|_| {}).unwrap();
         let exe_names = games[0].potential_exe_names.as_ref().unwrap();
         assert!(
             exe_names.contains("manual-pick.exe"),

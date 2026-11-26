@@ -8,6 +8,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettingsStore, type WatchedFolder } from "@/stores/settingsStore";
 import { refreshGames, useGameStore, type Game, type GameSource } from "@/stores/gameStore";
+import { endLibraryScan, startLibraryScan } from "@/stores/syncStore";
 import { SOURCE_ICON_COMPONENTS, SOURCE_LABELS } from "@/lib/source-icons";
 import { RowIcon, SettingsCard, SettingsRow, ToggleRow } from "../SettingsKit";
 
@@ -123,6 +124,7 @@ function GameSourcesCard() {
   const handleRescan = async () => {
     setRescanning(true);
     try {
+      await startLibraryScan();
       const result = await invoke<ScanResult>("scan_sources");
       // Sources missing from the map (standalone, until toggled) count as enabled, as the switches show.
       const enabled = useSettingsStore.getState().sourcesEnabled;
@@ -135,6 +137,7 @@ function GameSourcesCard() {
     } catch {
       // best-effort
     } finally {
+      endLibraryScan();
       setRescanning(false);
     }
   };
