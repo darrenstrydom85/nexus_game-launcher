@@ -11,7 +11,7 @@ Steam, Epic, GOG, Ubisoft Connect, Battle.net, Xbox and your own folders, in one
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-1.0.3-7500DB?style=flat-square)](https://www.nexusgamelauncher.com/changelog.html)
+[![Version](https://img.shields.io/badge/version-1.0.4-7500DB?style=flat-square)](https://www.nexusgamelauncher.com/changelog.html)
 [![Platform](https://img.shields.io/badge/Windows-10_%7C_11-0F0F14?style=flat-square)](https://www.nexusgamelauncher.com/#download)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app)
 [![License](https://img.shields.io/badge/license-MIT-22C55E?style=flat-square)](LICENSE)
